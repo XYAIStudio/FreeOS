@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "octop"
 version = "1.0.0"
-description = "Smarter self-hosted AI assistant for multiple users and agents, built on harness-agent"
+description = "FreeOS — self-hosted multi-user multi-agent assistant with an optional organization OS module (Octop-compatible package name)"
 readme = "README.md"
 license = { text = "MIT" }
 requires-python = ">=3.12"
@@ -94,6 +94,7 @@ dev = [
 
 [project.scripts]
 octop = "octop.cli.main:cli"
+freeos = "octop.cli.main:cli"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/octop"]

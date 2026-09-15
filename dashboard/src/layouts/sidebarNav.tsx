@@ -18,6 +18,7 @@ import {
   GraduationCap,
   Shield,
   PanelsTopLeft,
+  Building2,
 } from "lucide-react";
 import type { OctopUser } from "../api/modules/auth";
 import { navAllowed, userCan } from "../utils/permissions";
@@ -89,6 +90,12 @@ export function buildNavSections(
           path: "/experts",
           icon: <GraduationCap size={iconSize} strokeWidth={iconStroke} />,
           labelKey: "nav.experts",
+        },
+        {
+          key: "organization",
+          path: "/organization",
+          icon: <Building2 size={iconSize} strokeWidth={iconStroke} />,
+          labelKey: "nav.organization",
         },
         {
           key: "tasks",

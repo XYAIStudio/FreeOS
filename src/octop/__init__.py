@@ -1,4 +1,4 @@
-"""Octop — smarter self-hosted AI assistant (multi-user, multi-agent)."""
+"""FreeOS — Octop-compatible self-hosted multi-user multi-agent assistant."""
 
 from __future__ import annotations
 

@@ -57,6 +57,7 @@ describe("pathPermissionKeys", () => {
   it("does not gate common pages", () => {
     expect(pathPermissionKeys("/chat")).toBeNull();
     expect(pathPermissionKeys("/experts")).toBeNull();
+    expect(pathPermissionKeys("/organization")).toBeNull();
     expect(pathPermissionKeys("/tasks")).toBeNull();
     expect(pathPermissionKeys("/token-usage")).toBeNull();
     expect(pathPermissionKeys("/personalization/skills")).toBeNull();

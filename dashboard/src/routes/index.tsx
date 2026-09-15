@@ -28,6 +28,7 @@ const AdvancedSettingsPage = lazy(
 const AdminStoragePage = lazy(() => import("../pages/Admin/Storage"));
 const AdminPluginsPage = lazy(() => import("../pages/Admin/Plugins"));
 const AgentConfigPage = lazy(() => import("../pages/Agent/Config"));
+const OrganizationPage = lazy(() => import("../pages/Organization"));
 
 // Misc
 const PwaDebugPage = lazy(() => import("../pages/PwaDebug"));
@@ -49,6 +50,7 @@ export const pathToKey: Record<string, string> = {
   "/chat": "chat",
   // Common
   "/experts": "experts",
+  "/organization": "organization",
   "/tasks": "tasks",
   "/connectors": "connectors",
   "/skill-packages": "skill-packages",
@@ -149,6 +151,7 @@ export const routeConfigs: RouteConfig[] = [
 
   // Common
   { path: "/experts", element: <ExpertsPage /> },
+  { path: "/organization", element: <OrganizationPage /> },
   { path: "/tasks", element: <CronJobsPage /> },
   { path: "/connectors", element: <ConnectorsPage /> },
   { path: "/skill-packages", element: <SkillPackagesPage /> },

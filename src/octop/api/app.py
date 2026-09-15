@@ -107,7 +107,7 @@ def build_app(server: OctopServer) -> FastAPI:
     )
 
     app = FastAPI(
-        title="Octop API",
+        title="FreeOS API",
         version="0.1.0",
         description=API_DESCRIPTION,
         openapi_url="/api/openapi.json" if enable_api_docs else None,
@@ -170,6 +170,7 @@ def build_app(server: OctopServer) -> FastAPI:
         mobile,
         ollama_models,
         onnx_models,
+        org_module,
         plugins,
         preferences,
         proactive_care,
@@ -262,6 +263,7 @@ def build_app(server: OctopServer) -> FastAPI:
             _RouterMount(ollama_models.router, "/api", ["ollama"]),
             _RouterMount(onnx_models.router, "/api", ["onnx"]),
             _RouterMount(plugins.router, "/api", ["plugins"]),
+            _RouterMount(org_module.router, "/api/org-module", ["org-module"]),
         ],
     )
 
@@ -279,7 +281,7 @@ def build_app(server: OctopServer) -> FastAPI:
         async def api_docs() -> HTMLResponse:
             return get_scalar_api_reference(
                 openapi_url=app.openapi_url,
-                title="Octop API",
+                title="FreeOS API",
             )
 
     if enable_dashboard:

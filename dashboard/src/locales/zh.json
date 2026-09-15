@@ -1,10 +1,38 @@
 {
   "app": {
-    "pageTitle": "Octop - 懂你、帮你、陪你成长的智能伙伴"
+    "pageTitle": "FreeOS — 自托管多智能体助手"
   },
   "layout": {
     "collapsePanel": "收起面板",
     "expandPanel": "展开面板"
+  },
+  "organization": {
+    "title": "组织 OS",
+    "subtitle": "将 openXYOS 组织能力作为 FreeOS 模块启用或关闭。",
+    "toggleLabel": "启用组织模块",
+    "on": "已启用",
+    "off": "已关闭",
+    "sidecarUp": "边车可达",
+    "sidecarDown": "边车未运行",
+    "bridgeHint": "这是模块化桥接：FreeOS 保留宿主身份与插件；openXYOS 在边车中提供组织 API 与界面。",
+    "home": "数据目录",
+    "sidecar": "边车地址",
+    "startSidecarTitle": "启动组织边车",
+    "startSidecarBody": "模块已打开，但 openXYOS 尚未运行。在仓库根目录执行：",
+    "notesTitle": "模块如何接入",
+    "catalogTitle": "openXYOS 能力目录",
+    "colKey": "键",
+    "colName": "模块",
+    "colDesc": "说明",
+    "colLock": "类型",
+    "locked": "常开",
+    "optional": "可选",
+    "embedTitle": "组织控制台",
+    "openSidecar": "新窗口打开",
+    "loadFailed": "无法加载组织模块状态",
+    "saveFailed": "无法更新组织模块",
+    "enabled": "组织模块已启用",
+    "disabled": "组织模块已关闭"
   },
   "desktopChrome": {
     "group": "窗口控制",
@@ -172,6 +200,7 @@
     "common": "常用",
     "control": "控制",
     "experts": "专家",
+    "organization": "组织",
     "tasks": "自动化",
     "connectors": "连接器",
     "acp": "ACP",
@@ -3414,7 +3443,7 @@
     },
     "conversationRole": {
       "user": "你",
-      "assistant": "Octop",
+      "assistant": "FreeOS",
       "system": "系统",
       "tool": "工具"
     },

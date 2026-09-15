@@ -1,4 +1,4 @@
-"""Filesystem layout for ``~/.octop/``."""
+"""Filesystem layout for ``~/.freeos/`` (legacy ``~/.octop/`` still honored)."""
 
 from __future__ import annotations
 
@@ -13,11 +13,28 @@ class PathLayout:
 
     @classmethod
     def from_env(cls) -> PathLayout:
-        """Resolve install root from ``OCTOP_HOME`` or ``~/.octop``."""
-        raw = os.environ.get("OCTOP_HOME", "").strip()
-        if raw:
-            return cls(Path(raw).expanduser())
-        return cls(Path.home() / ".octop")
+        """Resolve install root from FreeOS/Octop home env vars or legacy paths.
+
+        Precedence:
+
+        1. ``FREEOS_HOME``
+        2. ``OCTOP_HOME`` (legacy Octop identifier, still honored)
+        3. ``~/.freeos`` if it already exists
+        4. ``~/.octop`` if it already exists (existing Octop installs)
+        5. ``~/.freeos`` for new installs
+        """
+        for key in ("FREEOS_HOME", "OCTOP_HOME"):
+            raw = os.environ.get(key, "").strip()
+            if raw:
+                return cls(Path(raw).expanduser())
+        home = Path.home()
+        freeos = home / ".freeos"
+        octop = home / ".octop"
+        if freeos.exists():
+            return cls(freeos)
+        if octop.exists():
+            return cls(octop)
+        return cls(freeos)
 
     @property
     def db(self) -> Path:

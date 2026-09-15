@@ -1,10 +1,12 @@
 <p align="center">
-  <img src="docs/assets/readme-banner-zh.png" alt="Octop Banner" width="600" />
+  <img src="docs/assets/readme-banner.png" alt="FreeOS" width="600" />
 </p>
 
 <p align="center">
-  <strong>支持多用户、多 Agent 的自托管 AI 助手 — 更聪明，更懂你。</strong>
+  <strong>FreeOS — 自托管多用户、多 Agent 助手，可选组织 OS 模块。</strong>
 </p>
+
+<p align="center">运行与组织模块说明见 <a href="README.md">README.md</a>；架构见 <a href="docs/architecture-integration.md">docs/architecture-integration.md</a>。</p>
 
 <p align="center">
   <a href="https://www.python.org/downloads/"><img alt="Python 3.12+" src="https://img.shields.io/badge/python-3.12%2B-blue?logo=python&logoColor=white" /></a>

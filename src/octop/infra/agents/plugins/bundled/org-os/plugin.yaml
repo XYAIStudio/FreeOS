@@ -1,0 +1,10 @@
+id: org-os
+version: 0.1.0
+name: Organization OS
+description: Enable the openXYOS organization module from FreeOS (sidecar + BFF)
+icon: "🏢"
+kind: tool
+entry: main.py
+ui:
+  entry: ui/index.js
+  manifest: ui/manifest.json

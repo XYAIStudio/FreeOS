@@ -133,7 +133,7 @@ export default function LoginPage() {
       >
         <img
           src={isDark ? "/logo_name_dark.png" : "/logo_name.png"}
-          alt="Octop"
+          alt="FreeOS"
           style={{
             height: 48,
             width: "auto",

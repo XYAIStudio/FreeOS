@@ -47,10 +47,16 @@ def _get_version() -> str:
         return "unknown"
 
 
+def _invoked_as_freeos() -> bool:
+    name = sys.argv[0].rsplit("/", 1)[-1].rsplit("\\", 1)[-1].lower()
+    return name in {"freeos", "freeos.exe"}
+
+
 def _print_version(ctx: click.Context, _param: click.Parameter, value: bool) -> None:
     if not value or ctx.resilient_parsing:
         return
-    click.echo(f"octop v{_get_version()}")
+    label = "freeos" if _invoked_as_freeos() else "octop"
+    click.echo(f"{label} v{_get_version()}")
     ctx.exit()
 
 

@@ -1,10 +1,38 @@
 {
   "app": {
-    "pageTitle": "Octop - An intelligent partner that understands you, helps you, and grows with you"
+    "pageTitle": "FreeOS — self-hosted multi-agent assistant"
   },
   "layout": {
     "collapsePanel": "Collapse panel",
     "expandPanel": "Expand panel"
+  },
+  "organization": {
+    "title": "Organization OS",
+    "subtitle": "Enable the openXYOS organization module as a FreeOS sidecar.",
+    "toggleLabel": "Enable organization module",
+    "on": "Enabled",
+    "off": "Disabled",
+    "sidecarUp": "Sidecar reachable",
+    "sidecarDown": "Sidecar offline",
+    "bridgeHint": "This is a modular bridge: FreeOS keeps the host identity and plugins; openXYOS serves org APIs and UI on a sidecar.",
+    "home": "Data home",
+    "sidecar": "Sidecar URL",
+    "startSidecarTitle": "Start the organization sidecar",
+    "startSidecarBody": "The module is on, but openXYOS is not running. From the repo root:",
+    "notesTitle": "How this module is wired",
+    "catalogTitle": "openXYOS capabilities",
+    "colKey": "Key",
+    "colName": "Module",
+    "colDesc": "Description",
+    "colLock": "Kind",
+    "locked": "Always on",
+    "optional": "Optional",
+    "embedTitle": "Organization console",
+    "openSidecar": "Open in new tab",
+    "loadFailed": "Could not load organization module status",
+    "saveFailed": "Could not update organization module",
+    "enabled": "Organization module enabled",
+    "disabled": "Organization module disabled"
   },
   "desktopChrome": {
     "group": "Window controls",
@@ -172,6 +200,7 @@
     "common": "Common",
     "control": "Control",
     "experts": "Experts",
+    "organization": "Organization",
     "tasks": "Automation",
     "connectors": "Connectors",
     "acp": "ACP",

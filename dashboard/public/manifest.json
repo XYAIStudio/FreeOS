@@ -1,8 +1,8 @@
 {
   "id": "/",
-  "name": "Octop",
-  "short_name": "Octop",
-  "description": "Smarter self-hosted AI assistant — multi-user, multi-agent",
+  "name": "FreeOS",
+  "short_name": "FreeOS",
+  "description": "Self-hosted multi-user multi-agent assistant with optional organization OS",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
