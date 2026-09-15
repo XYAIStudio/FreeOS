@@ -17,7 +17,7 @@ def _uninstall_section(text: str) -> str:
 
 
 def test_uninstall_asks_before_stopping_running_processes() -> None:
-    nsi = NSI.read_text(encoding="utf-8")
+    nsi = NSI.read_text(encoding="utf-8-sig")
     nsh = NSH.read_text(encoding="utf-8")
 
     assert "Function un.onInit" in nsi
@@ -48,7 +48,7 @@ def test_uninstall_asks_before_stopping_running_processes() -> None:
 
 
 def test_uninstall_stops_processes_then_wipes_instdir() -> None:
-    nsi = NSI.read_text(encoding="utf-8")
+    nsi = NSI.read_text(encoding="utf-8-sig")
     nsh = NSH.read_text(encoding="utf-8")
     uninstall = _uninstall_section(nsi)
 
@@ -70,11 +70,11 @@ def test_uninstall_does_not_wipe_profile_homes() -> None:
     assert "FREEOS_HOME" in nsh
     assert r'IfFileExists "$INSTDIR\User Data"' in nsh
     assert r'IfFileExists "$INSTDIR\userdata"' in nsh
-    assert ".freeos" not in _uninstall_section(NSI.read_text(encoding="utf-8"))
+    assert ".freeos" not in _uninstall_section(NSI.read_text(encoding="utf-8-sig"))
 
 
 def test_uninstall_removes_shortcuts_and_program_cache() -> None:
-    uninstall = _uninstall_section(NSI.read_text(encoding="utf-8"))
+    uninstall = _uninstall_section(NSI.read_text(encoding="utf-8-sig"))
     assert 'Delete "$SMPROGRAMS\\${INFO_PRODUCTNAME}.lnk"' in uninstall
     assert 'Delete "$DESKTOP\\${INFO_PRODUCTNAME}.lnk"' in uninstall
     assert 'Delete "$SMSTARTUP\\${INFO_PRODUCTNAME}.lnk"' in uninstall
@@ -83,7 +83,7 @@ def test_uninstall_removes_shortcuts_and_program_cache() -> None:
 
 
 def test_finish_page_run_defaults_checked() -> None:
-    nsi = NSI.read_text(encoding="utf-8")
+    nsi = NSI.read_text(encoding="utf-8-sig")
     assert '!define MUI_FINISHPAGE_RUN "$INSTDIR\\${PRODUCT_EXECUTABLE}"' in nsi
     assert "!define MUI_FINISHPAGE_RUN_FUNCTION LaunchFreeOS" in nsi
     assert "!define MUI_FINISHPAGE_RUN_TEXT" in nsi
@@ -92,7 +92,47 @@ def test_finish_page_run_defaults_checked() -> None:
     assert "!define MUI_FINISHPAGE_RUN_NOTCHECKED" not in nsi
     launch = nsi[nsi.index("Function LaunchFreeOS") :]
     assert 'SetOutPath "$INSTDIR"' in launch
-    assert "Exec '\"$INSTDIR\\${PRODUCT_EXECUTABLE}\"'" in launch
+    # Finish-page launch must drop the installer admin token.
+    assert "CoCreateInstance" in launch
+    assert "IShellDispatch2" in launch or "A4C6892C-3BA9-11d2-9DEA-00C04FB16162" in launch
+    assert r'"$WINDIR\explorer.exe"' in launch
+    assert "Exec '\"$INSTDIR\\${PRODUCT_EXECUTABLE}\"'" not in launch
+
+
+def test_shortcut_working_directory_is_instdir() -> None:
+    nsi = NSI.read_text(encoding="utf-8-sig")
+    install = nsi[nsi.index("Section\n") : nsi.index('Section "uninstall"')]
+    create = install.index("CreateShortCut")
+    pinned = install.rfind("SetOutPath", 0, create)
+    assert pinned != -1
+    window = install[pinned:create]
+    assert "$INSTDIR" in window
+    assert "pluginsdir" not in window
+
+
+def test_nsis_chinese_source_is_utf8_with_bom() -> None:
+    raw = NSI.read_bytes()
+    assert raw.startswith(b"\xef\xbb\xbf"), "makensis treats BOM-less files as ACP (CP1252 on CI)"
+    text = raw.decode("utf-8-sig")
+    assert "运行 FreeOS" in text
+    assert "检测到 FreeOS 仍在运行" in text
+    mojibake = "运行".encode().decode("cp1252", errors="replace")
+    assert mojibake not in text
+    task = (REPO / "desktop" / "src" / "build" / "windows" / "Taskfile.yml").read_text(
+        encoding="utf-8"
+    )
+    assert task.count("-INPUTCHARSET UTF8") >= 2
+
+
+def test_packaged_windows_entry_is_freeos_exe() -> None:
+    nsh = NSH.read_text(encoding="utf-8")
+    assert 'File "/oname=${PRODUCT_EXECUTABLE}"' in nsh
+    assert "${ARG_WAILS_AMD64_BINARY}" in nsh
+    assert "${ARG_WAILS_ARM64_BINARY}" in nsh
+    embed = (REPO / "desktop" / "src" / "embed_portable_embedded.go").read_text(encoding="utf-8")
+    assert "bundled/portable.zip" in embed
+    launch = (REPO / "desktop" / "portable" / "templates" / "launch.py").read_text(encoding="utf-8")
+    assert "addsitedir" in launch or "site.addsitedir" in launch
 
 
 def test_desktop_readme_documents_uninstall_keep_vs_remove() -> None:

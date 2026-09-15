@@ -19,6 +19,8 @@
 
 ### 修复
 
+- Windows NSIS 安装完成后双击桌面 / 开始菜单快捷方式（或 `FreeOS.exe`）能打开窗口：快捷方式工作目录固定为 `$INSTDIR`，WebView2 用户数据写到 `%LOCALAPPDATA%\FreeOS\WebView2`（不再落到 Program Files），结束页用未提权 token 启动以免把 `~/.freeos` 标成 High integrity，并忽略非 `FreeOS.exe` 的残留 `desktop.pid`。
+- Windows NSIS 结束页复选框不再显示 `è¿è¡Œ FreeOS`：`project.nsi` 使用 UTF-8 BOM，`makensis -INPUTCHARSET UTF8`，简体中文 LangString（运行 FreeOS / 卸载确认）按 Unicode 编译。
 - Windows NSIS uninstall now stops FreeOS / host / sidecar processes and recursively removes `$INSTDIR` (quoted `RMDir /r`, plus a delayed cleanup after `uninstall.exe` exits). If those processes are still running, uninstall asks first (cancel aborts and leaves them running; confirm closes them then wipes the install dir). User profile data under `%USERPROFILE%\.freeos` / `FREEOS_HOME` / legacy `~/.octop` is kept. Product version remains 0.0.1.
 - Windows desktop no longer keeps a leftover Octop 0.9 / 1.0 portable under `~/.octop` just because FreeOS is `0.0.1`. Same-version rebuilds replace when `FREEOS_STAMP` changes.
 - Desktop host now sets `OCTOP_DESKTOP=1` / `FREEOS_DESKTOP=1`. Local session accepts IPv4-mapped loopback and, on desktop, picks an existing admin instead of dead-ending on the login form.

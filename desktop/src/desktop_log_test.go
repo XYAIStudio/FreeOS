@@ -3,6 +3,7 @@ package main
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 	"testing"
@@ -67,7 +68,12 @@ func TestClaimDesktopInstanceDetectsLiveLock(t *testing.T) {
 	if err := os.WriteFile(desktopLockPath(), []byte(strconv.Itoa(parent)), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if !claimDesktopInstance() {
+	blocked := claimDesktopInstance()
+	if runtime.GOOS == "windows" {
+		if blocked {
+			t.Fatal("live pid that is not FreeOS.exe must not block Windows launch")
+		}
+	} else if !blocked {
 		t.Fatal("lock held by another live pid should be detected")
 	}
 	clearDesktopPid()

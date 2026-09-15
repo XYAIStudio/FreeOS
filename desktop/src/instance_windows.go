@@ -4,11 +4,16 @@ package main
 
 import (
 	"log"
+	"os"
+	"path/filepath"
+	"strings"
 	"syscall"
 	"unsafe"
 
 	"golang.org/x/sys/windows"
 )
+
+var desktopMutex windows.Handle
 
 func pidAlive(pid int) bool {
 	h, err := windows.OpenProcess(windows.PROCESS_QUERY_LIMITED_INFORMATION, false, uint32(pid))
@@ -52,4 +57,62 @@ func activateExistingInstance() bool {
 	_, _, _ = procSetForeground.Call(hwnd)
 	log.Printf("activated existing FreeOS window")
 	return true
+}
+
+func otherDesktopInstanceHeld() bool {
+	name, err := windows.UTF16PtrFromString("Local\\FreeOS-desktop-instance")
+	if err != nil {
+		return false
+	}
+	h, err := windows.CreateMutex(nil, false, name)
+	if err == windows.ERROR_ALREADY_EXISTS {
+		if desktopMutex != 0 {
+			if h != 0 && h != desktopMutex {
+				_ = windows.CloseHandle(h)
+			}
+			return false
+		}
+		if h != 0 {
+			_ = windows.CloseHandle(h)
+		}
+		return true
+	}
+	if err != nil {
+		return false
+	}
+	desktopMutex = h
+	return false
+}
+
+func releaseDesktopInstanceLock() {
+	if desktopMutex != 0 {
+		_ = windows.CloseHandle(desktopMutex)
+		desktopMutex = 0
+	}
+}
+
+func pidLooksLikeDesktopShell(pid int) bool {
+	name := strings.ToLower(pidImageBase(pid))
+	if name == "" {
+		return false
+	}
+	want := "freeos.exe"
+	if exe, err := os.Executable(); err == nil {
+		want = strings.ToLower(filepath.Base(exe))
+	}
+	return name == want
+}
+
+func pidImageBase(pid int) string {
+	h, err := windows.OpenProcess(windows.PROCESS_QUERY_LIMITED_INFORMATION, false, uint32(pid))
+	if err != nil {
+		return ""
+	}
+	defer windows.CloseHandle(h)
+	var buf [windows.MAX_PATH]uint16
+	size := uint32(len(buf))
+	if err := windows.QueryFullProcessImageName(h, 0, &buf[0], &size); err != nil {
+		return ""
+	}
+	return filepath.Base(windows.UTF16ToString(buf[:size]))
 }

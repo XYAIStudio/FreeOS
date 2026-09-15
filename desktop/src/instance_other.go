@@ -15,3 +15,9 @@ func pidAlive(pid int) bool {
 func activateExistingInstance() bool {
 	return false
 }
+
+func otherDesktopInstanceHeld() bool { return false }
+
+func pidLooksLikeDesktopShell(int) bool { return true }
+
+func releaseDesktopInstanceLock() {}
