@@ -11,11 +11,11 @@
         <key>CFBundleIdentifier</key>
         <string>com.xyaistudio.freeos</string>
         <key>CFBundleVersion</key>
-        <string>1.0.0.dev</string>
+        <string>0.0.1.dev</string>
         <key>CFBundleGetInfoString</key>
         <string>FreeOS desktop shell (dev)</string>
         <key>CFBundleShortVersionString</key>
-        <string>1.0.0.dev</string>
+        <string>0.0.1.dev</string>
         <key>CFBundleIconFile</key>
         <string>icons</string>
         <key>LSMinimumSystemVersion</key>

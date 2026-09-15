@@ -15,7 +15,7 @@ name: Docker Publish
 #
 # 拉取示例：
 #   docker pull ghcr.io/tencentcloud/octop:latest
-#   docker pull ghcr.io/tencentcloud/octop:0.9.28
+#   docker pull ghcr.io/tencentcloud/octop:0.0.1
 on:
   push:
     tags:
