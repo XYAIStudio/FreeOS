@@ -3,12 +3,12 @@
 from __future__ import annotations
 
 from collections.abc import AsyncIterator, Mapping
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from urllib.parse import quote
 
-import httpx
-from fastapi import Request, Response
-from fastapi.responses import StreamingResponse
+if TYPE_CHECKING:
+    from fastapi import Request, Response
+    from fastapi.responses import StreamingResponse
 
 _HOP_BY_HOP = {
     "connection",
@@ -74,6 +74,9 @@ async def proxy_request(
     timeout: float = 30.0,
 ) -> Response:
     """Stream a request to the sidecar and return the upstream response."""
+    import httpx
+    from fastapi import Response
+
     target = sidecar_target(base_url, path, request.url.query)
     headers = _filter_request_headers(request.headers, extra_headers or {})
     body = await request.body()
@@ -97,12 +100,14 @@ async def proxy_request(
     )
 
 
-async def iter_upstream(response: httpx.Response) -> AsyncIterator[bytes]:
+async def iter_upstream(response: Any) -> AsyncIterator[bytes]:
     async for chunk in response.aiter_bytes():
         yield chunk
 
 
-def streaming_response(upstream: httpx.Response) -> StreamingResponse:
+def streaming_response(upstream: Any) -> StreamingResponse:
+    from fastapi.responses import StreamingResponse
+
     headers = {
         key: value
         for key, value in upstream.headers.items()

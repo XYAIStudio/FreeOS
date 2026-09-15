@@ -146,7 +146,9 @@ async def _iter_subprocess_lines(stream: asyncio.StreamReader) -> AsyncIterator[
 
 
 def octop_home() -> Path:
-    return Path(os.environ.get("OCTOP_HOME", Path.home() / ".octop"))
+    from octop.infra.utils.paths import PathLayout
+
+    return PathLayout.from_env().root
 
 
 def desktop_state_dir() -> Path:

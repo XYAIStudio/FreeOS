@@ -216,17 +216,19 @@ def _account_home(user: str) -> Path:
 
 
 def resolve_service_home(*, run_as_user: str | None = None) -> Path:
-    """Resolve ``OCTOP_HOME`` for the service owner, not the installer's euid.
+    """Resolve ``FREEOS_HOME`` / ``OCTOP_HOME`` for the service owner.
 
     ``Path.home()`` follows the effective uid, so a ``sudo`` install as root
-    would otherwise point at ``/root/.octop`` while ``User=`` names the
-    invoking user — use that user's passwd home instead.
+    would otherwise point at ``/root/.freeos`` while ``User=`` names the
+    invoking user — use that user's passwd home instead. ``OCTOP_HOME`` remains
+    a compatibility alias.
     """
-    raw = os.environ.get("OCTOP_HOME", "").strip()
-    if raw:
-        return Path(raw).expanduser()
+    for key in ("FREEOS_HOME", "OCTOP_HOME"):
+        raw = os.environ.get(key, "").strip()
+        if raw:
+            return Path(raw).expanduser()
     user = run_as_user or resolve_run_as_user()
-    return _account_home(user) / ".octop"
+    return _account_home(user) / ".freeos"
 
 
 def persist_bind_options(home: Path, *, host: str | None = None, port: int | None = None) -> None:

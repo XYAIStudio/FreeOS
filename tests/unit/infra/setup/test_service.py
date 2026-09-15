@@ -694,16 +694,18 @@ def test_resolve_run_as_user_root_always_returns_root(monkeypatch: pytest.Monkey
 def test_resolve_service_home_uses_passwd_not_effective_uid(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """sudo install as root must still target the invoking user's ~/.octop."""
+    """sudo install as root must still target the invoking user's ~/.freeos."""
     monkeypatch.delenv("OCTOP_HOME", raising=False)
+    monkeypatch.delenv("FREEOS_HOME", raising=False)
     monkeypatch.setattr(service_mod, "is_root", lambda: True)
     monkeypatch.setenv("SUDO_USER", "ubuntu")
-    assert resolve_service_home(run_as_user="ubuntu") == Path("/home/ubuntu") / ".octop"
+    assert resolve_service_home(run_as_user="ubuntu") == Path("/home/ubuntu") / ".freeos"
 
 
 def test_resolve_service_home_root_session(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("OCTOP_HOME", raising=False)
-    assert resolve_service_home(run_as_user="root") == Path(pwd.getpwnam("root").pw_dir) / ".octop"
+    monkeypatch.delenv("FREEOS_HOME", raising=False)
+    assert resolve_service_home(run_as_user="root") == Path(pwd.getpwnam("root").pw_dir) / ".freeos"
 
 
 def test_build_runtime_root_always_system_scope(
