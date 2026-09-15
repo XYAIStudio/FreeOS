@@ -9,6 +9,11 @@ from urllib.parse import urlparse
 
 import httpx
 
+from octop.modules.org_os.governance.imported import (
+    load_imported_rules,
+    match_imported_rule,
+    rule_is_allowed,
+)
 from octop.modules.org_os.governance.policy import (
     HIGH_RISK_CATEGORIES,
     args_digest,
@@ -75,6 +80,33 @@ class GovernanceEngine:
                 rule_source="durable-approval",
             )
             return self._audit(request, decision, digest)
+
+        imported = match_imported_rule(
+            load_imported_rules(self.store.root),
+            tool_name=request.tool_name,
+            category=category,
+            action=request.action,
+        )
+        if imported is not None:
+            allowed = rule_is_allowed(imported)
+            if allowed is False:
+                decision = PolicyDecision(
+                    status="deny",
+                    execute=False,
+                    blocked=True,
+                    reason=str(imported.get("reason") or "imported policy denied"),
+                    category=category,
+                    rule_source="imported-policies",
+                )
+                return self._audit(request, decision, digest)
+            return self._pending_or_deny(
+                request,
+                category,
+                digest,
+                "imported rule matched; human approval required",
+                sidecar_reached=False,
+                rule_source="imported-policies",
+            )
 
         sidecar = self._sidecar_validate(request)
         if sidecar is not None:
@@ -179,6 +211,7 @@ class GovernanceEngine:
         reason: str,
         *,
         sidecar_reached: bool,
+        rule_source: str = "local-default-deny",
     ) -> PolicyDecision:
         if not request.auto_pause:
             decision = PolicyDecision(
@@ -187,7 +220,7 @@ class GovernanceEngine:
                 blocked=True,
                 reason=reason,
                 category=category,
-                rule_source="local-default-deny",
+                rule_source=rule_source,
                 sidecar_reached=sidecar_reached,
             )
             return self._audit(request, decision, digest)
@@ -208,7 +241,7 @@ class GovernanceEngine:
             f"`freeos org governance approve {pause.pause_id}`",
             category=category,
             pause_id=pause.pause_id,
-            rule_source="local-default-deny",
+            rule_source=rule_source,
             sidecar_reached=sidecar_reached,
         )
         return self._audit(request, decision, digest)

@@ -8,7 +8,10 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from octop.modules.org_os.compiler.telemetry import export_capability_digest
 from octop.modules.org_os.governance.mcp_server import stdio_spec
+from octop.modules.org_os.lifecycle.store import LifecycleStore
+from octop.modules.org_os.lifecycle.transitions import KEEP_ENV_KEYS
 from octop.modules.org_os.skill_bridge.publish import publish_skill
 
 ASSET_PACK_SCHEMA = "freeos.asset-pack.v1"
@@ -42,6 +45,65 @@ def _copy_tree(source: Path, dest: Path) -> None:
         dest.write_bytes(source.read_bytes())
         return
     shutil.copytree(source, dest, dirs_exist_ok=True)
+
+
+def _redact_env(env_file: Path) -> None:
+    if not env_file.is_file():
+        return
+    lines: list[str] = []
+    for line in env_file.read_text(encoding="utf-8").splitlines():
+        if "=" in line and not line.lstrip().startswith("#"):
+            key, _sep, _value = line.partition("=")
+            if key in KEEP_ENV_KEYS:
+                lines.append(line)
+            else:
+                lines.append(f"{key}=")
+        else:
+            lines.append(line)
+    lines.append("# secrets stripped from freeos.asset-pack.v1")
+    env_file.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+def _iter_employee_dirs(home: Path, tenant_id: str) -> list[Path]:
+    tenants_root = home / "tenants"
+    if not tenants_root.is_dir():
+        return []
+    if tenant_id:
+        roots = [tenants_root / tenant_id / "employees"]
+    else:
+        roots = [path / "employees" for path in sorted(tenants_root.iterdir()) if path.is_dir()]
+    found: list[Path] = []
+    for root in roots:
+        if not root.is_dir():
+            continue
+        for employee_dir in sorted(root.iterdir()):
+            if employee_dir.is_dir() and (employee_dir / "SOUL.md").is_file():
+                found.append(employee_dir)
+    return found
+
+
+def _employee_payloads(home: Path, tenant_id: str) -> list[dict[str, Any]]:
+    payloads: list[dict[str, Any]] = []
+    tenants_root = home / "tenants"
+    if not tenants_root.is_dir():
+        return payloads
+    tenant_ids = (
+        [tenant_id]
+        if tenant_id
+        else [path.name for path in tenants_root.iterdir() if path.is_dir()]
+    )
+    for tid in tenant_ids:
+        for record in LifecycleStore(home, tid).list():
+            workspace = Path(record.workspace)
+            if not workspace.is_dir() or not (workspace / "SOUL.md").is_file():
+                continue
+            digest = export_capability_digest(workspace, lifecycle=record.lifecycle)
+            profile = digest.to_openxyos_profile()
+            profile["slug"] = record.slug
+            profile["lifecycle"] = record.lifecycle
+            profile["enabled_by_default"] = False
+            payloads.append(profile)
+    return payloads
 
 
 def publish_asset_pack(
@@ -86,15 +148,54 @@ def publish_asset_pack(
     _copy_tree(mcp_path, dest / "openxyos" / "xyos-governance-mcp.json")
 
     agent_count = 0
-    tenants_root = home / "tenants"
-    if tenants_root.is_dir():
-        for employee_dir in tenants_root.glob("*/employees/*"):
-            if not employee_dir.is_dir() or employee_dir.name == "registry.json":
-                continue
-            if not (employee_dir / "SOUL.md").is_file():
-                continue
-            _copy_tree(employee_dir, dest / "agents" / employee_dir.name)
-            agent_count += 1
+    for employee_dir in _iter_employee_dirs(home, tenant_id):
+        target = dest / "agents" / employee_dir.name
+        _copy_tree(employee_dir, target)
+        _redact_env(target / ".env")
+        agent_count += 1
+
+    employees = _employee_payloads(home, tenant_id)
+    employees_path = dest / "openxyos" / "org-employees.publish.json"
+    employees_path.write_text(
+        json.dumps(
+            {
+                "enabled_by_default": False,
+                "endpoint": "/api/employees",
+                "employees": employees,
+            },
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    talent = [
+        {
+            "name": item["name"],
+            "talent_type": "ai",
+            "agent_type": item.get("agent_type"),
+            "status": item.get("talent_status") or "draft",
+            "skills": item.get("skills"),
+            "source": "FreeOS",
+            "integration_type": "agent-blueprint-v1",
+            "tenant_id": item.get("tenant_id"),
+            "slug": item.get("slug"),
+            "enabled_by_default": False,
+        }
+        for item in employees
+        if item.get("lifecycle") in {"market", "recruit", "shadow", "active"}
+    ]
+    (dest / "openxyos" / "org-talent.publish.json").write_text(
+        json.dumps(
+            {
+                "enabled_by_default": False,
+                "endpoint": "/api/talent",
+                "talent": talent,
+            },
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
 
     manifest = {
         "schema": ASSET_PACK_SCHEMA,
@@ -105,11 +206,14 @@ def publish_asset_pack(
             "plugins": plugin_count,
             "mcps": mcp_count,
             "agents": agent_count,
+            "employees": len(employees),
+            "talent": len(talent),
         },
         "openxyos": {
             "module_settings": "/api/module-settings",
             "plugins": "/api/plugins",
             "employees": "/api/employees",
+            "talent": "/api/talent",
             "note": "Drafts only. Tenant must toggle each asset on.",
         },
         "governance": "xyos-governance-mcp remains required for high-risk tools.",
@@ -126,5 +230,6 @@ def publish_asset_pack(
         notes=[
             "Not installed into the sidecar. Operator reviews openxyos/ then enables per tenant.",
             "One tenant = one workspace; do not unpack this pack into a shared sandbox.",
+            "Agent .env values are redacted except tenant/slug/schema keys.",
         ],
     )

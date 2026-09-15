@@ -13,6 +13,8 @@
 - Phase B: `xyos2freeos` compiles `openxyos.agent-blueprint.v1` into tenant-scoped employee workspaces
 - Phase B: digital-colleague lifecycle (`draft`→`offboard`) with credential revoke + memory archive
 - Phase B: bidirectional asset factory (`freeos org assets publish|import`)
+- Phase B: imported openXYOS policy matrices load into `xyos-governance-mcp` (explicit allow still requires human approval)
+- Phase B: outbound `freeos.asset-pack.v1` writes `org-employees.publish.json` / `org-talent.publish.json` and redacts packed `.env` secrets
 
 ## [1.0.0] - 2026-09-14
 

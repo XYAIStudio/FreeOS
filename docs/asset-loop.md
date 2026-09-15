@@ -39,6 +39,9 @@ Import the module catalog (makes `org-*` skills) and/or a blueprint
 ```bash
 uv run freeos org assets import --catalog
 uv run freeos org assets import --blueprint path/to/blueprint.json --tenant-id 1
+uv run freeos org assets import --policies path/to/matrix.json --tenant-id 1
+# optional: GET sidecar /api/governance/permissions (best-effort)
+uv run freeos org assets import --from-sidecar --tenant-id 1
 # same as:
 uv run xyos2freeos path/to/blueprint.json --tenant-id 1
 uv run freeos org employee spawn --blueprint path/to/blueprint.json --tenant-id 1
@@ -89,8 +92,10 @@ uv run freeos org employee export-profile my-analyst --tenant-id 1
 - `plugins/` — tenant-toggleable plugin drafts (`enabled: false`)
 - `mcps/` — `xyos-governance-mcp` stdio snippet
 - `agents/` — compiled colleague workspaces
-- `openxyos/` — payloads shaped for `/api/plugins`, `/api/module-settings`, `/api/employees`
+- `openxyos/` — payloads shaped for `/api/plugins`, `/api/module-settings`, `/api/employees`, `/api/talent` (`org-employees.publish.json`, `org-talent.publish.json`)
 - `manifest.json` — `freeos.asset-pack.v1`
+
+Packed agent `.env` files keep only tenant/slug/schema keys. Secrets are stripped.
 
 Nothing is auto-enabled on the sidecar. You review the draft, then toggle
 per tenant.
@@ -108,6 +113,7 @@ record (SQL.js is not the production database).
 | Lifecycle registry | `…/employees/registry.json` |
 | Generated module skills | `{FREEOS_HOME}/org-skills/` |
 | Governance pauses / audit | `{FREEOS_HOME}/governance/` |
+| Imported policy matrix | `{FREEOS_HOME}/governance/imported-policies.json` (engine loads this) |
 | Asset pack | `{FREEOS_HOME}/asset-packs/latest/` |
 
 ## High-risk actions

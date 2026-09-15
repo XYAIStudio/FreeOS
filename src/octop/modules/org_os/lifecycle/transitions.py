@@ -14,6 +14,10 @@ from octop.modules.org_os.lifecycle.store import (
     LifecycleStore,
 )
 
+KEEP_ENV_KEYS = frozenset(
+    {"FREEOS_ORG_TENANT_ID", "FREEOS_COLLEAGUE_SLUG", "XYOS_BLUEPRINT_SCHEMA"}
+)
+
 ALLOWED: dict[str, frozenset[str]] = {
     "draft": frozenset({"market", "offboard"}),
     "market": frozenset({"recruit", "offboard"}),
@@ -56,7 +60,7 @@ def _revoke_credentials(workspace: Path) -> None:
     for line in env_file.read_text(encoding="utf-8").splitlines():
         if "=" in line and not line.lstrip().startswith("#"):
             key, _sep, _value = line.partition("=")
-            if key in {"FREEOS_ORG_TENANT_ID", "FREEOS_COLLEAGUE_SLUG", "XYOS_BLUEPRINT_SCHEMA"}:
+            if key in KEEP_ENV_KEYS:
                 lines.append(line)
             else:
                 lines.append(f"{key}=")

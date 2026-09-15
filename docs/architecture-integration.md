@@ -210,7 +210,7 @@ sidecar SQL.js.
 | Direction | CLI | Behavior |
 |---|---|---|
 | Outbound | `freeos org assets publish` | Pack skills/plugins/MCPs/agents as `freeos.asset-pack.v1` + `openxyos/` drafts |
-| Inbound | `freeos org assets import --catalog\|--blueprint\|--policies` | Drive skill generator, compiler, governance import |
+| Inbound | `freeos org assets import --catalog\|--blueprint\|--policies\|--from-sidecar` | Drive skill generator, compiler, and `imported-policies.json` (engine loads it; allow still needs human approval) |
 
 High-risk runtime actions still pass through Phase A governance.
 

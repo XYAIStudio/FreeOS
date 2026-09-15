@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 
 from octop.modules.org_os.governance.engine import GovernanceEngine
+from octop.modules.org_os.governance.imported import write_imported_policies
 from octop.modules.org_os.governance.interceptor import (
     GovernanceBlockedError,
     GovernanceInterceptor,
@@ -165,6 +166,36 @@ def test_sidecar_explicit_deny(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) 
     assert decision.execute is False
     assert decision.sidecar_reached is True
     assert "matrix deny" in decision.reason
+
+
+def test_imported_deny_rule_blocks_without_sidecar(tmp_path: Path) -> None:
+    write_imported_policies(
+        tmp_path / "governance",
+        {"rules": [{"category": "delete", "allow": False, "reason": "matrix deny"}]},
+        tenant_id="loop",
+        source="test",
+    )
+    decision = _engine(tmp_path).evaluate(
+        PolicyRequest(tool_name="delete_employee", category="delete", auto_pause=False)
+    )
+    assert decision.status == "deny"
+    assert decision.execute is False
+    assert decision.rule_source == "imported-policies"
+    assert "matrix deny" in decision.reason
+
+
+def test_imported_allow_still_requires_human_approval(tmp_path: Path) -> None:
+    write_imported_policies(
+        tmp_path / "governance",
+        [{"category": "delete", "allow": True}],
+        tenant_id="loop",
+    )
+    decision = _engine(tmp_path).evaluate(
+        PolicyRequest(tool_name="delete_employee", category="delete")
+    )
+    assert decision.execute is False
+    assert decision.status == "pending"
+    assert decision.rule_source == "imported-policies"
 
 
 def test_stdio_spec_is_stdio() -> None:

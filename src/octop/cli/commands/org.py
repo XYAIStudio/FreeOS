@@ -315,11 +315,17 @@ def assets_publish(out_dir: Path | None) -> None:
 @click.option("--catalog", is_flag=True, help="Generate skills from the openXYOS module catalog.")
 @click.option("--blueprint", "blueprint_path", type=click.Path(path_type=Path, exists=True))
 @click.option("--policies", "policies_path", type=click.Path(path_type=Path, exists=True))
+@click.option(
+    "--from-sidecar",
+    is_flag=True,
+    help="Best-effort GET /api/governance/permissions from the sidecar.",
+)
 @click.option("--tenant-id", default="")
 def assets_import(
     catalog: bool,
     blueprint_path: Path | None,
     policies_path: Path | None,
+    from_sidecar: bool,
     tenant_id: str,
 ) -> None:
     """Import control-plane catalog/blueprint/policies into FreeOS generators."""
@@ -333,5 +339,6 @@ def assets_import(
         catalog=catalog,
         blueprint_path=blueprint_path,
         policies_path=policies_path,
+        from_sidecar=from_sidecar,
     )
     click.echo(json.dumps(imported.to_dict(), indent=2))

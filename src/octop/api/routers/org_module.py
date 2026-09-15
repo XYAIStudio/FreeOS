@@ -229,6 +229,7 @@ class AssetImportBody(BaseModel):
     catalog: bool = False
     blueprint_path: str | None = None
     policies_path: str | None = None
+    from_sidecar: bool = False
     tenant_id: str = ""
 
 
@@ -335,6 +336,7 @@ async def import_assets(
             catalog=body.catalog,
             blueprint_path=Path(body.blueprint_path) if body.blueprint_path else None,
             policies_path=Path(body.policies_path) if body.policies_path else None,
+            from_sidecar=body.from_sidecar,
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
