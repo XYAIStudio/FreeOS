@@ -6,6 +6,12 @@
 
 ## [Unreleased]
 
+## [0.0.1] - 2026-09-15
+
+当前 FreeOS 产品版本。`1.0.0` 对本阶段过早；后续按 [semver](https://semver.org/spec/v2.0.0.html) 随产品成熟度递增。规范来源是 `pyproject.toml`（同步 `octop.__version__`、桌面 / NSIS / FnOS 回退值，以及 CI 产物名）。发布工作流需要标签时使用 `v0.0.1`；不重写已推送的历史 tag。
+
+命令核对：`uv run freeos --version` 与 `uv run python -c "import octop; print(octop.__version__)"` 均应输出 `0.0.1`。
+
 ### 新增
 
 - Finished self-growth loop: `freeos org loop run` compiles blueprints, promotes colleagues, registers FreeOS chat agents, publishes an asset pack, applies it to openXYOS (HTTP + local mirror), imports back, and proves governance blocks high-risk tools
@@ -23,6 +29,8 @@
 - Phase B: outbound `freeos.asset-pack.v1` writes `org-employees.publish.json` / `org-talent.publish.json` and redacts packed `.env` secrets
 
 ## [1.0.0] - 2026-09-14
+
+> 继承自上游 Octop 的历史记录，不是当前 FreeOS 产品版本。
 
 ### 新增
 

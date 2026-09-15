@@ -2,9 +2,22 @@
 
 from __future__ import annotations
 
+import tomllib
+from pathlib import Path
+
 from click.testing import CliRunner
 
+from octop import __version__
 from octop.cli.main import cli
+
+_REPO_ROOT = Path(__file__).resolve().parents[3]
+
+
+def test_product_version_is_001() -> None:
+    with (_REPO_ROOT / "pyproject.toml").open("rb") as fh:
+        declared = tomllib.load(fh)["project"]["version"]
+    assert declared == "0.0.1"
+    assert __version__ == "0.0.1"
 
 
 def test_version_prints_orca_version() -> None:
@@ -12,7 +25,7 @@ def test_version_prints_orca_version() -> None:
     result = runner.invoke(cli, ["version"])
     assert result.exit_code == 0
     assert "octop" in result.output.lower()
-    assert any(ch.isdigit() for ch in result.output)
+    assert "0.0.1" in result.output
 
 
 def test_version_in_help() -> None:
@@ -26,3 +39,4 @@ def test_root_version_flag() -> None:
     result = runner.invoke(cli, ["-v"])
     assert result.exit_code == 0
     assert "octop" in result.output.lower()
+    assert "0.0.1" in result.output
