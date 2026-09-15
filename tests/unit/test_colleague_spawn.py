@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 from octop.modules.org_os.compiler.compile import compile_blueprint
@@ -38,4 +39,5 @@ def test_spawn_writes_registry_and_agent_row(tmp_path: Path) -> None:
         assert row is not None
         assert row.name == "Policy Analyst"
         assert row.system_prompt and "Policy Analyst" in row.system_prompt
-        assert compiled.workspace.as_posix() in (row.config_json or "")
+        config = json.loads(row.config_json or "{}")
+        assert Path(config["workspace_dir"]).resolve() == compiled.workspace.resolve()
