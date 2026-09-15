@@ -3,8 +3,11 @@ package main
 import (
 	"archive/zip"
 	"bytes"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"os/exec"
@@ -55,9 +58,13 @@ func ensurePortable(locale Locale, status func(string)) error {
 		status(desktopText(locale, copyStatusFirstExtract))
 	}
 	if err := replacePortable(root); err != nil {
-		if launchReady(root) {
+		if launchReady(root) && !isOctopLineageRuntime(root) && installedPortableStamp(root) != "" {
 			status(desktopText(locale, copyStatusUpdateFailedKeep))
 			return nil
+		}
+		if isOctopLineageRuntime(root) || (launchReady(root) && installedPortableStamp(root) == "") {
+			log.Printf("discarding leftover Octop portable at %s after failed refresh", root)
+			_ = os.RemoveAll(root)
 		}
 		return err
 	}
@@ -509,6 +516,67 @@ func unzipGreenFiles(files []*zip.File, dest string) error {
 	return nil
 }
 
+var errForeignHost = errors.New("host is not FreeOS")
+
+type healthPayload struct {
+	OK      bool   `json:"ok"`
+	Product string `json:"product"`
+}
+
+func isFreeOSHealth(body []byte) bool {
+	var payload healthPayload
+	if json.Unmarshal(body, &payload) != nil {
+		return false
+	}
+	return payload.OK && strings.EqualFold(strings.TrimSpace(payload.Product), "freeos")
+}
+
+func probeHealthURL(base string) (reachable bool, freeos bool) {
+	resp, err := http.Get(strings.TrimRight(base, "/") + "/api/health")
+	if err != nil {
+		return false, false
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode < 200 || resp.StatusCode >= 500 {
+		return false, false
+	}
+	body, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
+	return true, isFreeOSHealth(body)
+}
+
+func chooseHostPort(preferred int) int {
+	if preferred <= 0 {
+		preferred = 8088
+	}
+	for port := preferred; port < preferred+20; port++ {
+		reachable, _ := probeHealthURL(dashboardURL(port))
+		if reachable {
+			continue
+		}
+		return port
+	}
+	return preferred
+}
+
+func discardStaleOctopPortable() {
+	home := userProfileDir()
+	if home == "" {
+		return
+	}
+	legacy := filepath.Join(home, ".octop", "portable")
+	if filepath.Clean(legacy) == filepath.Clean(portableDir()) {
+		return
+	}
+	if _, err := os.Stat(legacy); err != nil {
+		return
+	}
+	if installedPortableStamp(legacy) != "" {
+		return
+	}
+	log.Printf("discarding leftover Octop portable at %s", legacy)
+	_ = os.RemoveAll(legacy)
+}
+
 func waitHealth(locale Locale, base string, timeout time.Duration) error {
 	deadline := time.Now().Add(timeout)
 	url := strings.TrimRight(base, "/") + "/api/health"
@@ -518,10 +586,15 @@ func waitHealth(locale Locale, base string, timeout time.Duration) error {
 		resp, err := http.Get(url)
 		if err == nil {
 			lastStatus = resp.StatusCode
-			lastErr = nil
+			body, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
 			resp.Body.Close()
 			if resp.StatusCode >= 200 && resp.StatusCode < 500 {
-				return nil
+				if isFreeOSHealth(body) {
+					return nil
+				}
+				lastErr = errForeignHost
+			} else {
+				lastErr = nil
 			}
 		} else {
 			lastErr = err
@@ -560,6 +633,8 @@ func formatHealthWaitError(locale Locale, base string, timeout time.Duration, la
 	switch {
 	case lastStatus >= 500:
 		return fmt.Errorf("%s", desktopText(locale, copyHealthNotReady5xx, wait, addr))
+	case errors.Is(lastErr, errForeignHost):
+		return fmt.Errorf("%s", desktopText(locale, copyHealthForeignHost, wait, addr))
 	case lastErr != nil:
 		return fmt.Errorf("%s", desktopText(locale, copyHealthNotReadyConnect, wait, addr))
 	default:

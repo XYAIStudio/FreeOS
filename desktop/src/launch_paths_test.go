@@ -33,6 +33,31 @@ func TestWebviewUserDataPathWindowsLayout(t *testing.T) {
 	}
 }
 
+func TestPrepareWebviewUserDataLinuxIsEmpty(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("windows uses a real user-data path")
+	}
+	if got := prepareWebviewUserData(); got != "" {
+		t.Fatalf("prepareWebviewUserData() = %q", got)
+	}
+}
+
+func TestPrepareWebviewUserDataWindowsSetsEnv(t *testing.T) {
+	if runtime.GOOS != "windows" {
+		t.Skip("WEBVIEW2_USER_DATA_FOLDER is a Windows runtime concern")
+	}
+	local := filepath.Join(t.TempDir(), "local")
+	t.Setenv("LOCALAPPDATA", local)
+	got := prepareWebviewUserData()
+	want := filepath.Join(local, "FreeOS", "WebView2")
+	if got != want {
+		t.Fatalf("prepareWebviewUserData() = %q, want %q", got, want)
+	}
+	if os.Getenv("WEBVIEW2_USER_DATA_FOLDER") != want {
+		t.Fatalf("WEBVIEW2_USER_DATA_FOLDER = %q", os.Getenv("WEBVIEW2_USER_DATA_FOLDER"))
+	}
+}
+
 func TestEnsureProductHomeWritableCreatesDir(t *testing.T) {
 	root := t.TempDir()
 	home := filepath.Join(root, "nested-home")

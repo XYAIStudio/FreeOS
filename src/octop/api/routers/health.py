@@ -21,6 +21,7 @@ async def health(server: Any = Depends(get_server)) -> dict[str, Any]:
     )
     return {
         "ok": True,
+        "product": "freeos",
         "started_at": server._started_at,
         "db": bound,
         "users_loaded": users,

@@ -52,6 +52,46 @@ func webviewUserDataPath() string {
 	return filepath.Join(base, "FreeOS", "WebView2")
 }
 
+func webviewUserDataCandidates() []string {
+	primary := webviewUserDataPath()
+	if primary == "" {
+		return nil
+	}
+	out := []string{primary}
+	fallback := filepath.Join(productHome(), "WebView2")
+	if filepath.Clean(fallback) != filepath.Clean(primary) {
+		out = append(out, fallback)
+	}
+	return out
+}
+
+func dirIsWritable(dir string) bool {
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return false
+	}
+	probe := filepath.Join(dir, ".write-probe")
+	if err := os.WriteFile(probe, []byte("ok"), 0o644); err != nil {
+		return false
+	}
+	_ = os.Remove(probe)
+	return true
+}
+
+func prepareWebviewUserData() string {
+	for _, path := range webviewUserDataCandidates() {
+		if !dirIsWritable(path) {
+			log.Printf("webview user data not writable: %s", path)
+			continue
+		}
+		if err := os.Setenv("WEBVIEW2_USER_DATA_FOLDER", path); err != nil {
+			log.Printf("set WEBVIEW2_USER_DATA_FOLDER: %v", err)
+		}
+		log.Printf("webview user data: %s", path)
+		return path
+	}
+	return ""
+}
+
 func ensureProductHomeWritable() error {
 	home := productHome()
 	if err := os.MkdirAll(home, 0o755); err != nil {

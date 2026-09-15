@@ -36,6 +36,9 @@ type App struct {
 	trayClickMu    sync.Mutex
 	lastTrayClick  time.Time
 	trayClickTimer *time.Timer
+
+	webviewReady     chan struct{}
+	webviewReadyOnce sync.Once
 }
 
 func (a *App) ServiceName() string { return "desktop" }
@@ -177,6 +180,7 @@ func (a *App) boot() {
 	}
 	s := a.store.get()
 	a.setStatus(desktopText(locale, copyStatusCheckingRuntime))
+	discardStaleOctopPortable()
 	firstLaunch := !launchReady(portableDir())
 	if err := ensurePortable(locale, a.setStatus); err != nil {
 		logStartupError("portable runtime", err)
@@ -185,18 +189,22 @@ func (a *App) boot() {
 		return
 	}
 	root := portableDir()
+	port := chooseHostPort(s.Port)
+	if port != s.Port {
+		log.Printf("port %d is occupied; starting FreeOS host on %d", s.Port, port)
+	}
 	a.mu.Lock()
 	stopOctop(a.cmd)
 	stopOctop(a.sidecar)
 	if sidecarReady(root) {
 		a.setStatus(desktopText(locale, copyStatusStartingOrg))
-		sidecar, serr := startOrgSidecar(root, s.Port)
+		sidecar, serr := startOrgSidecar(root, port)
 		a.sidecar = sidecar
 		if serr != nil {
 			logStartupError("organization sidecar", serr)
 		}
 	}
-	cmd, err := startOctop(root, s.Port)
+	cmd, err := startOctop(root, port)
 	a.cmd = cmd
 	a.mu.Unlock()
 	if err != nil {
@@ -205,7 +213,7 @@ func (a *App) boot() {
 		showFatalError("FreeOS", formatFatalStartup(locale, err))
 		return
 	}
-	base := dashboardURL(s.Port)
+	base := dashboardURL(port)
 	a.setStatus(desktopText(locale, copyStatusStartingService))
 	timeout := 2 * time.Minute
 	if firstLaunch {
@@ -224,7 +232,20 @@ func (a *App) showDashboard(base string) {
 	if a.window == nil {
 		return
 	}
-	a.window.SetURL(withDesktopQuery(base))
+	if !a.waitWebviewReady(20 * time.Second) {
+		log.Printf("webview not ignited after wait; retrying SetURL")
+	}
+	url := withDesktopQuery(base)
+	if err := navigateWhenReady(func(next string) { a.window.SetURL(next) }, url, 8); err != nil {
+		logStartupError("navigate dashboard", err)
+		locale := LocaleEN
+		if a.store != nil {
+			locale = a.store.get().Locale
+		}
+		a.setStatus(desktopText(locale, copyNavigateFailed))
+		showFatalError("FreeOS", desktopText(locale, copyNavigateFailed))
+		return
+	}
 	a.scheduleDragOverlay()
 	s := a.store.get()
 	go func() {
@@ -314,7 +335,8 @@ func (a *App) requestQuit() {
 func main() {
 	defer func() {
 		if rec := recover(); rec != nil {
-			showFatalError("FreeOS", fmt.Sprintf("%v", rec))
+			log.Printf("panic: %v", rec)
+			showFatalError("FreeOS", desktopText(LocaleEN, copyNavigateFailed))
 		}
 	}()
 	pinWorkingDirectory()
@@ -327,11 +349,7 @@ func main() {
 		cwd, _ := os.Getwd()
 		log.Printf("launch exe=%s cwd=%s home=%s", exe, cwd, productHome())
 	}
-	if p := webviewUserDataPath(); p != "" {
-		if err := os.MkdirAll(p, 0o755); err != nil {
-			log.Printf("webview user data dir: %v", err)
-		}
-	}
+	webviewData := prepareWebviewUserData()
 	if claimDesktopInstance() {
 		locale := LocaleEN
 		if data, err := os.ReadFile(settingsPath()); err == nil {
@@ -351,8 +369,9 @@ func main() {
 
 	store := &settingsStore{cur: loadSettings()}
 	api := &App{
-		store: store,
-		sleep: &sleepGuard{},
+		store:        store,
+		sleep:        &sleepGuard{},
+		webviewReady: make(chan struct{}),
 	}
 
 	app := application.New(application.Options{
@@ -366,11 +385,11 @@ func main() {
 		},
 		Windows: application.WindowsOptions{
 			DisableQuitOnLastWindowClosed: true,
-			WebviewUserDataPath:           webviewUserDataPath(),
+			WebviewUserDataPath:           webviewData,
 		},
 		PanicHandler: func(details *application.PanicDetails) {
 			log.Printf("panic: %+v", details)
-			showFatalError("FreeOS", fmt.Sprintf("%v", details))
+			showFatalError("FreeOS", desktopText(api.store.get().Locale, copyNavigateFailed))
 		},
 		ErrorHandler: func(err error) {
 			logStartupError("wails", err)
@@ -408,25 +427,25 @@ func main() {
 	app.Event.On("desktop:close", func(_ *application.CustomEvent) {
 		api.hideToTray()
 	})
-	installDragOverlay := func(_ *application.WindowEvent) { api.scheduleDragOverlay() }
-	win.OnWindowEvent(events.Mac.WebViewDidFinishNavigation, installDragOverlay)
-	win.OnWindowEvent(events.Windows.WebViewNavigationCompleted, installDragOverlay)
-	win.OnWindowEvent(events.Linux.WindowLoadFinished, installDragOverlay)
-	settingsWin := app.Window.NewWithOptions(application.WebviewWindowOptions{
-		Title:            "FreeOS 设置",
-		Width:            settingsWindowWidth,
-		Height:           settingsWindowOuterHeight(),
-		URL:              "/?settings=1",
-		Hidden:           true,
-		Frameless:        true,
-		AlwaysOnTop:      true,
-		DisableResize:    true,
-		BackgroundColour: application.NewRGB(255, 255, 255),
-		Windows: application.WindowsWindow{
-			HiddenOnTaskbar: true,
-		},
-	})
-	api.settingsWindow = settingsWin
+	tray := app.SystemTray.New()
+	applyTrayIcon(tray)
+	tray.SetTooltip("FreeOS")
+	var settingsOnce sync.Once
+	ensureSettings := func() {
+		settingsOnce.Do(func() {
+			settingsWin := newSettingsWindow(app)
+			api.settingsWindow = settingsWin
+			tray.AttachWindow(settingsWin).WindowOffset(6)
+		})
+	}
+	onMainNavigated := func(_ *application.WindowEvent) {
+		api.markWebviewReady()
+		api.scheduleDragOverlay()
+		ensureSettings()
+	}
+	win.OnWindowEvent(events.Mac.WebViewDidFinishNavigation, onMainNavigated)
+	win.OnWindowEvent(events.Windows.WebViewNavigationCompleted, onMainNavigated)
+	win.OnWindowEvent(events.Linux.WindowLoadFinished, onMainNavigated)
 	app.Event.RegisterApplicationEventHook(events.Mac.ApplicationShouldHandleReopen, func(event *application.ApplicationEvent) {
 		event.Cancel()
 		restoreMainAfterDockClick(api.window, api.settingsWindow)
@@ -447,19 +466,10 @@ func main() {
 			api.hideToTray()
 		}
 	})
-	settingsWin.RegisterHook(events.Common.WindowClosing, func(e *application.WindowEvent) {
-		e.Cancel()
-		settingsWin.Hide()
-	})
-	settingsWin.OnWindowEvent(events.Common.WindowLostFocus, func(_ *application.WindowEvent) {
-		settingsWin.Hide()
-	})
-
-	tray := app.SystemTray.New()
-	applyTrayIcon(tray)
-	tray.SetTooltip("FreeOS")
-	tray.AttachWindow(settingsWin).WindowOffset(6)
-	showSettings := func() { tray.ShowWindow() }
+	showSettings := func() {
+		ensureSettings()
+		tray.ShowWindow()
+	}
 	if trayLeftClickShowsSettings(runtime.GOOS) {
 		tray.OnClick(showSettings)
 	} else {

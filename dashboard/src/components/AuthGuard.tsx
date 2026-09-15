@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Spin } from "antd";
 import { clearAuthToken, getAuthToken, setAuthToken } from "../api/request";
 import { authApi, type OctopUser } from "../api/modules/auth";
 import { applyUserLocale } from "../utils/locale";
+import { isDesktopShell } from "../utils/desktopShell";
 import { CurrentUserProvider } from "../hooks/useCurrentUser";
 import { AuthPromptProvider } from "../context/AuthPromptContext";
 
@@ -18,12 +19,15 @@ interface AuthGuardProps {
  */
 export default function AuthGuard({ children }: AuthGuardProps) {
   const navigate = useNavigate();
+  const [params] = useSearchParams();
+  const desktopQuery = params.toString();
   const [checking, setChecking] = useState(true);
   const [authed, setAuthed] = useState(false);
   const [user, setUser] = useState<OctopUser | null>(null);
 
   useEffect(() => {
     let cancelled = false;
+    const desktop = isDesktopShell(desktopQuery ? `?${desktopQuery}` : "");
 
     const adopt = async (me: OctopUser) => {
       await applyUserLocale(me.locale);
@@ -34,22 +38,36 @@ export default function AuthGuard({ children }: AuthGuardProps) {
       }
     };
 
-    const tryLocalSession = async (): Promise<boolean> => {
-      for (let attempt = 0; attempt < 4; attempt += 1) {
-        try {
-          const res = await authApi.localSession();
-          setAuthToken(res.access_token);
-          await adopt(res.user);
-          return true;
-        } catch {
-          if (attempt < 3) {
-            await new Promise((resolve) => {
-              window.setTimeout(resolve, 150);
-            });
-          }
+    const adoptLocal = async (): Promise<boolean> => {
+      try {
+        const res = await authApi.localSession();
+        setAuthToken(res.access_token);
+        await adopt(res.user);
+        return true;
+      } catch {
+        return false;
+      }
+    };
+
+    const tryLocalSession = async (attempts: number, delayMs: number) => {
+      for (let attempt = 0; attempt < attempts; attempt += 1) {
+        if (await adoptLocal()) return true;
+        if (attempt < attempts - 1) {
+          await new Promise((resolve) => {
+            window.setTimeout(resolve, delayMs);
+          });
         }
       }
       return false;
+    };
+
+    const holdForDesktop = async () => {
+      while (!cancelled) {
+        if (await adoptLocal()) return;
+        await new Promise((resolve) => {
+          window.setTimeout(resolve, 400);
+        });
+      }
     };
 
     const check = async () => {
@@ -57,7 +75,12 @@ export default function AuthGuard({ children }: AuthGuardProps) {
         const status = await authApi.getAuthStatus();
 
         if (status.setup_required) {
-          if (await tryLocalSession()) return;
+          if (await tryLocalSession(desktop ? 20 : 4, desktop ? 250 : 150))
+            return;
+          if (desktop) {
+            await holdForDesktop();
+            return;
+          }
           clearAuthToken();
           if (!cancelled) navigate("/setup", { replace: true });
           return;
@@ -65,7 +88,12 @@ export default function AuthGuard({ children }: AuthGuardProps) {
 
         const token = getAuthToken();
         if (!token) {
-          if (await tryLocalSession()) return;
+          if (await tryLocalSession(desktop ? 20 : 4, desktop ? 250 : 150))
+            return;
+          if (desktop) {
+            await holdForDesktop();
+            return;
+          }
           if (!cancelled) {
             setAuthed(false);
             navigate("/login", { replace: true });
@@ -77,13 +105,22 @@ export default function AuthGuard({ children }: AuthGuardProps) {
           const me = await authApi.me();
           await adopt(me);
         } catch {
-          if (await tryLocalSession()) return;
+          if (await tryLocalSession(desktop ? 20 : 4, desktop ? 250 : 150))
+            return;
+          if (desktop) {
+            await holdForDesktop();
+            return;
+          }
           if (!cancelled) {
             setAuthed(false);
             navigate("/login", { replace: true });
           }
         }
       } catch {
+        if (desktop) {
+          await holdForDesktop();
+          return;
+        }
         if (!cancelled) {
           setAuthed(true);
           setChecking(false);
@@ -95,7 +132,7 @@ export default function AuthGuard({ children }: AuthGuardProps) {
     return () => {
       cancelled = true;
     };
-  }, [navigate]);
+  }, [desktopQuery, navigate]);
 
   if (checking || !authed) {
     return (

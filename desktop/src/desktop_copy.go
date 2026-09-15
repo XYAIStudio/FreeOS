@@ -25,6 +25,8 @@ const (
 	copyHealthNotReady         = "health.not_ready"
 	copySeeDesktopLog          = "error.see_desktop_log"
 	copyAlreadyRunning         = "error.already_running"
+	copyNavigateFailed         = "error.navigate_failed"
+	copyHealthForeignHost      = "health.foreign_host"
 )
 
 var desktopCopy = map[Locale]map[string]string{
@@ -51,6 +53,8 @@ var desktopCopy = map[Locale]map[string]string{
 		copyHealthNotReady:         "FreeOS did not become ready within %s (%s). Make sure FreeOS is running at this address, or check logs/desktop.log.",
 		copySeeDesktopLog:          "Details were written to %s",
 		copyAlreadyRunning:         "FreeOS is already running. Check the system tray, or quit the existing process and try again.",
+		copyNavigateFailed:         "FreeOS could not open the window. Close any leftover FreeOS or Octop process, delete %LOCALAPPDATA%\\FreeOS\\WebView2 if it exists, then open FreeOS again. Details are in logs/desktop.log.",
+		copyHealthForeignHost:      "FreeOS did not become ready within %s (%s). A leftover service on that address is not FreeOS. Quit the old process or reinstall, then try again.",
 	},
 	LocaleZH: {
 		copyStatusConnecting:       "正在连接 FreeOS…",
@@ -75,6 +79,8 @@ var desktopCopy = map[Locale]map[string]string{
 		copyHealthNotReady:         "FreeOS 服务未在%s内就绪（%s）。请确认本机已启动 FreeOS，且地址、端口正确；也可查看 logs/desktop.log。",
 		copySeeDesktopLog:          "详细日志已写入 %s",
 		copyAlreadyRunning:         "FreeOS 已在运行。请查看系统托盘，或退出已有进程后再试。",
+		copyNavigateFailed:         "FreeOS 无法打开窗口。请退出残留的 FreeOS / Octop 进程，必要时删除 %LOCALAPPDATA%\\FreeOS\\WebView2，然后重新打开。详情见 logs/desktop.log。",
+		copyHealthForeignHost:      "FreeOS 服务未在%s内就绪（%s）。该地址上已有服务但不是 FreeOS。请退出旧进程或重新安装后再试。",
 	},
 }
 

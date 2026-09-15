@@ -3,6 +3,7 @@ package main
 import (
 	"archive/zip"
 	"errors"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -309,27 +310,52 @@ func TestEnsurePortableKeepsCurrentRuntimeWhenReplacementIsInvalid(t *testing.T)
 	root := portableDir()
 
 	currentZip := filepath.Join(t.TempDir(), "current.zip")
-	writeTestGreenZip(t, currentZip, "0.9.31")
+	writeTestGreenZip(t, currentZip, "0.0.1")
 	if err := unzipGreen(currentZip, root); err != nil {
 		t.Fatal(err)
 	}
 
 	invalidZip := filepath.Join(t.TempDir(), "invalid.zip")
-	writeVersionOnlyZip(t, invalidZip, "0.9.32")
+	writeVersionOnlyZip(t, invalidZip, "0.0.2")
 	t.Setenv("OCTOP_DESKTOP_PORTABLE_ZIP", invalidZip)
 	var statuses []string
 	if err := ensurePortable(LocaleZH, func(status string) { statuses = append(statuses, status) }); err != nil {
-		t.Fatalf("existing runtime should still boot after a failed replacement: %v", err)
+		t.Fatalf("existing FreeOS runtime should still boot after a failed replacement: %v", err)
 	}
 
 	if !launchReady(root) {
 		t.Fatal("current runtime should remain usable after replacement failure")
 	}
-	if got := portableVersion(root); got != "0.9.31" {
-		t.Fatalf("portable version = %q, want 0.9.31", got)
+	if got := portableVersion(root); got != "0.0.1" {
+		t.Fatalf("portable version = %q, want 0.0.1", got)
+	}
+	if installedPortableStamp(root) == "" {
+		t.Fatal("kept runtime should still carry FREEOS_STAMP")
 	}
 	if len(statuses) == 0 || statuses[len(statuses)-1] != "更新内置运行环境失败，继续使用已有运行环境…" {
 		t.Fatalf("unexpected statuses: %v", statuses)
+	}
+}
+
+func TestEnsurePortableDoesNotKeepOctopAfterFailedRefresh(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("OCTOP_HOME", home)
+	root := portableDir()
+
+	currentZip := filepath.Join(t.TempDir(), "current.zip")
+	writeTestGreenZipNoStamp(t, currentZip, "0.9.31")
+	if err := unzipGreen(currentZip, root); err != nil {
+		t.Fatal(err)
+	}
+
+	invalidZip := filepath.Join(t.TempDir(), "invalid.zip")
+	writeVersionOnlyZip(t, invalidZip, "0.0.1")
+	t.Setenv("OCTOP_DESKTOP_PORTABLE_ZIP", invalidZip)
+	if err := ensurePortable(LocaleZH, func(string) {}); err == nil {
+		t.Fatal("Octop leftover should not be kept after a failed FreeOS refresh")
+	}
+	if launchReady(root) {
+		t.Fatal("Octop leftover portable should have been discarded")
 	}
 }
 
@@ -470,11 +496,76 @@ func TestFormatHealthWaitErrorUsesServiceNotReadyHintOn5xx(t *testing.T) {
 
 func TestWaitHealthSucceedsOnOK(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		w.WriteHeader(http.StatusOK)
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"ok":true,"product":"freeos"}`))
 	}))
 	t.Cleanup(srv.Close)
 	if err := waitHealth(LocaleZH, srv.URL, time.Second); err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestWaitHealthRejectsOctopPayload(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"ok":true}`))
+	}))
+	t.Cleanup(srv.Close)
+	err := waitHealth(LocaleEN, srv.URL, 80*time.Millisecond)
+	if err == nil {
+		t.Fatal("legacy Octop health should not count as ready")
+	}
+	if !strings.Contains(err.Error(), "not FreeOS") {
+		t.Fatalf("foreign host error = %v", err)
+	}
+}
+
+func TestChooseHostPortSkipsOccupied(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"ok":true}`))
+	}))
+	t.Cleanup(srv.Close)
+	addr, ok := srv.Listener.Addr().(*net.TCPAddr)
+	if !ok {
+		t.Fatal("expected tcp addr")
+	}
+	got := chooseHostPort(addr.Port)
+	if got == addr.Port {
+		t.Fatalf("chooseHostPort returned occupied port %d", got)
+	}
+}
+
+func TestIsFreeOSHealth(t *testing.T) {
+	if !isFreeOSHealth([]byte(`{"ok":true,"product":"FreeOS"}`)) {
+		t.Fatal("expected FreeOS health")
+	}
+	if isFreeOSHealth([]byte(`{"ok":true}`)) {
+		t.Fatal("Octop payload must not look like FreeOS")
+	}
+	if isFreeOSHealth([]byte(`not-json`)) {
+		t.Fatal("garbage must not look like FreeOS")
+	}
+}
+
+func TestDiscardStaleOctopPortable(t *testing.T) {
+	root := t.TempDir()
+	t.Setenv("HOME", root)
+	t.Setenv("USERPROFILE", root)
+	t.Setenv("FREEOS_HOME", filepath.Join(root, ".freeos"))
+	t.Setenv("OCTOP_HOME", "")
+	legacy := filepath.Join(root, ".octop", "portable")
+	oldZip := filepath.Join(t.TempDir(), "octop.zip")
+	writeTestGreenZipNoStamp(t, oldZip, "1.0.0")
+	if err := unzipGreen(oldZip, legacy); err != nil {
+		t.Fatal(err)
+	}
+	if !launchReady(legacy) {
+		t.Fatal("fixture should be launch-ready")
+	}
+	discardStaleOctopPortable()
+	if _, err := os.Stat(legacy); !os.IsNotExist(err) {
+		t.Fatalf("stale Octop portable still present: %v", err)
 	}
 }
 

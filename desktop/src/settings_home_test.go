@@ -14,6 +14,21 @@ func TestProductHomePrefersFreeosHome(t *testing.T) {
 	}
 }
 
+func TestProductHomeIgnoresLegacyOctopDir(t *testing.T) {
+	root := t.TempDir()
+	t.Setenv("FREEOS_HOME", "")
+	t.Setenv("OCTOP_HOME", "")
+	t.Setenv("HOME", root)
+	t.Setenv("USERPROFILE", root)
+	if err := os.Mkdir(filepath.Join(root, ".octop"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	want := filepath.Join(root, ".freeos")
+	if got := productHome(); got != want {
+		t.Fatalf("productHome() = %q, want %q", got, want)
+	}
+}
+
 func TestProductHomeHonorsOctopHome(t *testing.T) {
 	t.Setenv("FREEOS_HOME", "")
 	oct := filepath.Join(t.TempDir(), "oct")

@@ -86,4 +86,31 @@ describe("AuthGuard local session", () => {
     expect(await screen.findByText("login wall")).toBeInTheDocument();
     expect(screen.queryByText("usable app")).toBeNull();
   });
+
+  it("never opens the login wall inside the desktop shell", async () => {
+    getAuthStatus.mockResolvedValue({ setup_required: false });
+    localSession.mockRejectedValue(new Error("interactive login required"));
+
+    const view = render(
+      <MemoryRouter initialEntries={["/chat?desktop=1"]}>
+        <Routes>
+          <Route
+            path="/chat"
+            element={
+              <AuthGuard>
+                <div>usable app</div>
+              </AuthGuard>
+            }
+          />
+          <Route path="/login" element={<div>login wall</div>} />
+          <Route path="/setup" element={<div>setup wizard</div>} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => expect(localSession).toHaveBeenCalled());
+    expect(screen.queryByText("login wall")).toBeNull();
+    expect(screen.queryByText("usable app")).toBeNull();
+    view.unmount();
+  });
 });
