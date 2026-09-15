@@ -177,8 +177,11 @@ func (a *App) boot() {
 	}
 	s := a.store.get()
 	a.setStatus(desktopText(locale, copyStatusCheckingRuntime))
+	firstLaunch := !launchReady(portableDir())
 	if err := ensurePortable(locale, a.setStatus); err != nil {
+		logStartupError("portable runtime", err)
 		a.setStatus(err.Error())
+		showFatalError("FreeOS", formatFatalStartup(locale, err))
 		return
 	}
 	root := portableDir()
@@ -190,20 +193,28 @@ func (a *App) boot() {
 		sidecar, serr := startOrgSidecar(root, s.Port)
 		a.sidecar = sidecar
 		if serr != nil {
-			log.Printf("start organization sidecar: %v", serr)
+			logStartupError("organization sidecar", serr)
 		}
 	}
 	cmd, err := startOctop(root, s.Port)
 	a.cmd = cmd
 	a.mu.Unlock()
 	if err != nil {
+		logStartupError("start host", err)
 		a.setStatus(err.Error())
+		showFatalError("FreeOS", formatFatalStartup(locale, err))
 		return
 	}
 	base := dashboardURL(s.Port)
 	a.setStatus(desktopText(locale, copyStatusStartingService))
-	if err := waitHealth(locale, base, 2*time.Minute); err != nil {
+	timeout := 2 * time.Minute
+	if firstLaunch {
+		timeout = 5 * time.Minute
+	}
+	if err := waitHealth(locale, base, timeout); err != nil {
+		logStartupError("host health", err)
 		a.setStatus(err.Error())
+		showFatalError("FreeOS", formatFatalStartup(locale, err))
 		return
 	}
 	a.showDashboard(base)
@@ -301,6 +312,24 @@ func (a *App) requestQuit() {
 }
 
 func main() {
+	initDesktopLog()
+	if claimDesktopInstance() {
+		locale := LocaleEN
+		if data, err := os.ReadFile(settingsPath()); err == nil {
+			var s Settings
+			if json.Unmarshal(data, &s) == nil && s.Locale == LocaleZH {
+				locale = LocaleZH
+			}
+		}
+		if activateExistingInstance() {
+			log.Printf("handed off to the running FreeOS window")
+			return
+		}
+		showFatalError("FreeOS", desktopText(locale, copyAlreadyRunning))
+		return
+	}
+	defer clearDesktopPid()
+
 	store := &settingsStore{cur: loadSettings()}
 	api := &App{
 		store: store,
@@ -330,6 +359,7 @@ func main() {
 	attachOpenURLEventListener(app, api.OpenExternal)
 	app.Event.OnApplicationEvent(events.Common.ApplicationStarted, func(_ *application.ApplicationEvent) {
 		applyAppIcon(app)
+		api.showWindow()
 	})
 
 	win := app.Window.NewWithOptions(application.WebviewWindowOptions{
@@ -421,6 +451,8 @@ func main() {
 	go api.boot()
 
 	if err := app.Run(); err != nil {
-		log.Fatal(err)
+		logStartupError("app.Run", err)
+		showFatalError("FreeOS", formatFatalStartup(api.store.get().Locale, err))
+		os.Exit(1)
 	}
 }

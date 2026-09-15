@@ -131,7 +131,7 @@ FreeOS circular mark (gray ring, yellow / green / red teardrops, blue center).
 
 | File | Used for | Rule |
 |------|----------|------|
-| `src/build/appicon.png` | Windows `.ico`, Linux | Full-bleed 512x512 artwork |
+| `src/build/appicon.png` | Windows `.ico`, Linux | Full-bleed 512x512 artwork (mark ≥90% of canvas; regenerate with `python3 src/build/generate_appicons.py`) |
 | `src/build/appicon-macos.png` | macOS `.icns` | 1024x1024 canvas, artwork 824x824 centred |
 | `src/assets/tray-icon.png` | Tray + app icon on Windows/Linux | Full-bleed |
 | `src/assets/tray-icon-template.png` | macOS menu bar | 88px canvas, 64px black-on-transparent glyph |

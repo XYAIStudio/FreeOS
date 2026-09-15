@@ -23,6 +23,8 @@ const (
 	copyHealthNotReady5xx      = "health.not_ready_5xx"
 	copyHealthNotReadyConnect  = "health.not_ready_connect"
 	copyHealthNotReady         = "health.not_ready"
+	copySeeDesktopLog          = "error.see_desktop_log"
+	copyAlreadyRunning         = "error.already_running"
 )
 
 var desktopCopy = map[Locale]map[string]string{
@@ -44,9 +46,11 @@ var desktopCopy = map[Locale]map[string]string{
 		copyWaitNMinutes:           "%d minutes",
 		copyWait1Second:            "1 second",
 		copyWaitNSeconds:           "%d seconds",
-		copyHealthNotReady5xx:      "FreeOS did not become ready within %s (%s). The service responded but is not ready yet. Try again, or check the terminal logs.",
-		copyHealthNotReadyConnect:  "FreeOS did not become ready within %s (%s). Could not connect — make sure FreeOS is running.",
-		copyHealthNotReady:         "FreeOS did not become ready within %s (%s). Make sure FreeOS is running at this address, or check the terminal logs.",
+		copyHealthNotReady5xx:      "FreeOS did not become ready within %s (%s). The service responded but is not ready yet. Try again, or check logs/desktop.log.",
+		copyHealthNotReadyConnect:  "FreeOS did not become ready within %s (%s). Could not connect — make sure FreeOS is running. Check logs/desktop.log and logs/host.log.",
+		copyHealthNotReady:         "FreeOS did not become ready within %s (%s). Make sure FreeOS is running at this address, or check logs/desktop.log.",
+		copySeeDesktopLog:          "Details were written to %s",
+		copyAlreadyRunning:         "FreeOS is already running. Check the system tray, or quit the existing process and try again.",
 	},
 	LocaleZH: {
 		copyStatusConnecting:       "正在连接 FreeOS…",
@@ -66,9 +70,11 @@ var desktopCopy = map[Locale]map[string]string{
 		copyWaitNMinutes:           "%d 分钟",
 		copyWait1Second:            "1 秒",
 		copyWaitNSeconds:           "%d 秒",
-		copyHealthNotReady5xx:      "FreeOS 服务未在%s内就绪（%s）。服务已响应但尚未就绪，请稍后再试，或查看终端日志。",
-		copyHealthNotReadyConnect:  "FreeOS 服务未在%s内就绪（%s）。目前无法连接该地址，请确认 FreeOS 正在运行。",
-		copyHealthNotReady:         "FreeOS 服务未在%s内就绪（%s）。请确认本机已启动 FreeOS，且地址、端口正确；也可查看终端日志。",
+		copyHealthNotReady5xx:      "FreeOS 服务未在%s内就绪（%s）。服务已响应但尚未就绪，请稍后再试，或查看 logs/desktop.log。",
+		copyHealthNotReadyConnect:  "FreeOS 服务未在%s内就绪（%s）。目前无法连接该地址，请确认 FreeOS 正在运行，并查看 logs/desktop.log 与 logs/host.log。",
+		copyHealthNotReady:         "FreeOS 服务未在%s内就绪（%s）。请确认本机已启动 FreeOS，且地址、端口正确；也可查看 logs/desktop.log。",
+		copySeeDesktopLog:          "详细日志已写入 %s",
+		copyAlreadyRunning:         "FreeOS 已在运行。请查看系统托盘，或退出已有进程后再试。",
 	},
 }
 

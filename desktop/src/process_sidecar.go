@@ -131,6 +131,10 @@ func startOrgSidecar(root string, dashboardPort int) (*exec.Cmd, error) {
 	cmd.Dir = app
 	mustEnv(cmd, env)
 	configureProcGroup(cmd)
+	if f, err := attachProcessLogFile("org-sidecar"); err == nil {
+		cmd.Stdout = f
+		cmd.Stderr = f
+	}
 	if runtime.GOOS != "windows" && runtime.GOOS != "linux" {
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr

@@ -201,6 +201,30 @@ RequestExecutionLevel "${REQUEST_EXECUTION_LEVEL}"
 
     SetDetailsPrint both
     ok:
+    !insertmacro wails.requireWebView2
+!macroend
+
+!macro wails.requireWebView2
+    !ifndef WAILS_WEBVIEW2_REQUIRED
+        !define WAILS_WEBVIEW2_REQUIRED "FreeOS needs the Microsoft WebView2 Runtime. Install it from https://go.microsoft.com/fwlink/p/?LinkId=2124703 and open FreeOS again."
+    !endif
+    SetRegView 64
+    ReadRegStr $0 HKLM "SOFTWARE\WOW6432Node\Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}" "pv"
+    ${If} $0 == ""
+        ReadRegStr $0 HKLM "SOFTWARE\Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}" "pv"
+    ${EndIf}
+    ${If} $0 == ""
+        ReadRegStr $0 HKCU "Software\Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}" "pv"
+    ${EndIf}
+    ${If} $0 == ""
+        IfSilent silentWebView2 notSilentWebView2
+        silentWebView2:
+            SetErrorLevel 66
+            Abort
+        notSilentWebView2:
+            MessageBox MB_OK "${WAILS_WEBVIEW2_REQUIRED}"
+            Abort
+    ${EndIf}
 !macroend
 
 !macro wails.associateFiles

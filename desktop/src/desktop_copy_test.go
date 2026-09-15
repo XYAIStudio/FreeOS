@@ -1,6 +1,9 @@
 package main
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 func TestDesktopTextLooksUpLocaleWithEnglishDefault(t *testing.T) {
 	if got := desktopText(LocaleZH, copyStatusReady); got != "FreeOS 已就绪" {
@@ -14,6 +17,9 @@ func TestDesktopTextLooksUpLocaleWithEnglishDefault(t *testing.T) {
 	}
 	if got := desktopText(LocaleZH, "missing.key"); got != "missing.key" {
 		t.Fatalf("unknown key: %s", got)
+	}
+	if got := desktopText(LocaleEN, copyAlreadyRunning); !strings.Contains(got, "already running") {
+		t.Fatalf("already running: %s", got)
 	}
 }
 

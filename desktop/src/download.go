@@ -338,7 +338,7 @@ func unzipGreenFiles(files []*zip.File, dest string) error {
 	}
 	// Zip root is FreeOS-<plat>/… (or legacy Octop-<plat>/) — strip that prefix.
 	for _, f := range files {
-		name := f.Name
+		name := filepath.ToSlash(strings.ReplaceAll(f.Name, "\\", "/"))
 		parts := strings.SplitN(name, "/", 2)
 		if len(parts) < 2 {
 			continue

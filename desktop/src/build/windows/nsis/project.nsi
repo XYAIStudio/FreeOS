@@ -28,7 +28,7 @@ ManifestDPIAware true
 !define MUI_UNICON "..\icon.ico"
 !define MUI_FINISHPAGE_NOAUTOCLOSE
 !define MUI_ABORTWARNING
-!define MUI_FINISHPAGE_RUN "$INSTDIR\${PRODUCT_EXECUTABLE}"
+!define MUI_FINISHPAGE_RUN_FUNCTION LaunchFreeOS
 
 !insertmacro MUI_PAGE_WELCOME
 !insertmacro MUI_PAGE_DIRECTORY
@@ -69,8 +69,11 @@ Section
 
     !insertmacro wails.files
 
-    CreateShortcut "$SMPROGRAMS\${INFO_PRODUCTNAME}.lnk" "$INSTDIR\${PRODUCT_EXECUTABLE}"
-    CreateShortcut "$DESKTOP\${INFO_PRODUCTNAME}.lnk" "$INSTDIR\${PRODUCT_EXECUTABLE}"
+    # SetOutPath becomes the shortcut working directory. Pin it again so
+    # WebView2's plugin dir cannot leak into Start in:.
+    SetOutPath $INSTDIR
+    CreateShortCut "$SMPROGRAMS\${INFO_PRODUCTNAME}.lnk" "$INSTDIR\${PRODUCT_EXECUTABLE}" "" "$INSTDIR\${PRODUCT_EXECUTABLE}" 0 SW_SHOWNORMAL
+    CreateShortCut "$DESKTOP\${INFO_PRODUCTNAME}.lnk" "$INSTDIR\${PRODUCT_EXECUTABLE}" "" "$INSTDIR\${PRODUCT_EXECUTABLE}" 0 SW_SHOWNORMAL
 
     !insertmacro wails.associateFiles
     !insertmacro wails.associateCustomProtocols
@@ -93,3 +96,8 @@ Section "uninstall"
 
     !insertmacro wails.deleteUninstaller
 SectionEnd
+
+Function LaunchFreeOS
+    SetOutPath $INSTDIR
+    Exec '"$INSTDIR\${PRODUCT_EXECUTABLE}"'
+FunctionEnd

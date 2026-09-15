@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -46,12 +45,10 @@ func startOctop(root string, port int) (*exec.Cmd, error) {
 	cmd.Dir = root
 	mustEnv(cmd, hostLaunchEnv(root, port))
 	configureProcGroup(cmd)
-	if runtime.GOOS == "linux" {
-		// The Linux desktop release has no server terminal; the shell owns status
-		// presentation just like the Windows GUI executable.
-		cmd.Stdout = io.Discard
-		cmd.Stderr = io.Discard
-	} else if runtime.GOOS != "windows" {
+	if f, err := attachProcessLogFile("host"); err == nil {
+		cmd.Stdout = f
+		cmd.Stderr = f
+	} else if runtime.GOOS != "windows" && runtime.GOOS != "linux" {
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 	}
