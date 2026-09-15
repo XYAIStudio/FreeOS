@@ -28,7 +28,10 @@ Same precedence as the FreeOS CLI/server:
 
 The NSIS finish page offers **运行 FreeOS** / **Run FreeOS**, checked by
 default. Leave it checked to start FreeOS from `$INSTDIR` when Setup
-closes (working directory is the install folder). Uncheck to skip.
+closes (working directory is the install folder). The launch uses the
+unelevated explorer token so the first run does not stamp `%USERPROFILE%\.freeos`
+as High integrity. Uncheck to skip. Chinese installer strings are compiled
+with `makensis -INPUTCHARSET UTF8` from a UTF-8 BOM `project.nsi`.
 
 ## Windows uninstall
 
@@ -48,8 +51,9 @@ rather than cutting a new tag.
   were written under `$INSTDIR`, and any other installer-owned tree there
 - Start Menu, Desktop, and Startup shortcuts created by the installer
 - Add/Remove Programs registry key and the autostart Run value
-- Program-owned WebView2 / Wails cache under `%AppData%\FreeOS.exe` and
-  `%LOCALAPPDATA%\FreeOS`
+- Program-owned WebView2 / Wails cache under `%AppData%\FreeOS.exe`,
+  `%LOCALAPPDATA%\FreeOS.exe.WebView2`, and `%LOCALAPPDATA%\FreeOS`
+  (including `WebView2\`)
 
 **Keeps**
 

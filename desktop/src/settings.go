@@ -37,14 +37,14 @@ func defaultSettings() Settings {
 
 func productHome() string {
 	if v := os.Getenv("FREEOS_HOME"); v != "" {
-		return v
+		return absProductHome(v)
 	}
 	if v := os.Getenv("OCTOP_HOME"); v != "" {
-		return v
+		return absProductHome(v)
 	}
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return ".freeos"
+	home := userProfileDir()
+	if home == "" {
+		return filepath.Join(os.TempDir(), "FreeOS")
 	}
 	freeos := filepath.Join(home, ".freeos")
 	octop := filepath.Join(home, ".octop")
@@ -55,6 +55,19 @@ func productHome() string {
 		return octop
 	}
 	return freeos
+}
+
+func absProductHome(p string) string {
+	if filepath.IsAbs(p) {
+		return filepath.Clean(p)
+	}
+	if home := userProfileDir(); home != "" {
+		return filepath.Join(home, p)
+	}
+	if abs, err := filepath.Abs(p); err == nil {
+		return abs
+	}
+	return p
 }
 
 // octopHome is the historical name used throughout the desktop shell.

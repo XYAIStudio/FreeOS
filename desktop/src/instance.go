@@ -32,12 +32,16 @@ func writeDesktopPid() error {
 
 func clearDesktopPid() {
 	_ = os.Remove(desktopLockPath())
+	releaseDesktopInstanceLock()
 }
 
 // claimDesktopInstance returns true when another live desktop process holds the lock.
 func claimDesktopInstance() bool {
+	if otherDesktopInstanceHeld() {
+		return true
+	}
 	pid := readDesktopPid()
-	if pid > 0 && pid != os.Getpid() && pidAlive(pid) {
+	if pid > 0 && pid != os.Getpid() && pidAlive(pid) && pidLooksLikeDesktopShell(pid) {
 		return true
 	}
 	if err := writeDesktopPid(); err != nil {

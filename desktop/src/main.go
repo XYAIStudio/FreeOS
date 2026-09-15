@@ -312,7 +312,26 @@ func (a *App) requestQuit() {
 }
 
 func main() {
+	defer func() {
+		if rec := recover(); rec != nil {
+			showFatalError("FreeOS", fmt.Sprintf("%v", rec))
+		}
+	}()
+	pinWorkingDirectory()
+	if err := ensureProductHomeWritable(); err != nil {
+		showFatalError("FreeOS", err.Error())
+		return
+	}
 	initDesktopLog()
+	if exe, err := os.Executable(); err == nil {
+		cwd, _ := os.Getwd()
+		log.Printf("launch exe=%s cwd=%s home=%s", exe, cwd, productHome())
+	}
+	if p := webviewUserDataPath(); p != "" {
+		if err := os.MkdirAll(p, 0o755); err != nil {
+			log.Printf("webview user data dir: %v", err)
+		}
+	}
 	if claimDesktopInstance() {
 		locale := LocaleEN
 		if data, err := os.ReadFile(settingsPath()); err == nil {
@@ -347,6 +366,14 @@ func main() {
 		},
 		Windows: application.WindowsOptions{
 			DisableQuitOnLastWindowClosed: true,
+			WebviewUserDataPath:           webviewUserDataPath(),
+		},
+		PanicHandler: func(details *application.PanicDetails) {
+			log.Printf("panic: %+v", details)
+			showFatalError("FreeOS", fmt.Sprintf("%v", details))
+		},
+		ErrorHandler: func(err error) {
+			logStartupError("wails", err)
 		},
 		Linux: application.LinuxOptions{
 			DisableQuitOnLastWindowClosed: true,

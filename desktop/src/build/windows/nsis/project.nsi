@@ -1,9 +1,14 @@
-Unicode true
+﻿Unicode true
 
 # FreeOS desktop NSIS installer.
 # Built by `wails3 task package` on a Windows runner:
-#   makensis -DARG_WAILS_AMD64_BINARY=..\..\..\bin\FreeOS.exe project.nsi
-#   makensis -DARG_WAILS_ARM64_BINARY=..\..\..\bin\FreeOS.exe project.nsi
+#   makensis -INPUTCHARSET UTF8 -DARG_WAILS_AMD64_BINARY=..\..\..\bin\FreeOS.exe project.nsi
+#   makensis -INPUTCHARSET UTF8 -DARG_WAILS_ARM64_BINARY=..\..\..\bin\FreeOS.exe project.nsi
+#
+# Unicode true makes a Unicode installer; it does NOT change how this .nsi is
+# decoded. GitHub windows-latest is en-US (ACP = CP1252). Without a UTF-8 BOM
+# and -INPUTCHARSET UTF8, LangString 运行 becomes the finish-page mojibake
+# "è¿è¡Œ FreeOS". Keep this file UTF-8 with BOM.
 
 !include "wails_tools.nsh"
 
@@ -82,9 +87,9 @@ Section
 
     !insertmacro wails.files
 
-    # SetOutPath becomes the shortcut working directory. Pin it again so
+    # SetOutPath becomes the shortcut WorkingDirectory. Pin it again so
     # WebView2's plugin dir cannot leak into Start in:.
-    SetOutPath $INSTDIR
+    SetOutPath "$INSTDIR"
     CreateShortCut "$SMPROGRAMS\${INFO_PRODUCTNAME}.lnk" "$INSTDIR\${PRODUCT_EXECUTABLE}" "" "$INSTDIR\${PRODUCT_EXECUTABLE}" 0 SW_SHOWNORMAL
     CreateShortCut "$DESKTOP\${INFO_PRODUCTNAME}.lnk" "$INSTDIR\${PRODUCT_EXECUTABLE}" "" "$INSTDIR\${PRODUCT_EXECUTABLE}" 0 SW_SHOWNORMAL
 
@@ -120,5 +125,17 @@ SectionEnd
 
 Function LaunchFreeOS
     SetOutPath "$INSTDIR"
-    Exec '"$INSTDIR\${PRODUCT_EXECUTABLE}"'
+    ; Installer is admin. Exec/CreateProcess inherits that token and the
+    ; first run would write ~/.freeos + WebView2 as High integrity — a later
+    ; unelevated shortcut click then does nothing. IShellDispatch2 runs as
+    ; the explorer (medium IL) token. Working directory stays $INSTDIR.
+    System::Call "ole32::CoInitialize(i 0)"
+    System::Call 'ole32::CoCreateInstance(g "{13709620-C279-11CE-A49E-444553540000}",i 0,i 1,g "{A4C6892C-3BA9-11d2-9DEA-00C04FB16162}",*i .r0) i .r1'
+    ${If} $1 == 0
+    ${AndIf} $0 != 0
+        System::Call '$0->31(w "$INSTDIR\${PRODUCT_EXECUTABLE}", w "", w "$INSTDIR", w "open", i 1)'
+        System::Call "$0->2()"
+    ${Else}
+        Exec '"$WINDIR\explorer.exe" "$INSTDIR\${PRODUCT_EXECUTABLE}"'
+    ${EndIf}
 FunctionEnd
