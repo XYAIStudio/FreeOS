@@ -166,6 +166,24 @@ _BEARER_SCHEME = {
 }
 
 
+def uniquify_operation_ids(schema: dict[str, Any]) -> dict[str, Any]:
+    """Give each HTTP method its own operationId (FastAPI reuses the function name)."""
+    seen: set[str] = set()
+    for path_item in schema.get("paths", {}).values():
+        if not isinstance(path_item, dict):
+            continue
+        for method, operation in path_item.items():
+            if not isinstance(operation, dict):
+                continue
+            op_id = operation.get("operationId")
+            if not isinstance(op_id, str) or not op_id:
+                continue
+            unique = op_id if op_id not in seen else f"{op_id}_{method.lower()}"
+            seen.add(unique)
+            operation["operationId"] = unique
+    return schema
+
+
 def configure_openapi(app: FastAPI) -> None:
     """Attach tag descriptions, API intro, and Bearer security to the OpenAPI schema."""
 
@@ -182,9 +200,12 @@ def configure_openapi(app: FastAPI) -> None:
         )
         components = schema.setdefault("components", {})
         components.setdefault("securitySchemes", {})["BearerAuth"] = _BEARER_SCHEME
+        uniquify_operation_ids(schema)
 
         for path, path_item in schema.get("paths", {}).items():
             if not path.startswith("/api/") or is_jwt_exempt_path(path):
+                continue
+            if not isinstance(path_item, dict):
                 continue
             for operation in path_item.values():
                 if isinstance(operation, dict) and "security" not in operation:

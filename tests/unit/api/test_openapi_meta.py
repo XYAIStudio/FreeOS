@@ -27,5 +27,30 @@ async def test_openapi_has_bearer_security_and_descriptions(tmp_octop_home: Path
         me = spec["paths"]["/api/auth/me"]["get"]
         assert "BearerAuth" in me["security"][0]
         assert "security" not in spec["paths"]["/api/setup/status"]["get"]
+        ids = [
+            op["operationId"]
+            for item in spec.get("paths", {}).values()
+            if isinstance(item, dict)
+            for op in item.values()
+            if isinstance(op, dict) and op.get("operationId")
+        ]
+        assert len(ids) == len(set(ids))
     finally:
         await srv.stop()
+
+
+def test_uniquify_operation_ids_suffixes_duplicates() -> None:
+    from octop.api.openapi_meta import uniquify_operation_ids
+
+    schema = {
+        "paths": {
+            "/api/org-module/sidecar/{path}": {
+                "get": {"operationId": "org_module_proxy"},
+                "post": {"operationId": "org_module_proxy"},
+            }
+        }
+    }
+    uniquify_operation_ids(schema)
+    ops = schema["paths"]["/api/org-module/sidecar/{path}"]
+    assert ops["get"]["operationId"] == "org_module_proxy"
+    assert ops["post"]["operationId"] == "org_module_proxy_post"
