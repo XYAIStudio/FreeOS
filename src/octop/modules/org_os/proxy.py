@@ -88,9 +88,7 @@ async def proxy_request(
             content=body or None,
         )
     response_headers = {
-        key: value
-        for key, value in upstream.headers.items()
-        if key.lower() not in _HOP_BY_HOP
+        key: value for key, value in upstream.headers.items() if key.lower() not in _HOP_BY_HOP
     }
     return Response(
         content=upstream.content,
@@ -109,9 +107,7 @@ def streaming_response(upstream: Any) -> StreamingResponse:
     from fastapi.responses import StreamingResponse
 
     headers = {
-        key: value
-        for key, value in upstream.headers.items()
-        if key.lower() not in _HOP_BY_HOP
+        key: value for key, value in upstream.headers.items() if key.lower() not in _HOP_BY_HOP
     }
     return StreamingResponse(
         iter_upstream(upstream),

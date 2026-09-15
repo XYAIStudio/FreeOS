@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from contextlib import suppress
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
@@ -52,16 +53,12 @@ async def patch_org_module(
     if mgr is None and getattr(server, "services", None) is not None:
         mgr = getattr(server.services, "plugins", None)
     if mgr is not None and hasattr(mgr, "set_enabled"):
-        try:
+        # Plugin may not be seeded yet; config.json is the source of truth.
+        with suppress(Exception):
             mgr.set_enabled("org-os", body.enabled)
-        except Exception:
-            # Plugin may not be seeded yet; config.json is the source of truth.
-            pass
     if body.enabled and server.app_runtime is not None:
-        try:
+        with suppress(Exception):
             await server.app_runtime.agent_registry.reload_all()
-        except Exception:
-            pass
     return service.status().to_dict()
 
 

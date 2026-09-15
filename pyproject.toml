@@ -157,6 +157,14 @@ module = "octop.api.routers.health"
 disallow_untyped_defs = false
 
 [[tool.mypy.overrides]]
+module = "octop.api.routers.org_module"
+disallow_untyped_defs = false
+
+[[tool.mypy.overrides]]
+module = "octop.modules.*"
+disallow_untyped_defs = false
+
+[[tool.mypy.overrides]]
 module = "octop.api.routers.setup"
 disallow_untyped_defs = false
 

@@ -28,9 +28,7 @@ def test_catalog_matches_vendored_openxyos() -> None:
     assert catalog_keys() == load_upstream_catalog_keys(upstream)
 
 
-def test_path_layout_prefers_freeos_home(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-) -> None:
+def test_path_layout_prefers_freeos_home(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     monkeypatch.setenv("FREEOS_HOME", str(tmp_path / "free"))
     monkeypatch.setenv("OCTOP_HOME", str(tmp_path / "oct"))
     assert PathLayout.from_env().root == tmp_path / "free"

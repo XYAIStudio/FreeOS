@@ -63,7 +63,8 @@ export default function OrganizationPage() {
 
   const catalog: OrgCapability[] = status?.catalog ?? [];
   const sidecarUp = Boolean(status?.sidecar.reachable);
-  const showEmbed = Boolean(status?.enabled && sidecarUp && status.embed_url);
+  const embedUrl = status?.enabled && sidecarUp ? status.embed_url : "";
+  const showEmbed = Boolean(embedUrl);
 
   return (
     <PageShell
@@ -187,7 +188,7 @@ export default function OrganizationPage() {
             extra={
               <Button
                 type="link"
-                href={status.embed_url}
+                href={embedUrl}
                 target="_blank"
                 rel="noreferrer"
                 icon={<ExternalLink size={14} />}
@@ -198,7 +199,7 @@ export default function OrganizationPage() {
           >
             <iframe
               title={t("organization.embedTitle")}
-              src={status.embed_url}
+              src={embedUrl}
               style={{
                 width: "100%",
                 minHeight: 640,

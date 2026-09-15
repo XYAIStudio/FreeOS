@@ -138,11 +138,11 @@ class OrgModuleService:
         try:
             with httpx.Client(timeout=timeout, follow_redirects=True) as client:
                 response = client.get(livez)
-        except httpx.HTTPError as exc:
+        except httpx.HTTPError:
             return SidecarHealth(
                 reachable=False,
                 url=url,
-                detail=f"sidecar unreachable: {exc}",
+                detail="sidecar unreachable",
             )
         payload: dict[str, Any] = {}
         try:

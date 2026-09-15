@@ -119,7 +119,11 @@ class Handler(BaseHTTPRequestHandler):
             )
             return
         rel = path.lstrip("/")
-        candidate = (PUBLIC / rel).resolve()
+        raw_path = Path(rel)
+        if raw_path.is_absolute() or ".." in raw_path.parts:
+            self._send(404, b"not found", "text/plain")
+            return
+        candidate = (PUBLIC / Path(*raw_path.parts)).resolve()
         try:
             candidate.relative_to(PUBLIC.resolve())
         except ValueError:
