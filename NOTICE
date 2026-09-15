@@ -1,0 +1,50 @@
+FreeOS
+Copyright 2026 XYAI Labs and FreeOS contributors.
+
+This product includes software developed by third parties. Their licenses
+and copyright notices remain applicable to those components.
+
+------------------------------------------------------------------------
+Octop (MIT)
+------------------------------------------------------------------------
+The host platform (Python package ``octop``, FastAPI control plane,
+React dashboard under ``dashboard/``, desktop/fnos packaging, and most
+of ``src/``) is derived from:
+
+    https://github.com/TencentCloud/Octop
+
+Copyright (c) 2026 Octop contributors
+Licensed under the MIT License. See the root ``LICENSE`` file.
+
+FreeOS is an independent project. It is not affiliated with, endorsed by,
+or sponsored by Tencent Cloud, Tencent, or the Octop project. "Octop"
+remains an upstream product name; remaining ``octop`` identifiers in this
+tree are compatibility aliases, not a claim of trademark rights.
+
+------------------------------------------------------------------------
+openXYOS (Apache-2.0)
+------------------------------------------------------------------------
+Organization OS capabilities vendored under ``modules/openxyos/`` come
+from:
+
+    https://github.com/XYAIStudio/openXYOS
+
+Copyright 2025-2026 Xiongyuan Technology and XYOS contributors
+Licensed under the Apache License, Version 2.0.
+See ``modules/openxyos/LICENSE`` and ``modules/openxyos/NOTICE``.
+
+A copy of the Apache-2.0 license is also at
+``licenses/APACHE-2.0.txt``.
+
+FreeOS does not claim affiliation with XYAIStudio, XYOS, or related
+trademarks beyond this accurate attribution. See
+``modules/openxyos/TRADEMARKS.md`` for upstream trademark terms.
+
+------------------------------------------------------------------------
+License split
+------------------------------------------------------------------------
+- MIT applies to the FreeOS/Octop host platform and FreeOS-authored
+  bridge code under ``src/octop/modules/org_os/``, dashboard Organization
+  pages, and FreeOS branding assets.
+- Apache-2.0 applies to ``modules/openxyos/`` and unmodified copies of
+  that tree.

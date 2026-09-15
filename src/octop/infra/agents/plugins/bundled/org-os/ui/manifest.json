@@ -1,0 +1,3 @@
+{
+  "renderers": [{ "id": "org_os_card", "tools": ["org_os_status"] }]
+}
