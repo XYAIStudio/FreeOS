@@ -9,6 +9,7 @@
 ### 新增
 
 - Organization OS 首页双循环：FreeOS 数据面与 openXYOS 控制面的实时状态、一键装配员工 / 打包回流 / 运行 org loop，以及边车离线时的启动恢复。
+- FreeOS 官网源码：`website/`（Vite + React 静态站，中/英，圆形标志 + XYAI 机器人六姿态，无章鱼形象）。
 
 ### 变更
 

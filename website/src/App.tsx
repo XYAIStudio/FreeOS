@@ -40,35 +40,27 @@ function IconDownload() {
 
 function DualLoop({ locale }: { locale: Locale }) {
   const t = copy[locale].engines;
-  const reduced =
-    typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  const path = "M180 110 C180 40 540 40 540 110 C540 180 180 180 180 110";
   return (
-    <div className="loop-stage" aria-hidden="true">
-      <svg className="loop-svg" viewBox="0 0 720 220" role="presentation">
-        <defs>
-          <linearGradient id="loopStroke" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="#0033FF" />
-            <stop offset="50%" stopColor="#22c55e" />
-            <stop offset="100%" stopColor="#f5d000" />
-          </linearGradient>
-        </defs>
-        <path className="loop-path" d={path} fill="none" stroke="url(#loopStroke)" strokeWidth="2.4" />
-        <circle className="loop-dot d1" r="5" cx="180" cy="110" fill="#0033FF">
-          {reduced ? null : <animateMotion dur="8s" repeatCount="indefinite" path={path} />}
-        </circle>
-        <circle className="loop-dot d2" r="5" cx="360" cy="46" fill="#22c55e">
-          {reduced ? null : <animateMotion dur="8s" begin="-2.6s" repeatCount="indefinite" path={path} />}
-        </circle>
-        <circle className="loop-dot d3" r="5" cx="540" cy="110" fill="#ef4444">
-          {reduced ? null : <animateMotion dur="8s" begin="-5.2s" repeatCount="indefinite" path={path} />}
-        </circle>
-      </svg>
-      <div className="loop-labels">
+    <div className="cycle" aria-hidden="true">
+      <div className="cycle-cell out">
+        <em>01</em>
         <span>{t.flowOut}</span>
+      </div>
+      <div className="cycle-arrow east" />
+      <div className="cycle-cell assemble">
+        <em>02</em>
         <span>{t.flowAssemble}</span>
-        <span>{t.flowBack}</span>
+      </div>
+      <div className="cycle-arrow south" />
+      <div className="cycle-arrow north" />
+      <div className="cycle-cell spawn">
+        <em>04</em>
         <span>{t.flowSpawn}</span>
+      </div>
+      <div className="cycle-arrow west" />
+      <div className="cycle-cell back">
+        <em>03</em>
+        <span>{t.flowBack}</span>
       </div>
     </div>
   );
@@ -156,7 +148,7 @@ export default function App() {
             GitHub
           </a>
           <button
-            className="menu"
+            className={`menu${navOpen ? " open" : ""}`}
             type="button"
             aria-expanded={navOpen}
             aria-label={navOpen ? "Close" : "Menu"}
@@ -179,7 +171,7 @@ export default function App() {
             <p className="promise">
               {t.hero.promise}
               <span className="times">{t.hero.times}</span>
-              {t.hero.org}
+              <span className="org-line">{t.hero.org}</span>
             </p>
             <p className="lead">{t.hero.lead}</p>
             <div className="hero-actions">
@@ -212,14 +204,13 @@ export default function App() {
             <h2>{t.engines.title}</h2>
             <p>{t.engines.lead}</p>
           </div>
-          <div className="engine-grid">
+          <div className="engine-pair">
             <article className="engine data">
               <img src={mascotSrc("think")} alt={poseAlts.think} width={280} height={280} />
               <small>{t.engines.dataLicense}</small>
               <h3>{t.engines.dataTitle}</h3>
               <p>{t.engines.dataBody}</p>
             </article>
-            <DualLoop locale={locale} />
             <article className="engine control">
               <img src={mascotSrc("peek")} alt={poseAlts.peek} width={280} height={280} />
               <small>{t.engines.controlLicense}</small>
@@ -227,6 +218,7 @@ export default function App() {
               <p>{t.engines.controlBody}</p>
             </article>
           </div>
+          <DualLoop locale={locale} />
           <p className="engine-note">{t.engines.note}</p>
         </section>
 
