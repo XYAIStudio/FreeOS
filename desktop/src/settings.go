@@ -16,7 +16,7 @@ const (
 )
 
 // Settings is persisted at ~/.freeos/desktop-settings.json
-// (legacy ~/.octop/desktop-settings.json is still honored when that home wins).
+// (OCTOP_HOME still overrides when explicitly set).
 type Settings struct {
 	Locale         Locale `json:"locale"`
 	Autostart      bool   `json:"autostart"`
@@ -46,15 +46,9 @@ func productHome() string {
 	if home == "" {
 		return filepath.Join(os.TempDir(), "FreeOS")
 	}
-	freeos := filepath.Join(home, ".freeos")
-	octop := filepath.Join(home, ".octop")
-	if _, err := os.Stat(freeos); err == nil {
-		return freeos
-	}
-	if _, err := os.Stat(octop); err == nil {
-		return octop
-	}
-	return freeos
+	// Installed FreeOS always owns ~/.freeos. A leftover ~/.octop from Octop
+	// must not become the desktop home — that re-serves the old login wall.
+	return filepath.Join(home, ".freeos")
 }
 
 func absProductHome(p string) string {

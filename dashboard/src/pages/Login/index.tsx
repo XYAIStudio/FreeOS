@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { Spin } from "antd";
 import { message } from "@/utils/antdMessage";
 
 import { useTranslation } from "react-i18next";
@@ -12,6 +13,7 @@ import {
 import AuthForm, { type AuthFormMode } from "../../components/AuthForm";
 import BrandMark from "../../components/BrandMark";
 import { applyGuestLocale, applyUserLocale } from "../../utils/locale";
+import { isDesktopShell } from "../../utils/desktopShell";
 
 export default function LoginPage() {
   const { t } = useTranslation();
@@ -19,6 +21,7 @@ export default function LoginPage() {
   const [searchParams] = useSearchParams();
   const [oidc, setOidc] = useState<OidcStatus | null>(null);
   const [mode, setMode] = useState<AuthFormMode>("login");
+  const desktop = isDesktopShell(`?${searchParams.toString()}`);
 
   useEffect(() => {
     void applyGuestLocale();
@@ -27,7 +30,9 @@ export default function LoginPage() {
   useEffect(() => {
     let cancelled = false;
     const boot = async () => {
-      for (let attempt = 0; attempt < 4; attempt += 1) {
+      const attempts = desktop ? 20 : 4;
+      const delayMs = desktop ? 250 : 150;
+      for (let attempt = 0; attempt < attempts; attempt += 1) {
         try {
           const session = await authApi.localSession();
           setAuthToken(session.access_token);
@@ -35,12 +40,28 @@ export default function LoginPage() {
           if (!cancelled) navigate("/chat", { replace: true });
           return;
         } catch {
-          if (attempt < 3) {
+          if (attempt < attempts - 1) {
             await new Promise((resolve) => {
-              window.setTimeout(resolve, 150);
+              window.setTimeout(resolve, delayMs);
             });
           }
         }
+      }
+      if (desktop) {
+        while (!cancelled) {
+          try {
+            const session = await authApi.localSession();
+            setAuthToken(session.access_token);
+            await applyUserLocale(session.user.locale);
+            if (!cancelled) navigate("/chat", { replace: true });
+            return;
+          } catch {
+            await new Promise((resolve) => {
+              window.setTimeout(resolve, 400);
+            });
+          }
+        }
+        return;
       }
       try {
         const status = await authApi.getAuthStatus();
@@ -60,7 +81,7 @@ export default function LoginPage() {
     return () => {
       cancelled = true;
     };
-  }, [navigate]);
+  }, [desktop, navigate]);
 
   useEffect(() => {
     const code = searchParams.get("oidc_error");
@@ -76,6 +97,22 @@ export default function LoginPage() {
   const onSuccess = (_res: LoginResponse) => {
     navigate("/chat", { replace: true });
   };
+
+  if (desktop) {
+    return (
+      <div
+        style={{
+          height: "100dvh",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          background: "var(--fn-bg-layout)",
+        }}
+      >
+        <Spin size="large" />
+      </div>
+    );
+  }
 
   return (
     <div

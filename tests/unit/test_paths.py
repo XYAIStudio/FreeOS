@@ -85,3 +85,12 @@ def test_path_layout_from_env_defaults_to_dot_freeos(monkeypatch, tmp_path: Path
 def test_path_layout_from_env_honors_octop_home(monkeypatch, tmp_path: Path) -> None:
     monkeypatch.setenv("OCTOP_HOME", str(tmp_path))
     assert PathLayout.from_env().root == tmp_path
+
+
+def test_path_layout_from_env_desktop_skips_legacy_octop(monkeypatch, tmp_path: Path) -> None:
+    monkeypatch.delenv("OCTOP_HOME", raising=False)
+    monkeypatch.delenv("FREEOS_HOME", raising=False)
+    monkeypatch.setenv("FREEOS_DESKTOP", "1")
+    (tmp_path / ".octop").mkdir()
+    monkeypatch.setattr(Path, "home", classmethod(lambda cls: tmp_path))
+    assert PathLayout.from_env().root == tmp_path / ".freeos"

@@ -20,7 +20,8 @@ class PathLayout:
         1. ``FREEOS_HOME``
         2. ``OCTOP_HOME`` (legacy Octop identifier, still honored)
         3. ``~/.freeos`` if it already exists
-        4. ``~/.octop`` if it already exists (existing Octop installs)
+        4. ``~/.octop`` if it already exists (existing Octop server installs;
+           skipped when ``OCTOP_DESKTOP`` / ``FREEOS_DESKTOP`` is set)
         5. ``~/.freeos`` for new installs
         """
         for key in ("FREEOS_HOME", "OCTOP_HOME"):
@@ -32,7 +33,12 @@ class PathLayout:
         octop = home / ".octop"
         if freeos.exists():
             return cls(freeos)
-        if octop.exists():
+        desktop = False
+        for key in ("OCTOP_DESKTOP", "FREEOS_DESKTOP"):
+            if (os.environ.get(key) or "").strip().lower() in {"1", "true", "yes", "on"}:
+                desktop = True
+                break
+        if octop.exists() and not desktop:
             return cls(octop)
         return cls(freeos)
 

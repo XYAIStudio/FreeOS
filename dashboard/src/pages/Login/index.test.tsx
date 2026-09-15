@@ -81,4 +81,24 @@ describe("LoginPage local session", () => {
     expect(await screen.findByText("login form")).toBeInTheDocument();
     expect(screen.queryByText("usable app")).toBeNull();
   });
+
+  it("does not render the login form inside the desktop shell", async () => {
+    localSession.mockRejectedValue(new Error("interactive login required"));
+    getAuthStatus.mockResolvedValue({ setup_required: false });
+    getOidcStatus.mockResolvedValue({ enabled: false });
+
+    const view = render(
+      <MemoryRouter initialEntries={["/login?desktop=1"]}>
+        <Routes>
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/chat" element={<div>usable app</div>} />
+          <Route path="/setup" element={<div>setup wizard</div>} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => expect(localSession).toHaveBeenCalled());
+    expect(screen.queryByText("login form")).toBeNull();
+    view.unmount();
+  });
 });

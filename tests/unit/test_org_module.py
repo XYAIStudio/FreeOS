@@ -56,9 +56,22 @@ def test_path_layout_keeps_existing_octop_home(
 ) -> None:
     monkeypatch.delenv("FREEOS_HOME", raising=False)
     monkeypatch.delenv("OCTOP_HOME", raising=False)
+    monkeypatch.delenv("OCTOP_DESKTOP", raising=False)
+    monkeypatch.delenv("FREEOS_DESKTOP", raising=False)
     (tmp_path / ".octop").mkdir()
     monkeypatch.setattr(Path, "home", classmethod(lambda cls: tmp_path))
     assert PathLayout.from_env().root == tmp_path / ".octop"
+
+
+def test_path_layout_desktop_skips_legacy_octop(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.delenv("FREEOS_HOME", raising=False)
+    monkeypatch.delenv("OCTOP_HOME", raising=False)
+    monkeypatch.setenv("OCTOP_DESKTOP", "1")
+    (tmp_path / ".octop").mkdir()
+    monkeypatch.setattr(Path, "home", classmethod(lambda cls: tmp_path))
+    assert PathLayout.from_env().root == tmp_path / ".freeos"
 
 
 def test_enable_from_desktop_env_first_run_only(

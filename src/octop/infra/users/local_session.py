@@ -149,6 +149,7 @@ async def ensure_local_user(server: Any, *, locale: str) -> User:
                     picked.id,
                 )
                 return picked
+            return await _provision_local_user(server, locale=loc)
         raise OctopError(ErrorCode.FORBIDDEN, "interactive login required")
 
 

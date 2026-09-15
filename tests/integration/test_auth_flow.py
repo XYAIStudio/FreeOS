@@ -71,6 +71,7 @@ async def test_health_no_auth_required(client):
     assert r.status_code == 200
     body = r.json()
     assert body["ok"] is True
+    assert body.get("product") == "freeos"
     assert isinstance(body.get("started_at"), int)
 
 
