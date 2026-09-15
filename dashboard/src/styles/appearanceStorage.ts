@@ -17,6 +17,9 @@ export type StoredAppearance = {
   customColor?: string;
 };
 
+/** One-time stamp: leftover Octop default ``rose`` was migrated to FreeOS blue. */
+export const OCTOP_ROSE_MIGRATED_KEY = "freeos:octop-rose-migrated";
+
 const VALID_PREFERENCES: ThemePreference[] = ["system", "light", "dark"];
 
 function isPreference(value: unknown): value is ThemePreference {
@@ -30,6 +33,14 @@ function isPalette(value: unknown): value is ThemePalette {
     typeof value === "string" &&
     ([...VALID_PALETTES, "custom"] as string[]).includes(value)
   );
+}
+
+function roseMigrationDone(): boolean {
+  return localStorage.getItem(OCTOP_ROSE_MIGRATED_KEY) === "1";
+}
+
+function markRoseMigrated(): void {
+  localStorage.setItem(OCTOP_ROSE_MIGRATED_KEY, "1");
 }
 
 function readLegacyPalette(): ThemePalette {
@@ -100,9 +111,16 @@ export function writeStoredAppearance(appearance: StoredAppearance): void {
   localStorage.removeItem(LEGACY_PALETTE_STORAGE_KEY);
 }
 
-/** One-shot boot read + migrate for ThemeProvider initial state. */
+/** One-shot boot read + migrate leftover Octop rose for ThemeProvider. */
 export function loadAppearanceOnBoot(): StoredAppearance {
   const appearance = readStoredAppearance();
-  writeStoredAppearance(appearance);
-  return appearance;
+  const leftoverOctopRose =
+    appearance.palette === "rose" && !roseMigrationDone();
+  const next = leftoverOctopRose
+    ? { ...appearance, palette: DEFAULT_PALETTE }
+    : appearance;
+  writeStoredAppearance(next);
+  // Stamp even when the palette was already blue, so a later rose pick is kept.
+  markRoseMigrated();
+  return next;
 }

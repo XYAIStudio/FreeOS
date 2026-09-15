@@ -22,9 +22,10 @@ from octop.api.routers.update_store import (
     update_task,
 )
 from octop.infra.errors import ErrorCode, OctopError
+from octop.infra.setup.github_releases import SOURCE_LABEL
 from octop.infra.setup.self_update import (
     UpgradeResult,
-    fetch_pypi_info,
+    fetch_release_info,
     get_editable_path,
     get_local_version,
     green_packages_dir,
@@ -145,11 +146,11 @@ def _build_status(
     if latest_any is None:
         latest_any = latest
     if latest_any is None and error is None:
-        info = fetch_pypi_info()
+        info = fetch_release_info()
         if info is not None:
             latest_any = info.version
             latest_stable = info.latest_stable
-            source = info.source
+            source = info.source or SOURCE_LABEL
             description = info.description
     if latest_stable is None and latest_any and not is_prerelease(latest_any):
         latest_stable = latest_any
@@ -188,7 +189,7 @@ async def update_status(
     _: Any = Depends(current_user),
     server: Any = Depends(get_server),
 ) -> dict[str, Any]:
-    """Return last check result; re-probe PyPI when the server cache TTL expires."""
+    """Return last check result; re-probe GitHub Releases when the cache TTL expires."""
     stable_only = _read_stable_only(server)
     cached = get_cached_status()
     if cached is not None:
@@ -206,22 +207,22 @@ async def check_for_updates(
     server: Any = Depends(get_server),
 ) -> dict[str, Any]:
     stable_only = _read_stable_only(server)
-    pypi_info = await asyncio.to_thread(fetch_pypi_info)
-    if pypi_info is None:
+    release = await asyncio.to_thread(fetch_release_info)
+    if release is None:
         return await asyncio.to_thread(
             _build_status,
             latest=None,
-            error="could not reach PyPI",
-            error_code="pypi_unreachable",
+            error="could not reach GitHub Releases for XYAIStudio/FreeOS",
+            error_code="github_unreachable",
             stable_only=stable_only,
             include_prerelease=True,
         )
     return await asyncio.to_thread(
         _build_status,
-        latest_any=pypi_info.version,
-        latest_stable=pypi_info.latest_stable,
-        source=pypi_info.source,
-        description=pypi_info.description,
+        latest_any=release.version,
+        latest_stable=release.latest_stable,
+        source=release.source or SOURCE_LABEL,
+        description=release.description,
         stable_only=stable_only,
         include_prerelease=True,
     )
@@ -324,7 +325,7 @@ async def trigger_upgrade(
             "editable installs must be upgraded manually (git pull / uv sync)",
         )
     stable_only = _read_stable_only(server)
-    info = await asyncio.to_thread(fetch_pypi_info)
+    info = await asyncio.to_thread(fetch_release_info)
     requested = body.version if body is not None else None
     target = _resolve_upgrade_target(
         requested=requested,

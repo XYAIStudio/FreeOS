@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from contextlib import suppress
 from typing import Any
 
@@ -11,8 +12,11 @@ from pydantic import BaseModel, Field
 from octop.api.deps import current_user, get_server, require_permission
 from octop.infra.server import OctopServer
 from octop.modules.org_os.catalog import OPENXYOS_MODULES
+from octop.modules.org_os.empower import assemble_from_blueprint, pack_to_openxyos
+from octop.modules.org_os.overview import build_overview
 from octop.modules.org_os.proxy import identity_headers, proxy_request
 from octop.modules.org_os.service import OrgModuleService, org_module_from_paths
+from octop.modules.org_os.sidecar_launch import find_sidecar_launcher, start_sidecar
 
 router = APIRouter()
 
@@ -26,12 +30,96 @@ def _service(server: OctopServer) -> OrgModuleService:
     return org_module_from_paths(server.paths)
 
 
+def _plane_counts(server: OctopServer, user: Any) -> dict[str, int]:
+    services = getattr(server, "services", None)
+    user_id = getattr(user, "id", None)
+    agents = 0
+    connectors = 0
+    cron_jobs = 0
+    skill_packages = 0
+    if services is not None:
+        try:
+            agents = len(services.agent_repo.list_all())
+        except Exception:
+            agents = 0
+        try:
+            if user_id is not None:
+                connectors = len(services.connector_repo.list_visible(int(user_id)))
+        except Exception:
+            connectors = 0
+        try:
+            cron_jobs = len(services.cron_repo.list_all())
+        except Exception:
+            cron_jobs = 0
+        try:
+            skill_packages = len(services.skill_package_repo.list_all())
+        except Exception:
+            skill_packages = 0
+    return {
+        "agents": agents,
+        "connectors": connectors,
+        "cron_jobs": cron_jobs,
+        "skill_packages": skill_packages,
+    }
+
+
 @router.get("/status", summary="Organization module status")
 async def org_module_status(
     server: OctopServer = Depends(get_server),
     _user: Any = Depends(current_user),
 ) -> dict[str, Any]:
     return _service(server).status().to_dict()
+
+
+@router.get("/overview", summary="FreeOS ↔ openXYOS dual-loop snapshot")
+async def org_module_overview(
+    server: OctopServer = Depends(get_server),
+    user: Any = Depends(current_user),
+) -> dict[str, Any]:
+    service = _service(server)
+    counts = _plane_counts(server, user)
+    return build_overview(
+        service,
+        agents=counts["agents"],
+        connectors=counts["connectors"],
+        cron_jobs=counts["cron_jobs"],
+        skill_packages=counts["skill_packages"],
+        start_available=find_sidecar_launcher() is not None,
+    ).to_dict()
+
+
+@router.post("/sidecar/start", summary="Start the bundled openXYOS sidecar")
+async def org_module_start_sidecar(
+    server: OctopServer = Depends(get_server),
+    _: Any = Depends(require_permission("plugins")),
+) -> dict[str, Any]:
+    service = _service(server)
+    if not service.is_enabled():
+        service.set_enabled(True)
+    started = await asyncio.to_thread(start_sidecar, service)
+    return started.to_dict()
+
+
+@router.post("/assemble", summary="Assemble digital employees from an openXYOS blueprint")
+async def org_module_assemble(
+    server: OctopServer = Depends(get_server),
+    _: Any = Depends(require_permission("plugins")),
+) -> dict[str, Any]:
+    service = _service(server)
+    if not service.is_enabled():
+        service.set_enabled(True)
+    return await asyncio.to_thread(assemble_from_blueprint, service)
+
+
+@router.post("/pack", summary="Pack FreeOS skills/MCP back to openXYOS")
+async def org_module_pack(
+    server: OctopServer = Depends(get_server),
+    _: Any = Depends(require_permission("plugins")),
+) -> dict[str, Any]:
+    service = _service(server)
+    if not service.is_enabled():
+        service.set_enabled(True)
+    return await asyncio.to_thread(pack_to_openxyos, service)
 
 
 @router.get("/catalog", summary="openXYOS capability catalog")

@@ -16,7 +16,7 @@ def test_update_check_only_no_install(monkeypatch: pytest.MonkeyPatch) -> None:
 
     monkeypatch.setattr(
         update_cmd,
-        "fetch_pypi_info",
+        "fetch_release_info",
         lambda: self_update.PyPIInfo(version="9.9.9", latest_stable="9.9.9"),
     )
     monkeypatch.setattr(update_cmd, "get_local_version", lambda: "0.1.0")
@@ -42,14 +42,11 @@ def test_update_yes_runs_upgrade(monkeypatch: pytest.MonkeyPatch) -> None:
 
     monkeypatch.setattr(
         update_cmd,
-        "fetch_pypi_info",
+        "fetch_release_info",
         lambda: self_update.PyPIInfo(version="9.9.9", latest_stable="9.9.9"),
     )
     monkeypatch.setattr(update_cmd, "get_local_version", lambda: "0.1.0")
     monkeypatch.setattr(update_cmd, "get_editable_path", lambda: None)
-    monkeypatch.setattr(
-        update_cmd, "resolve_venv_python", lambda: "/home/user/.octop/venv/bin/python"
-    )
 
     called: dict[str, bool] = {}
 
@@ -66,7 +63,7 @@ def test_update_yes_runs_upgrade(monkeypatch: pytest.MonkeyPatch) -> None:
     assert called.get("ran") is True
     assert called["kwargs"]["version"] == "9.9.9"
     assert called["kwargs"]["allow_prerelease"] is False
-    assert "/home/user/.octop/venv/bin/python" in result.output
+    assert "github.com/XYAIStudio/FreeOS" in result.output
 
 
 def test_update_already_latest(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -74,7 +71,7 @@ def test_update_already_latest(monkeypatch: pytest.MonkeyPatch) -> None:
 
     monkeypatch.setattr(
         update_cmd,
-        "fetch_pypi_info",
+        "fetch_release_info",
         lambda: self_update.PyPIInfo(version="0.1.0", latest_stable="0.1.0"),
     )
     monkeypatch.setattr(update_cmd, "get_local_version", lambda: "0.1.0")
@@ -86,37 +83,9 @@ def test_update_already_latest(monkeypatch: pytest.MonkeyPatch) -> None:
     assert "up to date" in result.output.lower()
 
 
-def test_build_upgrade_command_uses_managed_venv_python() -> None:
-    python = "/home/user/.octop/venv/bin/python"
-    cmd = self_update.build_upgrade_command("uv", python, index_url="https://mirror.example/simple")
-    assert cmd is not None
-    assert "--python" in cmd
-    assert python in cmd
-    assert "--upgrade-package" in cmd
-    assert "octop" in cmd
-    assert "https://mirror.example/simple" in cmd
-    assert "--target" not in cmd
-
-
-def test_build_upgrade_command_pins_version() -> None:
-    python = "/home/user/.octop/venv/bin/python"
-    cmd = self_update.build_upgrade_command("uv", python, version="0.9.33")
-    assert cmd is not None
-    assert "octop==0.9.33" in cmd
-    assert "--prerelease" not in cmd
-
-
-def test_build_upgrade_command_green_packages_target(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-) -> None:
-    packages = tmp_path / "packages"
-    packages.mkdir()
-    monkeypatch.setenv("OCTOP_GREEN_PACKAGES", str(packages))
-    python = "/opt/octop/runtime/bin/python3"
-    cmd = self_update.build_upgrade_command("uv", python)
-    assert cmd is not None
-    assert "--target" in cmd
-    assert str(packages) in cmd
+def test_package_requirement_refuses_pypi_octop() -> None:
+    with pytest.raises(RuntimeError, match="does not install the upstream octop"):
+        self_update.package_requirement("1.0.0")
 
 
 def test_resolve_venv_python_green_uses_current_interpreter(
@@ -155,7 +124,7 @@ def test_update_check_skips_prerelease_by_default(monkeypatch: pytest.MonkeyPatc
 
     monkeypatch.setattr(
         update_cmd,
-        "fetch_pypi_info",
+        "fetch_release_info",
         lambda: self_update.PyPIInfo(version="0.9.34b1", latest_stable="0.1.0"),
     )
     monkeypatch.setattr(update_cmd, "get_local_version", lambda: "0.1.0")
@@ -176,7 +145,7 @@ def test_update_allow_prerelease_check_shows_prerelease(
 
     monkeypatch.setattr(
         update_cmd,
-        "fetch_pypi_info",
+        "fetch_release_info",
         lambda: self_update.PyPIInfo(version="0.9.34b1", latest_stable="0.1.0"),
     )
     monkeypatch.setattr(update_cmd, "get_local_version", lambda: "0.1.0")
@@ -195,14 +164,11 @@ def test_update_allow_prerelease_installs_prerelease(
 
     monkeypatch.setattr(
         update_cmd,
-        "fetch_pypi_info",
+        "fetch_release_info",
         lambda: self_update.PyPIInfo(version="0.9.34b1", latest_stable="0.1.0"),
     )
     monkeypatch.setattr(update_cmd, "get_local_version", lambda: "0.1.0")
     monkeypatch.setattr(update_cmd, "get_editable_path", lambda: None)
-    monkeypatch.setattr(
-        update_cmd, "resolve_venv_python", lambda: "/home/user/.octop/venv/bin/python"
-    )
 
     called: dict[str, object] = {}
 
@@ -226,7 +192,7 @@ def test_update_editable_install_exits_nonzero(monkeypatch: pytest.MonkeyPatch) 
 
     monkeypatch.setattr(
         update_cmd,
-        "fetch_pypi_info",
+        "fetch_release_info",
         lambda: self_update.PyPIInfo(version="9.9.9", latest_stable="9.9.9"),
     )
     monkeypatch.setattr(update_cmd, "get_local_version", lambda: "0.1.0")

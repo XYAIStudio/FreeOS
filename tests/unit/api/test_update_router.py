@@ -279,64 +279,86 @@ def _settings_server(stable_only: bool | None = None) -> Any:
 
 
 def test_build_status_success_reports_source(monkeypatch: pytest.MonkeyPatch) -> None:
-    info = self_update.PyPIInfo(version="1.2.3", description="desc", source="mirrors.aliyun.com")
-    monkeypatch.setattr(update_router, "fetch_pypi_info", lambda: info)
+    info = self_update.GitHubReleaseInfo(
+        version="0.0.2", description="desc", source="github.com/XYAIStudio/FreeOS"
+    )
+    monkeypatch.setattr(update_router, "fetch_release_info", lambda: info)
 
     payload = update_router._build_status()
 
-    assert payload["latest_version"] == "1.2.3"
+    assert payload["latest_version"] == "0.0.2"
     assert payload["error"] is None
     assert payload["error_code"] is None
-    assert payload["source"] == "mirrors.aliyun.com"
+    assert payload["source"] == "github.com/XYAIStudio/FreeOS"
 
 
 def test_build_status_failure_via_check_keeps_error_code(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     payload = update_router._build_status(
-        latest=None, error="could not reach PyPI", error_code="pypi_unreachable"
+        latest=None,
+        error="could not reach GitHub Releases for XYAIStudio/FreeOS",
+        error_code="github_unreachable",
     )
 
     assert payload["latest_version"] is None
-    assert payload["error"] == "could not reach PyPI"
-    assert payload["error_code"] == "pypi_unreachable"
+    assert payload["error"] == "could not reach GitHub Releases for XYAIStudio/FreeOS"
+    assert payload["error_code"] == "github_unreachable"
+
+
+def test_same_freeos_version_is_not_an_update(monkeypatch: pytest.MonkeyPatch) -> None:
+    info = self_update.GitHubReleaseInfo(
+        version="0.0.1", latest_stable="0.0.1", source="github.com/XYAIStudio/FreeOS"
+    )
+    monkeypatch.setattr(update_router, "fetch_release_info", lambda: info)
+    monkeypatch.setattr(update_router, "get_local_version", lambda: "0.0.1")
+
+    payload = update_router._build_status()
+    assert payload["latest_version"] == "0.0.1"
+    assert payload["has_update"] is False
 
 
 @pytest.mark.asyncio
-async def test_check_endpoint_reports_error_code_when_pypi_unreachable(
+async def test_check_endpoint_reports_error_code_when_github_unreachable(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setattr(update_router, "fetch_pypi_info", lambda: None)
+    monkeypatch.setattr(update_router, "fetch_release_info", lambda: None)
 
     result = await update_router.check_for_updates(_=None, server=_settings_server())
 
     assert result["latest_version"] is None
-    assert result["error"] == "could not reach PyPI"
-    assert result["error_code"] == "pypi_unreachable"
+    assert "GitHub Releases" in (result["error"] or "")
+    assert result["error_code"] == "github_unreachable"
 
 
 @pytest.mark.asyncio
 async def test_check_endpoint_success_passes_source(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    info = self_update.PyPIInfo(version="1.2.3", source="pypi.org")
-    monkeypatch.setattr(update_router, "fetch_pypi_info", lambda: info)
+    info = self_update.GitHubReleaseInfo(
+        version="0.0.2", latest_stable="0.0.2", source="github.com/XYAIStudio/FreeOS"
+    )
+    monkeypatch.setattr(update_router, "fetch_release_info", lambda: info)
+    monkeypatch.setattr(update_router, "get_local_version", lambda: "0.0.1")
 
     result = await update_router.check_for_updates(_=None, server=_settings_server())
 
-    assert result["latest_version"] == "1.2.3"
-    assert result["source"] == "pypi.org"
+    assert result["latest_version"] == "0.0.2"
+    assert result["source"] == "github.com/XYAIStudio/FreeOS"
     assert result["error"] is None
     assert result["stable_only"] is True
     assert result["latest_is_prerelease"] is False
+    assert result["has_update"] is True
 
 
 @pytest.mark.asyncio
 async def test_status_stable_only_ignores_prerelease(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    info = self_update.PyPIInfo(version="0.9.34b1", latest_stable="0.9.33", source="pypi.org")
-    monkeypatch.setattr(update_router, "fetch_pypi_info", lambda: info)
+    info = self_update.GitHubReleaseInfo(
+        version="0.9.34b1", latest_stable="0.9.33", source="github.com/XYAIStudio/FreeOS"
+    )
+    monkeypatch.setattr(update_router, "fetch_release_info", lambda: info)
     monkeypatch.setattr(update_router, "get_local_version", lambda: "0.9.32")
 
     auto = await update_router.update_status(_=None, server=_settings_server(True))
@@ -355,8 +377,10 @@ async def test_status_stable_only_ignores_prerelease(
 async def test_status_includes_prerelease_when_stable_only_off(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    info = self_update.PyPIInfo(version="0.9.34b1", latest_stable="0.9.33", source="pypi.org")
-    monkeypatch.setattr(update_router, "fetch_pypi_info", lambda: info)
+    info = self_update.GitHubReleaseInfo(
+        version="0.9.34b1", latest_stable="0.9.33", source="github.com/XYAIStudio/FreeOS"
+    )
+    monkeypatch.setattr(update_router, "fetch_release_info", lambda: info)
     monkeypatch.setattr(update_router, "get_local_version", lambda: "0.9.33")
 
     auto = await update_router.update_status(_=None, server=_settings_server(False))
@@ -369,8 +393,10 @@ async def test_status_includes_prerelease_when_stable_only_off(
 async def test_patch_settings_remaps_cached_status(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    info = self_update.PyPIInfo(version="0.9.34b1", latest_stable="0.9.33", source="pypi.org")
-    monkeypatch.setattr(update_router, "fetch_pypi_info", lambda: info)
+    info = self_update.GitHubReleaseInfo(
+        version="0.9.34b1", latest_stable="0.9.33", source="github.com/XYAIStudio/FreeOS"
+    )
+    monkeypatch.setattr(update_router, "fetch_release_info", lambda: info)
     monkeypatch.setattr(update_router, "get_local_version", lambda: "0.9.33")
     server = _settings_server(True)
 
@@ -390,8 +416,10 @@ async def test_patch_settings_remaps_cached_status(
 async def test_trigger_upgrade_pins_stable_when_prerelease_exists(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    info = self_update.PyPIInfo(version="0.9.34b1", latest_stable="0.9.33", source="pypi.org")
-    monkeypatch.setattr(update_router, "fetch_pypi_info", lambda: info)
+    info = self_update.GitHubReleaseInfo(
+        version="0.9.34b1", latest_stable="0.9.33", source="github.com/XYAIStudio/FreeOS"
+    )
+    monkeypatch.setattr(update_router, "fetch_release_info", lambda: info)
     monkeypatch.setattr(update_router, "get_editable_path", lambda: None)
 
     captured: dict[str, object] = {}
@@ -424,8 +452,10 @@ async def test_trigger_upgrade_pins_stable_when_prerelease_exists(
 async def test_trigger_upgrade_defaults_to_channel_latest(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    info = self_update.PyPIInfo(version="0.9.34b1", latest_stable="0.9.33", source="pypi.org")
-    monkeypatch.setattr(update_router, "fetch_pypi_info", lambda: info)
+    info = self_update.GitHubReleaseInfo(
+        version="0.9.34b1", latest_stable="0.9.33", source="github.com/XYAIStudio/FreeOS"
+    )
+    monkeypatch.setattr(update_router, "fetch_release_info", lambda: info)
     monkeypatch.setattr(update_router, "get_editable_path", lambda: None)
 
     captured: dict[str, object] = {}

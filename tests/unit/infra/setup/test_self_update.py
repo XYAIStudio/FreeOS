@@ -2,14 +2,19 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 
+from octop.infra.setup.github_releases import GitHubReleaseInfo, ReleaseAsset
 from octop.infra.setup.self_update import (
-    build_upgrade_command,
     is_newer,
     is_prerelease,
+    package_requirement,
     parse_version,
+    pending_portable_zip,
     pick_latest_versions,
+    run_upgrade,
 )
 
 
@@ -52,31 +57,60 @@ def test_pick_latest_versions_all_prerelease() -> None:
     assert latest_stable is None
 
 
-def test_build_upgrade_command_prerelease_flags(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    python = "/home/user/.octop/venv/bin/python"
-    uv_cmd = build_upgrade_command("uv", python, allow_prerelease=True, version="0.9.34b1")
-    assert uv_cmd is not None
-    assert uv_cmd[uv_cmd.index("--prerelease") + 1] == "allow"
-    assert "octop==0.9.34b1" in uv_cmd
-    monkeypatch.setattr("octop.infra.setup.self_update.has_pip", lambda _: True)
-    pip_cmd = build_upgrade_command("pip", python, allow_prerelease=True, version="0.9.34b1")
-    assert pip_cmd is not None
-    assert "--pre" in pip_cmd
-    assert "octop==0.9.34b1" in pip_cmd
+def test_package_requirement_never_installs_upstream_octop() -> None:
+    with pytest.raises(RuntimeError, match="XYAIStudio/FreeOS"):
+        package_requirement("1.0.0")
 
 
-def test_build_upgrade_command_pins_stable_without_pre(
-    monkeypatch: pytest.MonkeyPatch,
+def test_same_version_is_not_newer() -> None:
+    assert not is_newer("0.0.1", "0.0.1")
+    assert is_newer("0.0.2", "0.0.1")
+    assert not is_newer("0.0.1", "1.0.0")
+
+
+def test_run_upgrade_stages_freeos_portable(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
-    python = "/home/user/.octop/venv/bin/python"
-    uv_cmd = build_upgrade_command("uv", python, version="0.9.33")
-    assert uv_cmd is not None
-    assert "octop==0.9.33" in uv_cmd
-    assert "--prerelease" not in uv_cmd
-    monkeypatch.setattr("octop.infra.setup.self_update.has_pip", lambda _: True)
-    pip_cmd = build_upgrade_command("pip", python, version="0.9.33")
-    assert pip_cmd is not None
-    assert "octop==0.9.33" in pip_cmd
-    assert "--pre" not in pip_cmd
+    zip_url = (
+        "https://github.com/XYAIStudio/FreeOS/releases/download/"
+        "v0.0.2/FreeOS-portable-linux-amd64-0.0.2.zip"
+    )
+    info = GitHubReleaseInfo(
+        version="0.0.2",
+        latest_stable="0.0.2",
+        assets=[ReleaseAsset(name="FreeOS-portable-linux-amd64-0.0.2.zip", url=zip_url)],
+    )
+    monkeypatch.setattr("octop.infra.setup.self_update.fetch_release_info", lambda: info)
+    monkeypatch.setattr("octop.infra.setup.self_update.desktop_plat", lambda: "linux-amd64")
+    monkeypatch.setenv("FREEOS_HOME", str(tmp_path))
+    monkeypatch.setenv("OCTOP_HOME", str(tmp_path))
+    monkeypatch.setenv("OCTOP_DESKTOP", "1")
+
+    def fake_download(url: str, dest: Path, **_: object) -> None:
+        dest.write_bytes(b"PK\x03\x04")
+
+    monkeypatch.setattr("octop.infra.setup.self_update.download_release_asset", fake_download)
+
+    result = run_upgrade(version="0.0.2")
+    assert result.success is True
+    assert result.installed_version == "0.0.2"
+    assert pending_portable_zip(tmp_path).is_file()
+    assert "staged FreeOS 0.0.2" in (result.message or "")
+
+
+def test_run_upgrade_does_not_pip_install_octop(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    info = GitHubReleaseInfo(version="0.0.1", latest_stable="0.0.1", assets=[])
+    monkeypatch.setattr("octop.infra.setup.self_update.fetch_release_info", lambda: info)
+    monkeypatch.setattr("octop.infra.setup.self_update.desktop_plat", lambda: "linux-amd64")
+    monkeypatch.setenv("FREEOS_HOME", str(tmp_path))
+    monkeypatch.delenv("OCTOP_DESKTOP", raising=False)
+    monkeypatch.delenv("FREEOS_DESKTOP", raising=False)
+    monkeypatch.delenv("OCTOP_GREEN_PACKAGES", raising=False)
+
+    result = run_upgrade(version="0.0.1")
+    assert result.success is False
+    assert result.error is not None
+    assert "PyPI" in result.error or "GitHub" in result.error
+    assert "octop==" not in result.error

@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 import {
   loadAppearanceOnBoot,
+  OCTOP_ROSE_MIGRATED_KEY,
   readStoredAppearance,
   writeStoredAppearance,
 } from "./appearanceStorage";
@@ -14,6 +15,7 @@ import {
 afterEach(() => {
   localStorage.removeItem(THEME_STORAGE_KEY);
   localStorage.removeItem(LEGACY_PALETTE_STORAGE_KEY);
+  localStorage.removeItem(OCTOP_ROSE_MIGRATED_KEY);
 });
 
 describe("appearanceStorage", () => {
@@ -101,6 +103,37 @@ describe("appearanceStorage", () => {
       palette: "amber",
       customColor: DEFAULT_CUSTOM_COLOR.toLowerCase(),
     });
+  });
+
+  it("migrates leftover Octop rose to FreeOS blue once on boot", () => {
+    localStorage.setItem(
+      THEME_STORAGE_KEY,
+      JSON.stringify({ preference: "dark", palette: "rose" }),
+    );
+
+    const appearance = loadAppearanceOnBoot();
+    expect(appearance.palette).toBe("freeos");
+    expect(appearance.preference).toBe("dark");
+    expect(localStorage.getItem(OCTOP_ROSE_MIGRATED_KEY)).toBe("1");
+    expect(JSON.parse(localStorage.getItem(THEME_STORAGE_KEY)!).palette).toBe(
+      "freeos",
+    );
+  });
+
+  it("migrates legacy octop:ui-palette rose to FreeOS blue once", () => {
+    localStorage.setItem(THEME_STORAGE_KEY, "system");
+    localStorage.setItem(LEGACY_PALETTE_STORAGE_KEY, "rose");
+
+    expect(loadAppearanceOnBoot().palette).toBe("freeos");
+    expect(localStorage.getItem(OCTOP_ROSE_MIGRATED_KEY)).toBe("1");
+  });
+
+  it("keeps an explicit rose pick after the one-time Octop migration", () => {
+    localStorage.setItem(OCTOP_ROSE_MIGRATED_KEY, "1");
+    writeStoredAppearance({ preference: "light", palette: "rose" });
+
+    expect(readStoredAppearance().palette).toBe("rose");
+    expect(loadAppearanceOnBoot().palette).toBe("rose");
   });
 
   it("falls back safely on invalid JSON or unknown values", () => {

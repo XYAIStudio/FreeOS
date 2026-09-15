@@ -1,37 +1,52 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Button, Space, Switch, Tag } from "antd";
 import {
-  Alert,
-  Button,
-  Card,
-  Space,
-  Switch,
-  Table,
-  Tag,
-  Typography,
-} from "antd";
-import { Building2, ExternalLink, RefreshCw } from "lucide-react";
+  ArrowDownUp,
+  Building2,
+  ExternalLink,
+  Package,
+  Play,
+  RefreshCw,
+  Shield,
+  Users,
+  Workflow,
+} from "lucide-react";
 import { useTranslation } from "react-i18next";
 import PageShell from "../../layouts/PageShell";
 import {
   orgModuleApi,
-  type OrgCapability,
-  type OrgModuleStatus,
+  type OrgAssembleResult,
+  type OrgLoopProof,
+  type OrgOverview,
+  type OrgPackResult,
 } from "../../api/modules/orgModule";
+import { formatServerIsoDateTime } from "../../utils/formatMessageTime";
+import { useServerTimezone } from "../../hooks/useServerTimezone";
 import { message } from "../../utils/antdMessage";
+import styles from "./Organization.module.less";
 
-const { Paragraph, Text } = Typography;
+type ActionKey = "assemble" | "pack" | "loop" | "sidecar" | null;
+
+function metric(value: number | undefined): string {
+  return typeof value === "number" ? String(value) : "—";
+}
 
 export default function OrganizationPage() {
   const { t, i18n } = useTranslation();
   const isZh = i18n.language?.toLowerCase().startsWith("zh") ?? false;
-  const [status, setStatus] = useState<OrgModuleStatus | null>(null);
+  const timeZone = useServerTimezone();
+  const [overview, setOverview] = useState<OrgOverview | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [busy, setBusy] = useState<ActionKey>(null);
+  const [loopProof, setLoopProof] = useState<OrgLoopProof | null>(null);
+  const [lastActionNotes, setLastActionNotes] = useState<string[]>([]);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      setStatus(await orgModuleApi.status());
+      const next = await orgModuleApi.overview();
+      setOverview(next);
     } catch (err) {
       message.error(
         err instanceof Error ? err.message : t("organization.loadFailed"),
@@ -45,13 +60,24 @@ export default function OrganizationPage() {
     void load();
   }, [load]);
 
+  const sidecarUp = Boolean(overview?.sidecar_reachable);
+  const firstRun = useMemo(() => {
+    if (!overview) return false;
+    return (
+      overview.freeos.employees === 0 &&
+      overview.freeos.spawned_colleagues === 0 &&
+      !overview.last_loop
+    );
+  }, [overview]);
+
   const toggle = async (enabled: boolean) => {
     setSaving(true);
     try {
-      setStatus(await orgModuleApi.setEnabled(enabled));
+      await orgModuleApi.setEnabled(enabled);
       message.success(
         enabled ? t("organization.enabled") : t("organization.disabled"),
       );
+      await load();
     } catch (err) {
       message.error(
         err instanceof Error ? err.message : t("organization.saveFailed"),
@@ -61,10 +87,72 @@ export default function OrganizationPage() {
     }
   };
 
-  const catalog: OrgCapability[] = status?.catalog ?? [];
-  const sidecarUp = Boolean(status?.sidecar.reachable);
-  const embedUrl = status?.enabled && sidecarUp ? status.embed_url : "";
-  const showEmbed = Boolean(embedUrl);
+  const runAction = async (key: Exclude<ActionKey, null>, fn: () => Promise<void>) => {
+    setBusy(key);
+    try {
+      await fn();
+      await load();
+    } catch (err) {
+      message.error(
+        err instanceof Error ? err.message : t("organization.actionFailed"),
+      );
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const startSidecar = () =>
+    runAction("sidecar", async () => {
+      const result = await orgModuleApi.startSidecar();
+      setLastActionNotes([result.detail, result.command].filter(Boolean));
+      message.success(
+        result.reachable
+          ? t("organization.sidecarStarted")
+          : t("organization.sidecarStartPending"),
+      );
+    });
+
+  const assemble = () =>
+    runAction("assemble", async () => {
+      const result: OrgAssembleResult = await orgModuleApi.assemble();
+      setLastActionNotes(result.notes);
+      message.success(
+        t("organization.assembleDone", { count: result.spawned.length }),
+      );
+    });
+
+  const packBack = () =>
+    runAction("pack", async () => {
+      const result: OrgPackResult = await orgModuleApi.pack();
+      setLastActionNotes([
+        ...result.pack.notes,
+        ...result.applied.notes,
+        result.applied.remote_applied
+          ? t("organization.packRemoteYes")
+          : t("organization.packRemoteNo"),
+      ]);
+      message.success(t("organization.packDone"));
+    });
+
+  const runLoop = () =>
+    runAction("loop", async () => {
+      const proof = await orgModuleApi.runLoop();
+      setLoopProof(proof);
+      setLastActionNotes(proof.notes);
+      message.success(
+        proof.ok ? t("organization.loopOk") : t("organization.loopPartial"),
+      );
+    });
+
+  const lastLoop = (loopProof ?? overview?.last_loop) as OrgLoopProof | null;
+  const lastSync = overview?.last_sync
+    ? formatServerIsoDateTime(overview.last_sync, timeZone)
+    : t("organization.neverSynced");
+  const catalog = overview?.catalog ?? [];
+  const embedUrl =
+    overview?.enabled && sidecarUp
+      ? `${overview.sidecar_url.replace(/\/$/, "")}/`
+      : "";
 
   return (
     <PageShell
@@ -78,114 +166,292 @@ export default function OrganizationPage() {
         </Space>
       }
     >
-      <Space direction="vertical" size={16} style={{ width: "100%" }}>
-        <Card loading={loading}>
-          <Space align="start" size={16} style={{ width: "100%" }}>
-            <Building2 size={28} strokeWidth={1.6} />
-            <div style={{ flex: 1 }}>
-              <Space size={12} wrap>
-                <Text strong>{t("organization.toggleLabel")}</Text>
-                <Switch
-                  checked={Boolean(status?.enabled)}
-                  loading={saving}
-                  onChange={(checked) => void toggle(checked)}
-                />
-                <Tag color={status?.enabled ? "green" : "default"}>
-                  {status?.enabled
-                    ? t("organization.on")
-                    : t("organization.off")}
-                </Tag>
-                <Tag color={sidecarUp ? "green" : "orange"}>
-                  {sidecarUp
-                    ? t("organization.sidecarUp")
-                    : t("organization.sidecarDown")}
-                </Tag>
-              </Space>
-              <Paragraph type="secondary" style={{ margin: "8px 0 0" }}>
-                {t("organization.bridgeHint")}
-              </Paragraph>
-              {status && (
-                <Paragraph type="secondary" style={{ marginBottom: 0 }}>
-                  {t("organization.home")}: <Text code>{status.home}</Text>
-                  <br />
-                  {t("organization.sidecar")}:{" "}
-                  <Text code>{status.sidecar.url}</Text>
-                </Paragraph>
-              )}
-            </div>
-          </Space>
-        </Card>
+      <div className={styles.page}>
+        <section className={styles.hero}>
+          <p className={styles.heroTitle}>{t("organization.heroTitle")}</p>
+          <p className={styles.heroStory}>{t("organization.heroStory")}</p>
+          <div className={styles.heroMeta}>
+            <span className={styles.chip}>
+              {overview?.enabled
+                ? t("organization.on")
+                : t("organization.off")}
+            </span>
+            <span className={styles.chip}>
+              {sidecarUp
+                ? t("organization.sidecarUp")
+                : t("organization.sidecarDown")}
+            </span>
+            <span className={styles.chip}>
+              {t("organization.lastSync")}: {lastSync}
+            </span>
+          </div>
+        </section>
 
-        {status?.enabled && !sidecarUp && (
-          <Alert
-            type="warning"
-            showIcon
-            message={t("organization.startSidecarTitle")}
-            description={
-              <span>
-                {t("organization.startSidecarBody")}{" "}
-                <Text code>{status.start_command}</Text>
-              </span>
-            }
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 12,
+            flexWrap: "wrap",
+          }}
+        >
+          <Building2 size={18} />
+          <span>{t("organization.toggleLabel")}</span>
+          <Switch
+            checked={Boolean(overview?.enabled)}
+            loading={saving || loading}
+            onChange={(checked) => void toggle(checked)}
           />
+        </div>
+
+        {!sidecarUp && (
+          <section className={styles.recover}>
+            <p className={styles.recoverTitle}>
+              {t("organization.startSidecarTitle")}
+            </p>
+            <p className={styles.recoverBody}>
+              {t("organization.startSidecarBody")}
+            </p>
+            <Space wrap>
+              <Button
+                type="primary"
+                icon={<Play size={14} />}
+                loading={busy === "sidecar"}
+                disabled={!overview?.start_available && !overview}
+                onClick={() => void startSidecar()}
+              >
+                {t("organization.startSidecarAction")}
+              </Button>
+              {overview?.start_command && (
+                <code>{overview.start_command}</code>
+              )}
+            </Space>
+          </section>
         )}
 
-        {status?.notes?.length ? (
-          <Alert
-            type="info"
-            showIcon
-            message={t("organization.notesTitle")}
-            description={
-              <ul style={{ margin: 0, paddingLeft: 18 }}>
-                {status.notes.map((note) => (
-                  <li key={note}>{note}</li>
-                ))}
-              </ul>
-            }
-          />
-        ) : null}
+        {firstRun && (
+          <section className={styles.empty}>
+            <p className={styles.emptyTitle}>{t("organization.emptyTitle")}</p>
+            <p>{t("organization.emptyBody")}</p>
+          </section>
+        )}
 
-        <Card title={t("organization.catalogTitle")}>
-          <Table<OrgCapability>
-            rowKey="key"
-            size="small"
-            pagination={false}
-            dataSource={catalog}
-            columns={[
-              {
-                title: t("organization.colKey"),
-                dataIndex: "key",
-                width: 140,
-                render: (key: string) => <Text code>{key}</Text>,
-              },
-              {
-                title: t("organization.colName"),
-                render: (_, row) => (isZh ? row.label_zh : row.label),
-              },
-              {
-                title: t("organization.colDesc"),
-                render: (_, row) =>
-                  isZh ? row.description_zh : row.description,
-              },
-              {
-                title: t("organization.colLock"),
-                dataIndex: "locked",
-                width: 100,
-                render: (locked: boolean) =>
-                  locked ? (
-                    <Tag>{t("organization.locked")}</Tag>
-                  ) : (
-                    <Tag color="blue">{t("organization.optional")}</Tag>
-                  ),
-              },
-            ]}
-          />
-        </Card>
+        <section className={styles.dual}>
+          <article className={styles.plane}>
+            <div className={styles.planeHead}>
+              <div>
+                <p className={styles.planeLabel}>{t("organization.dataPlane")}</p>
+                <h2 className={styles.planeTitle}>FreeOS</h2>
+              </div>
+              <Users size={22} />
+            </div>
+            <div className={styles.metrics}>
+              <div className={styles.metric}>
+                <span className={styles.metricValue}>
+                  {metric(overview?.freeos.employees)}
+                </span>
+                <span className={styles.metricLabel}>
+                  {t("organization.metricEmployees")}
+                </span>
+              </div>
+              <div className={styles.metric}>
+                <span className={styles.metricValue}>
+                  {metric(overview?.freeos.org_skills)}
+                </span>
+                <span className={styles.metricLabel}>
+                  {t("organization.metricSkills")}
+                </span>
+              </div>
+              <div className={styles.metric}>
+                <span className={styles.metricValue}>
+                  {metric(overview?.freeos.mcp)}
+                </span>
+                <span className={styles.metricLabel}>
+                  {t("organization.metricMcp")}
+                </span>
+              </div>
+              <div className={styles.metric}>
+                <span className={styles.metricValue}>
+                  {metric(overview?.freeos.tasks)}
+                </span>
+                <span className={styles.metricLabel}>
+                  {t("organization.metricTasks")}
+                </span>
+              </div>
+            </div>
+          </article>
 
-        {showEmbed && (
-          <Card
-            title={t("organization.embedTitle")}
-            extra={
+          <div className={styles.flow} aria-hidden="true">
+            <div className={styles.flowArrow}>
+              <ArrowDownUp size={16} />
+              {t("organization.flowUp")}
+            </div>
+            <div className={styles.orbit}>
+              <div className={styles.orbitCore} />
+            </div>
+            <div className={styles.flowArrow}>
+              {t("organization.flowDown")}
+              <Workflow size={16} />
+            </div>
+          </div>
+
+          <article className={styles.plane}>
+            <div className={styles.planeHead}>
+              <div>
+                <p className={styles.planeLabel}>
+                  {t("organization.controlPlane")}
+                </p>
+                <h2 className={styles.planeTitle}>openXYOS</h2>
+              </div>
+              <Shield size={22} />
+            </div>
+            <div className={styles.metrics}>
+              <div className={styles.metric}>
+                <span className={styles.metricValue}>
+                  {metric(overview?.openxyos.modules)}
+                </span>
+                <span className={styles.metricLabel}>
+                  {t("organization.metricModules")}
+                </span>
+              </div>
+              <div className={styles.metric}>
+                <span className={styles.metricValue}>
+                  {overview?.openxyos.governance
+                    ? t("organization.on")
+                    : t("organization.off")}
+                </span>
+                <span className={styles.metricLabel}>
+                  {t("organization.metricGovernance")}
+                </span>
+              </div>
+              <div className={styles.metric}>
+                <span className={styles.metricValue}>
+                  {sidecarUp ? t("organization.sidecarUp") : "—"}
+                </span>
+                <span className={styles.metricLabel}>
+                  {t("organization.metricHealth")}
+                </span>
+              </div>
+              <div className={styles.metric}>
+                <span className={styles.metricValue}>
+                  {overview?.openxyos.tenant_id || "—"}
+                </span>
+                <span className={styles.metricLabel}>
+                  {t("organization.metricTenant")}
+                </span>
+              </div>
+            </div>
+          </article>
+        </section>
+
+        <section className={styles.actions}>
+          <button
+            type="button"
+            className={styles.action}
+            disabled={busy !== null}
+            onClick={() => void assemble()}
+          >
+            <Users size={18} />
+            <p className={styles.actionTitle}>{t("organization.assembleTitle")}</p>
+            <p className={styles.actionBody}>{t("organization.assembleBody")}</p>
+            <Button type="primary" loading={busy === "assemble"}>
+              {t("organization.assembleAction")}
+            </Button>
+          </button>
+          <button
+            type="button"
+            className={styles.action}
+            disabled={busy !== null}
+            onClick={() => void packBack()}
+          >
+            <Package size={18} />
+            <p className={styles.actionTitle}>{t("organization.packTitle")}</p>
+            <p className={styles.actionBody}>{t("organization.packBody")}</p>
+            <Button loading={busy === "pack"}>{t("organization.packAction")}</Button>
+          </button>
+          <button
+            type="button"
+            className={styles.action}
+            disabled={busy !== null}
+            onClick={() => void runLoop()}
+          >
+            <Play size={18} />
+            <p className={styles.actionTitle}>{t("organization.loopTitle")}</p>
+            <p className={styles.actionBody}>{t("organization.loopBody")}</p>
+            <Button loading={busy === "loop"}>{t("organization.loopAction")}</Button>
+          </button>
+        </section>
+
+        <section className={styles.timeline}>
+          <p className={styles.timelineTitle}>{t("organization.timelineTitle")}</p>
+          {lastLoop ? (
+            <ol className={styles.timelineList}>
+              <li>
+                {t("organization.timelineOk")}: {String(lastLoop.ok)}
+              </li>
+              {lastLoop.employees?.length ? (
+                <li>
+                  {t("organization.timelineEmployees")}:{" "}
+                  {lastLoop.employees.join(", ")}
+                </li>
+              ) : null}
+              {lastLoop.skills?.length ? (
+                <li>
+                  {t("organization.timelineSkills")}: {lastLoop.skills.length}
+                </li>
+              ) : null}
+              <li>
+                {t("organization.timelineRemote")}:{" "}
+                {String(Boolean(lastLoop.remote_applied))}
+              </li>
+              <li>
+                {t("organization.timelineGovernance")}:{" "}
+                {String(Boolean(lastLoop.governance_blocked))}
+              </li>
+              {(lastLoop.notes ?? []).slice(0, 6).map((note) => (
+                <li key={note}>{note}</li>
+              ))}
+            </ol>
+          ) : (
+            <p>{t("organization.timelineEmpty")}</p>
+          )}
+          {lastActionNotes.length > 0 && (
+            <ol className={styles.timelineList} style={{ marginTop: 12 }}>
+              {lastActionNotes.slice(0, 8).map((note) => (
+                <li key={note}>{note}</li>
+              ))}
+            </ol>
+          )}
+        </section>
+
+        <section className={styles.timeline}>
+          <p className={styles.timelineTitle}>{t("organization.catalogTitle")}</p>
+          <div className={styles.catalog}>
+            {catalog.map((row) => (
+              <article key={row.key} className={styles.catalogItem}>
+                <p className={styles.catalogName}>
+                  {isZh ? row.label_zh : row.label}{" "}
+                  <Tag>{row.locked ? t("organization.locked") : t("organization.optional")}</Tag>
+                </p>
+                <p className={styles.catalogDesc}>
+                  {isZh ? row.description_zh : row.description}
+                </p>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        {embedUrl && (
+          <section className={styles.timeline}>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: 12,
+              }}
+            >
+              <p className={styles.timelineTitle}>{t("organization.embedTitle")}</p>
               <Button
                 type="link"
                 href={embedUrl}
@@ -195,22 +461,15 @@ export default function OrganizationPage() {
               >
                 {t("organization.openSidecar")}
               </Button>
-            }
-          >
+            </div>
             <iframe
               title={t("organization.embedTitle")}
               src={embedUrl}
-              style={{
-                width: "100%",
-                minHeight: 640,
-                border: "1px solid var(--fn-border-primary, #e5e7eb)",
-                borderRadius: 8,
-                background: "#fff",
-              }}
+              className={styles.embed}
             />
-          </Card>
+          </section>
         )}
-      </Space>
+      </div>
     </PageShell>
   );
 }
