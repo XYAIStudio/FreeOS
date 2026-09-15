@@ -23,6 +23,23 @@ async def server(tmp_octop_home: Path):
     await srv.stop()
 
 
+async def test_desktop_start_binds_sqlite_without_wizard_password(
+    tmp_octop_home: Path, monkeypatch: pytest.MonkeyPatch
+):
+    monkeypatch.setenv("OCTOP_DESKTOP", "1")
+    srv = OctopServer(home=tmp_octop_home)
+    await srv.start()
+    try:
+        assert srv.database_bound is True
+        assert (tmp_octop_home / "octop.db").exists()
+        assert not (tmp_octop_home.parent / "octop-login.txt").exists()
+        assert srv.user_manager is not None
+        assert srv.user_manager.count() == 1
+        assert srv.user_manager.list()[0].username == "local"
+    finally:
+        await srv.stop()
+
+
 async def test_start_defers_db_until_bind(tmp_octop_home: Path):
     srv = OctopServer(home=tmp_octop_home)
     await srv.start()

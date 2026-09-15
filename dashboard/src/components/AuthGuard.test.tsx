@@ -47,6 +47,7 @@ function renderGuard() {
 describe("AuthGuard local session", () => {
   beforeEach(() => {
     localStorage.clear();
+    sessionStorage.clear();
     localSession.mockReset();
     getAuthStatus.mockReset();
     me.mockReset();
@@ -85,6 +86,50 @@ describe("AuthGuard local session", () => {
 
     expect(await screen.findByText("login wall")).toBeInTheDocument();
     expect(screen.queryByText("usable app")).toBeNull();
+  });
+
+  it("sends the desktop first launch to model setup, not the login wall", async () => {
+    getAuthStatus.mockResolvedValue({
+      setup_required: true,
+      has_providers: false,
+      desktop: true,
+    });
+    localSession.mockResolvedValue({
+      access_token: "guest-token",
+      token_type: "Bearer",
+      expires_in: 3600,
+      user: {
+        id: 1,
+        username: "local",
+        role: "admin",
+        display_name: "FreeOS",
+        locale: "zh",
+        is_local: true,
+      },
+      token: "guest-token",
+    });
+
+    render(
+      <MemoryRouter initialEntries={["/chat?desktop=1"]}>
+        <Routes>
+          <Route
+            path="/chat"
+            element={
+              <AuthGuard>
+                <div>usable app</div>
+              </AuthGuard>
+            }
+          />
+          <Route path="/login" element={<div>login wall</div>} />
+          <Route path="/setup" element={<div>model setup</div>} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText("model setup")).toBeInTheDocument();
+    expect(screen.queryByText("login wall")).toBeNull();
+    expect(screen.queryByText("usable app")).toBeNull();
+    expect(getAuthToken()).toBe("guest-token");
   });
 
   it("never opens the login wall inside the desktop shell", async () => {

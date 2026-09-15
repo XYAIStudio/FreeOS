@@ -62,6 +62,43 @@ describe("setup lockdown handling", () => {
     expect(replace).not.toHaveBeenCalled();
   });
 
+  it("still allows /auth/local-session while lockdown is known", async () => {
+    mod.markSetupRequired();
+    fetchMock.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          access_token: "guest-token",
+          token_type: "Bearer",
+          expires_in: 3600,
+          user: { id: 1, username: "local", role: "admin" },
+        }),
+        { status: 200, headers: { "content-type": "application/json" } },
+      ),
+    );
+
+    const body = await mod.request<{ access_token: string }>(
+      "/auth/local-session",
+      { method: "POST" },
+    );
+    expect(body.access_token).toBe("guest-token");
+    expect(fetchMock).toHaveBeenCalledOnce();
+    expect(replace).not.toHaveBeenCalled();
+  });
+
+  it("keeps desktop=1 when redirecting the Wails shell to setup", async () => {
+    Object.defineProperty(window, "location", {
+      configurable: true,
+      value: { pathname: "/chat", replace },
+    });
+    sessionStorage.setItem("freeos:desktop-shell", "1");
+
+    await expect(mod.request("/agents")).rejects.toThrow(
+      mod.SetupRequiredError,
+    );
+    expect(replace).toHaveBeenCalledWith("/setup?desktop=1");
+    sessionStorage.clear();
+  });
+
   it("still allows /setup/status while lockdown is known", async () => {
     mod.markSetupRequired();
     fetchMock.mockResolvedValueOnce(

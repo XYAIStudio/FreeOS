@@ -20,7 +20,9 @@ Most endpoints require a JWT bearer token:
    guest JWT so the UI can open without a login wall. Register later via
    `POST /api/auth/register` when a save needs an account.
 2. Complete the optional setup wizard via `/api/setup/*` when a remote install
-   still has no users.
+   still has no users. Desktop (`OCTOP_DESKTOP`) auto-binds local SQLite and
+   provisions the guest session, so that wizard is skipped; the UI may still
+   offer a one-step model / API-key screen.
 3. `POST /api/auth/login` with `username` and `password`, or complete the OIDC flow
    with `/api/auth/oidc/start` and `/api/auth/oidc/exchange` when SSO is enabled.
 4. Send `Authorization: Bearer <access_token>` on subsequent requests.

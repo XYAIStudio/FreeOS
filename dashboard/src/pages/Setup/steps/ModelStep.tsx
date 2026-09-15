@@ -97,6 +97,8 @@ interface Props {
   onBack: () => void;
   onSkip: () => void;
   onContinue: (draft: ProviderDraft) => void;
+  hideBack?: boolean;
+  skipLabel?: string;
 }
 
 type SetupMode = "preset" | "custom";
@@ -146,7 +148,13 @@ const INPUT_TYPE_OPTIONS = [
   { value: "audio", label: "inputTypeAudio" as const },
 ];
 
-export default function ModelStep({ onBack, onSkip, onContinue }: Props) {
+export default function ModelStep({
+  onBack,
+  onSkip,
+  onContinue,
+  hideBack = false,
+  skipLabel,
+}: Props) {
   const { t } = useTranslation();
   const [presetForm] = Form.useForm<PresetFormValues>();
   const [customForm] = Form.useForm<CustomFormValues>();
@@ -561,8 +569,8 @@ export default function ModelStep({ onBack, onSkip, onContinue }: Props) {
   const renderFooter = () => (
     <div className={setupStyles.modelStepFooter}>
       <Space>
-        <Button onClick={onBack}>{t("wizard.back")}</Button>
-        <Button onClick={onSkip}>{t("wizard.model.skip")}</Button>
+        {hideBack ? null : <Button onClick={onBack}>{t("wizard.back")}</Button>}
+        <Button onClick={onSkip}>{skipLabel ?? t("wizard.model.skip")}</Button>
       </Space>
       <Space>
         <Button

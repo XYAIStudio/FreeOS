@@ -120,6 +120,8 @@ async def test_status_reports_wizard_password_exists(env: Any) -> None:
     assert body["wizard_password_required"] is True
     assert body["wizard_password_exists"] is True
     assert body["wizard_password_path"] == str(Path.home() / WIZARD_FILE_NAME)
+    assert body["desktop"] is False
+    assert body["has_providers"] is False
 
 
 async def test_begin_issues_token_when_password_not_required(tmp_octop_home: Path) -> None:

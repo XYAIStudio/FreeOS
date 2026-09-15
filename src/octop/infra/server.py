@@ -314,7 +314,21 @@ class OctopServer:
 
         self._started_at = int(time.time())
 
-        if should_defer_control_plane_db(config, self.paths):
+        from octop.infra.users.local_session import (  # noqa: PLC0415
+            ensure_local_user,
+            is_desktop_process,
+        )
+
+        desktop = is_desktop_process()
+        if desktop and should_defer_control_plane_db(config, self.paths):
+            from octop.config import DatabaseConfig  # noqa: PLC0415
+            from octop.infra.db.rebind import persist_database_config  # noqa: PLC0415
+
+            persist_database_config(self.paths.config, DatabaseConfig())
+            config = load_config(self.paths.config)
+            self.config = config
+
+        if should_defer_control_plane_db(config, self.paths) and not desktop:
             self._started = True
             self._emit_wizard_password(user_count=0)
             logger.info("control-plane database deferred until setup wizard chooses a backend")
@@ -327,6 +341,9 @@ class OctopServer:
         await self._boot_runtime(config)
         self._started = True
         assert self.user_manager is not None
+        if desktop and self.user_manager.count() == 0:
+            await ensure_local_user(self, locale="zh")
+            logger.info("desktop first-run: bound local SQLite and provisioned guest session")
         self._emit_wizard_password(user_count=self.user_manager.count())
 
     async def bind_control_plane(self) -> None:
@@ -485,6 +502,10 @@ class OctopServer:
         resume_pending_index_jobs(self.services)
 
     def _emit_wizard_password(self, *, user_count: int) -> None:
+        from octop.infra.users.local_session import is_desktop_process  # noqa: PLC0415
+
+        if is_desktop_process():
+            return
         config = self.config
         if config is None:
             return

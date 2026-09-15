@@ -17,6 +17,7 @@ from octop.infra.errors import ErrorCode, OctopError
 from octop.infra.setup import password_file as _wizard
 from octop.infra.setup.wizard_tokens import RateLimited
 from octop.infra.users.identity import Role
+from octop.infra.users.local_session import is_desktop_process
 from octop.infra.utils.locale import normalize_locale, resolve_request_locale
 
 logger = logging.getLogger(__name__)
@@ -98,6 +99,8 @@ class DatabaseSetupBody(BaseModel):
 
 
 def _setup_password_required(server: Any) -> bool:
+    if is_desktop_process():
+        return False
     cfg = server.services.config if server.services else getattr(server, "config", None)
     return bool(cfg and cfg.require_setup_password)
 
@@ -237,8 +240,10 @@ async def status(server: Any = Depends(get_server)) -> dict[str, Any]:
     um = server.user_manager
     setup_required = um is None or um.count() == 0
     database_driver = None
+    has_providers = False
     if server.database_bound and server.services is not None:
         database_driver = server.services.config.database.driver
+        has_providers = len(server.services.provider_repo.list_all()) > 0
     return {
         "setup_required": setup_required,
         "wizard_password_required": password_required,
@@ -248,6 +253,8 @@ async def status(server: Any = Depends(get_server)) -> dict[str, Any]:
         "wizard_password_path": wizard_path if password_required else None,
         "database_driver": database_driver,
         "database_bound": server.database_bound,
+        "desktop": is_desktop_process(),
+        "has_providers": has_providers,
     }
 
 

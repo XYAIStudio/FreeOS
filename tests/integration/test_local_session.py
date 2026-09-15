@@ -78,6 +78,32 @@ async def test_local_session_refuses_when_multiple_users(app_client) -> None:
     assert r.status_code == 403
 
 
+async def test_desktop_first_run_skips_server_wizard(
+    tmp_octop_home: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("OCTOP_DESKTOP", "1")
+    async with octop_client(tmp_octop_home, bind_database=False) as (c, srv):
+        assert srv.database_bound is True
+        assert srv.user_manager is not None
+        assert srv.user_manager.count() == 1
+        assert srv.user_manager.list()[0].username == "local"
+        assert not (tmp_octop_home.parent / "octop-login.txt").exists()
+
+        status = await c.get("/api/setup/status")
+        body = status.json()
+        assert body["setup_required"] is False
+        assert body["wizard_password_required"] is False
+        assert body["wizard_password_path"] is None
+        assert body["desktop"] is True
+        assert body["has_providers"] is False
+        assert body["database_bound"] is True
+
+        session = await c.post("/api/auth/local-session")
+        assert session.status_code == 200
+        assert session.json()["user"]["username"] == "local"
+        assert session.json()["user"]["is_local"] is True
+
+
 async def test_local_session_desktop_picks_admin_when_multiple_users(
     app_client, monkeypatch: pytest.MonkeyPatch
 ) -> None:

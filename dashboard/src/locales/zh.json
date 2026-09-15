@@ -4376,6 +4376,8 @@
   },
   "wizard": {
     "title": "初始化设置",
+    "desktopTitle": "配置模型",
+    "checking": "正在检查初始化状态…",
     "back": "上一步",
     "sessionExpired": "向导会话已过期，请重新验证启动密码。",
     "stepDatabase": "选择数据库",
@@ -4448,6 +4450,7 @@
     "model": {
       "intro": "配置一个模型提供商，助手就可以回应你了。你也可以跳过本步，稍后在「模型」页配置。",
       "skip": "跳过",
+      "skipToWorkspace": "跳过，进入工作台",
       "presetTab": "预置提供商",
       "customTab": "自定义提供商",
       "showMorePresets": "显示更多提供商（{{count}} 个）",
