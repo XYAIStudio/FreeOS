@@ -36,8 +36,8 @@ import { typeSize } from "../utils/mobileTypeScale";
 import { DESKTOP_DRAG_REGION_CLASS } from "../utils/desktopChrome";
 
 const NAV_GROUPS_STORAGE_KEY = "octop:sidebar-nav-groups";
-/** Minimal settings pane: skip the "设置" group header (duplicates the pane title). */
-const MINIMAL_SETTINGS_HIDDEN_HEADERS = new Set(["nav.settings"]);
+/** Minimal settings pane: skip the Capabilities group header (duplicates the pane title). */
+const MINIMAL_SETTINGS_HIDDEN_HEADERS = new Set(["nav.capabilities"]);
 
 function loadCollapsedGroups(): Set<string> {
   try {
@@ -190,7 +190,7 @@ function NavItemButton({
           }}
         >
           {t(item.labelKey)}
-          {item.key === "admin-advanced" && role === "admin" && hasUpdate ? (
+          {item.key === "system-settings" && role === "admin" && hasUpdate ? (
             <span className={styles.navUpdateBadge}>
               {t("nav.newVersionBadge", "有新版本")}
             </span>
@@ -254,7 +254,7 @@ function NavList({
   isMobile?: boolean;
   isGroupCollapsed: (groupKey: string) => boolean;
   toggleGroup: (groupKey: string) => void;
-  /** all = classic; primary = top flat entries; grouped = settings/control/admin */
+  /** all = classic; primary = top flat entries; grouped = capabilities */
   sectionFilter?: "all" | "primary" | "grouped";
   hideGroupHeaderKeys?: ReadonlySet<string>;
 }) {

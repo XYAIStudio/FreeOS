@@ -20,6 +20,8 @@ describe("sidebarNav", () => {
     }
     expect(isGroupedNavKey("chat")).toBe(false);
     expect(isGroupedNavKey("experts")).toBe(false);
+    expect(isGroupedNavKey("system-settings")).toBe(false);
+    expect(isGroupedNavKey("workbench")).toBe(false);
   });
 
   it("places grouped keys only under sections with groupKey", () => {
@@ -41,5 +43,39 @@ describe("sidebarNav", () => {
     for (const key of flatKeys) {
       expect(isGroupedNavKey(key)).toBe(false);
     }
+  });
+
+  it("renames settings to capabilities and folds control/admin into system-settings", () => {
+    const sections = buildNavSections(adminUser, { mobileEnabled: true });
+    expect(sections.map((s) => s.groupKey)).toEqual([
+      undefined,
+      "nav.capabilities",
+    ]);
+    const primary = sections[0].items.map((i) => i.key);
+    expect(primary).toContain("system-settings");
+    expect(primary).not.toContain("workbench");
+    expect(primary).not.toContain("admin-users");
+    const grouped = sections[1].items.map((i) => i.key);
+    expect(grouped).toEqual([
+      "personalization",
+      "channels",
+      "connectors",
+      "skill-packages",
+      "knowledge-bases",
+    ]);
+  });
+
+  it("hides system-settings when the user has no control or admin modules", () => {
+    const guest = {
+      id: 2,
+      username: "guest",
+      role: "user",
+      permissions: [],
+    } as OctopUser;
+    const sections = buildNavSections(guest);
+    const keys = sections.flatMap((s) => s.items.map((i) => i.key));
+    expect(keys).not.toContain("system-settings");
+    expect(keys).not.toContain("workbench");
+    expect(keys).toContain("personalization");
   });
 });

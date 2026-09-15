@@ -63,11 +63,24 @@ async function main() {
   // 信任 nginx 代理（修复 X-Forwarded-For 报错）
   app.set("trust proxy", 1);
 
-  // 安全头
+  // 安全头。FreeOS embeds this sidecar in the Organization preview iframe
+  // (dashboard origin is a different port on 127.0.0.1). Default helmet
+  // frameguard is SAMEORIGIN and blanks that preview.
+  const embeddable = Boolean(process.env.FREEOS_HOME || process.env.AIR_GAP_MODE === "true");
   app.use(helmet({
     contentSecurityPolicy: false,        // CSP 由 Vite 构建层管理
     crossOriginEmbedderPolicy: false,
+    ...(embeddable ? { frameguard: false as const } : {}),
   }));
+  if (embeddable) {
+    app.use((_req, res, next) => {
+      res.setHeader(
+        "Content-Security-Policy",
+        "frame-ancestors 'self' http://127.0.0.1:* http://localhost:* http://[::1]:*",
+      );
+      next();
+    });
+  }
 
   // CORS — 白名单 + WebView 兼容
   const allowedOrigins = process.env.CORS_ORIGIN

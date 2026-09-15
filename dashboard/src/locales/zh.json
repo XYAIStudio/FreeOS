@@ -76,7 +76,15 @@
     "saveFailed": "无法更新组织模块",
     "actionFailed": "操作失败",
     "enabled": "组织模块已启用",
-    "disabled": "组织模块已关闭"
+    "disabled": "组织模块已关闭",
+    "previewTitle": "openXYOS 预览",
+    "previewOffline": "边车未运行。启动后可在此预览组织控制台。",
+    "previewLoading": "正在启动 openXYOS…",
+    "fullscreen": "全屏",
+    "exitFullscreen": "退出全屏"
+  },
+  "systemSettings": {
+    "subtitle": "工作台、远程桌面与主机管理集中在这里。"
   },
   "desktopChrome": {
     "group": "窗口控制",
@@ -263,6 +271,8 @@
     "skills": "技能",
     "agentConfig": "运行配置",
     "settings": "设置",
+    "capabilities": "能力",
+    "systemSettings": "系统设置",
     "voice": "语音",
     "observability": "可观测",
     "https": "HTTPS",

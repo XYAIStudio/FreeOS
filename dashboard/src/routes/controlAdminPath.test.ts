@@ -36,7 +36,13 @@ describe("pathPermissionKeys", () => {
 
   it("keeps sso on users page, not advanced", () => {
     expect(pathPermissionKeys("/admin/users")).toEqual([...PERM.usersPage]);
+    expect(pathPermissionKeys("/system-settings/users")).toEqual([
+      ...PERM.usersPage,
+    ]);
     expect(pathPermissionKeys("/admin/advanced")).toEqual([
+      ...PERM.advancedPage,
+    ]);
+    expect(pathPermissionKeys("/system-settings/advanced")).toEqual([
       ...PERM.advancedPage,
     ]);
     expect([...PERM.advancedPage]).not.toContain("sso");
@@ -46,6 +52,9 @@ describe("pathPermissionKeys", () => {
 
   it("keeps voice and search on models page, not advanced", () => {
     expect(pathPermissionKeys("/admin/models")).toEqual([...PERM.modelsPage]);
+    expect(pathPermissionKeys("/system-settings/models")).toEqual([
+      ...PERM.modelsPage,
+    ]);
     expect(pathPermissionKeys("/admin/voice")).toEqual([...PERM.modelsPage]);
     expect([...PERM.modelsPage]).toContain("voice");
     expect([...PERM.modelsPage]).toContain("search");
@@ -89,6 +98,7 @@ describe("pathPermissionKeys", () => {
       ),
     ).toBe(true);
     expect(canAccessPath(user, "/admin/users")).toBe(false);
+    expect(canAccessPath(user, "/system-settings/users")).toBe(false);
     expect(canAccessPath({ role: "admin", permissions: [] }, "/acp")).toBe(
       true,
     );
@@ -116,6 +126,15 @@ describe("pathPermissionKeys", () => {
 describe("unknown dashboard paths", () => {
   it("do not highlight a sidebar item", () => {
     expect(resolveSelectedKey("/does-not-exist")).toBe("");
+  });
+
+  it("highlights system-settings for former control and admin URLs", () => {
+    expect(resolveSelectedKey("/system-settings/users")).toBe(
+      "system-settings",
+    );
+    expect(resolveSelectedKey("/admin/users")).toBe("system-settings");
+    expect(resolveSelectedKey("/workbench/terminal")).toBe("system-settings");
+    expect(resolveSelectedKey("/acp")).toBe("system-settings");
   });
 
   it("are caught by the not-found route", () => {

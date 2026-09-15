@@ -309,6 +309,7 @@ class OctopServer:
         self.plugin_manager.seed_bundled()
         self.plugin_manager.load_installed(install_deps=True)
         self._apply_desktop_org_defaults()
+        self._ensure_desktop_org_sidecar()
 
         import time  # noqa: PLC0415
 
@@ -565,6 +566,34 @@ class OctopServer:
         service = org_module_from_paths(self.paths)
         if service.enable_from_desktop_env():
             logger.info("organization module enabled (FREEOS_ORG_ENABLE)")
+
+    def _ensure_desktop_org_sidecar(self) -> None:
+        """Keep the bundled openXYOS sidecar running on desktop / first launch."""
+        desktop = (
+            (os.environ.get("OCTOP_DESKTOP") or os.environ.get("FREEOS_DESKTOP") or "")
+            .strip()
+            .lower()
+        )
+        org_flag = (os.environ.get("FREEOS_ORG_ENABLE") or "").strip().lower()
+        if desktop not in {"1", "true", "yes", "on"} and org_flag not in {
+            "1",
+            "true",
+            "yes",
+            "on",
+        }:
+            return
+        from octop.modules.org_os.service import org_module_from_paths
+        from octop.modules.org_os.sidecar_launch import ensure_sidecar
+
+        service = org_module_from_paths(self.paths)
+        result = ensure_sidecar(service, wait=20.0)
+        logger.info(
+            "organization sidecar ensure started=%s already=%s reachable=%s detail=%s",
+            result.started,
+            result.already,
+            result.reachable,
+            result.detail,
+        )
 
     def _setup_logging(self) -> None:
         log_dir = self.paths.logs_dir

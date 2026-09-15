@@ -42,7 +42,7 @@ describe("classifyChatStreamError", () => {
       ),
     ).toBe("stream_errors.insufficient_balance");
     expect(chatStreamErrorAction(msg)).toEqual({
-      path: "/admin/models",
+      path: "/system-settings/models",
       labelKey: "modelConfig.configureButton",
     });
   });
@@ -64,7 +64,7 @@ describe("classifyChatStreamError", () => {
       classifyChatStreamError("GraphRecursionError: GRAPH_RECURSION_LIMIT"),
     ).toBe("stream_errors.recursion_limit");
     expect(chatStreamErrorAction(msg)).toEqual({
-      path: "/agent-config",
+      path: "/system-settings/agent-config",
       labelKey: "chat.goToAgentConfig",
     });
   });
