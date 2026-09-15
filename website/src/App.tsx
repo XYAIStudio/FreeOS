@@ -167,7 +167,10 @@ export default function App() {
               <img src="./logo.png" alt="" width={18} height={18} />
               {t.hero.eyebrow}
             </p>
-            <h1>{t.hero.title}</h1>
+            <h1>
+              <span className="headline-l1">{t.hero.headline[0]}</span>
+              <span className="headline-l2">{t.hero.headline[1]}</span>
+            </h1>
             <p className="promise">
               {t.hero.promise}
               <span className="times">{t.hero.times}</span>
@@ -198,16 +201,27 @@ export default function App() {
           </figure>
         </section>
 
-        <section className="stack" aria-label={locale === "zh" ? "底座、系统、生态" : "Base, system, loop"}>
-          {t.stack.map((item) => (
-            <article key={item.no}>
-              <small>
-                {item.no} / {item.layer}
-              </small>
-              <h2>{item.name}</h2>
-              <p>{item.text}</p>
-            </article>
-          ))}
+        <section className="manifesto" aria-label={t.manifesto}>
+          <p className="manifesto-text">{t.manifesto}</p>
+        </section>
+
+        <section className="section stack-section" aria-label={t.stackHead.title}>
+          <div className="heading">
+            <small>{t.stackHead.kicker}</small>
+            <h2>{t.stackHead.title}</h2>
+            <p>{t.stackHead.lead}</p>
+          </div>
+          <div className="stack">
+            {t.stack.map((item) => (
+              <article key={item.no}>
+                <small>
+                  {item.no} / {item.layer}
+                </small>
+                <h3>{item.name}</h3>
+                <p>{item.text}</p>
+              </article>
+            ))}
+          </div>
         </section>
 
         <section id="engines" className="section engines">
@@ -250,6 +264,7 @@ export default function App() {
                 <div className="cap-cards">
                   {group.items.map((item) => (
                     <article key={item.name}>
+                      <span className="cap-tag">{item.tag}</span>
                       <h4>{item.name}</h4>
                       <p>{item.text}</p>
                     </article>
@@ -356,6 +371,22 @@ uv run freeos org loop run`}
                 </div>
               );
             })}
+          </div>
+        </section>
+
+        <section className="section proof" aria-label={t.proof.kicker}>
+          <div className="heading">
+            <small>{t.proof.kicker}</small>
+            <h2>{t.proof.title}</h2>
+          </div>
+          <div className="proof-grid">
+            {t.proof.items.map((item, i) => (
+              <article key={item.title} className="proof-card">
+                <em>{String(i + 1).padStart(2, "0")}</em>
+                <h3>{item.title}</h3>
+                <p>{item.text}</p>
+              </article>
+            ))}
           </div>
         </section>
 

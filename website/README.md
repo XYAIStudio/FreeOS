@@ -4,7 +4,7 @@
 
 本目录是 [FreeOS](https://github.com/XYAIStudio/FreeOS) 的营销站点源码：Vite + React + TypeScript，`npm run build` 产出可直接当网站根目录的静态文件。
 
-品牌：天蓝 → 亮光渐变、毛玻璃卡片、XYAI 蓝 `#0033FF` 点缀、圆形勾玉标志、XYAI 机器人六姿态。不使用 Octop 红字标或章鱼形象。
+品牌：天蓝 → 亮光渐变、毛玻璃卡片、XYAI 蓝 `#0033FF` 点缀、圆形勾玉标志、XYAI 机器人六姿态。章节节奏对齐 [XYAI Labs](https://cnxy.ai/)（编号、中文大标题、底座 / 系统 / 生态），文案仍是 FreeOS 自己的产品故事，不声称本站是 XYOS Labs。不使用 Octop 红字标或章鱼形象。
 
 ## 本地预览
 
