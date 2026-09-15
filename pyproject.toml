@@ -96,6 +96,7 @@ dev = [
 octop = "octop.cli.main:cli"
 freeos = "octop.cli.main:cli"
 xyos-governance-mcp = "octop.modules.org_os.governance.mcp_server:main"
+xyos2freeos = "octop.modules.org_os.compiler.cli:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/octop"]

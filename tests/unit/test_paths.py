@@ -68,6 +68,13 @@ def test_governance_and_org_skills_dirs(tmp_path: Path) -> None:
     assert p.ensure_org_skills_dir().is_dir()
 
 
+def test_tenant_employee_and_asset_pack_dirs(tmp_path: Path) -> None:
+    p = PathLayout(tmp_path / ".freeos")
+    assert p.tenant_dir("Acme Corp") == tmp_path / ".freeos" / "tenants" / "Acme-Corp"
+    assert p.ensure_employee_dir("t1", "policy-analyst").is_dir()
+    assert p.ensure_asset_packs_dir() == tmp_path / ".freeos" / "asset-packs"
+
+
 def test_path_layout_from_env_defaults_to_dot_freeos(monkeypatch, tmp_path: Path) -> None:
     monkeypatch.delenv("OCTOP_HOME", raising=False)
     monkeypatch.delenv("FREEOS_HOME", raising=False)

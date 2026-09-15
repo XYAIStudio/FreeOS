@@ -64,7 +64,7 @@ The Vite app in `dashboard/` is what you edit; packaged builds land in `src/octo
 ### Tests
 
 ```bash
-uv run pytest tests/unit/test_org_module.py tests/unit/test_paths.py tests/unit/test_bundled_plugins_layout.py tests/unit/test_governance_mcp.py tests/unit/test_skill_bridge.py
+uv run pytest tests/unit/test_org_module.py tests/unit/test_paths.py tests/unit/test_bundled_plugins_layout.py tests/unit/test_governance_mcp.py tests/unit/test_skill_bridge.py tests/unit/test_blueprint_compiler.py tests/unit/test_lifecycle.py tests/unit/test_asset_loop.py
 ```
 
 Full Octop-derived suite: `uv run pytest` / `make test-fast` (needs the usual extra services for marked tests).
@@ -116,7 +116,26 @@ uv run freeos org skills publish ~/.freeos/org-skills/org-employees
 
 Each generated `SKILL.md` calls real `/api/…` routes through `/api/org-module/sidecar` with tenant headers. Publish writes a **disabled** tenant-toggleable plugin draft — it does not auto-enable. How-to: [src/octop/modules/org_os/skill_bridge/README.md](src/octop/modules/org_os/skill_bridge/README.md).
 
-Phase B (blueprint compiler, digital-colleague lifecycle) and Phase C (chat routing, reflections, org-as-code) are specified in [docs/architecture-integration.md](docs/architecture-integration.md) only.
+### Phase B — grow the AI workforce (blueprints, lifecycle, asset loop)
+
+Non-developer loop (details in [docs/asset-loop.md](docs/asset-loop.md)):
+
+```bash
+uv run freeos org assets import --catalog --blueprint tests/fixtures/agent-blueprint.v1.json --tenant-id 1
+uv run freeos org employee transition policy-analyst market
+uv run freeos org employee transition policy-analyst recruit
+uv run freeos org employee transition policy-analyst shadow
+uv run freeos org employee transition policy-analyst active
+uv run freeos org assets publish
+uv run freeos org employee export-profile policy-analyst --tenant-id 1
+```
+
+- **Inbound:** catalog / blueprint / policies → skills + employee workspace (`xyos2freeos`)
+- **Lifecycle:** `draft → market → recruit → shadow → active → offboard` (offboard revokes `.env` and archives MEMORY)
+- **Outbound:** asset pack + openXYOS-shaped drafts (not auto-enabled)
+- High-risk tools still go through Phase A governance
+
+Phase C (chat routing, reflections, org-as-code) stays architecture-only.
 
 ## Host platform features (from Octop)
 

@@ -10,6 +10,9 @@
 
 - Phase A: `xyos-governance-mcp` default-denies high-risk tools and durable-pauses for human approval (`freeos org governance`)
 - Phase A: module ↔ skill bridge generates catalog skills with tenant headers and a tenant-toggle publish draft (`freeos org skills`)
+- Phase B: `xyos2freeos` compiles `openxyos.agent-blueprint.v1` into tenant-scoped employee workspaces
+- Phase B: digital-colleague lifecycle (`draft`→`offboard`) with credential revoke + memory archive
+- Phase B: bidirectional asset factory (`freeos org assets publish|import`)
 
 ## [1.0.0] - 2026-09-14
 

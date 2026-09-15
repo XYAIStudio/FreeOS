@@ -209,3 +209,133 @@ async def skills_publish(
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     return draft.to_dict()
+
+
+class BlueprintCompileBody(BaseModel):
+    blueprint: dict[str, Any] | None = None
+    blueprint_path: str | None = None
+    tenant_id: str = ""
+    out_dir: str | None = None
+
+
+class EmployeeTransitionBody(BaseModel):
+    slug: str
+    state: str
+    tenant_id: str = ""
+    reason: str = ""
+
+
+class AssetImportBody(BaseModel):
+    catalog: bool = False
+    blueprint_path: str | None = None
+    policies_path: str | None = None
+    tenant_id: str = ""
+
+
+@router.post("/blueprints/compile", summary="Compile openxyos.agent-blueprint.v1")
+async def compile_blueprint_api(
+    body: BlueprintCompileBody,
+    server: OctopServer = Depends(get_server),
+    _user: Any = Depends(require_permission("plugins")),
+) -> dict[str, Any]:
+    from pathlib import Path
+
+    from octop.modules.org_os.compiler.compile import compile_blueprint
+    from octop.modules.org_os.lifecycle.store import LifecycleStore
+    from octop.modules.org_os.lifecycle.transitions import register_compiled
+
+    service = _service(server)
+    source: dict[str, Any] | Path
+    if body.blueprint is not None:
+        source = body.blueprint
+    elif body.blueprint_path:
+        source = Path(body.blueprint_path)
+    else:
+        raise HTTPException(status_code=400, detail="blueprint or blueprint_path required")
+    tid = body.tenant_id or service.tenant_id() or "default"
+    compiled = compile_blueprint(
+        source,
+        home=service.home,
+        tenant_id=tid,
+        sidecar_url=service.sidecar_url(),
+        out_dir=Path(body.out_dir) if body.out_dir else None,
+    )
+    register_compiled(
+        LifecycleStore(service.home, tid),
+        slug=compiled.slug,
+        name=compiled.slug,
+        workspace=compiled.workspace,
+        lifecycle="draft",
+    )
+    return compiled.to_dict()
+
+
+@router.get("/employees", summary="List digital colleagues for the configured tenant")
+async def list_employees(
+    server: OctopServer = Depends(get_server),
+    _user: Any = Depends(current_user),
+) -> dict[str, Any]:
+    from octop.modules.org_os.lifecycle.store import LifecycleStore
+
+    service = _service(server)
+    tid = service.tenant_id() or "default"
+    return {
+        "tenant_id": tid,
+        "colleagues": [item.to_dict() for item in LifecycleStore(service.home, tid).list()],
+    }
+
+
+@router.post("/employees/transition", summary="Advance or offboard a digital colleague")
+async def transition_employee(
+    body: EmployeeTransitionBody,
+    server: OctopServer = Depends(get_server),
+    _user: Any = Depends(require_permission("plugins")),
+) -> dict[str, Any]:
+    from octop.modules.org_os.lifecycle.store import LifecycleStore
+    from octop.modules.org_os.lifecycle.transitions import transition
+
+    service = _service(server)
+    tid = body.tenant_id or service.tenant_id() or "default"
+    try:
+        record = transition(
+            LifecycleStore(service.home, tid), body.slug, body.state, reason=body.reason
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return record.to_dict()
+
+
+@router.post("/assets/publish", summary="Publish a FreeOS asset pack draft")
+async def publish_assets(
+    server: OctopServer = Depends(get_server),
+    _user: Any = Depends(require_permission("plugins")),
+) -> dict[str, Any]:
+    from octop.modules.org_os.assets.pack import publish_asset_pack
+
+    service = _service(server)
+    return publish_asset_pack(service.home, tenant_id=service.tenant_id()).to_dict()
+
+
+@router.post("/assets/import", summary="Import openXYOS catalog/blueprint/policies")
+async def import_assets(
+    body: AssetImportBody,
+    server: OctopServer = Depends(get_server),
+    _user: Any = Depends(require_permission("plugins")),
+) -> dict[str, Any]:
+    from pathlib import Path
+
+    from octop.modules.org_os.assets.importer import import_openxyos_assets
+
+    service = _service(server)
+    try:
+        imported = import_openxyos_assets(
+            service.home,
+            tenant_id=body.tenant_id or service.tenant_id() or "default",
+            sidecar_url=service.sidecar_url(),
+            catalog=body.catalog,
+            blueprint_path=Path(body.blueprint_path) if body.blueprint_path else None,
+            policies_path=Path(body.policies_path) if body.policies_path else None,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return imported.to_dict()

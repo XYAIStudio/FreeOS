@@ -9,6 +9,22 @@ They are complementary, not competitors. FreeOS does **not** replace Octop’s
 agent runtime with openXYOS chat. openXYOS is the organization control plane;
 FreeOS/Octop remains the execution runtime.
 
+## North star — internally self-growing multi-agent management
+
+FreeOS grows its own AI workforce and capability catalog:
+
+1. The **data plane** (FreeOS/Octop) **produces** AI employees, skills,
+   plugins, MCPs, and related assets at scale.
+2. Those assets **assemble into openXYOS** so org modules get stronger
+   (tenant-toggleable drafts — never auto-on).
+3. openXYOS assets (org tree, `openxyos.agent-blueprint.v1`, governance,
+   module catalog, talent market, knowledge/reflections) **feed back**
+   into FreeOS to spawn or upgrade more runtime agents and skills.
+4. The loop repeats. Phase A is the safety gate + module↔skill pipe.
+   Phase B is the blueprint compiler, colleague lifecycle, and the
+   bidirectional asset factory. Operator guide:
+   [asset-loop.md](asset-loop.md).
+
 FreeOS is an independent project. It is not affiliated with Tencent Cloud,
 Octop, XYAIStudio, or XYOS trademarks beyond accurate license attribution.
 See [NOTICE](../NOTICE) and `modules/openxyos/TRADEMARKS.md`.
@@ -147,30 +163,56 @@ until the pause is approved for the same action digest.
 | CLI | `freeos org skills generate` · `freeos org skills publish` |
 | How-to | `src/octop/modules/org_os/skill_bridge/README.md` |
 
-### Phase B — next (scaffold later; specified here)
+### Phase B — implemented (Directions 1 + 4 + asset loop)
 
-#### Direction 1 — `xyos2octop` / blueprint compiler
+#### Direction 1 — `xyos2freeos` / blueprint compiler
 
 Compile `openxyos.agent-blueprint.v1` (see
 `modules/openxyos/backend/routes/agent-studio.ts`) into a runnable FreeOS
 agent workspace:
 
-- `SOUL.md`, `skills/`, `knowledge/`, MEMORY seed, `.env`
-- cron entries from job duties
-- reverse telemetry into openXYOS HR / capability profile
+- `SOUL.md`, `skills/`, `knowledge/`, MEMORY seed, tenant-scoped `.env`
+- `cron.json` from `job_duties` (enabled only in `active`)
+- reverse telemetry: `export-profile` → openXYOS HR payload (`OpenXyosHrClient`)
+
+| Piece | Path |
+|---|---|
+| Compiler | `src/octop/modules/org_os/compiler/` |
+| CLI | `xyos2freeos` · `freeos org compile-blueprint` · `freeos org employee spawn` |
+| How-to | `src/octop/modules/org_os/compiler/README.md` |
 
 Do **not** start a second chat runtime. The compiler emits files the
 existing Octop agent already knows how to run.
 
 #### Direction 4 — Digital-colleague lifecycle
 
-Wire the openXYOS talent market to FreeOS agent instances:
+`draft → market → recruit → shadow → active → offboard`
 
-`recruit → onboard → shadow/probation → promote → offboard`
+| FreeOS | openXYOS talent / employee |
+|---|---|
+| draft | not listed |
+| market | `talent_pool.status=available` |
+| recruit | `recruited` + `employment_category=reserve` |
+| shadow | probation, read-only + governance |
+| active | staff; cron enabled |
+| offboard | archived; `.env` revoked; MEMORY copied to org-knowledge |
 
-Each stage is a control-plane record plus a data-plane instance
-(workspace + sandbox). Offboard must revoke tools and destroy or archive
-the sandbox — not only flip a flag.
+Persisted in `{FREEOS_HOME}/tenants/<id>/employees/registry.json`, not
+sidecar SQL.js.
+
+| Piece | Path |
+|---|---|
+| Store + transitions | `src/octop/modules/org_os/lifecycle/` |
+| CLI | `freeos org employee list\|transition\|export-profile` |
+
+#### Bidirectional asset factory
+
+| Direction | CLI | Behavior |
+|---|---|---|
+| Outbound | `freeos org assets publish` | Pack skills/plugins/MCPs/agents as `freeos.asset-pack.v1` + `openxyos/` drafts |
+| Inbound | `freeos org assets import --catalog\|--blueprint\|--policies` | Drive skill generator, compiler, governance import |
+
+High-risk runtime actions still pass through Phase A governance.
 
 ### Phase C — architecture only (do not implement in this pass)
 
@@ -233,6 +275,9 @@ The Phase A work sits on the existing FreeOS bootstrap:
 | Enable / disable org module | BFF + plugin `org-os` | `PATCH /api/org-module` · `freeos org enable` · `/organization` |
 | Governance MCP (Phase A) | Bridge | `xyos-governance-mcp` · `/api/org-module/governance/*` |
 | Module ↔ skill bridge (Phase A) | Bridge | `freeos org skills generate|publish` |
+| Blueprint compiler (Phase B) | Bridge | `xyos2freeos` · `/api/org-module/blueprints/compile` |
+| Colleague lifecycle (Phase B) | Bridge | `freeos org employee *` · `{home}/tenants/<id>/employees/` |
+| Asset factory (Phase B) | Bridge | `freeos org assets publish\|import` · `{home}/asset-packs/` |
 | Org APIs | openXYOS sidecar | `/api/org`, `/api/employees`, `/api/governance`, `/api/module-settings`, … |
 | Org UI | openXYOS Vite/Express | sidecar `:3780`; iframe on `/organization` when healthy |
 
@@ -261,6 +306,8 @@ Tenant hint: `FREEOS_ORG_TENANT_ID` or `modules.org_os.tenant_id`.
 | Host users, agents, chats, plugins | `FREEOS_HOME` / legacy `OCTOP_HOME` |
 | Governance pauses + audit | `{home}/governance/pauses/`, `{home}/governance/audit.jsonl` |
 | Generated org skills | `{home}/org-skills/` (or `--out`) |
+| Digital colleagues | `{home}/tenants/<tenant>/employees/<slug>/` |
+| Asset packs | `{home}/asset-packs/` |
 | Org tenants, employees, matrix | sidecar DB — **not** the production SoT |
 | Brand assets | `dashboard/public/`, `docs/assets/` |
 
@@ -295,8 +342,12 @@ copy the openXYOS working directory themselves.
 | Enablement + health | `src/octop/modules/org_os/service.py` |
 | Catalog | `src/octop/modules/org_os/catalog.py` |
 | Proxy + tenant headers | `src/octop/modules/org_os/proxy.py` |
+| Self-growth loop (operators) | `docs/asset-loop.md` |
 | Governance MCP / interceptor | `src/octop/modules/org_os/governance/` |
 | Module ↔ skill bridge | `src/octop/modules/org_os/skill_bridge/` |
+| Blueprint compiler | `src/octop/modules/org_os/compiler/` |
+| Colleague lifecycle | `src/octop/modules/org_os/lifecycle/` |
+| Asset factory | `src/octop/modules/org_os/assets/` |
 | Bundled plugin | `src/octop/infra/agents/plugins/bundled/org-os/` |
 | Dashboard page | `dashboard/src/pages/Organization/index.tsx` |
 | CLI | `src/octop/cli/commands/org.py` |
