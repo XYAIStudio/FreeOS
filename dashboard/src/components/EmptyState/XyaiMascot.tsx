@@ -1,24 +1,27 @@
-import { OCTOP_EMPTY_MASCOT_SRC } from "../../assets/mascot";
+import { xyaiMascotSrc, type XyaiMascotPose } from "../../assets/mascot";
 import styles from "./EmptyState.module.less";
 
-interface OctopEmptyMascotProps {
+interface XyaiMascotProps {
   className?: string;
   /** Square edge in px; default 160. */
   size?: number;
+  /** Pose from the shared XYAI pack; default empty-state. */
+  pose?: XyaiMascotPose;
 }
 
 /**
- * Octop empty-state mascot image with shared sizing.
+ * XYAI / FreeOS mascot image with shared sizing.
  * Use inside custom empty UIs or pass as ``EmptyState`` icon /
  * antd ``Empty`` ``image``.
  */
-export function OctopEmptyMascot({
+export function XyaiMascot({
   className,
   size = 160,
-}: OctopEmptyMascotProps) {
+  pose = "empty",
+}: XyaiMascotProps) {
   return (
     <img
-      src={OCTOP_EMPTY_MASCOT_SRC}
+      src={xyaiMascotSrc(pose)}
       alt=""
       draggable={false}
       className={className ? `${styles.mascot} ${className}` : styles.mascot}

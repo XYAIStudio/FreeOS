@@ -1,4 +1,5 @@
 import { useTranslation } from "react-i18next";
+import { xyaiMascotSrc } from "../../../assets/mascot";
 import { useElapsedSince } from "../../../hooks/useElapsedSeconds";
 import styles from "../index.module.less";
 
@@ -12,7 +13,7 @@ export default function ThinkingBubble({
   startedAt,
 }: ThinkingBubbleProps) {
   const { t } = useTranslation();
-  const typingSrc = `${import.meta.env.BASE_URL}octop-mascot-type.webp`;
+  const typingSrc = xyaiMascotSrc("type");
   const elapsed = useElapsedSince(startedAt);
 
   return (

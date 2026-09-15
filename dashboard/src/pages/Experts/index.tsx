@@ -51,7 +51,7 @@ import CreateFromExpertDrawer, {
 import { PublishedExpertCard } from "./components/PublishedExpertCard";
 import AgentExpertsTable from "./components/AgentExpertsTable";
 import ExpertMarketTab from "./components/ExpertMarketTab";
-import { OctopEmptyMascot } from "../../components/EmptyState";
+import { XyaiMascot } from "../../components/EmptyState";
 import { ownedExperts } from "../../utils/sharedExpert";
 import styles from "./index.module.less";
 
@@ -300,7 +300,7 @@ export default function ExpertsPage() {
     if (localAgents.length === 0) {
       return (
         <div className={styles.emptyState}>
-          <OctopEmptyMascot />
+          <XyaiMascot />
           <div className={styles.emptyTitle}>{t("experts.emptyMyExperts")}</div>
           <div className={styles.emptyHint}>
             {t("experts.emptyMyExpertsHint")}
@@ -423,7 +423,7 @@ export default function ExpertsPage() {
     if (experts.length === 0 && publishedExperts.length === 0) {
       return (
         <div className={styles.emptyState}>
-          <OctopEmptyMascot />
+          <XyaiMascot />
           <div className={styles.emptyTitle}>{t("experts.emptyLibrary")}</div>
           <div className={styles.emptyHint}>
             {t("experts.emptyLibraryHint")}

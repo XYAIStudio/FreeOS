@@ -47,7 +47,7 @@ import type {
 } from "../../api/types/skillPackage";
 import { CardSkeleton } from "../../components/Skeleton";
 import { CopyableResourceId } from "../../components/CopyableResourceId";
-import { EmptyState, OctopEmptyMascot } from "../../components/EmptyState";
+import { EmptyState, XyaiMascot } from "../../components/EmptyState";
 import StreamSetupGuide from "../../components/StreamSetupGuide/StreamSetupGuide";
 import { useCardTableView } from "../../hooks/useCardTableView";
 import { useHorizontalResize } from "../../hooks/useHorizontalResize";
@@ -600,9 +600,7 @@ export default function SkillPackagesPage() {
           <StreamSetupGuide
             className={styles.emptyGuide}
             wide
-            icon={
-              <OctopEmptyMascot size={120} className={styles.setupMascot} />
-            }
+            icon={<XyaiMascot size={120} className={styles.setupMascot} />}
             title={t("skillPackages.emptyGuideTitle")}
             description={t("skillPackages.emptyGuideDesc")}
             steps={[
@@ -796,7 +794,7 @@ export default function SkillPackagesPage() {
               ) : null}
               {!selected && !detailLoading ? (
                 <div className={styles.emptyDetail}>
-                  <OctopEmptyMascot size={180} />
+                  <XyaiMascot size={180} />
                   <p className={styles.emptyDetailText}>
                     {t("skillPackages.selectPackage")}
                   </p>

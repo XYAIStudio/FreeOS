@@ -53,6 +53,12 @@ func TestSplashHTMLHasFramelessWindowControls(t *testing.T) {
 	if !strings.Contains(body, `data-chrome="mac"`) || !strings.Contains(body, `data-chrome="windows"`) {
 		t.Fatal("splash HTML must ship both mac and windows caption groups")
 	}
+	if strings.Contains(body, "octop-mascot") {
+		t.Fatal("splash must not load the octopus mascot")
+	}
+	if !strings.Contains(body, "xyai-mascot-welcome.webp") {
+		t.Fatal("splash must ship the XYAI mascot")
+	}
 }
 
 func TestSplashLoadingCardWrapsProgressAndStatus(t *testing.T) {

@@ -12,6 +12,7 @@
 
 ### 变更
 
+- 用户可见吉祥物从章鱼换成 XYAI 白色机器人姿势包（欢迎 / 空态 / 探头 / 思考 / 打字 / 任务）；桌面启动页与 openXYOS 首页使用同一角色，不再加载章鱼 WebM。
 - 桌面更新通道只跟踪 `github.com/XYAIStudio/FreeOS/releases`。不再读取 PyPI `octop`、腾讯云 COS 或其它 Octop 镜像；当前已是最新 FreeOS `v0.0.1` 时不会误报更新。
 - 默认主题与残留 Octop `rose` 存储一次性迁移为 XYAI 蓝 `#0033FF`（之后仍可手动选玫瑰粉）。
 

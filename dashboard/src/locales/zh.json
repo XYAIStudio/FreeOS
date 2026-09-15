@@ -3250,6 +3250,7 @@
   "chatWelcome": {
     "greeting": "嗨！你专属的智能伙伴来啦～",
     "mascotSwitchHint": "点一下换个表情～",
+    "mascotAriaLabel": "XYAI 吉祥物",
     "descriptionWithAgentSuffix": "无论工作还是生活，说出你的想法",
     "description": "无论工作还是生活，说出你的想法，我来搞定",
     "newChat": "新建对话",

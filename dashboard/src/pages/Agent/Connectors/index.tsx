@@ -23,7 +23,7 @@ import { useSearchParams } from "react-router-dom";
 import PageShell from "../../../layouts/PageShell";
 import TabBar, { type TabBarItem } from "../../../components/TabLabel/TabBar";
 import StreamSetupGuide from "../../../components/StreamSetupGuide/StreamSetupGuide";
-import { OctopEmptyMascot } from "../../../components/EmptyState/OctopEmptyMascot";
+import { XyaiMascot } from "../../../components/EmptyState";
 import { useCurrentUser } from "../../../hooks/useCurrentUser";
 import { userCan } from "../../../utils/permissions";
 import { apiErrorMessage } from "../../../utils/apiError";
@@ -2214,12 +2214,7 @@ export default function ConnectorsPage() {
         ) : instances.length === 0 ? (
           <StreamSetupGuide
             wide
-            icon={
-              <OctopEmptyMascot
-                size={120}
-                className={styles.emptyGuideMascot}
-              />
-            }
+            icon={<XyaiMascot size={120} className={styles.emptyGuideMascot} />}
             title={t("connectors.emptyGuideTitle")}
             description={t("connectors.emptyGuideDesc")}
             steps={[
