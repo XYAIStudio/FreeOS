@@ -1,0 +1,38 @@
+name: Contribution Origin
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  contributor-agreement:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require maintainer CLA approval label
+        env:
+          LABELS: ${{ join(github.event.pull_request.labels.*.name, ',') }}
+        run: |
+          if [[ ",$LABELS," != *",cla-signed,"* ]]; then
+            echo "A maintainer must apply the cla-signed label after validating ICLA or CCLA."
+            exit 1
+          fi
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Require DCO sign-off on every pull-request commit
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          missing=0
+          while IFS= read -r commit; do
+            if ! git show -s --format=%B "$commit" | grep -qi '^Signed-off-by: .\+ <[^>].\+>$'; then
+              echo "Missing Signed-off-by line: $commit"
+              missing=1
+            fi
+          done < <(git rev-list "$BASE_SHA..$HEAD_SHA")
+          test "$missing" -eq 0

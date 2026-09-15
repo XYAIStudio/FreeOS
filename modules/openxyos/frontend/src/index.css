@@ -1,0 +1,176 @@
+@import "tailwindcss";
+@source "./";
+
+:root {
+  --primary: #10B981;
+  --primary-hover: #059669;
+  --primary-light: #D1FAE5;
+  --primary-bg: #ECFDF5;
+  --accent: #722ED1;
+  --accent-light: #F5E5FF;
+  --success: #10B981;
+  --warning: #FF7D00;
+  --danger: #F53F3F;
+  --info: #165DFF;
+  --bg: #F5F5F5;
+  --bg-card: #FFFFFF;
+  --text: #1D2129;
+  --text-secondary: #4E5969;
+  --text-muted: #86909C;
+  --border: #E5E6EB;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+  --shadow-lg: 0 8px 30px rgba(0,0,0,0.12);
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+}
+
+.dark {
+  --primary: #34D399;
+  --primary-hover: #10B981;
+  --primary-light: #064E3B;
+  --primary-bg: #022C22;
+  --accent: #A78BFA;
+  --accent-light: #2E1065;
+  --success: #34D399;
+  --warning: #FBBF24;
+  --danger: #F87171;
+  --info: #60A5FA;
+  --bg: #111827;
+  --bg-card: #1F2937;
+  --text: #F9FAFB;
+  --text-secondary: #D1D5DB;
+  --text-muted: #9CA3AF;
+  --border: #374151;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.3);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.4);
+  --shadow-lg: 0 8px 30px rgba(0,0,0,0.5);
+}
+
+@theme {
+  --color-primary: #10B981;
+  --color-primary-hover: #059669;
+  --color-primary-light: #D1FAE5;
+  --color-primary-bg: #ECFDF5;
+  --color-accent: #722ED1;
+  --color-accent-light: #F5E5FF;
+  --color-success: #10B981;
+  --color-warning: #FF7D00;
+  --color-danger: #F53F3F;
+  --color-info: #165DFF;
+  --color-bg: #F5F5F5;
+  --color-bg-card: #FFFFFF;
+  --color-text: #1D2129;
+  --color-text-secondary: #4E5969;
+  --color-text-muted: #86909C;
+  --color-border: #E5E6EB;
+}
+
+.dark {
+  --color-primary: #34D399;
+  --color-primary-hover: #10B981;
+  --color-primary-light: #064E3B;
+  --color-primary-bg: #022C22;
+  --color-accent: #A78BFA;
+  --color-accent-light: #2E1065;
+  --color-success: #34D399;
+  --color-warning: #FBBF24;
+  --color-danger: #F87171;
+  --color-info: #60A5FA;
+  --color-bg: #111827;
+  --color-bg-card: #1F2937;
+  --color-text: #F9FAFB;
+  --color-text-secondary: #D1D5DB;
+  --color-text-muted: #9CA3AF;
+  --color-border: #374151;
+}
+
+html, body, #root {
+  height: 100%;
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ===== 跨浏览器兼容修复 ===== */
+
+/* Safari/旧WebKit backdrop-filter */
+.bg-bg\/80,
+[class*="backdrop-blur"] {
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+}
+.backdrop-blur-sm { -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); }
+.backdrop-blur-md { -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }
+.backdrop-blur-lg { -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
+.backdrop-blur-xl { -webkit-backdrop-filter: blur(24px); backdrop-filter: blur(24px); }
+.backdrop-blur-2xl { -webkit-backdrop-filter: blur(40px); backdrop-filter: blur(40px); }
+.backdrop-blur-3xl { -webkit-backdrop-filter: blur(64px); backdrop-filter: blur(64px); }
+
+/* Safari 渐变文字 */
+.bg-clip-text {
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+
+/* Safari sticky 定位 */
+.sticky, [class*="sticky"] {
+  position: -webkit-sticky;
+  position: sticky;
+}
+
+/* 旧浏览器 flex gap 降级 — 用 margin 补偿 */
+@supports not (gap: 1px) {
+  .flex.gap-2 > * + * { margin-left: 0.5rem; }
+  .flex.gap-3 > * + * { margin-left: 0.75rem; }
+  .flex.gap-4 > * + * { margin-left: 1rem; }
+  .flex.gap-6 > * + * { margin-left: 1.5rem; }
+  .flex.gap-8 > * + * { margin-left: 2rem; }
+  .flex.flex-col.gap-2 > * + * { margin-left: 0; margin-top: 0.5rem; }
+  .flex.flex-col.gap-3 > * + * { margin-left: 0; margin-top: 0.75rem; }
+  .flex.flex-col.gap-4 > * + * { margin-left: 0; margin-top: 1rem; }
+  .flex.flex-col.gap-6 > * + * { margin-left: 0; margin-top: 1.5rem; }
+}
+
+/* 修复 Safari input/button 默认样式 */
+input, button, select, textarea {
+  -webkit-appearance: none;
+  border-radius: 0;
+}
+
+/* 修复 iOS Safari 点击高亮 */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* 修复旧浏览器 CSS 变量降级 */
+@supports not (color: var(--primary)) {
+  :root {
+    --primary: #10B981;
+    --bg: #F5F5F5;
+    --bg-card: #FFFFFF;
+    --text: #1D2129;
+    --text-muted: #86909C;
+    --border: #E5E6EB;
+  }
+}
+
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #C9CDD4; border-radius: 3px; }
+
+@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Shared compact language selector */
+.language-select{position:relative;display:inline-flex;align-items:center;min-width:76px}
+.language-select:after{position:absolute;right:10px;top:50%;width:6px;height:6px;margin-top:-4px;border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;content:"";pointer-events:none;transform:rotate(45deg)}
+.language-select select{width:100%;height:34px;padding:0 25px 0 10px;border:0;outline:0;color:inherit;background:transparent;cursor:pointer;font:600 12px/1 Inter,"PingFang SC","Microsoft YaHei",sans-serif}
+.language-select:focus-within{outline:2px solid rgba(85,199,255,.64);outline-offset:2px;border-radius:6px}
