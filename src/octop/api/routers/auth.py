@@ -13,6 +13,7 @@ from octop.infra.users.local_session import (
     claim_local_account,
     ensure_local_user,
     is_desktop_process,
+    is_loopback_host,
     is_unclaimed_local_user,
 )
 from octop.infra.users.permissions import effective_permissions
@@ -20,20 +21,18 @@ from octop.infra.utils.locale import normalize_locale, resolve_request_locale
 
 router = APIRouter()
 
-_LOOPBACK_HOSTS = frozenset({"127.0.0.1", "::1", "localhost", "testclient"})
-
 
 def _is_local_client(request: Request) -> bool:
     if is_desktop_process():
         return True
     host = (request.client.host if request.client else "") or ""
-    if host in _LOOPBACK_HOSTS:
+    if is_loopback_host(host):
         return True
     forwarded = (request.headers.get("x-forwarded-for") or "").split(",")[0].strip()
-    if forwarded in _LOOPBACK_HOSTS:
+    if is_loopback_host(forwarded):
         return True
     req_host = (request.headers.get("host") or "").split(":")[0].lower()
-    return req_host in {"127.0.0.1", "localhost", "[::1]"}
+    return is_loopback_host(req_host)
 
 
 def _user_json(

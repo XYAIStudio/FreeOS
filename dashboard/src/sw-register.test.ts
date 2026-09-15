@@ -56,6 +56,15 @@ function mockRegistration(opts: {
   return registration;
 }
 
+describe("isDesktopAppQuery", () => {
+  it("detects the Wails desktop query flag", async () => {
+    const { isDesktopAppQuery } = await import("./sw-register");
+    expect(isDesktopAppQuery("?desktop=1")).toBe(true);
+    expect(isDesktopAppQuery("?foo=1")).toBe(false);
+    expect(isDesktopAppQuery("")).toBe(false);
+  });
+});
+
 describe("registerProductionSW", () => {
   beforeEach(() => {
     vi.resetModules();

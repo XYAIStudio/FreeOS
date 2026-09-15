@@ -27,14 +27,20 @@ export default function LoginPage() {
   useEffect(() => {
     let cancelled = false;
     const boot = async () => {
-      try {
-        const session = await authApi.localSession();
-        setAuthToken(session.access_token);
-        await applyUserLocale(session.user.locale);
-        if (!cancelled) navigate("/chat", { replace: true });
-        return;
-      } catch {
-        // Remote / multi-user installs still show the form.
+      for (let attempt = 0; attempt < 4; attempt += 1) {
+        try {
+          const session = await authApi.localSession();
+          setAuthToken(session.access_token);
+          await applyUserLocale(session.user.locale);
+          if (!cancelled) navigate("/chat", { replace: true });
+          return;
+        } catch {
+          if (attempt < 3) {
+            await new Promise((resolve) => {
+              window.setTimeout(resolve, 150);
+            });
+          }
+        }
       }
       try {
         const status = await authApi.getAuthStatus();

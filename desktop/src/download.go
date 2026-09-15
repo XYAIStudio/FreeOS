@@ -37,12 +37,14 @@ func pythonExe(root string) string {
 func ensurePortable(locale Locale, status func(string)) error {
 	root := portableDir()
 	if launchReady(root) {
-		currentVersion := portableVersion(root)
-		bundledVersion, err := bundledPortableVersion()
-		if err != nil || bundledVersion == "" ||
-			(currentVersion != "" && compareVersions(bundledVersion, currentVersion) <= 0) {
+		if !shouldReplacePortable(root) {
 			status(desktopText(locale, copyStatusUsingRuntime))
 			return nil
+		}
+		currentVersion := portableVersion(root)
+		bundledVersion, err := bundledPortableVersion()
+		if err != nil || bundledVersion == "" {
+			bundledVersion = "FreeOS"
 		}
 		status(desktopText(locale, copyStatusBackupDatabase, bundledVersion))
 		if _, err := backupSQLiteBeforeUpgrade(root, currentVersion, bundledVersion); err != nil {
@@ -98,6 +100,83 @@ func replacePortable(root string) error {
 	}
 	_ = os.RemoveAll(previous)
 	return nil
+}
+
+const portableStampName = "FREEOS_STAMP"
+
+func shouldReplacePortable(root string) bool {
+	bundledStamp := bundledPortableStamp()
+	if bundledStamp != "" && installedPortableStamp(root) == bundledStamp {
+		return false
+	}
+	currentVersion := portableVersion(root)
+	bundledVersion, err := bundledPortableVersion()
+	if err != nil {
+		bundledVersion = ""
+	}
+	// Keep a newer in-app FreeOS portable (octop update) over an older zip.
+	// Do not keep Octop 0.9 / 1.0 leftovers — FreeOS is 0.0.1 and must replace them.
+	if currentVersion != "" && bundledVersion != "" &&
+		compareVersions(bundledVersion, currentVersion) < 0 &&
+		!isOctopLineageRuntime(root) {
+		return false
+	}
+	return true
+}
+
+func isOctopLineageRuntime(root string) bool {
+	if installedPortableStamp(root) != "" {
+		return false
+	}
+	version := portableVersion(root)
+	return version != "" && compareVersions(version, "0.9.0") >= 0
+}
+
+func installedPortableStamp(root string) string {
+	data, err := os.ReadFile(filepath.Join(root, portableStampName))
+	if err != nil {
+		return ""
+	}
+	return strings.TrimSpace(string(data))
+}
+
+func bundledPortableStamp() string {
+	if os.Getenv("OCTOP_DESKTOP_PORTABLE_ZIP") == "" && len(embeddedPortable) > 0 {
+		reader, err := zip.NewReader(bytes.NewReader(embeddedPortable), int64(len(embeddedPortable)))
+		if err != nil {
+			return ""
+		}
+		return stampFromZip(reader.File)
+	}
+	zipPath, err := bundledPortableZip()
+	if err != nil {
+		return ""
+	}
+	reader, err := zip.OpenReader(zipPath)
+	if err != nil {
+		return ""
+	}
+	defer reader.Close()
+	return stampFromZip(reader.File)
+}
+
+func stampFromZip(files []*zip.File) string {
+	for _, file := range files {
+		if filepath.Base(filepath.FromSlash(file.Name)) != portableStampName {
+			continue
+		}
+		reader, err := file.Open()
+		if err != nil {
+			return ""
+		}
+		data, readErr := io.ReadAll(reader)
+		reader.Close()
+		if readErr != nil {
+			return ""
+		}
+		return strings.TrimSpace(string(data))
+	}
+	return ""
 }
 
 func portableVersion(root string) string {

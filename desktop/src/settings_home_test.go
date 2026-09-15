@@ -36,8 +36,17 @@ func TestHostLaunchEnvSetsFreeosHomeAndOrgEnable(t *testing.T) {
 	if env["FREEOS_ORG_SIDECAR_URL"] != "http://127.0.0.1:3780" {
 		t.Fatalf("sidecar url: %+v", env)
 	}
-	if env["OCTOP_DESKTOP"] != "1" {
-		t.Fatalf("desktop flag: %+v", env)
+	if env["OCTOP_DESKTOP"] != "1" || env["FREEOS_DESKTOP"] != "1" {
+		t.Fatalf("desktop flags: %+v", env)
+	}
+}
+
+func TestWithDesktopQueryMarksSpa(t *testing.T) {
+	if got := withDesktopQuery("http://127.0.0.1:8088/"); got != "http://127.0.0.1:8088/?desktop=1" {
+		t.Fatalf("got %q", got)
+	}
+	if got := withDesktopQuery("http://127.0.0.1:8088/?desktop=1"); got != "http://127.0.0.1:8088/?desktop=1" {
+		t.Fatalf("idempotent: %q", got)
 	}
 }
 

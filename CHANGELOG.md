@@ -9,6 +9,8 @@
 ### 修复
 
 - Windows NSIS uninstall now stops FreeOS / host / sidecar processes and recursively removes `$INSTDIR` (quoted `RMDir /r`, plus a delayed cleanup after `uninstall.exe` exits). If those processes are still running, uninstall asks first (cancel aborts and leaves them running; confirm closes them then wipes the install dir). User profile data under `%USERPROFILE%\.freeos` / `FREEOS_HOME` / legacy `~/.octop` is kept. Product version remains 0.0.1.
+- Windows desktop no longer keeps a leftover Octop 0.9 / 1.0 portable under `~/.octop` just because FreeOS is `0.0.1`. Same-version rebuilds replace when `FREEOS_STAMP` changes.
+- Desktop host now sets `OCTOP_DESKTOP=1` / `FREEOS_DESKTOP=1`. Local session accepts IPv4-mapped loopback and, on desktop, picks an existing admin instead of dead-ending on the login form.
 
 ### 变更
 

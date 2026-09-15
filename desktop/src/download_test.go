@@ -173,13 +173,13 @@ func TestEnsurePortableKeepsNewerExistingRuntime(t *testing.T) {
 	root := portableDir()
 
 	newZip := filepath.Join(t.TempDir(), "new.zip")
-	writeTestGreenZip(t, newZip, "0.9.33")
+	writeTestGreenZip(t, newZip, "0.0.2")
 	if err := unzipGreen(newZip, root); err != nil {
 		t.Fatal(err)
 	}
 	if err := os.WriteFile(
 		filepath.Join(root, "VERSION.txt"),
-		[]byte("octop_version=0.9.31\n"),
+		[]byte("octop_version=0.0.1\n"),
 		0o644,
 	); err != nil {
 		t.Fatal(err)
@@ -190,17 +190,81 @@ func TestEnsurePortableKeepsNewerExistingRuntime(t *testing.T) {
 	}
 
 	oldZip := filepath.Join(t.TempDir(), "old.zip")
-	writeTestGreenZip(t, oldZip, "0.9.32")
+	writeTestGreenZip(t, oldZip, "0.0.1")
 	t.Setenv("OCTOP_DESKTOP_PORTABLE_ZIP", oldZip)
 	if err := ensurePortable(LocaleZH, func(string) {}); err != nil {
 		t.Fatal(err)
 	}
 
-	if got := portableVersion(root); got != "0.9.33" {
-		t.Fatalf("portable version = %q, want 0.9.33", got)
+	if got := portableVersion(root); got != "0.0.2" {
+		t.Fatalf("portable version = %q, want 0.0.2", got)
 	}
 	if _, err := os.Stat(sentinel); err != nil {
 		t.Fatalf("newer runtime was unexpectedly replaced: %v", err)
+	}
+}
+
+func TestEnsurePortableReplacesOctopLineageWithFreeOS(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("OCTOP_HOME", home)
+	root := portableDir()
+
+	oldZip := filepath.Join(t.TempDir(), "octop.zip")
+	writeTestGreenZipNoStamp(t, oldZip, "1.0.0")
+	if err := unzipGreen(oldZip, root); err != nil {
+		t.Fatal(err)
+	}
+	stale := filepath.Join(root, "stale-octop.txt")
+	if err := os.WriteFile(stale, []byte("octop"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	newZip := filepath.Join(t.TempDir(), "freeos.zip")
+	writeTestGreenZip(t, newZip, "0.0.1")
+	t.Setenv("OCTOP_DESKTOP_PORTABLE_ZIP", newZip)
+	if err := ensurePortable(LocaleZH, func(string) {}); err != nil {
+		t.Fatal(err)
+	}
+	if got := portableVersion(root); got != "0.0.1" {
+		t.Fatalf("portable version = %q, want 0.0.1", got)
+	}
+	if _, err := os.Stat(stale); !os.IsNotExist(err) {
+		t.Fatalf("Octop runtime was not replaced: %v", err)
+	}
+	if installedPortableStamp(root) == "" {
+		t.Fatal("replaced runtime should carry FREEOS_STAMP")
+	}
+}
+
+func TestEnsurePortableReplacesSameVersionWhenStampChanges(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("OCTOP_HOME", home)
+	root := portableDir()
+
+	oldZip := filepath.Join(t.TempDir(), "old-001.zip")
+	writeTestGreenZipWithStamp(t, oldZip, "0.0.1", "build-a")
+	if err := unzipGreen(oldZip, root); err != nil {
+		t.Fatal(err)
+	}
+	stale := filepath.Join(root, "old-dashboard.txt")
+	if err := os.WriteFile(stale, []byte("octop-login"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	newZip := filepath.Join(t.TempDir(), "new-001.zip")
+	writeTestGreenZipWithStamp(t, newZip, "0.0.1", "build-b")
+	t.Setenv("OCTOP_DESKTOP_PORTABLE_ZIP", newZip)
+	if err := ensurePortable(LocaleZH, func(string) {}); err != nil {
+		t.Fatal(err)
+	}
+	if got := portableVersion(root); got != "0.0.1" {
+		t.Fatalf("portable version = %q, want 0.0.1", got)
+	}
+	if _, err := os.Stat(stale); !os.IsNotExist(err) {
+		t.Fatalf("same-version rebuild was not replaced: %v", err)
+	}
+	if got := installedPortableStamp(root); got != "build-b" {
+		t.Fatalf("stamp = %q, want build-b", got)
 	}
 }
 
@@ -394,6 +458,16 @@ func TestWaitHealthTimesOutWithFriendlyMessage(t *testing.T) {
 
 func writeTestGreenZip(t *testing.T, path, version string) {
 	t.Helper()
+	writeTestGreenZipWithStamp(t, path, version, "stamp-"+version)
+}
+
+func writeTestGreenZipNoStamp(t *testing.T, path, version string) {
+	t.Helper()
+	writeTestGreenZipWithStamp(t, path, version, "")
+}
+
+func writeTestGreenZipWithStamp(t *testing.T, path, version, stamp string) {
+	t.Helper()
 	f, err := os.Create(path)
 	if err != nil {
 		t.Fatal(err)
@@ -403,6 +477,9 @@ func writeTestGreenZip(t *testing.T, path, version string) {
 		"Octop-test/launch.py",
 		"Octop-test/VERSION.txt",
 		"Octop-test/packages/octop-" + version + ".dist-info/METADATA",
+	}
+	if stamp != "" {
+		files = append(files, "Octop-test/"+portableStampName)
 	}
 	if runtime.GOOS == "windows" {
 		files = append(files, "Octop-test/runtime/python.exe")
@@ -417,6 +494,8 @@ func writeTestGreenZip(t *testing.T, path, version string) {
 		content := []byte("test executable payload")
 		if strings.HasSuffix(name, "/VERSION.txt") {
 			content = []byte("platform=test\noctop_version=" + version + "\n")
+		} else if strings.HasSuffix(name, "/"+portableStampName) {
+			content = []byte(stamp + "\n")
 		} else if strings.HasSuffix(name, "/METADATA") {
 			content = []byte("Name: octop\nVersion: " + version + "\n")
 		} else if strings.HasSuffix(name, "/python3") {
