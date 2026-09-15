@@ -14,6 +14,7 @@
 ### 变更
 
 - 桌面端（`OCTOP_DESKTOP` / `FREEOS_DESKTOP`）首次打开不再经过验证启动密码、选择数据库、创建管理员三步：自动绑定本地 SQLite 并使用已有 guest / local-session。首屏只保留配置 LLM API Key，可「跳过，进入工作台」，之后仍可在设置里配模型。自托管服务端向导不变。
+- 侧栏「设置」分组改名为「能力」/ Capabilities。原「控制」与「管理」子模块并入顶层「系统设置」/ System Settings（页内分节；工作台 / 远程桌面仍走全屏路由）。旧 `/admin/*`、`/acp`、`/agent-config` 地址会重定向。
 - 用户可见吉祥物从章鱼换成 XYAI 白色机器人姿势包（欢迎 / 空态 / 探头 / 思考 / 打字 / 任务）；桌面启动页与 openXYOS 首页使用同一角色，不再加载章鱼 WebM。
 - 桌面更新通道只跟踪 `github.com/XYAIStudio/FreeOS/releases`。不再读取 PyPI `octop`、腾讯云 COS 或其它 Octop 镜像；当前已是最新 FreeOS `v0.0.1` 时不会误报更新。
 - 默认主题与残留 Octop `rose` 存储一次性迁移为 XYAI 蓝 `#0033FF`（之后仍可手动选玫瑰粉）。
@@ -21,6 +22,7 @@
 ### 修复
 
 - 桌面 / 本地会话不再被 `setup_required` 短路：`GET /setup/status` 之后仍可调用 `POST /auth/local-session`，不会误跳进服务端密码向导。
+- 组织页「启动边车」会拉起捆绑的 Node + openXYOS（Windows 用 `node.exe` / `cmd /c`，不再直接 Popen `.bat`），并在右侧预览区嵌入控制台（支持全屏）。openXYOS 在 FreeOS 桌面环境下关闭 `X-Frame-Options`，避免 iframe 空白。安装 / 桌面启动时宿主与 Wails 都会确保边车常开（需 `dist/index.html` 已打包）。
 - Windows 打开时不再因 WebView2 `Navigate`/`SetURL` 在 Chromium 未就绪时触发 Go panic。主窗口等 WebView 点火后再跳转；`SetURL` 失败会重试并显示 FreeOS 提示，而不是原始堆栈。设置窗口延后创建，避免两个 WebView2 同时初始化同一用户目录。用户数据目录必须可写，并设置 `WEBVIEW2_USER_DATA_FOLDER`。
 - 已安装的 FreeOS 不再继承残留的 `~/.octop` 作为桌面家目录。无 `FREEOS_STAMP` 的 `~/.octop/portable` 会被丢弃；健康检查要求 `product=freeos`，避免连上旧 Octop 进程后出现红标登录墙。桌面端 `?desktop=1` 会记住本地会话并持续重试，不再落到登录页。
 - Windows NSIS 安装完成后双击桌面 / 开始菜单快捷方式（或 `FreeOS.exe`）能打开窗口：快捷方式工作目录固定为 `$INSTDIR`，WebView2 用户数据写到 `%LOCALAPPDATA%\FreeOS\WebView2`（不再落到 Program Files），结束页用未提权 token 启动以免把 `~/.freeos` 标成 High integrity，并忽略非 `FreeOS.exe` 的残留 `desktop.pid`。

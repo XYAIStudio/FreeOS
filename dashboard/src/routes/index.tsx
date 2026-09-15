@@ -1,11 +1,11 @@
 import { lazy } from "react";
 import { Navigate, useLocation } from "react-router-dom";
+import { isSystemSettingsNavPath } from "../pages/SystemSettings/tabs";
 
 // Lazy-loaded pages — Common
 const ExpertsPage = lazy(() => import("../pages/Experts"));
 const CronJobsPage = lazy(() => import("../pages/Control/CronJobs"));
 const ConnectorsPage = lazy(() => import("../pages/Agent/Connectors"));
-const ACPPage = lazy(() => import("../pages/Agent/ACP"));
 const SkillPackagesPage = lazy(() => import("../pages/SkillPackages"));
 const KnowledgeBasesPage = lazy(() => import("../pages/KnowledgeBases"));
 const PersonalizationPage = lazy(
@@ -16,19 +16,8 @@ const TokenUsagePage = lazy(() => import("../pages/Control/TokenUsage"));
 // Lazy-loaded pages — Control
 const RemoteDesktopPage = lazy(() => import("../pages/Control/RemoteDesktop"));
 
-// Lazy-loaded pages — Settings
-const ModelsPage = lazy(() => import("../pages/Settings/Models"));
-
-// Lazy-loaded pages — Admin
-const OctopAdminUsersPage = lazy(() => import("../pages/Admin/Users"));
-const AdminSecurityPage = lazy(() => import("../pages/Settings/Security"));
-const AdvancedSettingsPage = lazy(
-  () => import("../pages/Settings/AdvancedSettings"),
-);
-const AdminStoragePage = lazy(() => import("../pages/Admin/Storage"));
-const AdminPluginsPage = lazy(() => import("../pages/Admin/Plugins"));
-const AgentConfigPage = lazy(() => import("../pages/Agent/Config"));
 const OrganizationPage = lazy(() => import("../pages/Organization"));
+const SystemSettingsPage = lazy(() => import("../pages/SystemSettings"));
 
 // Misc
 const PwaDebugPage = lazy(() => import("../pages/PwaDebug"));
@@ -55,7 +44,7 @@ export const pathToKey: Record<string, string> = {
   "/connectors": "connectors",
   "/skill-packages": "skill-packages",
   "/knowledge-bases": "knowledge-bases",
-  "/acp": "acp",
+  "/acp": "system-settings",
   "/personalization": "personalization",
   "/personalization/skills": "personalization",
   "/personalization/tools": "personalization",
@@ -66,32 +55,42 @@ export const pathToKey: Record<string, string> = {
   "/personalization/memory": "personalization",
   "/skills": "personalization",
   "/token-usage": "token-usage",
-  "/agent-config": "agent-config",
+  "/agent-config": "system-settings",
+  "/system-settings": "system-settings",
   // Control
   "/channels": "channels",
-  "/workbench": "workbench",
-  "/workbench/terminal": "workbench",
-  "/workbench/browser": "workbench",
-  "/terminal": "workbench",
-  "/remote-browser": "workbench",
-  "/remote-desktop": "remote-desktop",
-  "/remote-desktop/desktop": "remote-desktop",
-  "/remote-desktop/phone": "remote-desktop",
-  "/remote-desktop/phone/screen": "remote-desktop",
-  "/remote-desktop/phone/shell": "remote-desktop",
-  "/remote-phone": "remote-desktop",
-  "/remote-android": "remote-desktop",
+  "/workbench": "system-settings",
+  "/workbench/terminal": "system-settings",
+  "/workbench/browser": "system-settings",
+  "/terminal": "system-settings",
+  "/remote-browser": "system-settings",
+  "/remote-desktop": "system-settings",
+  "/remote-desktop/desktop": "system-settings",
+  "/remote-desktop/phone": "system-settings",
+  "/remote-desktop/phone/screen": "system-settings",
+  "/remote-desktop/phone/shell": "system-settings",
+  "/remote-phone": "system-settings",
+  "/remote-android": "system-settings",
   "/subagents": "personalization",
   "/mbti": "personalization",
   "/memory": "personalization",
   // Admin
-  "/admin/models": "models",
-  // Admin
-  "/admin/users": "admin-users",
-  "/admin/backend": "admin-storage",
-  "/admin/plugins": "admin-plugins",
-  "/admin/advanced": "admin-advanced",
-  "/admin/security": "admin-security",
+  "/admin/models": "system-settings",
+  "/admin/users": "system-settings",
+  "/admin/backend": "system-settings",
+  "/admin/plugins": "system-settings",
+  "/admin/advanced": "system-settings",
+  "/admin/security": "system-settings",
+  "/system-settings/acp": "system-settings",
+  "/system-settings/users": "system-settings",
+  "/system-settings/models": "system-settings",
+  "/system-settings/storage": "system-settings",
+  "/system-settings/plugins": "system-settings",
+  "/system-settings/security": "system-settings",
+  "/system-settings/advanced": "system-settings",
+  "/system-settings/agent-config": "system-settings",
+  "/system-settings/workbench": "system-settings",
+  "/system-settings/remote-desktop": "system-settings",
 };
 
 /**
@@ -137,9 +136,8 @@ export function isPersonalizationPath(pathname: string): boolean {
 export function resolveSelectedKey(pathname: string): string {
   if (pathToKey[pathname]) return pathToKey[pathname];
   if (pathname.startsWith("/chat/")) return "chat";
-  if (pathname.startsWith("/workbench/")) return "workbench";
-  if (pathname.startsWith("/remote-desktop/")) return "remote-desktop";
   if (pathname.startsWith("/personalization/")) return "personalization";
+  if (isSystemSettingsNavPath(pathname)) return "system-settings";
   return "";
 }
 
@@ -162,9 +160,13 @@ export const routeConfigs: RouteConfig[] = [
     element: <RedirectPreserveSearch to="/personalization/skills" />,
   },
   { path: "/token-usage", element: <TokenUsagePage /> },
+  { path: "/system-settings/*", element: <SystemSettingsPage /> },
 
   // Control (RequirePermission via pathPermissionKeys in MainLayout)
-  { path: "/acp", element: <ACPPage /> },
+  {
+    path: "/acp",
+    element: <RedirectPreserveSearch to="/system-settings/acp" />,
+  },
   {
     path: "/channels",
     element: <RedirectPreserveSearch to="/personalization/channels" />,
@@ -208,73 +210,104 @@ export const routeConfigs: RouteConfig[] = [
   },
   { path: "/workspace", element: <Navigate to="/experts" replace /> },
 
-  // Settings
-  { path: "/admin/models", element: <ModelsPage /> },
-
-  // Admin (RequirePermission wrapper applied in MainLayout)
-  { path: "/admin/users", element: <OctopAdminUsersPage /> },
+  // Settings / admin — folded into System Settings (old URLs still work)
+  {
+    path: "/admin/models",
+    element: <RedirectPreserveSearch to="/system-settings/models" />,
+  },
+  {
+    path: "/admin/users",
+    element: <RedirectPreserveSearch to="/system-settings/users" />,
+  },
   {
     path: "/admin/sso",
-    element: <Navigate to="/admin/users?tab=sso" replace />,
+    element: <Navigate to="/system-settings/users?tab=sso" replace />,
   },
   {
     path: "/admin/shared-models",
-    element: <Navigate to="/admin/models" replace />,
+    element: <Navigate to="/system-settings/models" replace />,
   },
-  { path: "/models", element: <Navigate to="/admin/models" replace /> },
-  { path: "/admin/backend", element: <AdminStoragePage /> },
+  {
+    path: "/models",
+    element: <Navigate to="/system-settings/models" replace />,
+  },
+  {
+    path: "/admin/backend",
+    element: <RedirectPreserveSearch to="/system-settings/storage" />,
+  },
   {
     path: "/admin/audit",
-    element: <Navigate to="/admin/security?tab=audit" replace />,
+    element: <Navigate to="/system-settings/security?tab=audit" replace />,
   },
-  { path: "/admin/agents", element: <Navigate to="/admin/users" replace /> },
-  { path: "/admin/plugins", element: <AdminPluginsPage /> },
-  { path: "/admin/advanced", element: <AdvancedSettingsPage /> },
-  { path: "/admin/security", element: <AdminSecurityPage /> },
+  {
+    path: "/admin/agents",
+    element: <Navigate to="/system-settings/users" replace />,
+  },
+  {
+    path: "/admin/plugins",
+    element: <RedirectPreserveSearch to="/system-settings/plugins" />,
+  },
+  {
+    path: "/admin/advanced",
+    element: <RedirectPreserveSearch to="/system-settings/advanced" />,
+  },
+  {
+    path: "/admin/security",
+    element: <RedirectPreserveSearch to="/system-settings/security" />,
+  },
   {
     path: "/admin/voice",
-    element: <Navigate to="/admin/models?tab=voice" replace />,
+    element: <Navigate to="/system-settings/models?tab=voice" replace />,
   },
   {
     path: "/admin/updates",
-    element: <Navigate to="/admin/advanced?tab=updates" replace />,
+    element: <Navigate to="/system-settings/advanced?tab=updates" replace />,
   },
 
   // Legacy redirects — keeps old bookmarks working
-  { path: "/admin/storage", element: <Navigate to="/admin/backend" replace /> },
+  {
+    path: "/admin/storage",
+    element: <Navigate to="/system-settings/storage" replace />,
+  },
   { path: "/orca/cron", element: <Navigate to="/tasks" replace /> },
   { path: "/orca/channels", element: <Navigate to="/channels" replace /> },
   {
     path: "/orca/admin/users",
-    element: <Navigate to="/admin/users" replace />,
+    element: <Navigate to="/system-settings/users" replace />,
   },
   {
     path: "/orca/admin/audit",
-    element: <Navigate to="/admin/security?tab=audit" replace />,
+    element: <Navigate to="/system-settings/security?tab=audit" replace />,
   },
   { path: "/octop/cron", element: <Navigate to="/tasks" replace /> },
   { path: "/octop/channels", element: <Navigate to="/channels" replace /> },
   {
     path: "/octop/admin/users",
-    element: <Navigate to="/admin/users" replace />,
+    element: <Navigate to="/system-settings/users" replace />,
   },
   {
     path: "/octop/admin/audit",
-    element: <Navigate to="/admin/security?tab=audit" replace />,
+    element: <Navigate to="/system-settings/security?tab=audit" replace />,
   },
   {
     path: "/advanced-settings",
-    element: <Navigate to="/admin/advanced" replace />,
+    element: <Navigate to="/system-settings/advanced" replace />,
   },
-  { path: "/environments", element: <Navigate to="/admin/advanced" replace /> },
-  { path: "/agent-config", element: <AgentConfigPage /> },
+  {
+    path: "/environments",
+    element: <Navigate to="/system-settings/advanced" replace />,
+  },
+  {
+    path: "/agent-config",
+    element: <RedirectPreserveSearch to="/system-settings/agent-config" />,
+  },
   {
     path: "/updates",
-    element: <Navigate to="/admin/advanced?tab=updates" replace />,
+    element: <Navigate to="/system-settings/advanced?tab=updates" replace />,
   },
   {
     path: "/plugins",
-    element: <Navigate to="/admin/plugins" replace />,
+    element: <Navigate to="/system-settings/plugins" replace />,
   },
   { path: "/sessions", element: <Navigate to="/chat" replace /> },
   { path: "/cron-jobs", element: <Navigate to="/tasks" replace /> },

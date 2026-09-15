@@ -24,15 +24,15 @@ export type StreamErrorAction = {
 const STREAM_ERROR_ACTIONS: Partial<Record<StreamErrorKey, StreamErrorAction>> =
   {
     "stream_errors.auth": {
-      path: "/admin/models",
+      path: "/system-settings/models",
       labelKey: "modelConfig.configureButton",
     },
     "stream_errors.insufficient_balance": {
-      path: "/admin/models",
+      path: "/system-settings/models",
       labelKey: "modelConfig.configureButton",
     },
     "stream_errors.recursion_limit": {
-      path: "/agent-config",
+      path: "/system-settings/agent-config",
       labelKey: "chat.goToAgentConfig",
     },
   };

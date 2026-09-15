@@ -46,3 +46,36 @@ func TestSidecarLaunchEnvPointsAtHomeDatabase(t *testing.T) {
 		t.Fatalf("CORS_ORIGIN=%q", env["CORS_ORIGIN"])
 	}
 }
+
+func TestSidecarReadyRequiresFrontendBuild(t *testing.T) {
+	root := t.TempDir()
+	if sidecarReady(root) {
+		t.Fatal("empty tree should not be ready")
+	}
+	node := sidecarNodeExe(root)
+	if err := os.MkdirAll(filepath.Dir(node), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(node, []byte("node"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	app := sidecarAppDir(root)
+	if err := os.MkdirAll(filepath.Join(app, "backend"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(app, "backend", "server.ts"), []byte(""), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if sidecarReady(root) {
+		t.Fatal("missing dist/index.html should not be ready")
+	}
+	if err := os.MkdirAll(filepath.Join(app, "dist"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(app, "dist", "index.html"), []byte("<html></html>"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if !sidecarReady(root) {
+		t.Fatal("bundled node + server + frontend should be ready")
+	}
+}

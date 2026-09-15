@@ -24,7 +24,7 @@ export default function SidebarCollapsedIconNav({
       {items.map((item) => {
         const active = selectedKey === item.key;
         const showUpdateBadge =
-          item.key === "admin-advanced" && role === "admin" && hasUpdate;
+          item.key === "system-settings" && role === "admin" && hasUpdate;
         return (
           <Tooltip
             key={item.key}

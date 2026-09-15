@@ -16,7 +16,11 @@ from octop.modules.org_os.empower import assemble_from_blueprint, pack_to_openxy
 from octop.modules.org_os.overview import build_overview
 from octop.modules.org_os.proxy import identity_headers, proxy_request
 from octop.modules.org_os.service import OrgModuleService, org_module_from_paths
-from octop.modules.org_os.sidecar_launch import find_sidecar_launcher, start_sidecar
+from octop.modules.org_os.sidecar_launch import (
+    sidecar_can_start,
+    sidecar_start_command,
+    start_sidecar,
+)
 
 router = APIRouter()
 
@@ -78,20 +82,23 @@ async def org_module_overview(
 ) -> dict[str, Any]:
     service = _service(server)
     counts = _plane_counts(server, user)
-    return build_overview(
+    snapshot = build_overview(
         service,
         agents=counts["agents"],
         connectors=counts["connectors"],
         cron_jobs=counts["cron_jobs"],
         skill_packages=counts["skill_packages"],
-        start_available=find_sidecar_launcher() is not None,
-    ).to_dict()
+        start_available=sidecar_can_start(),
+    )
+    payload = snapshot.to_dict()
+    payload["start_command"] = sidecar_start_command()
+    return payload
 
 
 @router.post("/sidecar/start", summary="Start the bundled openXYOS sidecar")
 async def org_module_start_sidecar(
     server: OctopServer = Depends(get_server),
-    _: Any = Depends(require_permission("plugins")),
+    _user: Any = Depends(current_user),
 ) -> dict[str, Any]:
     service = _service(server)
     if not service.is_enabled():

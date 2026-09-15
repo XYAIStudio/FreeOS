@@ -202,7 +202,11 @@ func (a *App) boot() {
 		a.sidecar = sidecar
 		if serr != nil {
 			logStartupError("organization sidecar", serr)
+		} else if werr := waitSidecarLive(45 * time.Second); werr != nil {
+			logStartupError("organization sidecar health", werr)
 		}
+	} else {
+		log.Printf("organization sidecar not bundled under %s", orgSidecarDir(root))
 	}
 	cmd, err := startOctop(root, port)
 	a.cmd = cmd

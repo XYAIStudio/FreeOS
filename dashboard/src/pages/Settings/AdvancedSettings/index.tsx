@@ -47,7 +47,7 @@ export default function AdvancedSettingsPage() {
 
   const moved = searchParams.get("tab");
   if (moved === "voice" || moved === "search") {
-    return <Navigate to={`/admin/models?tab=${moved}`} replace />;
+    return <Navigate to={`/system-settings/models?tab=${moved}`} replace />;
   }
 
   if (forbidden) return <ForbiddenPage />;

@@ -4,12 +4,15 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
+	"log"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strconv"
 	"strings"
+	"time"
 )
 
 func orgSidecarDir(root string) string {
@@ -32,10 +35,38 @@ func sidecarReady(root string) bool {
 	if _, err := os.Stat(sidecarNodeExe(root)); err != nil {
 		return false
 	}
-	if _, err := os.Stat(filepath.Join(sidecarAppDir(root), "backend", "server.ts")); err != nil {
+	app := sidecarAppDir(root)
+	if _, err := os.Stat(filepath.Join(app, "backend", "server.ts")); err != nil {
+		return false
+	}
+	if _, err := os.Stat(filepath.Join(app, "dist", "index.html")); err != nil {
+		log.Printf("organization sidecar frontend missing under %s", app)
 		return false
 	}
 	return true
+}
+
+func waitSidecarLive(timeout time.Duration) error {
+	deadline := time.Now().Add(timeout)
+	url := sidecarURL() + "/api/health/livez"
+	var last error
+	for time.Now().Before(deadline) {
+		resp, err := http.Get(url)
+		if err == nil {
+			resp.Body.Close()
+			if resp.StatusCode < 500 {
+				return nil
+			}
+			last = fmt.Errorf("HTTP %d", resp.StatusCode)
+		} else {
+			last = err
+		}
+		time.Sleep(400 * time.Millisecond)
+	}
+	if last == nil {
+		return fmt.Errorf("sidecar not reachable at %s", url)
+	}
+	return fmt.Errorf("sidecar not reachable at %s: %w", url, last)
 }
 
 func sidecarDataDir(home string) string {

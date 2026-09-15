@@ -119,37 +119,51 @@ export function userCanKey(
  * ``null`` means no special gate.
  */
 export function pathPermissionKeys(pathname: string): PermissionKeys | null {
-  if (pathname.startsWith("/admin/users") || pathname === "/admin/sso") {
+  if (
+    pathname.startsWith("/admin/users") ||
+    pathname === "/admin/sso" ||
+    pathname.startsWith("/system-settings/users")
+  ) {
     return PERM.usersPage;
   }
   if (
     pathname.startsWith("/admin/models") ||
     pathname === "/models" ||
-    pathname.startsWith("/admin/voice")
+    pathname.startsWith("/admin/voice") ||
+    pathname.startsWith("/system-settings/models")
   ) {
     return PERM.modelsPage;
   }
-  if (pathname.startsWith("/admin/backend")) {
+  if (
+    pathname.startsWith("/admin/backend") ||
+    pathname.startsWith("/system-settings/storage")
+  ) {
     return PERM.storage;
   }
   if (
     pathname.startsWith("/admin/plugins") ||
     pathname === "/plugins" ||
-    pathname.startsWith("/plugins/")
+    pathname.startsWith("/plugins/") ||
+    pathname.startsWith("/system-settings/plugins")
   ) {
     return PERM.plugins;
   }
   if (
     pathname.startsWith("/admin/security") ||
-    pathname.startsWith("/admin/audit")
+    pathname.startsWith("/admin/audit") ||
+    pathname.startsWith("/system-settings/security")
   ) {
     return PERM.securityPage;
   }
   if (
     pathname.startsWith("/admin/advanced") ||
-    pathname.startsWith("/admin/updates")
+    pathname.startsWith("/admin/updates") ||
+    pathname.startsWith("/system-settings/advanced")
   ) {
     return PERM.advancedPage;
+  }
+  if (pathname.startsWith("/system-settings/acp")) {
+    return "admin";
   }
   if (pathname.startsWith("/admin/")) {
     return "admin";
@@ -218,6 +232,9 @@ export function routeNeedsPermission(routePath: string): boolean {
   }
   if (probe === "/workbench" || probe.startsWith("/workbench/")) return true;
   if (probe.startsWith("/admin")) return true;
+  if (probe === "/system-settings" || probe.startsWith("/system-settings/")) {
+    return true;
+  }
   return false;
 }
 

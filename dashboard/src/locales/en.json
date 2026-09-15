@@ -76,7 +76,15 @@
     "saveFailed": "Could not update organization module",
     "actionFailed": "Action failed",
     "enabled": "Organization module enabled",
-    "disabled": "Organization module disabled"
+    "disabled": "Organization module disabled",
+    "previewTitle": "openXYOS preview",
+    "previewOffline": "Sidecar is offline. Start it to preview the organization console here.",
+    "previewLoading": "Starting openXYOS…",
+    "fullscreen": "Fullscreen",
+    "exitFullscreen": "Exit fullscreen"
+  },
+  "systemSettings": {
+    "subtitle": "Workbench, remote desktop, and host administration in one place."
   },
   "desktopChrome": {
     "group": "Window controls",
@@ -263,6 +271,8 @@
     "skills": "Skills",
     "agentConfig": "Configuration",
     "settings": "Settings",
+    "capabilities": "Capabilities",
+    "systemSettings": "System Settings",
     "voice": "Voice",
     "observability": "Observability",
     "https": "HTTPS",
