@@ -12,7 +12,7 @@ import { HardDrive, LayoutGrid } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import PageShell from "../../../layouts/PageShell";
 import TabLabel from "../../../components/TabLabel";
-import { OctopEmptyMascot } from "../../../components/EmptyState";
+import { XyaiMascot } from "../../../components/EmptyState";
 import StreamSetupGuide from "../../../components/StreamSetupGuide/StreamSetupGuide";
 import {
   useStorageBackends,
@@ -85,9 +85,7 @@ export default function AdminStoragePage() {
       return (
         <StreamSetupGuide
           wide
-          icon={
-            <OctopEmptyMascot size={120} className={styles.emptyGuideMascot} />
-          }
+          icon={<XyaiMascot size={120} className={styles.emptyGuideMascot} />}
           title={t("storage.emptyGuideTitle")}
           description={t("storage.emptyGuideDesc")}
           steps={[

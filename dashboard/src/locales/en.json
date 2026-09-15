@@ -3253,6 +3253,7 @@
   "chatWelcome": {
     "greeting": "Hi! Your personal AI sidekick is here",
     "mascotSwitchHint": "Tap to switch the mascot",
+    "mascotAriaLabel": "XYAI mascot",
     "descriptionWithAgentSuffix": "— share what's on your mind, work or life",
     "description": "Work or life — just tell me what you need, I'll handle it",
     "newChat": "New Chat",

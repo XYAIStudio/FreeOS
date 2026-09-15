@@ -23,9 +23,13 @@ def test_auth_surfaces_use_xyai_mark_not_octop_wordmark() -> None:
         text = (REPO / rel).read_text(encoding="utf-8")
         for needle in FORBIDDEN:
             assert needle not in text, f"{rel} still references {needle}"
-        if rel.endswith("BrandMark.tsx") or rel.endswith("index.html"):
+        if rel.endswith("BrandMark.tsx") or rel == "dashboard/index.html":
             assert "xyai-mark.png" in text or "freeos-logo.png" in text, (
                 f"{rel} is missing the circular XYAI / FreeOS mark"
+            )
+        if rel == "desktop/src/assets/index.html":
+            assert "xyai-mascot-welcome.webp" in text, (
+                f"{rel} is missing the XYAI robot splash mascot"
             )
         assert 'alt="Octop"' not in text
         assert ">Octop<" not in text

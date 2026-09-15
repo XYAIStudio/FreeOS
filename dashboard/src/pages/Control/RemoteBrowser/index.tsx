@@ -41,7 +41,7 @@ import { useTranslation } from "react-i18next";
 
 import StreamEdgeControls from "../../../components/StreamEdgeControls/StreamEdgeControls";
 import StreamSetupGuide from "../../../components/StreamSetupGuide/StreamSetupGuide";
-import { OctopEmptyMascot } from "../../../components/EmptyState";
+import { XyaiMascot } from "../../../components/EmptyState";
 import PageShell from "../../../layouts/PageShell";
 import BrowserAiPanel from "../../../components/BrowserAiPanel";
 import SkillRecordGuideModal from "../../../components/SkillRecordGuideModal";
@@ -1467,10 +1467,7 @@ export default function RemoteBrowserPage({
                 ) : (
                   <StreamSetupGuide
                     icon={
-                      <OctopEmptyMascot
-                        size={120}
-                        className={styles.setupMascot}
-                      />
+                      <XyaiMascot size={120} className={styles.setupMascot} />
                     }
                     title={
                       envReady

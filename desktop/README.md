@@ -180,7 +180,8 @@ rebuilds `windows/icon.ico` and the NSIS shortcut from the updated `appicon.png`
 | `src/build/appicon-macos.png` | macOS `.icns` | 1024x1024 canvas, artwork 824x824 centred |
 | `src/assets/tray-icon.png` | Tray + app icon on Windows/Linux | Full-bleed |
 | `src/assets/tray-icon-template.png` | macOS menu bar | 88px canvas, 64px black-on-transparent glyph |
-| `src/assets/freeos-logo.png` | Splash / loading | Transparent circular mark |
+| `src/assets/freeos-logo.png` | Splash brand mark (fallback) | Transparent circular mark |
+| `src/assets/xyai-mascot-*.webp` | Splash / loading poses | XYAI robot; tap to switch |
 
 macOS sizes both surfaces to a fixed box, so the padding has to live in the
 artwork: the Dock follows Apple's 824/1024 icon grid, and Wails scales the menu

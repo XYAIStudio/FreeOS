@@ -1,7 +1,8 @@
 import type { ReactNode } from "react";
+import { xyaiMascotSrc } from "../../assets/mascot";
 import styles from "./StreamConnectingIndicator.module.less";
 
-const MASCOT_TYPE = `${import.meta.env.BASE_URL}octop-mascot-type.webp`;
+const MASCOT_TYPE = xyaiMascotSrc("work");
 
 interface StreamConnectingIndicatorProps {
   /** Status line under the animation (e.g. 「连接中」). */
@@ -16,7 +17,7 @@ interface StreamConnectingIndicatorProps {
 
 /**
  * Shared connecting / waiting-frame indicator for remote browser & desktop.
- * Uses the same Octop mascot loop as chat thinking bubbles.
+ * Uses the same XYAI typing/work mascot as chat thinking bubbles.
  */
 export default function StreamConnectingIndicator({
   label,

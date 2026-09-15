@@ -1,13 +1,11 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { xyaiMascotSrc, xyaiMascotSwitchSrcs } from "../../../assets/mascot";
 import { useWelcomeQuickCardsLayout } from "../hooks/useWelcomeQuickCardsLayout";
 import WelcomeQuickCards, { WelcomeQuickCardProbe } from "./WelcomeQuickCards";
 import styles from "../index.module.less";
 
-// Animated WebP keeps alpha on Safari; VP9 WebM alpha is unreliable there.
-const MASCOT_PEEK = "/octop-mascot-peek.webp";
-const MASCOT_TYPE = "/octop-mascot-type.webp";
-const MASCOT_IMAGES = [MASCOT_PEEK, MASCOT_TYPE];
+const MASCOT_IMAGES = xyaiMascotSwitchSrcs();
 
 function getRandomMascot(current?: string): string {
   if (MASCOT_IMAGES.length <= 1) return MASCOT_IMAGES[0];
@@ -43,7 +41,7 @@ export default function WelcomeScreen({
   hideMascot = false,
 }: WelcomeScreenProps) {
   const { t } = useTranslation();
-  const [mascotSrc, setMascotSrc] = useState(MASCOT_PEEK);
+  const [mascotSrc, setMascotSrc] = useState(() => xyaiMascotSrc("welcome"));
   const {
     welcomeRef,
     headingRef,
@@ -76,7 +74,7 @@ export default function WelcomeScreen({
               role="button"
               tabIndex={0}
               title={t("chatWelcome.mascotSwitchHint")}
-              aria-label="Octop mascot"
+              aria-label={t("chatWelcome.mascotAriaLabel")}
               onKeyDown={(e) => {
                 if (e.key === "Enter" || e.key === " ") {
                   e.preventDefault();

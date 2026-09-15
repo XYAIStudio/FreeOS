@@ -4,7 +4,7 @@ import { Download, PlugZap, RefreshCw } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import StreamSetupGuide from "../../../components/StreamSetupGuide/StreamSetupGuide";
-import { OctopEmptyMascot } from "../../../components/EmptyState";
+import { XyaiMascot } from "../../../components/EmptyState";
 import type { MobileStatusResponse } from "../../../api/modules/mobile";
 import styles from "./index.module.less";
 
@@ -74,7 +74,7 @@ export default function RemotePhoneIdleGuide({
 
   return (
     <StreamSetupGuide
-      icon={<OctopEmptyMascot size={120} className={styles.setupMascot} />}
+      icon={<XyaiMascot size={120} className={styles.setupMascot} />}
       title={
         ready
           ? isShell
