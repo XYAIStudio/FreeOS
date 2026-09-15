@@ -1070,9 +1070,11 @@ a {
     display: none;
     position: absolute;
     inset: 68px 16px auto;
-    background: rgba(255, 255, 255, 0.72);
-    backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.75);
+    z-index: 25;
+    background: rgba(255, 255, 255, 0.94);
+    backdrop-filter: blur(24px) saturate(1.4);
+    -webkit-backdrop-filter: blur(24px) saturate(1.4);
+    border: 1px solid rgba(255, 255, 255, 0.88);
     border-radius: 16px;
     padding: 16px;
     flex-direction: column;
