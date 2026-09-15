@@ -76,7 +76,7 @@ def _copy_skills_to_packages(home: Path, agent_id: str, workspace: Path) -> tupl
     skills_root = workspace / "skills"
     if not skills_root.is_dir():
         return "", 0
-    package_id = f"org-{agent_id}"[:64]
+    package_id = (agent_id if agent_id.startswith("org-") else f"org-{agent_id}")[:64]
     dest = home / "skill-packages" / package_id / "skills"
     dest.mkdir(parents=True, exist_ok=True)
     count = 0
