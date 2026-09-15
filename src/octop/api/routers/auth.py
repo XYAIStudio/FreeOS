@@ -4,19 +4,43 @@ from __future__ import annotations
 
 from typing import Any
 
-from fastapi import APIRouter, Depends, Response
-from pydantic import BaseModel
+from fastapi import APIRouter, Depends, Request, Response
+from pydantic import BaseModel, Field
 
 from octop.api.deps import current_user, get_server, sign_token
 from octop.infra.errors import ErrorCode, OctopError
+from octop.infra.users.local_session import (
+    claim_local_account,
+    ensure_local_user,
+    is_desktop_process,
+    is_unclaimed_local_user,
+)
 from octop.infra.users.permissions import effective_permissions
-from octop.infra.utils.locale import normalize_locale
+from octop.infra.utils.locale import normalize_locale, resolve_request_locale
 
 router = APIRouter()
 
+_LOOPBACK_HOSTS = frozenset({"127.0.0.1", "::1", "localhost", "testclient"})
 
-def _user_json(user: Any, *, locale: str | None = None) -> dict[str, Any]:
+
+def _is_local_client(request: Request) -> bool:
+    if is_desktop_process():
+        return True
+    host = (request.client.host if request.client else "") or ""
+    if host in _LOOPBACK_HOSTS:
+        return True
+    forwarded = (request.headers.get("x-forwarded-for") or "").split(",")[0].strip()
+    if forwarded in _LOOPBACK_HOSTS:
+        return True
+    req_host = (request.headers.get("host") or "").split(":")[0].lower()
+    return req_host in {"127.0.0.1", "localhost", "[::1]"}
+
+
+def _user_json(
+    user: Any, server: Any | None = None, *, locale: str | None = None
+) -> dict[str, Any]:
     loc = normalize_locale(locale)
+    is_local = bool(server is not None and is_unclaimed_local_user(server, user))
     return {
         "id": user.id,
         "username": user.username,
@@ -24,6 +48,21 @@ def _user_json(user: Any, *, locale: str | None = None) -> dict[str, Any]:
         "display_name": user.display_name,
         "locale": loc,
         "permissions": effective_permissions(user),
+        "is_local": is_local,
+    }
+
+
+def _login_payload(server: Any, user: Any) -> dict[str, Any]:
+    secret = server.services.secret_repo.get("jwt")
+    ttl = server.services.config.access_token_ttl_seconds
+    token = sign_token(
+        secret, sub=user.id, uname=user.username, role=user.role.value, ttl_seconds=ttl
+    )
+    return {
+        "access_token": token,
+        "token_type": "Bearer",
+        "expires_in": ttl,
+        "user": _user_json(user, server, locale=user.locale),
     }
 
 
@@ -45,17 +84,43 @@ async def login(body: LoginBody, server: Any = Depends(get_server)) -> dict[str,
     user = await server.user_manager.authenticate(body.username, body.password)
     if user is None:
         raise OctopError(ErrorCode.AUTH_FAILED, "invalid credentials")
-    secret = server.services.secret_repo.get("jwt")
-    ttl = server.services.config.access_token_ttl_seconds
-    token = sign_token(
-        secret, sub=user.id, uname=user.username, role=user.role.value, ttl_seconds=ttl
+    return _login_payload(server, user)
+
+
+class RegisterBody(BaseModel):
+    username: str = Field(min_length=1, max_length=64)
+    password: str = Field(min_length=1, max_length=200)
+    display_name: str | None = None
+
+
+@router.post("/local-session", summary="Open a local guest or single-user session")
+async def local_session(request: Request, server: Any = Depends(get_server)) -> dict[str, Any]:
+    """Issue a JWT without a login form on desktop / loopback first launch."""
+    if not _is_local_client(request):
+        raise OctopError(ErrorCode.FORBIDDEN, "local session is only available on this device")
+    locale = normalize_locale(resolve_request_locale(request))
+    user = await ensure_local_user(server, locale=locale)
+    return _login_payload(server, user)
+
+
+@router.post("/register", summary="Claim the local guest session")
+async def register(
+    body: RegisterBody,
+    request: Request,
+    user: Any = Depends(current_user),
+    server: Any = Depends(get_server),
+) -> dict[str, Any]:
+    """Set username and password on the auto-provisioned local user."""
+    locale = normalize_locale(resolve_request_locale(request))
+    claimed = await claim_local_account(
+        server,
+        user,
+        username=body.username,
+        password=body.password,
+        display_name=body.display_name,
+        locale=locale,
     )
-    return {
-        "access_token": token,
-        "token_type": "Bearer",
-        "expires_in": ttl,
-        "user": _user_json(user, locale=user.locale),
-    }
+    return _login_payload(server, claimed)
 
 
 @router.post("/logout", status_code=204, summary="Sign out")
@@ -66,9 +131,11 @@ async def logout(user: Any = Depends(current_user), server: Any = Depends(get_se
 
 
 @router.get("/me", summary="Current user profile")
-async def me(user: Any = Depends(current_user)) -> dict[str, Any]:
+async def me(
+    user: Any = Depends(current_user), server: Any = Depends(get_server)
+) -> dict[str, Any]:
     """Return the authenticated user's id, username, role, display name, and locale."""
-    return _user_json(user, locale=user.locale)
+    return _user_json(user, server, locale=user.locale)
 
 
 @router.post("/change-password", status_code=204, summary="Change password")
@@ -106,4 +173,4 @@ async def update_me(
         await server.user_manager.set_locale(user.username, body.locale)
     updated = server.user_manager.get(user.username)
     assert updated is not None
-    return _user_json(updated, locale=updated.locale)
+    return _user_json(updated, server, locale=updated.locale)

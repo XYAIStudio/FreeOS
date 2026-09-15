@@ -12,6 +12,7 @@ from octop.infra.utils.locale import Locale, normalize_locale
 
 class ErrorCode(StrEnum):
     AUTH_FAILED = "AUTH_FAILED"
+    ACCOUNT_REQUIRED = "ACCOUNT_REQUIRED"
     TOKEN_EXPIRED = "TOKEN_EXPIRED"
     SETUP_REQUIRED = "SETUP_REQUIRED"
     DATABASE_NOT_EMPTY = "DATABASE_NOT_EMPTY"

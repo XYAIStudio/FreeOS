@@ -36,6 +36,7 @@ import {
   type BackupFileItem,
 } from "../../../api/modules/backup";
 import { useBackupOperation } from "../../../context/BackupOperationContext";
+import { useRequireAccount } from "../../../context/AuthPromptContext";
 import { useServiceRestartContext } from "../../../context/ServiceRestartContext";
 import { useIsMobile } from "../../../hooks/useIsMobile";
 import { useServerTimezone } from "../../../hooks/useServerTimezone";
@@ -169,6 +170,7 @@ export default function BackupRestorePanel() {
   const isMobile = useIsMobile();
   const serverTimezone = useServerTimezone();
   const { isRestarting } = useServiceRestartContext();
+  const requireAccount = useRequireAccount();
   const {
     kind,
     restoreTarget,
@@ -299,6 +301,7 @@ export default function BackupRestorePanel() {
   }, [restoring, restoreTarget]);
 
   const onCreate = async () => {
+    if (!(await requireAccount())) return;
     const ok = await createBackup({
       include_config: includeConfig,
       include_workspaces: includeWorkspaces,
@@ -311,6 +314,7 @@ export default function BackupRestorePanel() {
   };
 
   const onSaveAuto = async () => {
+    if (!(await requireAccount())) return;
     setAutoSaving(true);
     try {
       const data = await backupApi.updateAutoSettings({

@@ -6,6 +6,11 @@
 
 ## [Unreleased]
 
+### 变更
+
+- First launch on desktop / loopback opens a local guest session — no login wall. Register or sign in only when saving, exporting, or publishing to an account.
+- Login, splash, favicons, and desktop icons use the circular XYAI mark. Product version remains 0.0.1.
+
 ## [0.0.1] - 2026-09-15
 
 当前 FreeOS 产品版本。`1.0.0` 对本阶段过早；后续按 [semver](https://semver.org/spec/v2.0.0.html) 随产品成熟度递增。规范来源是 `pyproject.toml`（同步 `octop.__version__`、桌面 / NSIS / FnOS 回退值，以及 CI 产物名）。发布工作流需要标签时使用 `v0.0.1`；不重写已推送的历史 tag。

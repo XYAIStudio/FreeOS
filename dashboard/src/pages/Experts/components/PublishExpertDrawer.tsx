@@ -12,6 +12,7 @@ import {
 import type { OctopAgent } from "../../../context/AgentContext";
 import { apiErrorMessage } from "../../../utils/apiError";
 import { pickLocale } from "../../../utils/localizedText";
+import { useRequireAccount } from "../../../context/AuthPromptContext";
 import styles from "../index.module.less";
 
 export interface PublishExpertDrawerProps {
@@ -39,6 +40,7 @@ export default function PublishExpertDrawer({
   onSuccess,
 }: PublishExpertDrawerProps) {
   const { t } = useTranslation();
+  const requireAccount = useRequireAccount();
   const [form] = Form.useForm<PublishFormValues>();
   const [submitting, setSubmitting] = useState(false);
   const [prefillLoading, setPrefillLoading] = useState(false);
@@ -100,6 +102,8 @@ export default function PublishExpertDrawer({
     } catch {
       return;
     }
+
+    if (!(await requireAccount())) return;
 
     setSubmitting(true);
     try {

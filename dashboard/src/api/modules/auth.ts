@@ -46,6 +46,8 @@ export interface OctopUser {
   locale: string;
   /** Module permission keys; admin responses include the full catalog. */
   permissions?: string[];
+  /** True while the desktop/loopback guest has not registered. */
+  is_local?: boolean;
 }
 
 export interface LoginResponse {
@@ -149,6 +151,31 @@ export const authApi = {
     const raw = await request<RawLoginResponse>("/auth/login", {
       method: "POST",
       body: JSON.stringify({ username, password }),
+    });
+    return { ...raw, token: raw.access_token };
+  },
+
+  /** Desktop / loopback guest or single-user JWT (no login form). */
+  localSession: async (): Promise<LoginResponse> => {
+    const raw = await request<RawLoginResponse>("/auth/local-session", {
+      method: "POST",
+    });
+    return { ...raw, token: raw.access_token };
+  },
+
+  /** Claim the local guest session with a username and password. */
+  register: async (
+    username: string,
+    password: string,
+    displayName?: string | null,
+  ): Promise<LoginResponse> => {
+    const raw = await request<RawLoginResponse>("/auth/register", {
+      method: "POST",
+      body: JSON.stringify({
+        username,
+        password,
+        display_name: displayName ?? null,
+      }),
     });
     return { ...raw, token: raw.access_token };
   },
