@@ -1,163 +1,292 @@
-# FreeOS architecture: Octop host + openXYOS organization module
+# FreeOS × openXYOS integration architecture
 
-FreeOS is **Octop** (MIT, Python/FastAPI + React dashboard) with **openXYOS**
-(Apache-2.0, Express + React) mounted as an **enable/disable organization
-module**. This document is the capability map, the chosen topology, rejected
-alternatives, auth/tenant mapping, data ownership, and the phased roadmap.
+FreeOS is the **Octop-derived data plane** (MIT: skills, workspace FS, memory,
+cron, multi-agent, MCP, sandboxes, real IM channels) plus a **control-plane
+contract** from openXYOS (Apache-2.0: org hierarchy, multi-tenant modules,
+`openxyos.agent-blueprint.v1`, governance, module catalog).
+
+They are complementary, not competitors. FreeOS does **not** replace Octop’s
+agent runtime with openXYOS chat. openXYOS is the organization control plane;
+FreeOS/Octop remains the execution runtime.
 
 FreeOS is an independent project. It is not affiliated with Tencent Cloud,
 Octop, XYAIStudio, or XYOS trademarks beyond accurate license attribution.
-See [NOTICE](../NOTICE).
+See [NOTICE](../NOTICE) and `modules/openxyos/TRADEMARKS.md`.
 
-## 1. Capability map
+## Framing
 
-| Capability | Owner in MVP | Path / API | Notes |
-|---|---|---|---|
-| Multi-user JWT, agents, chat, plugins, cron, connectors | FreeOS host (Octop) | `src/octop/`, `/api/*`, dashboard `/chat` | Unchanged control plane |
-| Plugin seed + enable | `PluginManager` | `src/octop/infra/agents/plugins/`; bundled under `src/octop/infra/agents/plugins/bundled/`; runtime `~/.freeos/plugins/*` (or `~/.octop/plugins/*`) | Seeds bundled plugins disabled, then loads user plugins |
-| Organization OS catalog | Bridge (Python) + upstream TS | `src/octop/modules/org_os/catalog.py` mirrors `modules/openxyos/backend/open-module-catalog.ts` and `frontend/src/open-modules.ts` | Keys: workspace, announcements, organization, employees, skills, chat, agents, tasks, knowledge, reflections, governance, settings |
-| Enable / disable org module | FreeOS BFF + plugin `org-os` | `PATCH /api/org-module` · `freeos org enable` · dashboard `/organization` · Admin → Plugins | Writes `config.json` `modules.org_os.enabled` and `plugins.org-os.enabled` |
-| Org APIs (employees, org tree, tenants, governance, …) | openXYOS sidecar | `modules/openxyos/backend/routes/*.ts` mounted at `/api/org`, `/api/employees`, `/api/tenants`, `/api/governance`, `/api/module-settings`, … | Reachable via sidecar origin or ` /api/org-module/sidecar/{path}` when enabled |
-| Org UI | openXYOS Vite/Express app | sidecar `:3780` (default); iframe on `/organization` when healthy | Host shell is FreeOS; org console is the sidecar |
-| Branding | FreeOS | `dashboard/public/logo*.png`, `favico.svg`, `pwa-*.png`, `docs/assets/readme-banner.png` | Circular mark: gray ring, yellow/green/red teardrops, blue center |
-
-### Upstream verification (live trees, not hypotheses)
-
-Octop `PluginManager` (`src/octop/infra/agents/plugins/manager.py`):
-
-1. `seed_bundled()` copies `src/octop/infra/agents/plugins/bundled/<id>/` into the install `plugins/` directory with `enabled: false`.
-2. `load_installed()` loads `~/.freeos/plugins/*` (legacy `~/.octop/plugins/*`).
-3. Dashboard admin patches `PATCH /api/plugins/{id}` `{ "enabled": true }`.
-
-openXYOS module keys are defined twice and must stay aligned:
-
-- Backend catalog: `modules/openxyos/backend/open-module-catalog.ts` (`OPENXYOS_MODULES`)
-- Frontend store: `modules/openxyos/frontend/src/open-modules.ts` (`OPEN_MODULE_KEYS`)
-- Runtime toggle API: `GET/PUT /api/module-settings` (`open-module-settings` routes)
-
-Dashboard source lives in `dashboard/` and is built into `src/octop/dashboard/` for the packaged server.
-
-## 2. Chosen topology (MVP)
+| Plane | System | Owns |
+|---|---|---|
+| **Control plane** | openXYOS sidecar (`modules/openxyos`) | Org tree, tenants, module catalog, blueprints `openxyos.agent-blueprint.v1`, governance/audit, talent market, module contract |
+| **Data plane** | FreeOS host (Octop) | Agent runtime, SKILL.md, workspace FS, harness-memory, cron, multi-agent, MCP connectors, sandboxes, Feishu/DingTalk/Discord/… |
 
 ```
-                 ┌─────────────────────────────────────────┐
-  Browser        │ FreeOS dashboard (React, dashboard/)    │
-                 │  shell, chat, plugins, /organization    │
-                 └───────────────┬─────────────────────────┘
-                                 │ JWT cookie / Bearer
-                 ┌───────────────▼─────────────────────────┐
-  Host process   │ FastAPI  src/octop/api/app.py            │
-                 │  /api/* Octop routers                    │
-                 │  /api/org-module/status|catalog|PATCH    │
-                 │  /api/org-module/sidecar/*  (BFF proxy)  │
-                 │  PluginManager + bundled org-os          │
-                 └───────────────┬─────────────────────────┘
-                                 │ HTTP, X-FreeOS-User*
-                 ┌───────────────▼─────────────────────────┐
-  Sidecar        │ openXYOS  modules/openxyos               │
-  (optional)     │  Express :3780  + React org console      │
-                 │  own SQLite/Postgres + tenants           │
-                 └─────────────────────────────────────────┘
+  Control plane (openXYOS)          Data plane (FreeOS / Octop)
+  ────────────────────────          ───────────────────────────
+  tenants / org tree                agent workspace + sandbox
+  module catalog + toggles          SKILL.md + plugins
+  agent-blueprint.v1                SOUL.md / MEMORY / cron
+  GovernanceEngine + audit          MCP + HITL IM + tool_guard
+  talent market                     running agent instances
 ```
 
-**Why this topology**
+## Chosen MVP topology (Phase A — Directions 2 + 3)
 
-- Octop is Python; openXYOS is TypeScript. A full language merge would rewrite
-  org routes, PEP/PDP, and the module catalog into FastAPI — high risk, no MVP.
-- Octop already has a plugin enable/disable surface. Treating org OS as a
-  bundled plugin plus a first-class dashboard page matches that model.
-- A BFF proxy keeps one browser origin for API calls later (SSO, CSRF) without
-  forcing openXYOS to import Python packages.
-
-### Sequence: enable the module
+Phase A does **not** compile blueprints or merge chat UIs. It inserts
+governance in front of high-risk data-plane tools, and generates real
+module skills that call sidecar `/api/*` with tenant headers.
 
 ```
-User → GET /organization
-     → GET /api/org-module/status
-Host → read ~/.freeos/config.json modules.org_os
-     → GET {sidecar}/api/health/livez
-User → Switch on
-     → PATCH /api/org-module  { "enabled": true }
-Host → write modules.org_os.enabled + plugins.org-os.enabled
-     → optional PluginManager.set_enabled("org-os", true)
-User → bash scripts/run-org-sidecar.sh
-Host → iframe embed_url when livez succeeds
-Agent → tool org_os_status (bundled plugin)
+                 ┌─────────────────────────────────────────────┐
+  Browser / IM   │ FreeOS dashboard + Octop IM channels         │
+                 │  /organization · /approve · /pending         │
+                 └───────────────┬─────────────────────────────┘
+                                 │ JWT / IM session
+                 ┌───────────────▼─────────────────────────────┐
+  Host           │ FastAPI  src/octop/api/app.py                │
+  (data plane)   │  /api/* Octop routers                        │
+                 │  /api/org-module/status|catalog|PATCH        │
+                 │  /api/org-module/governance/*                │
+                 │  /api/org-module/skills/*                    │
+                 │  /api/org-module/sidecar/*  (BFF proxy)      │
+                 │  PluginManager + bundled org-os              │
+                 │  xyos-governance-mcp (stdio MCP)             │
+                 └───────┬───────────────────┬─────────────────┘
+                         │ HTTP              │ durable pause
+                         │ X-FreeOS-User*    │ ~/.freeos/governance/
+                         │ X-FreeOS-Tenant-Id│
+                 ┌───────▼─────────┐   ┌─────▼─────────────────┐
+  Sidecar        │ openXYOS :3780  │   │ Pause + audit JSONL   │
+  (control plane)│ /api/governance │   │ Human must approve    │
+                 │ /api/module-…   │   │ before execute=true   │
+                 │ own SQL.js/PG   │   └───────────────────────┘
+                 └─────────────────┘
 ```
 
-### Sequence: call an org API through the BFF
+**Why this topology for 2 + 3**
+
+- Governance as MCP matches Octop’s connector model (`overlay_stdio_spec_env`)
+  without rewriting `GovernanceEngine` into FastAPI.
+- Default-deny lives in-process so a down sidecar cannot fail *open*.
+- Durable pauses live on the FreeOS home disk so a process restart cannot
+  silently resume a high-risk tool.
+- Generated skills call the existing BFF (`/api/org-module/sidecar/…`) so
+  tenant headers and enablement checks stay in one place.
+- Reverse publish writes a plugin draft + tenant-toggle payload; it does
+  not auto-install into production tenants.
+
+### Sequence: high-risk tool (Direction 2)
 
 ```
-User (JWT) → GET /api/org-module/sidecar/api/org
-Host       → 409 if disabled
-           → 503 if livez fails
-           → strip Authorization, add X-FreeOS-User / X-FreeOS-User-Id / X-FreeOS-Role
-           → GET http://127.0.0.1:3780/api/org
-Sidecar    → own cookie/JWT still required for mutating org routes
+Agent → tool (outbound / delete / pay / prod)
+     → GovernanceInterceptor.enforce() / MCP check_policy
+     → classify → high-risk
+     → optional POST {sidecar}/api/governance/validate
+     → no matching allow rule → DEFAULT DENY
+     → write audit.jsonl (and sidecar log when reachable)
+     → create durable pause  ~/.freeos/governance/pauses/<id>.json
+     → return execute=false  (caller MUST stop)
+Human → FreeOS/Octop IM /approve  or  `freeos org governance approve <id>`
+     → pause status=approved
+Agent → check_policy(approval_id=…)
+     → execute=true only for the same tool + args digest
+     → tool runs
 ```
 
-## 3. Rejected alternatives
+If the interceptor/MCP result is `deny` or `pending`, execution is a hard
+stop. Prompt-only “please get approval” is not governance.
 
-| Alternative | Why rejected for MVP |
+### Sequence: module → skill (Direction 3)
+
+```
+Operator → freeos org skills generate [--module employees]
+Host     → OPENXYOS_MODULES + endpoint map
+         → write skills/org-<key>/SKILL.md
+         → write skills/org-<key>/scripts/call_module.py
+Skill    → curl/python  /api/org-module/sidecar/api/<resource>
+         → headers X-FreeOS-Tenant-Id / X-FreeOS-User*
+         → high-risk verbs go through governance first
+Polished → freeos org skills publish <dir>
+         → plugin.yaml draft + sidecar tenant-toggle payload
+         → operator enables per tenant; not auto-on
+```
+
+## Seven directions
+
+### Phase A — implement now (highest value / verifiable)
+
+#### Direction 2 — `xyos-governance-mcp`
+
+Wrap openXYOS governance/audit as an MCP server and insert it **before**
+high-risk tool calls.
+
+| Piece | Path |
 |---|---|
-| Rewrite openXYOS routes into FastAPI / SQLAlchemy | Two full backends, duplicate PEP/PDP, months of work, easy to break tenants |
-| iframe-only with no BFF or plugin | No enable/disable in the host; agents cannot see org capabilities |
-| npm-import openXYOS React into the Octop dashboard | Conflicting routers, Vite configs, auth stores; would still need the Express API |
-| Git submodule only, no vendored tree | Clone would not be self-contained; CI/offline installs break |
-| Rename every `octop` package/import to `freeos` | Touches hundreds of files and breaks `orcakit-harness-agent` assumptions; documented as leftover identifiers instead |
+| Engine (default deny, classify, sidecar validate) | `src/octop/modules/org_os/governance/` |
+| Durable pause / resume + JSONL audit | `{FREEOS_HOME}/governance/` |
+| stdio MCP | `xyos-governance-mcp` → `mcp_server.py` |
+| HTTP BFF | `POST /api/org-module/governance/check` |
+| Enable | `freeos org governance enable` |
+| How-to | `src/octop/modules/org_os/governance/README.md` |
 
-## 4. Auth and tenant mapping
+High-risk classes: **outbound**, **delete**, **pay**, **prod**. Unmatched
+rules **deny**. Human approval is a durable pause; `execute` stays false
+until the pause is approved for the same action digest.
+
+#### Direction 3 — Module ↔ Skill bidirectional bridge
+
+| Direction | Behavior |
+|---|---|
+| Module → skill | Generate FreeOS/Octop `SKILL.md` from the openXYOS catalog; each skill calls real `/api/…` routes via the BFF with tenant headers |
+| Skill → module | Publish a polished skill as a tenant-toggleable plugin draft (`plugin.yaml` + sidecar payload). Never auto-enable |
+
+| Piece | Path |
+|---|---|
+| Generator / publisher | `src/octop/modules/org_os/skill_bridge/` |
+| Catalog source | `src/octop/modules/org_os/catalog.py` (mirrors `modules/openxyos/backend/open-module-catalog.ts`) |
+| CLI | `freeos org skills generate` · `freeos org skills publish` |
+| How-to | `src/octop/modules/org_os/skill_bridge/README.md` |
+
+### Phase B — next (scaffold later; specified here)
+
+#### Direction 1 — `xyos2octop` / blueprint compiler
+
+Compile `openxyos.agent-blueprint.v1` (see
+`modules/openxyos/backend/routes/agent-studio.ts`) into a runnable FreeOS
+agent workspace:
+
+- `SOUL.md`, `skills/`, `knowledge/`, MEMORY seed, `.env`
+- cron entries from job duties
+- reverse telemetry into openXYOS HR / capability profile
+
+Do **not** start a second chat runtime. The compiler emits files the
+existing Octop agent already knows how to run.
+
+#### Direction 4 — Digital-colleague lifecycle
+
+Wire the openXYOS talent market to FreeOS agent instances:
+
+`recruit → onboard → shadow/probation → promote → offboard`
+
+Each stage is a control-plane record plus a data-plane instance
+(workspace + sandbox). Offboard must revoke tools and destroy or archive
+the sandbox — not only flip a flag.
+
+### Phase C — architecture only (do not implement in this pass)
+
+#### Direction 5 — Chat / session routing Web ↔ IM
+
+One conversation identity across FreeOS dashboard chat and Octop IM
+channels. Route; do not duplicate openXYOS chat as the agent loop.
+
+#### Direction 6 — Reflections ↔ harness-memory
+
+openXYOS reflections become an org learning loop that writes into
+harness-memory (and back). Keep tenant isolation at the workspace
+boundary, not in the prompt.
+
+#### Direction 7 — Org-as-code GitOps (end-state, not MVP start)
+
+Reconcile control-plane YAML (modules, blueprints, policy) with running
+agents. Desired end-state: git is the source of org intent; FreeOS
+instances converge. Not the starting point — the contract and runtime
+must exist first (Phases A/B).
+
+## Risks (encoded in design)
+
+1. **openXYOS is a community-candidate; SQL.js is the default.** Use it as
+   the control-plane / contract layer, not the production multi-tenant
+   database of record. Durable FreeOS state (pauses, audit, workspaces)
+   lives under `FREEOS_HOME`. Sidecar data is optional and separately
+   backed up.
+2. **Octop is not natively multi-tenant.** Isolate as **one tenant = one
+   workspace / sandbox instance**. Never rely on prompt-only isolation.
+   Generated skills always send `X-FreeOS-Tenant-Id`; the BFF must not
+   collapse tenants into one agent home.
+3. **Licenses and trademarks.** Preserve Apache-2.0 (vendored tree) and
+   MIT (host + bridge). Follow `modules/openxyos/TRADEMARKS.md`: FreeOS
+   uses distinct branding (circular mark already in the dashboard/README).
+   No XYOS / Tencent Cloud trademark claims.
+4. **Human approval must truly block execution.** A `pending` or `deny`
+   decision sets `execute=false` and the interceptor raises
+   `GovernanceBlockedError`. Cosmetic “please confirm” text in a skill
+   is not sufficient. Restarts must not resume paused high-risk calls.
+
+## Host bootstrap (unchanged)
+
+The Phase A work sits on the existing FreeOS bootstrap:
+
+- Octop history as the host (`src/octop/`, `dashboard/`)
+- openXYOS vendored at `modules/openxyos/` (subtree `@ 1bdba35f`)
+- Bundled plugin `org-os`, BFF `/api/org-module`, CLI `freeos org`
+- PathLayout: `FREEOS_HOME` > `OCTOP_HOME` > existing `~/.freeos` >
+  existing `~/.octop` > new `~/.freeos`
+- Package name stays `octop`; CLI alias `freeos`
+
+### Capability map (host + sidecar)
+
+| Capability | Owner | Path / API |
+|---|---|---|
+| Multi-user JWT, agents, chat, plugins, cron, connectors | FreeOS host | `src/octop/`, `/api/*` |
+| Plugin seed + enable | `PluginManager` | bundled `src/octop/infra/agents/plugins/bundled/`; runtime `{home}/plugins/*` |
+| Organization OS catalog | Bridge + upstream TS | `catalog.py` ↔ `open-module-catalog.ts` / `open-modules.ts` |
+| Enable / disable org module | BFF + plugin `org-os` | `PATCH /api/org-module` · `freeos org enable` · `/organization` |
+| Governance MCP (Phase A) | Bridge | `xyos-governance-mcp` · `/api/org-module/governance/*` |
+| Module ↔ skill bridge (Phase A) | Bridge | `freeos org skills generate|publish` |
+| Org APIs | openXYOS sidecar | `/api/org`, `/api/employees`, `/api/governance`, `/api/module-settings`, … |
+| Org UI | openXYOS Vite/Express | sidecar `:3780`; iframe on `/organization` when healthy |
+
+### Auth and tenant mapping
 
 | Layer | Identity | Store |
 |---|---|---|
-| FreeOS host | Octop `User` (id, username, role, permissions) | `~/.freeos/octop.db` (legacy filename) + JWT |
-| openXYOS sidecar | Sidecar users + `tenant_id` | `modules/openxyos` SQLite/Postgres (`DB_DIALECT`) |
+| FreeOS host | Octop `User` | `{home}/octop.db` + JWT |
+| openXYOS sidecar | Sidecar users + `tenant_id` | sidecar SQL.js / Postgres (`DB_DIALECT`) |
 
-**MVP contract**
+- FreeOS JWT is **not** an openXYOS session. The proxy strips
+  `Authorization` and forwards `X-FreeOS-User`, `X-FreeOS-User-Id`,
+  `X-FreeOS-Role`, `X-FreeOS-Tenant-Id`.
+- Operators still sign in to the sidecar for mutating org routes.
+- Tenant isolation for agents is **workspace/sandbox per tenant**, not
+  a shared workspace with a header in the prompt.
 
-- FreeOS JWT is **not** accepted as an openXYOS session. The proxy strips
-  `Authorization` so a host token cannot be confused with a sidecar token.
-- The proxy **does** forward `X-FreeOS-User`, `X-FreeOS-User-Id`,
-  `X-FreeOS-Role` for later SSO / JIT provisioning.
-- Operators sign in to the sidecar separately (openXYOS `/api/auth`).
-- Phase 2 should map `FreeOS user.id → openXYOS tenant member` with a signed
-  handshake (one-time code or shared OIDC).
+Default sidecar: `http://127.0.0.1:3780`  
+Override: `FREEOS_ORG_SIDECAR_URL` or `config.json` `modules.org_os.sidecar_url`.  
+Tenant hint: `FREEOS_ORG_TENANT_ID` or `modules.org_os.tenant_id`.
 
-Default sidecar origin: `http://127.0.0.1:3780`  
-Override: `FREEOS_ORG_SIDECAR_URL` or `config.json` `modules.org_os.sidecar_url`.
+### Data ownership
 
-## 5. Data ownership
+| Data | Location |
+|---|---|
+| Host users, agents, chats, plugins | `FREEOS_HOME` / legacy `OCTOP_HOME` |
+| Governance pauses + audit | `{home}/governance/pauses/`, `{home}/governance/audit.jsonl` |
+| Generated org skills | `{home}/org-skills/` (or `--out`) |
+| Org tenants, employees, matrix | sidecar DB — **not** the production SoT |
+| Brand assets | `dashboard/public/`, `docs/assets/` |
 
-| Data | Location | License / notes |
-|---|---|---|
-| Host config, users, agents, chats, plugins | `FREEOS_HOME` else `OCTOP_HOME` else existing `~/.freeos` or `~/.octop`, else new `~/.freeos` | MIT host platform |
-| Bundled plugin copies | `{home}/plugins/org-os/` | MIT bridge; seeded disabled |
-| Org tenants, employees, governance, module settings | sidecar working dir / openXYOS DB | Apache-2.0 tree under `modules/openxyos/` |
-| Brand assets | `dashboard/public/`, `docs/assets/freeos-banner.png` | FreeOS |
+`freeos backup` does not include sidecar SQL.js files unless operators
+copy the openXYOS working directory themselves.
 
-The two databases are **not** merged in MVP. Backups of FreeOS (`octop backup` /
-`freeos backup`) do not include sidecar data unless operators back up the
-openXYOS directory themselves.
+## Remaining `octop` identifiers (intentional)
 
-## 6. Remaining `octop` identifiers (intentional)
+- Python package / imports: `octop.*` (`pyproject.toml` `name = "octop"`)
+- CLI: `octop` still works; `freeos` is the same entry point
+- Env: `OCTOP_*` still honored; prefer `FREEOS_*`
+- SQLite filename: `octop.db`
+- Many tests and IM strings still say “Octop”
 
-A full rename is larger than this MVP. These stay for compatibility:
+## Rejected alternatives
 
-- Python package and imports: `octop.*` (`pyproject.toml` `name = "octop"`)
-- CLI: `octop` still works; `freeos` is an alias to the same entry point
-- Env: `OCTOP_HOME`, `OCTOP_USER`, `OCTOP_DATABASE_*` still honored; prefer `FREEOS_HOME` / `FREEOS_ORG_SIDECAR_URL`
-- SQLite filename: `octop.db` inside the home directory
-- Many tests, IM channels, and desktop strings still say “Octop”
+| Alternative | Why rejected |
+|---|---|
+| Replace Octop chat with openXYOS chat | Violates the control/data-plane split; loses IM, cron, sandboxes |
+| Rewrite openXYOS routes into FastAPI | Duplicate PEP/PDP; not MVP |
+| Prompt-only multi-tenant isolation | Risk 2; one tenant = one workspace/sandbox |
+| iframe-only, no BFF / MCP / skills | Agents cannot call org APIs or be governed |
+| Start with org-as-code GitOps (Direction 7) | End-state; contract + runtime first |
+| Fail-open when sidecar/SQL.js is down | Makes governance cosmetic |
 
-## 7. Phased roadmap
-
-1. **MVP (this branch)** — import Octop history; vendor openXYOS; FreeOS branding in the UI shell and README; org module toggle + catalog + sidecar proxy/plugin.
-2. **SSO** — exchange FreeOS JWT for an openXYOS session; map one host user to one tenant member.
-3. **Unified nav** — surface individual openXYOS modules (organization, employees, governance) as FreeOS sidebar items gated by sidecar module-settings.
-4. **Shared agents** — register sidecar AI employees as Octop experts/tools instead of a second agent runtime.
-5. **Optional deep merge** — only after APIs stabilize; port selected org routes into FastAPI if a single process is required.
-
-## 8. Concrete file index
+## Concrete file index
 
 | Role | Path |
 |---|---|
@@ -165,9 +294,11 @@ A full rename is larger than this MVP. These stay for compatibility:
 | BFF router | `src/octop/api/routers/org_module.py` |
 | Enablement + health | `src/octop/modules/org_os/service.py` |
 | Catalog | `src/octop/modules/org_os/catalog.py` |
-| Proxy | `src/octop/modules/org_os/proxy.py` |
+| Proxy + tenant headers | `src/octop/modules/org_os/proxy.py` |
+| Governance MCP / interceptor | `src/octop/modules/org_os/governance/` |
+| Module ↔ skill bridge | `src/octop/modules/org_os/skill_bridge/` |
 | Bundled plugin | `src/octop/infra/agents/plugins/bundled/org-os/` |
 | Dashboard page | `dashboard/src/pages/Organization/index.tsx` |
-| CLI | `src/octop/cli/commands/org.py` (`freeos org`) |
+| CLI | `src/octop/cli/commands/org.py` |
 | Sidecar launcher | `scripts/run-org-sidecar.sh` |
-| Vendored org OS | `modules/openxyos/` (subtree from XYAIStudio/openXYOS @ `1bdba35f`) |
+| Vendored org OS | `modules/openxyos/` |

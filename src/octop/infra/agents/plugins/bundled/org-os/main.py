@@ -48,6 +48,31 @@ def org_os_status() -> str:
     )
 
 
+def org_os_governance_check(tool_name: str, category: str = "", approval_id: str = "") -> str:
+    """Hard-stop policy check. Do not run the named tool unless execute is true."""
+    from octop.modules.org_os.governance.types import PolicyRequest
+
+    paths = PathLayout.from_env()
+    service = OrgModuleService(config_path=paths.config, home=paths.root)
+    from octop.modules.org_os.governance.engine import GovernanceEngine
+
+    decision = GovernanceEngine.from_home(paths.root, sidecar_url=service.sidecar_url()).evaluate(
+        PolicyRequest(
+            tool_name=tool_name,
+            category=category,
+            tenant_id=service.tenant_id(),
+            approval_id=approval_id,
+            auto_pause=True,
+        )
+    )
+    payload = decision.to_dict()
+    payload["instruction"] = (
+        "If execute is false, stop. Do not call the tool. Ask a human to "
+        "approve the pause_id via FreeOS/Octop IM or `freeos org governance approve`."
+    )
+    return _payload(payload, payload["instruction"] + " " + decision.reason)
+
+
 def setup(ctx: PluginContext) -> None:
     ctx.tool(
         "org_os_status",
@@ -55,5 +80,13 @@ def setup(ctx: PluginContext) -> None:
         description=(
             "Show FreeOS organization-module status and the openXYOS capability "
             "catalog (organization, employees, governance, …)."
+        ),
+    )
+    ctx.tool(
+        "org_os_governance_check",
+        org_os_governance_check,
+        description=(
+            "Insert before high-risk org/tool calls (outbound/delete/pay/prod). "
+            "Default-denies unmatched rules; execute stays false until human approval."
         ),
     )

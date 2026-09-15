@@ -124,6 +124,26 @@ class PathLayout:
         return self.tool_guard_rules_dir / "dangerous_shell_commands.yaml"
 
     @property
+    def governance_dir(self) -> Path:
+        """Durable governance pauses + audit: ``~/.freeos/governance/``."""
+        return self.root / "governance"
+
+    def ensure_governance_dir(self) -> Path:
+        out = self.governance_dir
+        out.mkdir(parents=True, exist_ok=True)
+        return out
+
+    @property
+    def org_skills_dir(self) -> Path:
+        """Generated openXYOS module skills: ``~/.freeos/org-skills/``."""
+        return self.root / "org-skills"
+
+    def ensure_org_skills_dir(self) -> Path:
+        out = self.org_skills_dir
+        out.mkdir(parents=True, exist_ok=True)
+        return out
+
+    @property
     def backups_dir(self) -> Path:
         """Stored system backup archives: ``~/.octop/backups/``."""
         return self.root / "backups"

@@ -40,6 +40,8 @@ class OrgModuleStatus:
     embed_url: str
     proxy_prefix: str
     start_command: str
+    tenant_id: str = ""
+    governance_enabled: bool = False
     notes: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
@@ -107,6 +109,40 @@ class OrgModuleService:
             return normalize_sidecar_url(raw)
         return DEFAULT_SIDECAR_URL
 
+    def tenant_id(self) -> str:
+        env = os.environ.get("FREEOS_ORG_TENANT_ID", "").strip()
+        if env:
+            return env
+        section = self._section()
+        raw = section.get("tenant_id")
+        return str(raw).strip() if raw is not None and str(raw).strip() else ""
+
+    def governance_enabled(self) -> bool:
+        section = self._section()
+        gov = section.get("governance")
+        if isinstance(gov, dict) and "enabled" in gov:
+            return bool(gov.get("enabled"))
+        return False
+
+    def set_governance_enabled(self, enabled: bool, *, tenant_id: str | None = None) -> None:
+        data = _read_json(self.config_path)
+        modules = data.get("modules")
+        if not isinstance(modules, dict):
+            modules = {}
+            data["modules"] = modules
+        section = modules.get(_CONFIG_SECTION)
+        if not isinstance(section, dict):
+            section = {}
+        gov = section.get("governance")
+        if not isinstance(gov, dict):
+            gov = {}
+        gov["enabled"] = bool(enabled)
+        section["governance"] = gov
+        if tenant_id is not None and tenant_id.strip():
+            section["tenant_id"] = tenant_id.strip()
+        modules[_CONFIG_SECTION] = section
+        _write_json(self.config_path, data)
+
     def set_enabled(self, enabled: bool, *, sidecar_url: str | None = None) -> None:
         data = _read_json(self.config_path)
         modules = data.get("modules")
@@ -165,10 +201,13 @@ class OrgModuleService:
         enabled = self.is_enabled()
         notes = [
             "Host identity stays in FreeOS (JWT users under the platform home).",
-            "openXYOS keeps its own tenants and sessions; MVP proxy forwards "
-            "X-FreeOS-User* headers only — sign in to the sidecar separately.",
+            "openXYOS is the control plane; FreeOS/Octop is the data plane. "
+            "Do not replace the Octop agent runtime with openXYOS chat.",
+            "Proxy forwards X-FreeOS-User* and X-FreeOS-Tenant-Id; sign in to "
+            "the sidecar separately for mutating org routes.",
             "Plugin id org-os is seeded disabled; enable it here or via "
             "Admin → Plugins / `freeos org enable`.",
+            "Phase A: `freeos org governance enable` and `freeos org skills generate`.",
         ]
         if not sidecar.reachable and enabled:
             notes.append(
@@ -184,6 +223,8 @@ class OrgModuleService:
             embed_url=sidecar.url if sidecar.reachable else "",
             proxy_prefix="/api/org-module/sidecar",
             start_command="bash scripts/run-org-sidecar.sh",
+            tenant_id=self.tenant_id(),
+            governance_enabled=self.governance_enabled(),
             notes=notes,
         )
 

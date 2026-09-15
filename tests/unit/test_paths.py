@@ -60,6 +60,14 @@ def test_knowledge_dir(tmp_path: Path) -> None:
     assert p.knowledge_dir == tmp_path / ".octop" / "knowledge"
 
 
+def test_governance_and_org_skills_dirs(tmp_path: Path) -> None:
+    p = PathLayout(tmp_path / ".freeos")
+    assert p.governance_dir == tmp_path / ".freeos" / "governance"
+    assert p.org_skills_dir == tmp_path / ".freeos" / "org-skills"
+    assert p.ensure_governance_dir().is_dir()
+    assert p.ensure_org_skills_dir().is_dir()
+
+
 def test_path_layout_from_env_defaults_to_dot_freeos(monkeypatch, tmp_path: Path) -> None:
     monkeypatch.delenv("OCTOP_HOME", raising=False)
     monkeypatch.delenv("FREEOS_HOME", raising=False)

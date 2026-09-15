@@ -44,7 +44,8 @@ trademarks beyond this accurate attribution. See
 License split
 ------------------------------------------------------------------------
 - MIT applies to the FreeOS/Octop host platform and FreeOS-authored
-  bridge code under ``src/octop/modules/org_os/``, dashboard Organization
-  pages, and FreeOS branding assets.
+  bridge code under ``src/octop/modules/org_os/`` (including
+  ``governance/`` / ``xyos-governance-mcp`` and ``skill_bridge/``),
+  dashboard Organization pages, and FreeOS branding assets.
 - Apache-2.0 applies to ``modules/openxyos/`` and unmodified copies of
   that tree.
