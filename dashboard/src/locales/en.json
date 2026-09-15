@@ -8,17 +8,60 @@
   },
   "organization": {
     "title": "Organization OS",
-    "subtitle": "Grow AI employees through the FreeOS ↔ openXYOS loop. Enable the organization control plane as a sidecar.",
+    "subtitle": "A dual loop: FreeOS does the work, openXYOS governs the org — they grow each other.",
+    "heroTitle": "Organization OS",
+    "heroStory": "FreeOS does the work. openXYOS owns organization and governance. They grow each other.",
     "toggleLabel": "Enable organization module",
     "on": "Enabled",
     "off": "Disabled",
-    "sidecarUp": "Sidecar reachable",
+    "sidecarUp": "Sidecar online",
     "sidecarDown": "Sidecar offline",
-    "bridgeHint": "FreeOS produces employees, skills, plugins, and MCPs. Those assets assemble into openXYOS; org blueprints and policies feed back into FreeOS. Run `freeos org loop run` to prove the loop.",
+    "lastSync": "Last sync",
+    "neverSynced": "Not synced yet",
+    "dataPlane": "Data plane",
+    "controlPlane": "Control plane",
+    "flowUp": "Assets back",
+    "flowDown": "Blueprints out",
+    "metricEmployees": "Digital employees",
+    "metricSkills": "Org skills",
+    "metricMcp": "MCP / connectors",
+    "metricTasks": "Tasks",
+    "metricModules": "Governance modules",
+    "metricGovernance": "Governance engine",
+    "metricHealth": "Control-plane health",
+    "metricTenant": "Tenant",
+    "assembleTitle": "Assemble employees from a blueprint",
+    "assembleBody": "Compile an openXYOS blueprint (or the bundled fixture) into FreeOS digital employees and register them for chat.",
+    "assembleAction": "Assemble into FreeOS",
+    "assembleDone": "Assembled {{count}} digital employee(s)",
+    "packTitle": "Pack assets back to openXYOS",
+    "packBody": "Publish FreeOS skills, plugins, and MCP as an asset pack, mirror it, and push to the control plane when live.",
+    "packAction": "Pack and apply",
+    "packDone": "Asset pack published",
+    "packRemoteYes": "Attempted a live write to openXYOS",
+    "packRemoteNo": "Sidecar offline: wrote the local mirror only",
+    "loopTitle": "Run the organization loop",
+    "loopBody": "Blueprint → employees → pack → import → governance block, with a real timeline below.",
+    "loopAction": "Run org loop",
+    "loopOk": "Organization loop completed",
+    "loopPartial": "Loop ran; some steps did not finish (see timeline)",
+    "timelineTitle": "Loop timeline",
+    "timelineEmpty": "No loop proof yet. Run the organization loop to see real results here.",
+    "timelineOk": "Loop result",
+    "timelineEmployees": "Employees",
+    "timelineSkills": "Skills",
+    "timelineRemote": "Pushed to control plane",
+    "timelineGovernance": "High-risk tool blocked by governance",
+    "emptyTitle": "First look at Organization OS",
+    "emptyBody": "FreeOS on the left owns employees, skills, MCP, and tasks. openXYOS on the right owns blueprints, modules, and approvals. Start the sidecar, or run the loop once to see a real cycle.",
+    "startSidecarTitle": "openXYOS sidecar is offline",
+    "startSidecarBody": "Live approvals and remote apply need the sidecar. Start it here; if no launcher is bundled, use the command beside the button.",
+    "startSidecarAction": "Start sidecar",
+    "sidecarStarted": "Sidecar is reachable",
+    "sidecarStartPending": "Start attempted; refresh in a moment",
+    "bridgeHint": "FreeOS produces employees, skills, plugins, and MCPs. Those assets assemble into openXYOS; org blueprints and policies feed back into FreeOS.",
     "home": "Data home",
     "sidecar": "Sidecar URL",
-    "startSidecarTitle": "Start the organization sidecar",
-    "startSidecarBody": "The module is on, but openXYOS is not running. From the repo root:",
     "notesTitle": "How this module is wired",
     "catalogTitle": "openXYOS capabilities",
     "colKey": "Key",
@@ -31,6 +74,7 @@
     "openSidecar": "Open in new tab",
     "loadFailed": "Could not load organization module status",
     "saveFailed": "Could not update organization module",
+    "actionFailed": "Action failed",
     "enabled": "Organization module enabled",
     "disabled": "Organization module disabled"
   },
@@ -201,7 +245,7 @@
     "common": "Common",
     "control": "Control",
     "experts": "Experts",
-    "organization": "Organization",
+    "organization": "Organization OS",
     "tasks": "Automation",
     "connectors": "Connectors",
     "acp": "ACP",
@@ -3052,9 +3096,9 @@
     },
     "update": {
       "title": "Version & Updates",
-      "description": "Check for the latest release and upgrade in place; use the guide on the right for other install methods.",
+      "description": "Checks only XYAIStudio/FreeOS GitHub Releases. Does not track upstream Octop or Tencent Cloud install feeds.",
       "panelTitle": "Version upgrade",
-      "panelDesc": "Check for a new release and install it when supported. Restart the service after a successful upgrade.",
+      "panelDesc": "Prompts only when GitHub has a newer FreeOS desktop build. Restart the desktop app so the shell can apply the portable zip.",
       "stableOnlyLabel": "Stable releases only",
       "stableOnlyHint": "Automatic checks do not remind you about alpha, beta, rc, or dev builds. You can still check and upgrade to a pre-release manually.",
       "prereleaseBadge": "Pre-release",
@@ -3072,19 +3116,21 @@
       "updateAvailable": "New version available",
       "upgradeSuccess": "Upgrade completed!",
       "upgradeFailed": "Upgrade failed",
-      "restartHint": "Please restart Octop for the update to take effect.",
+      "restartHint": "Restart the FreeOS desktop app for the update to take effect.",
       "restartCommand": "Restart command",
       "editableHint": "Development install detected. Use git pull to update.",
-      "networkError": "Could not reach update server. Check your network.",
-      "mirrorSource": "Version info served by mirror {{source}}; it may lag slightly behind pypi.org.",
+      "networkError": "Could not reach GitHub Releases. Check your network.",
+      "githubSource": "Version info from {{source}} (XYAIStudio/FreeOS only).",
+      "mirrorSource": "Version info from {{source}}.",
       "errors": {
-        "pypi_unreachable": "Could not reach PyPI. Check your network and try again."
+        "github_unreachable": "Could not reach GitHub Releases for XYAIStudio/FreeOS. Check your network and try again.",
+        "pypi_unreachable": "Could not reach GitHub Releases for XYAIStudio/FreeOS. Check your network and try again."
       },
       "notChecked": "Not checked yet",
       "stageStarting": "Starting...",
       "stageDownloading": "Downloading...",
       "stageInstalling": "Installing...",
-      "manualUpgradeHint": "You can also run: octop update --verbose",
+      "manualUpgradeHint": "You can also run: freeos update --verbose",
       "restartServiceBtn": "Restart Service",
       "restarting": "Restarting...",
       "restartingHint": "This typically takes 1-2 minutes. Please wait.",
@@ -3093,41 +3139,33 @@
       "restartCancel": "Cancel",
       "restartSuccess": "Restarted successfully, refreshing...",
       "restartReadyHint": "Service is back online. Refreshing shortly.",
-      "restartTimeout": "Restart timed out. Run manually: octop service restart",
+      "restartTimeout": "Restart timed out. Quit and reopen the FreeOS desktop app.",
       "restartFailed": "Restart request failed. Check the service and try again.",
       "releaseNotes": "Release Notes",
       "updateModalTitle": "New Version Available",
-      "guideTitle": "Update by install method",
-      "guideIntro": "If the one-click upgrade on the left is unavailable, pick the commands for your install method. Restart after upgrading; data stays in ~/.octop (or OCTOP_HOME).",
-      "guideDataNote": "Upgrades do not wipe local data: accounts, agents, chats and memory, skills, channels, and model settings live in the working directory. Reinstalling or updating the package keeps using that data.",
+      "guideTitle": "Update FreeOS from GitHub",
+      "guideIntro": "FreeOS only fetches desktop builds from github.com/XYAIStudio/FreeOS/releases. Do not install upstream Octop, and do not upgrade from Tencent COS or PyPI.",
+      "guideDataNote": "Upgrades do not wipe local data: accounts, agents, chats, and memory stay in ~/.freeos (or FREEOS_HOME).",
       "guide": {
         "ui": {
           "title": "In-console upgrade",
-          "body": "Prefer Check for Updates and Upgrade Now on the left (package installs, not editable/source). In service mode you can Restart Service when done."
+          "body": "Prefer Check for Updates and Upgrade Now on the left. Desktop builds download a FreeOS portable zip; the shell applies it on the next launch."
         },
-        "installer": {
-          "title": "One-line installer",
-          "body": "If you used the official install script, re-run the same install command to upgrade in place (it reuses the environment and data under ~/.octop)."
+        "github": {
+          "title": "GitHub Releases",
+          "body": "Manually download the FreeOS-desktop / FreeOS-portable asset for your architecture:"
         },
         "cli": {
-          "title": "CLI: octop update",
-          "body": "If the octop command is on your PATH (installer or managed venv), run:"
-        },
-        "pip": {
-          "title": "pip install",
-          "body": "If you installed into your own Python environment with pip:"
+          "title": "CLI: freeos update",
+          "body": "Check or stage a newer FreeOS desktop build from GitHub:"
         },
         "source": {
           "title": "From source",
-          "body": "For git / editable installs, in-page upgrade is disabled. Pull the latest code, build the dashboard, then reinstall:"
-        },
-        "docker": {
-          "title": "Docker",
-          "body": "Rebuild and restart the image, and keep the same data volume (~/.octop or octop-data) so nothing is lost:"
+          "body": "Pull XYAIStudio/FreeOS and rebuild the dashboard:"
         },
         "restart": {
           "title": "Restart after upgrade",
-          "body": "The new package only takes effect after the process restarts. Use the command that matches how you launched Octop:"
+          "body": "Quit and reopen the desktop app so the shell can extract pending-portable.zip and keep FREEOS_STAMP."
         }
       }
     }

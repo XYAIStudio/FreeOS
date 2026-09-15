@@ -161,6 +161,43 @@ def test_identity_headers_tenant_override() -> None:
     assert headers["X-FreeOS-Tenant-Id"] == "99"
 
 
+def test_overview_reports_real_empty_counts(tmp_path: Path) -> None:
+    from octop.modules.org_os.overview import build_overview
+
+    service = OrgModuleService(config_path=tmp_path / "config.json", home=tmp_path)
+    snapshot = build_overview(service, agents=2, connectors=1, cron_jobs=3, skill_packages=0)
+    payload = snapshot.to_dict()
+    assert payload["freeos"]["employees"] == 0
+    assert payload["freeos"]["agents"] == 2
+    assert payload["freeos"]["mcp"] == 1
+    assert payload["freeos"]["tasks"] == 3
+    assert payload["sidecar_reachable"] is False
+    assert payload["last_loop"] is None
+    assert any("FreeOS 负责干活" in note for note in payload["notes"])
+
+
+def test_assemble_from_bundled_blueprint(tmp_path: Path) -> None:
+    from octop.modules.org_os.empower import assemble_from_blueprint
+
+    service = OrgModuleService(config_path=tmp_path / "config.json", home=tmp_path)
+    result = assemble_from_blueprint(service)
+    assert result["employees"]
+    assert result["spawned"]
+    assert result["sidecar_reachable"] is False
+    assert any("blueprint" in note for note in result["notes"])
+
+
+def test_pack_to_openxyos_writes_local_mirror(tmp_path: Path) -> None:
+    from octop.modules.org_os.empower import assemble_from_blueprint, pack_to_openxyos
+
+    service = OrgModuleService(config_path=tmp_path / "config.json", home=tmp_path)
+    assemble_from_blueprint(service)
+    packed = pack_to_openxyos(service)
+    assert Path(packed["pack"]["directory"]).is_dir()
+    assert packed["applied"]["mirrored"] is True
+    assert packed["applied"]["remote_applied"] is False
+
+
 def test_governance_enable_persists(tmp_path: Path) -> None:
     config = tmp_path / "config.json"
     service = OrgModuleService(config_path=config, home=tmp_path)

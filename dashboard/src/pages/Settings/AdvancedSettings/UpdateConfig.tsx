@@ -27,77 +27,44 @@ import styles from "./UpdateConfig.module.less";
 
 /** Shell snippets shown in the manual upgrade guide (commands are locale-agnostic). */
 const UPGRADE_GUIDE_CODE = {
-  installerUnix: `curl -fsSL https://finnie-1258344699.cos.ap-guangzhou.myqcloud.com/octop/install.sh | bash`,
-  installerWin: `irm https://finnie-1258344699.cos.ap-guangzhou.myqcloud.com/octop/install.ps1 | iex`,
-  cli: `octop update
-# or non-interactive:
-octop update --yes
-# pre-release (beta) requires --allow-prerelease:
-# octop update --allow-prerelease --yes`,
-  pip: `pip install -U octop
-# optional extras, e.g. browser automation:
-# pip install -U "octop[browser]"`,
-  source: `cd Octop
+  github: `https://github.com/XYAIStudio/FreeOS/releases`,
+  cli: `freeos update --check
+# or:
+octop update --check
+# apply a newer FreeOS desktop build:
+freeos update --yes`,
+  source: `git clone https://github.com/XYAIStudio/FreeOS
+# or, in an existing clone:
 git pull
 make build-frontend
-# or: cd dashboard && npm ci && npm run build && cd ..
-pip install -e .
-# with dev deps: make install  /  pip install -e ".[dev]"`,
-  docker: `# Compose (from repo root; rebuild + recreate)
-docker compose -f docker/docker-compose.yml up -d --build
+uv sync`,
+  restart: `# Desktop: quit FreeOS, then open it again
+# (the shell applies pending-portable.zip on launch)
 
-# or rebuild the image then run with a persistent data volume
-bash docker/docker_build.sh
-docker run -d \\
-  --name octop \\
-  -p 8088:8088 \\
-  -v octop-data:/data/.octop \\
-  -e HOME=/data \\
-  octop:latest`,
-  restart: `# system service (systemd / launchd / Windows service)
-octop service restart
-
-# foreground process — stop the old process, then:
+# foreground process:
+freeos run
+# or:
 octop run`,
 } as const;
 
-type GuideMethodKey =
-  | "ui"
-  | "installer"
-  | "cli"
-  | "pip"
-  | "source"
-  | "docker"
-  | "restart";
+type GuideMethodKey = "ui" | "github" | "cli" | "source" | "restart";
 
 const GUIDE_METHOD_ORDER: GuideMethodKey[] = [
   "ui",
-  "installer",
+  "github",
   "cli",
-  "pip",
   "source",
-  "docker",
   "restart",
 ];
 
 function codeFor(key: GuideMethodKey): string | null {
   switch (key) {
-    case "installer":
-      return [
-        `# macOS / Linux`,
-        UPGRADE_GUIDE_CODE.installerUnix,
-        ``,
-        `# Windows (PowerShell)`,
-        UPGRADE_GUIDE_CODE.installerWin,
-      ].join("\n");
+    case "github":
+      return UPGRADE_GUIDE_CODE.github;
     case "cli":
       return UPGRADE_GUIDE_CODE.cli;
-    case "pip":
-      return UPGRADE_GUIDE_CODE.pip;
     case "source":
       return UPGRADE_GUIDE_CODE.source;
-    case "docker":
-      return UPGRADE_GUIDE_CODE.docker;
     case "restart":
       return UPGRADE_GUIDE_CODE.restart;
     default:
@@ -423,11 +390,11 @@ export default function UpdateConfig() {
             </div>
           )}
 
-          {status?.source && status.source !== "pypi.org" && !status.error && (
+          {status?.source && !status.error && (
             <div className={`${styles.alert} ${styles.alertInfo}`}>
               <Info size={15} />
               <span>
-                {t("advancedSettings.update.mirrorSource", {
+                {t("advancedSettings.update.githubSource", {
                   source: status.source,
                 })}
               </span>
@@ -528,9 +495,9 @@ export default function UpdateConfig() {
                         <div>
                           <p>{t("advancedSettings.update.restartHint")}</p>
                           <div className={styles.commandBlock}>
-                            <code>octop service restart</code>
+                            <code>freeos run</code>
                             <span className={styles.commandSep}>/</span>
-                            <code>octop run</code>
+                            <code>restart the FreeOS desktop app</code>
                           </div>
                         </div>
                       </div>

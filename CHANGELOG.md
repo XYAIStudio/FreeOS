@@ -6,6 +6,15 @@
 
 ## [Unreleased]
 
+### 新增
+
+- Organization OS 首页双循环：FreeOS 数据面与 openXYOS 控制面的实时状态、一键装配员工 / 打包回流 / 运行 org loop，以及边车离线时的启动恢复。
+
+### 变更
+
+- 桌面更新通道只跟踪 `github.com/XYAIStudio/FreeOS/releases`。不再读取 PyPI `octop`、腾讯云 COS 或其它 Octop 镜像；当前已是最新 FreeOS `v0.0.1` 时不会误报更新。
+- 默认主题与残留 Octop `rose` 存储一次性迁移为 XYAI 蓝 `#0033FF`（之后仍可手动选玫瑰粉）。
+
 ### 修复
 
 - Windows NSIS uninstall now stops FreeOS / host / sidecar processes and recursively removes `$INSTDIR` (quoted `RMDir /r`, plus a delayed cleanup after `uninstall.exe` exits). If those processes are still running, uninstall asks first (cancel aborts and leaves them running; confirm closes them then wipes the install dir). User profile data under `%USERPROFILE%\.freeos` / `FREEOS_HOME` / legacy `~/.octop` is kept. Product version remains 0.0.1.

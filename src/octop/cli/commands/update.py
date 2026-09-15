@@ -4,13 +4,13 @@ from __future__ import annotations
 
 import click
 
+from octop.infra.setup.github_releases import GITHUB_RELEASES_HTML, SOURCE_LABEL
 from octop.infra.setup.self_update import (
-    fetch_pypi_info,
+    fetch_release_info,
     get_editable_path,
     get_local_version,
     is_newer,
     is_prerelease,
-    resolve_venv_python,
     run_upgrade,
 )
 
@@ -27,13 +27,13 @@ from octop.infra.setup.self_update import (
     help="Include and allow installing pre-releases (alpha / beta / rc / dev).",
 )
 def update(check: bool, yes: bool, verbose: bool, allow_prerelease: bool) -> None:
-    """Check for and install a newer Octop release."""
+    """Check for and install a newer FreeOS desktop release from GitHub."""
     current = get_local_version()
-    info = fetch_pypi_info()
+    info = fetch_release_info()
     click.echo(f"installed: {current}")
     if info is None:
         click.echo(
-            "could not reach PyPI — check your network or proxy settings and retry",
+            f"could not reach {SOURCE_LABEL} — check your network and retry",
             err=True,
         )
         raise SystemExit(1)
@@ -58,10 +58,10 @@ def update(check: bool, yes: bool, verbose: bool, allow_prerelease: bool) -> Non
         raise SystemExit(1)
 
     if not yes:
-        click.confirm(f"Upgrade octop from {current} to {latest}?", abort=True)
+        click.confirm(f"Upgrade FreeOS from {current} to {latest}?", abort=True)
 
-    venv_python = resolve_venv_python()
-    click.echo(f"target python: {venv_python}")
+    click.echo(f"channel: {SOURCE_LABEL}")
+    click.echo(f"releases: {GITHUB_RELEASES_HTML}")
     result = run_upgrade(
         verbose=verbose,
         allow_prerelease=is_prerelease(latest),

@@ -8,7 +8,7 @@ import {
   storeUpdateStatus,
 } from "../utils/updateStatusCache";
 
-/** Shared in-flight probe so Header + Sidebar mounts don't stampede PyPI. */
+/** Shared in-flight probe so Header + Sidebar mounts don't stampede GitHub. */
 let inFlight: Promise<UpdateStatus | null> | null = null;
 
 async function probeUpdateStatus(): Promise<UpdateStatus | null> {
@@ -57,7 +57,7 @@ export function useUpdateStatus() {
     return () => window.removeEventListener("focus", onFocus);
   }, [refreshStatus]);
 
-  // Keep checking while the dashboard stays open (cache TTL still gates PyPI).
+  // Keep checking while the dashboard stays open (cache TTL still gates GitHub).
   useEffect(() => {
     const id = window.setInterval(() => {
       void refreshStatus(false);

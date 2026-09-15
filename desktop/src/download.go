@@ -114,7 +114,10 @@ func shouldReplacePortable(root string) bool {
 	if err != nil {
 		bundledVersion = ""
 	}
-	// Keep a newer in-app FreeOS portable (octop update) over an older zip.
+	if pendingPortableZip() != "" {
+		return true
+	}
+	// Keep a newer in-app FreeOS portable over an older bundled zip.
 	// Do not keep Octop 0.9 / 1.0 leftovers — FreeOS is 0.0.1 and must replace them.
 	if currentVersion != "" && bundledVersion != "" &&
 		compareVersions(bundledVersion, currentVersion) < 0 &&
@@ -331,7 +334,36 @@ func versionPart(segment string) int {
 	return value
 }
 
+func pendingPortableZip() string {
+	path := filepath.Join(productHome(), "updates", "pending-portable.zip")
+	if _, err := os.Stat(path); err != nil {
+		return ""
+	}
+	reader, err := zip.OpenReader(path)
+	if err != nil {
+		return ""
+	}
+	defer reader.Close()
+	if stampFromZip(reader.File) == "" {
+		return ""
+	}
+	return path
+}
+
+func clearPendingPortable() {
+	dir := filepath.Join(productHome(), "updates")
+	_ = os.Remove(filepath.Join(dir, "pending-portable.zip"))
+	_ = os.Remove(filepath.Join(dir, "pending.json"))
+}
+
 func extractPortable(root string) error {
+	if pending := pendingPortableZip(); pending != "" {
+		if err := unzipGreen(pending, root); err != nil {
+			return err
+		}
+		clearPendingPortable()
+		return nil
+	}
 	if os.Getenv("OCTOP_DESKTOP_PORTABLE_ZIP") != "" {
 		zipPath, err := bundledPortableZip()
 		if err != nil {
@@ -350,6 +382,9 @@ func extractPortable(root string) error {
 }
 
 func bundledPortableZip() (string, error) {
+	if pending := pendingPortableZip(); pending != "" {
+		return pending, nil
+	}
 	if override := os.Getenv("OCTOP_DESKTOP_PORTABLE_ZIP"); override != "" {
 		if _, err := os.Stat(override); err != nil {
 			return "", fmt.Errorf("bundled portable package: %w", err)
@@ -364,11 +399,9 @@ func bundledPortableZip() (string, error) {
 	plat := greenPlat()
 	names := []string{
 		fmt.Sprintf("FreeOS-%s.zip", plat),
-		fmt.Sprintf("Octop-%s.zip", plat),
 	}
 	globs := []string{
 		"FreeOS-portable-" + plat + "-*.zip",
-		"Octop-portable-" + plat + "-*.zip",
 	}
 	searchDirs := []string{
 		dir,

@@ -7,12 +7,12 @@ export interface UpdateStatus {
   is_editable: boolean;
   /** Non-null when the process was launched via `octop service start` (systemd or launchd). */
   service_mode: "systemd" | "launchd" | null;
-  /** True when Octop is spawned by the Wails desktop shell (or ``OCTOP_DESKTOP=1``). */
+  /** True when FreeOS is spawned by the Wails desktop shell (or ``OCTOP_DESKTOP=1``). */
   desktop?: boolean;
   error: string | null;
-  /** Stable error code (e.g. "pypi_unreachable") for localized UI messages; null on success. */
+  /** Stable error code (e.g. "github_unreachable") for localized UI messages; null on success. */
   error_code: string | null;
-  /** Mirror that served the version info (null/`pypi.org` = official source). */
+  /** GitHub Releases source label (``github.com/XYAIStudio/FreeOS``). */
   source: string | null;
   last_check_time: string | null;
   /** Markdown changelog for latest_version, null if not available. */

@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   ANTD_BRAND_TOKENS,
+  DEFAULT_PALETTE,
+  FREEOS_BRAND_BLUE,
   VALID_PALETTES,
   brandPrimary,
 } from "./themePalettes";
@@ -35,6 +37,18 @@ describe("theme palettes", () => {
       "amber",
       "slate",
     ]);
+  });
+
+  it("defaults to FreeOS blue, never Octop rose", () => {
+    expect(DEFAULT_PALETTE).toBe("freeos");
+    expect(DEFAULT_PALETTE).not.toBe("rose");
+    expect(brandPrimary(DEFAULT_PALETTE, false)).toBe(FREEOS_BRAND_BLUE);
+    expect(brandPrimary(DEFAULT_PALETTE, false).toUpperCase()).not.toBe(
+      "#E85D75",
+    );
+    expect(ANTD_BRAND_TOKENS[DEFAULT_PALETTE].light.colorPrimary).toBe(
+      "#0033FF",
+    );
   });
 
   it("uses FreeOS logo-center blue as the default brand tokens", () => {

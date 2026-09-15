@@ -8,17 +8,60 @@
   },
   "organization": {
     "title": "组织 OS",
-    "subtitle": "通过 FreeOS ↔ openXYOS 闭环生产 AI 员工。将组织控制面作为边车启用。",
+    "subtitle": "FreeOS 数据面与 openXYOS 控制面的双循环：干活与治理互相生长。",
+    "heroTitle": "组织 OS",
+    "heroStory": "FreeOS 负责干活，openXYOS 负责组织与治理，两者互相生长。",
     "toggleLabel": "启用组织模块",
     "on": "已启用",
     "off": "已关闭",
-    "sidecarUp": "边车可达",
+    "sidecarUp": "边车在线",
     "sidecarDown": "边车未运行",
-    "bridgeHint": "FreeOS 生产员工、技能、插件与 MCP；这些资产组装进 openXYOS，组织蓝图与策略再回流到 FreeOS。用 `freeos org loop run` 跑通闭环。",
+    "lastSync": "最近同步",
+    "neverSynced": "尚未同步",
+    "dataPlane": "数据面",
+    "controlPlane": "控制面",
+    "flowUp": "资产回流",
+    "flowDown": "蓝图下发",
+    "metricEmployees": "数字员工",
+    "metricSkills": "组织技能",
+    "metricMcp": "MCP / 连接器",
+    "metricTasks": "任务",
+    "metricModules": "治理模块",
+    "metricGovernance": "治理引擎",
+    "metricHealth": "控制面健康",
+    "metricTenant": "租户",
+    "assembleTitle": "从蓝图装配员工",
+    "assembleBody": "把 openXYOS 蓝图（或本地示例蓝图）编译成 FreeOS 数字员工，并注册到对话列表。",
+    "assembleAction": "装配到 FreeOS",
+    "assembleDone": "已装配 {{count}} 名数字员工",
+    "packTitle": "打包回流 openXYOS",
+    "packBody": "把 FreeOS 技能、插件与 MCP 打成资产包，镜像并尽量推回控制面。",
+    "packAction": "打包回流",
+    "packDone": "资产包已发布",
+    "packRemoteYes": "已尝试写入 live openXYOS",
+    "packRemoteNo": "边车离线：仅写入本地镜像",
+    "loopTitle": "运行组织循环",
+    "loopBody": "一键跑通蓝图 → 员工 → 打包 → 回流 → 治理拦截，并在下方展示真实时间线。",
+    "loopAction": "运行 org loop",
+    "loopOk": "组织循环已跑通",
+    "loopPartial": "循环已执行，部分步骤未完成（见时间线）",
+    "timelineTitle": "循环时间线",
+    "timelineEmpty": "还没有循环记录。运行组织循环后，这里会显示真实结果。",
+    "timelineOk": "循环结果",
+    "timelineEmployees": "员工",
+    "timelineSkills": "技能数",
+    "timelineRemote": "已推送到控制面",
+    "timelineGovernance": "高风险工具被治理拦截",
+    "emptyTitle": "第一次打开组织 OS",
+    "emptyBody": "左侧 FreeOS 负责员工、技能、MCP 与任务；右侧 openXYOS 负责蓝图、模块与审批。先启动边车，或直接运行组织循环看一次真实闭环。",
+    "startSidecarTitle": "openXYOS 边车未运行",
+    "startSidecarBody": "控制面离线时无法做 live 审批与远程回流。可一键启动本机边车；若启动器不在当前环境，请按旁边的命令手动启动。",
+    "startSidecarAction": "启动边车",
+    "sidecarStarted": "边车已可达",
+    "sidecarStartPending": "已尝试启动，请稍候再刷新",
+    "bridgeHint": "FreeOS 生产员工、技能、插件与 MCP；这些资产组装进 openXYOS，组织蓝图与策略再回流到 FreeOS。",
     "home": "数据目录",
     "sidecar": "边车地址",
-    "startSidecarTitle": "启动组织边车",
-    "startSidecarBody": "模块已打开，但 openXYOS 尚未运行。在仓库根目录执行：",
     "notesTitle": "模块如何接入",
     "catalogTitle": "openXYOS 能力目录",
     "colKey": "键",
@@ -31,6 +74,7 @@
     "openSidecar": "新窗口打开",
     "loadFailed": "无法加载组织模块状态",
     "saveFailed": "无法更新组织模块",
+    "actionFailed": "操作失败",
     "enabled": "组织模块已启用",
     "disabled": "组织模块已关闭"
   },
@@ -201,7 +245,7 @@
     "common": "常用",
     "control": "控制",
     "experts": "专家",
-    "organization": "组织",
+    "organization": "组织 OS",
     "tasks": "自动化",
     "connectors": "连接器",
     "acp": "ACP",
@@ -3049,9 +3093,9 @@
     },
     "update": {
       "title": "版本与更新",
-      "description": "检查最新版本，一键升级 Octop；右侧可按安装方式查看完整升级说明。",
+      "description": "仅检查 XYAIStudio/FreeOS 的 GitHub Releases。不会跟踪上游 Octop 或腾讯云安装源。",
       "panelTitle": "版本升级",
-      "panelDesc": "检查是否有新版本，并在支持时一键安装。更新完成后请重启服务。",
+      "panelDesc": "仅当 GitHub 上有更新的 FreeOS 桌面构建时才提示升级。升级后请重启桌面应用以应用便携包。",
       "stableOnlyLabel": "只更新稳定版",
       "stableOnlyHint": "自动检查不会提醒测试版（alpha / beta / rc / dev）。仍可手动检查并升级到测试版。",
       "prereleaseBadge": "测试版",
@@ -3069,19 +3113,21 @@
       "updateAvailable": "发现新版本",
       "upgradeSuccess": "升级完成！",
       "upgradeFailed": "升级失败",
-      "restartHint": "请重启 Octop 使更新生效。",
+      "restartHint": "请重启 FreeOS 桌面应用使更新生效。",
       "restartCommand": "重启命令",
       "editableHint": "检测到开发版安装，请使用 git pull 更新。",
-      "networkError": "无法连接更新服务器，请检查网络。",
-      "mirrorSource": "版本信息来自镜像 {{source}}，可能略滞后于官方源。",
+      "networkError": "无法连接 GitHub Releases，请检查网络。",
+      "githubSource": "版本信息来自 {{source}}（仅 XYAIStudio/FreeOS）。",
+      "mirrorSource": "版本信息来自 {{source}}。",
       "errors": {
-        "pypi_unreachable": "无法连接 PyPI，请检查网络后重试。"
+        "github_unreachable": "无法连接 GitHub Releases（XYAIStudio/FreeOS），请检查网络后重试。",
+        "pypi_unreachable": "无法连接 GitHub Releases（XYAIStudio/FreeOS），请检查网络后重试。"
       },
       "notChecked": "尚未检查",
       "stageStarting": "启动中...",
       "stageDownloading": "下载中...",
       "stageInstalling": "安装中...",
-      "manualUpgradeHint": "也可手动运行：octop update --verbose",
+      "manualUpgradeHint": "也可手动运行：freeos update --verbose",
       "restartServiceBtn": "重启服务",
       "restarting": "正在重启...",
       "restartingHint": "预计需要 1-2 分钟完成，请耐心等待",
@@ -3090,41 +3136,33 @@
       "restartCancel": "取消",
       "restartSuccess": "重启成功，正在刷新页面...",
       "restartReadyHint": "服务已恢复，页面即将自动刷新。",
-      "restartTimeout": "重启超时，请手动执行：octop service restart",
+      "restartTimeout": "重启超时，请退出并重新打开 FreeOS 桌面应用",
       "restartFailed": "重启请求失败，请检查服务状态后重试",
       "releaseNotes": "更新说明",
       "updateModalTitle": "发现新版本",
-      "guideTitle": "按安装方式更新",
-      "guideIntro": "若不能使用左侧一键升级，请按你的安装方式选择下方命令。升级后请重启服务；配置与数据默认保留在 ~/.octop（或 OCTOP_HOME）。",
-      "guideDataNote": "升级不会清空本机数据：用户账号、Agent、对话与记忆、技能、通道与模型配置等均保存在工作目录中，重新安装或更新软件本身即可继续使用。",
+      "guideTitle": "从 GitHub 更新 FreeOS",
+      "guideIntro": "FreeOS 只从 github.com/XYAIStudio/FreeOS/releases 获取桌面构建。不要安装上游 Octop，也不要从腾讯云 COS / PyPI 升级。",
+      "guideDataNote": "升级不会清空本机数据：账号、Agent、对话与记忆仍在 ~/.freeos（或 FREEOS_HOME）。",
       "guide": {
         "ui": {
           "title": "控制台一键升级",
-          "body": "优先使用左侧「检查更新」与「立即升级」（非源码/可编辑安装）。服务模式可在完成后点「重启服务」。"
+          "body": "优先使用左侧「检查更新」与「立即升级」。桌面版会下载 FreeOS portable zip，下次启动时由壳层应用。"
         },
-        "installer": {
-          "title": "一键安装脚本",
-          "body": "若你是用官方安装脚本装的，重新执行同一安装命令即可自动升级到最新版（会复用 ~/.octop 下的环境与数据）。"
+        "github": {
+          "title": "GitHub Releases",
+          "body": "手动下载当前架构的 FreeOS-desktop / FreeOS-portable 资源："
         },
         "cli": {
-          "title": "CLI：octop update",
-          "body": "若命令行可直接使用 octop（安装脚本或 venv 布局），在终端执行："
-        },
-        "pip": {
-          "title": "pip 安装",
-          "body": "若你是用 pip 装到自己的 Python 环境，可升级包本身："
+          "title": "CLI：freeos update",
+          "body": "命令行检查或暂存 GitHub 上的更新："
         },
         "source": {
           "title": "源码安装",
-          "body": "从 Git 源码开发/editable 安装时，本页一键升级不可用。请拉取最新代码、构建控制台前端后重新安装到当前环境："
-        },
-        "docker": {
-          "title": "Docker",
-          "body": "Docker 部署请重新构建并启动镜像，并继续挂载原有数据卷（~/.octop 或 octop-data），避免丢数据："
+          "body": "从 XYAIStudio/FreeOS 拉取源码并重新构建控制台："
         },
         "restart": {
           "title": "升级后重启",
-          "body": "包更新完成后需要重启进程才生效。任选与你的启动方式匹配的命令："
+          "body": "桌面应用需退出再打开，壳层才会解压 pending-portable.zip 并保留 FREEOS_STAMP。"
         }
       }
     }

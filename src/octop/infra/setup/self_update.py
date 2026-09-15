@@ -16,20 +16,23 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from octop.infra.setup.github_releases import (
+    GITHUB_RELEASES_HTML,
+    SOURCE_LABEL,
+    GitHubReleaseInfo,
+    assert_allowed_update_url,
+    desktop_plat,
+    fetch_github_releases,
+    pick_portable_asset,
+)
 from octop.infra.utils.paths import PathLayout
 
 logger = logging.getLogger(__name__)
 
 _PACKAGE_NAME = "octop"
-_PYPI_URL = f"https://pypi.org/pypi/{_PACKAGE_NAME}/json"
 _GREEN_PACKAGES_ENV = "OCTOP_GREEN_PACKAGES"
-
-_MIRRORS = [
-    "https://mirrors.cloud.tencent.com/pypi/simple",
-    "https://mirrors.aliyun.com/pypi/simple",
-    "https://pypi.tuna.tsinghua.edu.cn/simple",
-    "https://mirrors.ustc.edu.cn/pypi/simple",
-]
+PENDING_PORTABLE_NAME = "pending-portable.zip"
+PENDING_META_NAME = "pending.json"
 
 _COMMON_UV_PATHS = [
     os.path.expanduser("~/.local/bin/uv"),
@@ -108,19 +111,30 @@ def get_local_version() -> str:
         return "0.0.0"
 
 
-@dataclass
-class PyPIInfo:
-    version: str
-    """Newest version on the index, including pre-releases (``latest_any``)."""
+# Backward-compatible name used by older tests / imports.
+PyPIInfo = GitHubReleaseInfo
 
-    description: str | None = None
-    """Package long description."""
 
-    source: str | None = None
-    """Label of the source that served this payload (e.g. ``pypi.org``)."""
+def updates_dir(home: Path | None = None) -> Path:
+    root = home or PathLayout.from_env().root
+    dest = root / "updates"
+    dest.mkdir(parents=True, exist_ok=True)
+    return dest
 
-    latest_stable: str | None = None
-    """Newest non-pre-release version, or None if every release is a pre-release."""
+
+def pending_portable_zip(home: Path | None = None) -> Path:
+    return updates_dir(home) / PENDING_PORTABLE_NAME
+
+
+def pending_portable_meta(home: Path | None = None) -> Path:
+    return updates_dir(home) / PENDING_META_NAME
+
+
+def is_desktop_install() -> bool:
+    if green_packages_dir() is not None:
+        return True
+    raw = (os.environ.get("OCTOP_DESKTOP") or os.environ.get("FREEOS_DESKTOP") or "").strip()
+    return raw.lower() in {"1", "true", "yes", "on"}
 
 
 def fetch_latest_pypi_version(
@@ -128,32 +142,13 @@ def fetch_latest_pypi_version(
     *,
     include_prerelease: bool = False,
 ) -> str | None:
-    info = fetch_pypi_info(timeout=timeout)
+    """Deprecated alias — FreeOS reads GitHub Releases, never PyPI."""
+    info = fetch_release_info(timeout=timeout)
     if info is None:
         return None
     if include_prerelease:
         return info.version
     return info.latest_stable
-
-
-def _usable_release_versions(data: dict[str, Any]) -> list[str]:
-    """Return PyPI ``releases`` keys that are not fully yanked."""
-    releases = data.get("releases")
-    if not isinstance(releases, dict):
-        return []
-    versions: list[str] = []
-    for raw_ver, files in releases.items():
-        ver = str(raw_ver)
-        if not ver:
-            continue
-        if (
-            isinstance(files, list)
-            and files
-            and all(isinstance(item, dict) and item.get("yanked") for item in files)
-        ):
-            continue
-        versions.append(ver)
-    return versions
 
 
 def pick_latest_versions(versions: list[str]) -> tuple[str | None, str | None]:
@@ -167,38 +162,18 @@ def pick_latest_versions(versions: list[str]) -> tuple[str | None, str | None]:
     return latest_any, latest_stable
 
 
-def fetch_pypi_info(timeout: int = 10) -> PyPIInfo | None:
-    """Fetch version and long description from the PyPI JSON API.
+def fetch_release_info(timeout: int = 10) -> GitHubReleaseInfo | None:
+    """Fetch the newest FreeOS desktop release from GitHub Releases."""
+    return fetch_github_releases(
+        timeout=timeout,
+        is_prerelease=is_prerelease,
+        parse_version=parse_version,
+    )
 
-    ``version`` is the newest release including pre-releases. ``latest_stable``
-    is the newest non-pre-release (None when the index only has pre-releases).
-    Returns None on any network or parse failure.
-    """
-    try:
-        req = urllib.request.Request(
-            _PYPI_URL,
-            headers={"User-Agent": f"{_PACKAGE_NAME}-updater/1.0"},
-        )
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
-            data = json.loads(resp.read().decode("utf-8"))
-        info = data["info"]
-        versions = _usable_release_versions(data)
-        info_version = str(info["version"])
-        if info_version and info_version not in versions:
-            versions.append(info_version)
-        latest_any, latest_stable = pick_latest_versions(versions)
-        if latest_any is None:
-            latest_any = info_version
-            latest_stable = info_version if not is_prerelease(info_version) else None
-        return PyPIInfo(
-            version=latest_any,
-            latest_stable=latest_stable,
-            description=info.get("description"),
-            source="pypi.org",
-        )
-    except (urllib.error.URLError, TimeoutError, KeyError, json.JSONDecodeError) as exc:
-        logger.warning("failed to fetch PyPI info: %s", exc)
-        return None
+
+def fetch_pypi_info(timeout: int = 10) -> GitHubReleaseInfo | None:
+    """Deprecated name kept so callers/tests can patch one entry point."""
+    return fetch_release_info(timeout=timeout)
 
 
 def parse_changelog_for_version(description: str | None, version: str) -> str | None:
@@ -358,10 +333,11 @@ def find_pip_in_venv(python_exe: str) -> str | None:
 
 
 def package_requirement(version: str | None = None) -> str:
-    """Return ``octop`` or a pinned ``octop==<version>`` spec."""
-    if version:
-        return f"{_PACKAGE_NAME}=={version}"
-    return _PACKAGE_NAME
+    """Deprecated PyPI spec — FreeOS no longer installs ``octop`` from indexes."""
+    raise RuntimeError(
+        "FreeOS does not install the upstream octop package. "
+        f"Download desktop builds from {GITHUB_RELEASES_HTML}"
+    )
 
 
 def append_prerelease_flags(
@@ -507,110 +483,59 @@ def _verify_fpk_upgrade(
     )
 
 
-def _run_fpk_upgrade(
-    site_packages: str,
+def download_release_asset(
+    url: str,
+    dest: Path,
     *,
-    verbose: bool = False,
-    allow_prerelease: bool = False,
-    version: str | None = None,
-) -> UpgradeResult:
-    """FnOS FPK 部署下的在线升级：把新版安装到 launcher 实际加载的打包目录。
+    timeout: int = 120,
+    urlopen: Any = None,
+) -> None:
+    """Download a GitHub release asset to *dest* (forbidden hosts rejected)."""
+    assert_allowed_update_url(url)
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    opener = urlopen or urllib.request.urlopen
+    req = urllib.request.Request(
+        url,
+        headers={
+            "User-Agent": "FreeOS-updater/1.0",
+            "Accept": "application/octet-stream",
+        },
+    )
+    with opener(req, timeout=timeout) as resp, dest.open("wb") as out:
+        shutil.copyfileobj(resp, out)
 
-    launcher 通过 PYTHONPATH 从应用中心托管的打包 site-packages 加载 octop，
-    在线安装到系统 Python 永远不会被加载（重启后仍是旧版）。本函数把新版
-    安装到该打包目录本身，重启服务后即加载新版，升级真正生效。
 
-    与普通部署不同，FPK 首次在线升级需要从零解析并下载完整依赖树
-    （octop 依赖 orcakit-harness-agent 等大包），故超时显著放宽；且某镜像
-    可能滞后（装到同版本旧版），此时继续尝试下一个镜像，最后以 pypi.org
-    兜底，避免「镜像有货但版本不新」导致升级假成功。
-    """
-    if not os.path.isdir(site_packages):
-        return UpgradeResult(
-            success=False,
-            error=f"FPK site-packages 目录不存在：{site_packages}",
+def stage_desktop_portable(
+    asset_url: str,
+    *,
+    version: str,
+    plat: str,
+    home: Path | None = None,
+    urlopen: Any = None,
+) -> Path:
+    """Write a pending FreeOS portable zip for the desktop shell to apply on restart."""
+    home_root = home or PathLayout.from_env().root
+    zip_path = pending_portable_zip(home_root)
+    tmp = zip_path.with_suffix(".part")
+    if tmp.exists():
+        tmp.unlink()
+    download_release_asset(asset_url, tmp, urlopen=urlopen)
+    tmp.replace(zip_path)
+    pending_portable_meta(home_root).write_text(
+        json.dumps(
+            {
+                "version": version,
+                "plat": plat,
+                "source": SOURCE_LABEL,
+                "html_url": GITHUB_RELEASES_HTML,
+                "zip": str(zip_path),
+            },
+            indent=2,
         )
-    local_ver = get_local_version()
-    mirror_errors: list[str] = []
-    per_mirror_timeout = 900  # FPK 首次升级需下载完整依赖树，180s 不够
-
-    def _run_install(cmd: list[str], label: str) -> tuple[int | None, str]:
-        logger.debug("running %s: %s", label, " ".join(cmd))
-        try:
-            # NOCA:DangerousSubprocessUseAudit(argv list with shell=False; installer paths and mirrors are trusted)
-            result = subprocess.run(
-                cmd,
-                check=False,
-                capture_output=not verbose,
-                text=True,
-                timeout=per_mirror_timeout,
-            )
-        except subprocess.TimeoutExpired:
-            return None, f"timed out after {per_mirror_timeout}s"
-        if result.returncode == 0:
-            return 0, ""
-        snippet = (result.stderr or result.stdout or "")[:300]
-        return result.returncode, snippet
-
-    python_exe = sys.executable
-    installer = detect_installer()  # uv 优先：pip 对 orcakit-harness-agent[all] 依赖树解析会卡死
-
-    def _build_cmd(index_url: str = "") -> list[str]:
-        requirement = package_requirement(version)
-        if installer == "uv":
-            cmd = [
-                find_uv_executable(),
-                "pip",
-                "install",
-                "--python",
-                python_exe,
-                "--target",
-                site_packages,
-                "--upgrade-package",
-                _PACKAGE_NAME,
-            ]
-            if index_url:
-                cmd.extend(["--index-url", index_url])
-            append_prerelease_flags(cmd, installer, allow_prerelease=allow_prerelease)
-            cmd.append(requirement)
-            return cmd
-        cmd = [
-            python_exe,
-            "-m",
-            "pip",
-            "install",
-            "--upgrade",
-            "--upgrade-strategy",
-            "only-if-needed",
-            "--target",
-            site_packages,
-        ]
-        if index_url:
-            cmd.extend(["-i", index_url])
-        append_prerelease_flags(cmd, installer, allow_prerelease=allow_prerelease)
-        cmd.append(requirement)
-        return cmd
-
-    for mirror in _MIRRORS:
-        rc, err_snippet = _run_install(_build_cmd(mirror), mirror)
-        if rc != 0:
-            mirror_errors.append(f"{mirror}: {err_snippet}")
-            continue
-        res = _verify_fpk_upgrade(local_ver, site_packages, python_exe, mirror_errors)
-        if res.success:
-            return res
-        # 镜像装到了同版本/旧版（同步滞后）：继续尝试下一个镜像
-        mirror_errors.append(f"{mirror}: {res.error or 'version unchanged'}")
-
-    rc, err_snippet = _run_install(_build_cmd(), "pypi.org")
-    if rc != 0:
-        mirror_errors.append(f"pypi.org: {err_snippet or 'unknown error'}")
-        return UpgradeResult(
-            success=False,
-            error="upgrade failed on all mirrors",
-            mirror_errors=mirror_errors,
-        )
-    return _verify_fpk_upgrade(local_ver, site_packages, python_exe, mirror_errors)
+        + "\n",
+        encoding="utf-8",
+    )
+    return zip_path
 
 
 def run_upgrade(
@@ -619,114 +544,57 @@ def run_upgrade(
     allow_prerelease: bool = False,
     version: str | None = None,
 ) -> UpgradeResult:
-    # [FPK] FnOS FPK 部署：launcher 通过 PYTHONPATH 从应用中心托管的打包
-    # site-packages 加载 octop，在线安装到系统 Python 永远不会被加载（重启
-    # 无效）。launcher 导出 OCTOP_FPK_SITE_PACKAGES 指向该打包目录，升级即
-    # 安装到此目录并提示重启服务生效——升级真正可用，而非禁止升级。
-    _fpk_site = os.environ.get("OCTOP_FPK_SITE_PACKAGES", "").strip()
-    if _fpk_site:
-        return _run_fpk_upgrade(
-            _fpk_site,
-            verbose=verbose,
-            allow_prerelease=allow_prerelease,
-            version=version,
-        )
-    installer = detect_installer()
-    venv_python = resolve_venv_python()
-    local_ver = get_local_version()
-    mirror_errors: list[str] = []
-    per_mirror_timeout = 180
+    """Download the matching FreeOS desktop/portable asset from GitHub Releases.
 
-    def _run_install(cmd: list[str], label: str) -> tuple[int | None, str]:
-        logger.debug("running %s: %s", label, " ".join(cmd))
-        try:
-            # NOCA:DangerousSubprocessUseAudit(argv list with shell=False; installer paths and mirrors are trusted)
-            result = subprocess.run(
-                cmd,
-                check=False,
-                capture_output=not verbose,
-                text=True,
-                timeout=per_mirror_timeout,
-            )
-        except subprocess.TimeoutExpired:
-            return None, f"timed out after {per_mirror_timeout}s"
-        if result.returncode == 0:
-            return 0, ""
-        snippet = (result.stderr or result.stdout or "")[:300]
-        return result.returncode, snippet
-
-    for mirror in _MIRRORS:
-        cmd = build_upgrade_command(
-            installer,
-            venv_python,
-            index_url=mirror,
-            allow_prerelease=allow_prerelease,
-            version=version,
+    Desktop installs stage ``{home}/updates/pending-portable.zip``. The Wails
+    shell applies it on the next launch (``FREEOS_STAMP`` preserved). Non-desktop
+    installs are pointed at the public Releases page — we never ``pip install
+    octop`` from PyPI or Tencent mirrors.
+    """
+    del verbose
+    info = fetch_release_info()
+    if info is None:
+        return UpgradeResult(
+            success=False,
+            error=f"could not reach {SOURCE_LABEL}",
         )
-        if cmd is None:
+    target = (version or "").strip() or (
+        info.version if allow_prerelease else (info.latest_stable or info.version)
+    )
+    if not target:
+        return UpgradeResult(success=False, error="no FreeOS release on GitHub")
+    if not allow_prerelease and is_prerelease(target):
+        return UpgradeResult(
+            success=False,
+            error=f"{target} is a pre-release; pass --allow-prerelease to install it",
+        )
+    plat = desktop_plat()
+    asset = pick_portable_asset(info.assets, plat=plat, version=target)
+    if asset is None:
+        if is_desktop_install():
             return UpgradeResult(
                 success=False,
-                error="pip is not available for the Octop virtual environment.",
-                mirror_errors=mirror_errors,
+                error=(
+                    f"no FreeOS-portable-{plat}-*.zip on {SOURCE_LABEL} "
+                    f"for {target}. Download from {GITHUB_RELEASES_HTML}"
+                ),
             )
-        rc, err_snippet = _run_install(cmd, mirror)
-        if rc == 0:
-            return _verify_upgrade(local_ver, venv_python, mirror_errors)
-        mirror_errors.append(f"{mirror}: {err_snippet}")
-
-    cmd = build_upgrade_command(
-        installer,
-        venv_python,
-        allow_prerelease=allow_prerelease,
-        version=version,
-    )
-    if cmd is None:
         return UpgradeResult(
             success=False,
-            error="pip is not available for the Octop virtual environment.",
-            mirror_errors=mirror_errors,
+            error=(
+                "FreeOS no longer upgrades from PyPI or Tencent Cloud mirrors. "
+                f"Install a FreeOS desktop build from {GITHUB_RELEASES_HTML}"
+            ),
         )
-    rc, err_snippet = _run_install(cmd, "pypi.org")
-    if rc != 0:
-        mirror_errors.append(f"pypi.org: {err_snippet or 'unknown error'}")
-        return UpgradeResult(
-            success=False,
-            error="upgrade failed on all mirrors",
-            mirror_errors=mirror_errors,
-        )
-    return _verify_upgrade(local_ver, venv_python, mirror_errors)
-
-
-def _verify_upgrade(
-    local_ver: str,
-    venv_python: str,
-    mirror_errors: list[str],
-) -> UpgradeResult:
-    actual_ver: str | None = None
-    for attempt in range(3):
-        actual_ver = get_installed_version(venv_python)
-        if actual_ver and actual_ver != local_ver:
-            break
-        if attempt < 2:
-            time.sleep(0.5)
-
-    if actual_ver and is_newer(actual_ver, local_ver):
-        return UpgradeResult(
-            success=True,
-            message=f"upgraded to {actual_ver}",
-            installed_version=actual_ver,
-            mirror_errors=mirror_errors,
-        )
-    if actual_ver == local_ver:
-        return UpgradeResult(
-            success=True,
-            message=f"installer finished but version is still {actual_ver}",
-            installed_version=actual_ver,
-            mirror_errors=mirror_errors,
-        )
+    try:
+        staged = stage_desktop_portable(asset.url, version=target, plat=plat)
+    except Exception as exc:
+        return UpgradeResult(success=False, error=str(exc) or type(exc).__name__)
     return UpgradeResult(
         success=True,
-        message="upgrade completed",
-        installed_version=actual_ver,
-        mirror_errors=mirror_errors,
+        message=(
+            f"staged FreeOS {target} portable ({asset.name}) at {staged}; "
+            "restart the desktop app to apply it"
+        ),
+        installed_version=target,
     )
