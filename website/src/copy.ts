@@ -1,6 +1,7 @@
 export type Locale = "zh" | "en";
 
 export const LINKS = {
+  site: "https://freeos.cnxy.tech",
   github: "https://github.com/XYAIStudio/FreeOS",
   releases: "https://github.com/XYAIStudio/FreeOS/releases/latest",
   releaseTag: "https://github.com/XYAIStudio/FreeOS/releases/tag/v0.0.1",
@@ -25,9 +26,14 @@ export const copy = {
       engines: "双引擎",
       capabilities: "能力",
       download: "下载",
-      loop: "自生长",
+      loop: "闭环",
       faq: "问答",
     },
+    stack: [
+      { no: "01", layer: "底座", name: "FreeOS 数据面", text: "把智能体跑在你自己的机器上。" },
+      { no: "02", layer: "系统", name: "openXYOS 控制面", text: "用蓝图、治理和人才市场把同事养大。" },
+      { no: "03", layer: "生态", name: "自生长闭环", text: "生产、装配、回馈，下一轮自己长出来。" },
+    ],
     brandAlt: "FreeOS 圆形标志：灰环、黄绿红勾玉、蓝色水滴",
     hero: {
       eyebrow: "开源 · 自托管 · v0.0.1",
@@ -38,14 +44,14 @@ export const copy = {
       lead: "在你自己的机器上，同时拥有会陪伴的个人智能体，和能养出 AI 员工队伍的组织操作系统。数据面跑起来，控制面长起来，一条闭环自己生长。",
       download: "下载 Windows 安装包",
       github: "打开 GitHub",
-      chips: ["打开即可聊天，保存时再登录", "MIT + Apache-2.0", "组织控制台已内置"],
+      chips: ["打开即可聊天，保存时再登录", "MIT + Apache-2.0", "freeos.cnxy.tech"],
       mascotHint: "点一下换个姿态",
       mascotAlt: "XYAI 机器人欢迎姿态",
     },
     engines: {
-      kicker: "双引擎 / 双循环",
-      title: "数据面负责跑起来，控制面负责长起来",
-      lead: "FreeOS 不是 Octop，也不是 openXYOS 的换皮。它把两条开源血统接成互补：一边生产会干活的智能体，一边用组织蓝图、治理和人才市场把它们养大，再喂回运行时。",
+      kicker: "01 / 双引擎",
+      title: "一个运行时底座，长出可治理的组织系统",
+      lead: "数据面负责跑起来，控制面负责长起来。两边互补，不是换皮：一边生产会干活的智能体，一边用蓝图、治理和人才市场把它们养大，再喂回运行时。",
       dataTitle: "FreeOS 数据面",
       dataLicense: "MIT · 源自 Octop 运行时",
       dataBody: "多智能体聊天、技能、插件、MCP、记忆、定时任务、工作区与飞书 / 钉钉 / Discord 等 IM——真正把同事跑起来的那一层。",
@@ -59,9 +65,9 @@ export const copy = {
       note: "两边互不替代：openXYOS 不接管聊天，FreeOS 不假装自己是上游商标。",
     },
     capabilities: {
-      kicker: "能力",
+      kicker: "02 / 能力",
       title: "个人伙伴的手，组织操作系统的骨",
-      lead: "灵感来自陪伴型助手与人机共融组织 OS，但全部用 FreeOS 自己的语言来说。",
+      lead: "可验证的运行时能力，加上可交付的组织治理。全部用 FreeOS 自己的语言来说。",
       groups: [
         {
           title: "数据面 · 把智能体跑在你机器上",
@@ -86,9 +92,9 @@ export const copy = {
       ],
     },
     download: {
-      kicker: "下载 / 安装",
+      kicker: "03 / 下载",
       title: "Windows 用户：下载、安装、打开即用",
-      lead: "给非开发者的路径。安装包内置组织控制台，不必再装 Node。第一次启动会解压内置环境，可能要一两分钟。",
+      lead: "官网 freeos.cnxy.tech 只负责介绍。安装包从 GitHub Releases 下载，内置组织控制台，不必再装 Node。第一次启动会解压内置环境，可能要一两分钟。",
       amd64: "Windows 64 位",
       amd64Meta: "amd64 · .exe 安装包",
       arm64: "Windows ARM",
@@ -106,7 +112,7 @@ export const copy = {
       cliHint: "克隆仓库后：",
     },
     loop: {
-      kicker: "自生长闭环",
+      kicker: "04 / 闭环",
       title: "组织会自己长出下一位同事",
       lead: "freeos org loop run 是产品路径，不是演示脚本。它把蓝图变成可聊天的员工，走完生命周期，再把资产装回控制面，并证明高风险工具仍然被拦住。",
       steps: [
@@ -120,7 +126,7 @@ export const copy = {
       lifeNote: "见习只读并受治理；转正后才打开岗位定时任务。离任会收回密钥，并把记忆归档到组织知识库。",
     },
     faq: {
-      kicker: "问答",
+      kicker: "05 / 问答",
       title: "先把关系讲清楚",
       items: [
         {
@@ -133,7 +139,7 @@ export const copy = {
         },
         {
           q: "我的对话和文件存在哪？",
-          a: "默认 %USERPROFILE%\\.freeos。旧版 ~/.octop 仍会被识别。数据留在你的机器上，不经过 FreeOS 官网。",
+          a: "默认 %USERPROFILE%\\.freeos。旧版 ~/.octop 仍会被识别。数据留在你的机器上，不经过 freeos.cnxy.tech。",
         },
         {
           q: "高风险操作真的会被拦住吗？",
@@ -151,14 +157,15 @@ export const copy = {
     },
     cta: {
       title: "在自己的电脑上，养一支会成长的 AI 队伍",
-      lead: "下载安装包，或从源码跑通 org loop。控制面的上游项目是 openXYOS。",
+      lead: "从 freeos.cnxy.tech 了解产品，到 GitHub 下载安装包，或从源码跑通 org loop。",
       download: "下载 v0.0.1",
       github: "Star / Fork",
       openxyos: "了解 openXYOS",
     },
     footer: {
-      blurb: "自托管多智能体 OS，能生产并回收自己的 AI 员工。",
+      blurb: "自托管多智能体 OS，能生产并回收自己的 AI 员工。官网 freeos.cnxy.tech。",
       product: "产品",
+      home: "官网",
       legal: "许可与致谢",
       links: {
         releases: "Releases",
@@ -183,6 +190,11 @@ export const copy = {
       loop: "The loop",
       faq: "FAQ",
     },
+    stack: [
+      { no: "01", layer: "Base", name: "FreeOS data plane", text: "Run agents on your own machine." },
+      { no: "02", layer: "System", name: "openXYOS control plane", text: "Raise colleagues with blueprints, governance, and talent." },
+      { no: "03", layer: "Loop", name: "Self-growth cycle", text: "Produce, assemble, feed back — the next round grows itself." },
+    ],
     brandAlt: "FreeOS circular mark: gray ring, yellow green red magatama, blue teardrop",
     hero: {
       eyebrow: "Open source · Self-hosted · v0.0.1",
@@ -193,14 +205,14 @@ export const copy = {
       lead: "On your own machine: a personal AI partner and an organization OS that grows its own AI workforce. The data plane runs colleagues. The control plane raises them. The loop feeds itself.",
       download: "Download for Windows",
       github: "View GitHub",
-      chips: ["Chat first, sign in when you save", "MIT + Apache-2.0", "Organization console bundled"],
+      chips: ["Chat first, sign in when you save", "MIT + Apache-2.0", "freeos.cnxy.tech"],
       mascotHint: "Tap to switch pose",
       mascotAlt: "XYAI robot in the welcome pose",
     },
     engines: {
-      kicker: "Two engines / two loops",
-      title: "The data plane runs. The control plane grows.",
-      lead: "FreeOS is not Octop and not a reskin of openXYOS. It joins two open-source lineages: one produces working agents, the other raises them with blueprints, governance, and a talent market, then feeds them back.",
+      kicker: "01 / Engines",
+      title: "One runtime base. An organization system that grows.",
+      lead: "The data plane runs. The control plane grows. They complement each other: one produces working agents, the other raises them with blueprints, governance, and talent, then feeds them back.",
       dataTitle: "FreeOS data plane",
       dataLicense: "MIT · derived from the Octop runtime",
       dataBody: "Multi-agent chat, skills, plugins, MCP, memory, cron, workspaces, and IM channels such as Feishu, DingTalk, and Discord — the layer that actually runs colleagues.",
@@ -214,9 +226,9 @@ export const copy = {
       note: "Neither side replaces the other. openXYOS does not take over chat. FreeOS does not claim upstream trademarks.",
     },
     capabilities: {
-      kicker: "Capabilities",
+      kicker: "02 / Capabilities",
       title: "A companion’s hands. An organization OS’s bones.",
-      lead: "Inspired by companion assistants and human–AI organization systems — spoken in FreeOS’s own voice.",
+      lead: "A verifiable runtime, plus deliverable org governance — spoken in FreeOS’s own voice.",
       groups: [
         {
           title: "Data plane · agents on your machine",
@@ -241,9 +253,9 @@ export const copy = {
       ],
     },
     download: {
-      kicker: "Download / install",
+      kicker: "03 / Download",
       title: "Windows: download, install, open, and use",
-      lead: "The non-developer path. The installer bundles the organization console — no extra Node install. First launch unpacks a runtime and may take a minute or two.",
+      lead: "freeos.cnxy.tech is the product site. Installers come from GitHub Releases and bundle the organization console — no extra Node. First launch unpacks a runtime and may take a minute or two.",
       amd64: "Windows 64-bit",
       amd64Meta: "amd64 · .exe installer",
       arm64: "Windows ARM",
@@ -261,7 +273,7 @@ export const copy = {
       cliHint: "After cloning the repo:",
     },
     loop: {
-      kicker: "Self-growth loop",
+      kicker: "04 / The loop",
       title: "The organization grows its next colleague",
       lead: "freeos org loop run is the product path, not a demo. It turns a blueprint into a chat-addressable employee, walks the lifecycle, applies assets back to the control plane, and proves high-risk tools still stop.",
       steps: [
@@ -275,7 +287,7 @@ export const copy = {
       lifeNote: "Shadow is read-only and governed. Cron from job duties turns on only when active. Offboard revokes secrets and archives memory into org knowledge.",
     },
     faq: {
-      kicker: "FAQ",
+      kicker: "05 / FAQ",
       title: "The relationships, plainly",
       items: [
         {
@@ -288,7 +300,7 @@ export const copy = {
         },
         {
           q: "Where do chats and files live?",
-          a: "Default %USERPROFILE%\\.freeos. Legacy ~/.octop is still recognized. Data stays on your machine; it does not pass through this website.",
+          a: "Default %USERPROFILE%\\.freeos. Legacy ~/.octop is still recognized. Data stays on your machine; it does not pass through freeos.cnxy.tech.",
         },
         {
           q: "Do high-risk tools actually block?",
@@ -306,14 +318,15 @@ export const copy = {
     },
     cta: {
       title: "Grow an AI workforce on your own computer",
-      lead: "Download the installer, or run the org loop from source. The upstream control plane is openXYOS.",
+      lead: "Read the product at freeos.cnxy.tech, download from GitHub, or run the org loop from source.",
       download: "Download v0.0.1",
       github: "Star / Fork",
       openxyos: "About openXYOS",
     },
     footer: {
-      blurb: "A self-hosted multi-agent OS that grows its own AI workforce.",
+      blurb: "A self-hosted multi-agent OS that grows its own AI workforce. Official site: freeos.cnxy.tech.",
       product: "Product",
+      home: "Website",
       legal: "License & credit",
       links: {
         releases: "Releases",

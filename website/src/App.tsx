@@ -198,6 +198,18 @@ export default function App() {
           </figure>
         </section>
 
+        <section className="stack" aria-label={locale === "zh" ? "底座、系统、生态" : "Base, system, loop"}>
+          {t.stack.map((item) => (
+            <article key={item.no}>
+              <small>
+                {item.no} / {item.layer}
+              </small>
+              <h2>{item.name}</h2>
+              <p>{item.text}</p>
+            </article>
+          ))}
+        </section>
+
         <section id="engines" className="section engines">
           <div className="heading">
             <small>{t.engines.kicker}</small>
@@ -378,6 +390,7 @@ uv run freeos org loop run`}
           </div>
           <div>
             <b>{t.footer.product}</b>
+            <a href={LINKS.site}>{t.footer.home}</a>
             <a href={LINKS.releases} target="_blank" rel="noreferrer">
               {t.footer.links.releases}
             </a>
