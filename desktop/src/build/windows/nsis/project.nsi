@@ -28,6 +28,10 @@ ManifestDPIAware true
 !define MUI_UNICON "..\icon.ico"
 !define MUI_FINISHPAGE_NOAUTOCLOSE
 !define MUI_ABORTWARNING
+# Checkbox is shown only when MUI_FINISHPAGE_RUN is set. Leave the
+# "not checked" finish-page flag undefined so the box stays on.
+!define MUI_FINISHPAGE_RUN "$INSTDIR\${PRODUCT_EXECUTABLE}"
+!define MUI_FINISHPAGE_RUN_TEXT "$(FINISH_RUN)"
 !define MUI_FINISHPAGE_RUN_FUNCTION LaunchFreeOS
 
 !insertmacro MUI_PAGE_WELCOME
@@ -41,6 +45,8 @@ ManifestDPIAware true
 !insertmacro MUI_LANGUAGE "English"
 !insertmacro MUI_RESERVEFILE_LANGDLL
 
+LangString FINISH_RUN ${LANG_SIMPCHINESE} "运行 FreeOS"
+LangString FINISH_RUN ${LANG_ENGLISH} "Run FreeOS"
 LangString UN_FREEOS_RUNNING ${LANG_SIMPCHINESE} "检测到 FreeOS 仍在运行（主程序、主机或组织侧车）。$\r$\n$\r$\n继续将结束这些进程，并删除安装目录中的程序文件。$\r$\n用户数据（%USERPROFILE%\.freeos）会保留。$\r$\n$\r$\n要继续卸载吗？"
 LangString UN_FREEOS_RUNNING ${LANG_ENGLISH} "FreeOS is still running (shell, host, or organization sidecar).$\r$\n$\r$\nContinuing will stop those processes and remove program files from the install folder.$\r$\nUser data (%USERPROFILE%\.freeos) is kept.$\r$\n$\r$\nContinue uninstall?"
 
@@ -113,6 +119,6 @@ Section "uninstall"
 SectionEnd
 
 Function LaunchFreeOS
-    SetOutPath $INSTDIR
+    SetOutPath "$INSTDIR"
     Exec '"$INSTDIR\${PRODUCT_EXECUTABLE}"'
 FunctionEnd

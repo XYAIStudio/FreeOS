@@ -82,6 +82,19 @@ def test_uninstall_removes_shortcuts_and_program_cache() -> None:
     assert "!insertmacro wails.deleteUninstaller" in uninstall
 
 
+def test_finish_page_run_defaults_checked() -> None:
+    nsi = NSI.read_text(encoding="utf-8")
+    assert '!define MUI_FINISHPAGE_RUN "$INSTDIR\\${PRODUCT_EXECUTABLE}"' in nsi
+    assert "!define MUI_FINISHPAGE_RUN_FUNCTION LaunchFreeOS" in nsi
+    assert "!define MUI_FINISHPAGE_RUN_TEXT" in nsi
+    assert "LangString FINISH_RUN ${LANG_SIMPCHINESE}" in nsi
+    assert "运行 FreeOS" in nsi
+    assert "!define MUI_FINISHPAGE_RUN_NOTCHECKED" not in nsi
+    launch = nsi[nsi.index("Function LaunchFreeOS") :]
+    assert 'SetOutPath "$INSTDIR"' in launch
+    assert "Exec '\"$INSTDIR\\${PRODUCT_EXECUTABLE}\"'" in launch
+
+
 def test_desktop_readme_documents_uninstall_keep_vs_remove() -> None:
     text = DESKTOP_README.read_text(encoding="utf-8")
     assert "## Windows uninstall" in text
@@ -93,3 +106,5 @@ def test_desktop_readme_documents_uninstall_keep_vs_remove() -> None:
     assert "asks" in text
     assert "Cancel" in text
     assert "Confirm" in text
+    assert "## Windows install finish" in text
+    assert "运行 FreeOS" in text

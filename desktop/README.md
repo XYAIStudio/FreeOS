@@ -24,6 +24,12 @@ Same precedence as the FreeOS CLI/server:
 - Organization sidecar data → `{home}/org-os/`
 - Shell prefs → `{home}/desktop-settings.json`
 
+## Windows install finish
+
+The NSIS finish page offers **运行 FreeOS** / **Run FreeOS**, checked by
+default. Leave it checked to start FreeOS from `$INSTDIR` when Setup
+closes (working directory is the install folder). Uncheck to skip.
+
 ## Windows uninstall
 
 The NSIS uninstaller (Settings → Apps, or `uninstall.exe` in the install
