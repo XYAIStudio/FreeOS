@@ -36,6 +36,9 @@ func TestHostLaunchEnvSetsFreeosHomeAndOrgEnable(t *testing.T) {
 	if env["FREEOS_ORG_SIDECAR_URL"] != "http://127.0.0.1:3780" {
 		t.Fatalf("sidecar url: %+v", env)
 	}
+	if env["OCTOP_DESKTOP"] != "1" {
+		t.Fatalf("desktop flag: %+v", env)
+	}
 }
 
 func TestSidecarReadyRequiresNodeAndServer(t *testing.T) {

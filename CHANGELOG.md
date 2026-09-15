@@ -13,6 +13,7 @@
 ### 变更
 
 - Windows NSIS finish page shows a “运行 FreeOS” checkbox, checked by default, and launches from `$INSTDIR`.
+- Desktop shell sets `OCTOP_DESKTOP=1` on the bundled host so first-run can treat the process as the Wails app.
 - First launch on desktop / loopback opens a local guest session — no login wall. Register or sign in only when saving, exporting, or publishing to an account.
 - Login, splash, favicons, and desktop icons use the circular XYAI mark. Product version remains 0.0.1.
 
