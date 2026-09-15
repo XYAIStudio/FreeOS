@@ -1,4 +1,4 @@
-"""openXYOS organization module bridge (plugin + sidecar BFF)."""
+"""openXYOS organization module bridge (plugin + sidecar BFF + Phase A)."""
 
 from octop.modules.org_os.catalog import OPENXYOS_MODULES, load_upstream_catalog_keys
 from octop.modules.org_os.service import (

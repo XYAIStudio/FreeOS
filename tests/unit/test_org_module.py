@@ -131,3 +131,23 @@ def test_identity_headers() -> None:
     assert headers["X-FreeOS-User"] == "ada"
     assert headers["X-FreeOS-User-Id"] == "7"
     assert headers["X-FreeOS-Role"] == "admin"
+
+
+def test_identity_headers_tenant_override() -> None:
+    class _User:
+        id = 7
+        username = "ada"
+        role = "admin"
+        tenant_id = 3
+
+    headers = identity_headers(_User(), tenant_id="99")
+    assert headers["X-FreeOS-Tenant-Id"] == "99"
+
+
+def test_governance_enable_persists(tmp_path: Path) -> None:
+    config = tmp_path / "config.json"
+    service = OrgModuleService(config_path=config, home=tmp_path)
+    assert service.governance_enabled() is False
+    service.set_governance_enabled(True, tenant_id="42")
+    assert service.governance_enabled() is True
+    assert service.tenant_id() == "42"

@@ -64,7 +64,7 @@ The Vite app in `dashboard/` is what you edit; packaged builds land in `src/octo
 ### Tests
 
 ```bash
-uv run pytest tests/unit/test_org_module.py tests/unit/test_paths.py tests/unit/test_bundled_plugins_layout.py
+uv run pytest tests/unit/test_org_module.py tests/unit/test_paths.py tests/unit/test_bundled_plugins_layout.py tests/unit/test_governance_mcp.py tests/unit/test_skill_bridge.py
 ```
 
 Full Octop-derived suite: `uv run pytest` / `make test-fast` (needs the usual extra services for marked tests).
@@ -90,7 +90,33 @@ Default origin: `http://127.0.0.1:3780` (`FREEOS_ORG_SIDECAR_URL` / `FREEOS_ORG_
 
 Sidecar env is generated at `modules/openxyos/.env` on first launch (do not commit secrets). See `modules/openxyos/.env.example` and [docs/architecture-integration.md](docs/architecture-integration.md).
 
-**Auth (MVP):** FreeOS JWT users and openXYOS tenants are separate. The proxy forwards `X-FreeOS-User*` headers only; sign in to the sidecar for mutating org APIs.
+**Auth (MVP):** FreeOS JWT users and openXYOS tenants are separate. The proxy forwards `X-FreeOS-User*` and `X-FreeOS-Tenant-Id`; sign in to the sidecar for mutating org APIs. One tenant = one workspace/sandbox — not prompt isolation.
+
+## Phase A — governance MCP + module skills
+
+openXYOS is the **control plane**. FreeOS/Octop stays the **data plane** (do not replace Octop chat). Phase A inserts governance before high-risk tools and generates skills from the module catalog.
+
+### Direction 2 — `xyos-governance-mcp`
+
+```bash
+uv run freeos org governance enable
+# writes {FREEOS_HOME}/governance/xyos-governance-mcp.json — add that stdio server to the agent
+uv run xyos-governance-mcp   # optional: run by hand
+uv run freeos org governance check --tool delete_employee --category delete
+```
+
+High-risk classes (`outbound`, `delete`, `pay`, `prod`) **default-deny**. Human approval is a durable pause under `~/.freeos/governance/pauses/`. `execute` stays false until `freeos org governance approve <id>` (or IM `/approve` once wired) and the agent **re-checks** with the same args. How-to: [src/octop/modules/org_os/governance/README.md](src/octop/modules/org_os/governance/README.md).
+
+### Direction 3 — module ↔ skill bridge
+
+```bash
+uv run freeos org skills generate
+uv run freeos org skills publish ~/.freeos/org-skills/org-employees
+```
+
+Each generated `SKILL.md` calls real `/api/…` routes through `/api/org-module/sidecar` with tenant headers. Publish writes a **disabled** tenant-toggleable plugin draft — it does not auto-enable. How-to: [src/octop/modules/org_os/skill_bridge/README.md](src/octop/modules/org_os/skill_bridge/README.md).
+
+Phase B (blueprint compiler, digital-colleague lifecycle) and Phase C (chat routing, reflections, org-as-code) are specified in [docs/architecture-integration.md](docs/architecture-integration.md) only.
 
 ## Host platform features (from Octop)
 
@@ -116,4 +142,4 @@ Intentional for MVP compatibility (not a rebrand miss):
 - SQLite file `octop.db` inside the home directory
 - Many internal tests and IM strings
 
-See [docs/architecture-integration.md](docs/architecture-integration.md) for the capability map, rejected merge options, and roadmap.
+See [docs/architecture-integration.md](docs/architecture-integration.md) for the seven integration directions, Phase A/B/C, and the chosen MVP topology.

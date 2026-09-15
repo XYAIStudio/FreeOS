@@ -6,6 +6,11 @@
 
 ## [Unreleased]
 
+### 新增
+
+- Phase A: `xyos-governance-mcp` default-denies high-risk tools and durable-pauses for human approval (`freeos org governance`)
+- Phase A: module ↔ skill bridge generates catalog skills with tenant headers and a tenant-toggle publish draft (`freeos org skills`)
+
 ## [1.0.0] - 2026-09-14
 
 ### 新增
