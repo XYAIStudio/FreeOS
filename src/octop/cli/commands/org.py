@@ -4,11 +4,15 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import click
 
 from octop.infra.utils.paths import PathLayout
 from octop.modules.org_os.service import OrgModuleService
+
+if TYPE_CHECKING:
+    from octop.modules.org_os.governance.engine import GovernanceEngine
 
 
 @click.group()
@@ -22,7 +26,7 @@ def _service() -> OrgModuleService:
     return OrgModuleService(config_path=paths.config, home=paths.root)
 
 
-def _engine():
+def _engine() -> GovernanceEngine:
     from octop.modules.org_os.governance.engine import GovernanceEngine
 
     service = _service()

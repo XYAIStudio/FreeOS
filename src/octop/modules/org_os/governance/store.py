@@ -11,6 +11,17 @@ from typing import Any, Literal
 
 from octop.modules.org_os.governance.types import PauseStatus
 
+
+def _pause_status(raw: Any) -> PauseStatus:
+    mapping: dict[str, PauseStatus] = {
+        "pending": "pending",
+        "approved": "approved",
+        "rejected": "rejected",
+        "expired": "expired",
+    }
+    return mapping.get(str(raw or ""), "pending")
+
+
 _DEFAULT_TTL_SECONDS = 30 * 60
 
 
@@ -43,7 +54,7 @@ class PauseRecord:
             tenant_id=str(data.get("tenant_id") or ""),
             args_digest=str(data.get("args_digest") or ""),
             reason=str(data.get("reason") or ""),
-            status=data.get("status") or "pending",  # type: ignore[arg-type]
+            status=_pause_status(data.get("status")),
             created_at=float(data.get("created_at") or time.time()),
             resolved_at=data.get("resolved_at"),
             ttl_seconds=float(data.get("ttl_seconds") or _DEFAULT_TTL_SECONDS),
