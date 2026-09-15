@@ -5,6 +5,7 @@
 !include "x64.nsh"
 !include "WinVer.nsh"
 !include "FileFunc.nsh"
+!include "LogicLib.nsh"
 
 !ifndef INFO_PROJECTNAME
     !define INFO_PROJECTNAME "FreeOS"
@@ -241,4 +242,63 @@ RequestExecutionLevel "${REQUEST_EXECUTION_LEVEL}"
 
 !macro wails.unassociateCustomProtocols
     ; No custom protocols
+!macroend
+
+# Stop the desktop shell and leftover host / sidecar processes so $INSTDIR
+# files (and extracted portable trees) are not locked during uninstall.
+!macro wails.stopFreeOSProcesses
+    DetailPrint "Stopping FreeOS processes..."
+    nsExec::ExecToLog 'taskkill /F /T /IM "${PRODUCT_EXECUTABLE}"'
+    Pop $0
+    nsExec::ExecToLog 'powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "$$ErrorActionPreference=''SilentlyContinue''; Get-CimInstance Win32_Process | Where-Object { ($$_.Name -eq ''${PRODUCT_EXECUTABLE}'') -or ($$_.ExecutablePath -like ''$INSTDIR*'') -or ($$_.CommandLine -like ''*\portable\*launch.py* run*'') -or ($$_.ExecutablePath -like ''*\org-sidecar\*'') } | ForEach-Object { Stop-Process -Id $$_.ProcessId -Force }"'
+    Pop $0
+    Sleep 1500
+!macroend
+
+# Recursively remove the install directory. User profile homes stay intact:
+# %USERPROFILE%\.freeos, FREEOS_HOME / OCTOP_HOME, and legacy ~/.octop.
+# Documented exceptions inside $INSTDIR: "User Data" and "userdata".
+!macro wails.wipeInstallDir
+    StrCmp $INSTDIR "" wailsWipeSkip
+    StrCmp $INSTDIR "$PROFILE" wailsWipeSkip
+    StrCmp $INSTDIR "$PROFILE\.freeos" wailsWipeSkip
+    StrCmp $INSTDIR "$PROFILE\.octop" wailsWipeSkip
+    StrCmp $INSTDIR "$WINDIR" wailsWipeSkip
+    StrCmp $INSTDIR "$SYSDIR" wailsWipeSkip
+    StrCmp $INSTDIR "$PROGRAMFILES" wailsWipeSkip
+    StrCmp $INSTDIR "$PROGRAMFILES64" wailsWipeSkip
+
+    ; RMDir cannot remove the current working directory.
+    SetOutPath "$TEMP"
+    RMDir /r "$TEMP\FreeOS-keep-UserData"
+    RMDir /r "$TEMP\FreeOS-keep-userdata"
+
+    StrCpy $R8 ""
+    StrCpy $R9 ""
+    IfFileExists "$INSTDIR\User Data" 0 +3
+        Rename "$INSTDIR\User Data" "$TEMP\FreeOS-keep-UserData"
+        StrCpy $R8 "1"
+    IfFileExists "$INSTDIR\userdata" 0 +3
+        Rename "$INSTDIR\userdata" "$TEMP\FreeOS-keep-userdata"
+        StrCpy $R9 "1"
+
+    RMDir /r "$INSTDIR"
+
+    Delete /REBOOTOK "$INSTDIR\${PRODUCT_EXECUTABLE}"
+    Delete /REBOOTOK "$INSTDIR\uninstall.exe"
+
+    ${If} $R8 == "1"
+    ${OrIf} $R9 == "1"
+        CreateDirectory "$INSTDIR"
+        ${If} $R8 == "1"
+            Rename "$TEMP\FreeOS-keep-UserData" "$INSTDIR\User Data"
+        ${EndIf}
+        ${If} $R9 == "1"
+            Rename "$TEMP\FreeOS-keep-userdata" "$INSTDIR\userdata"
+        ${EndIf}
+    ${Else}
+        IfFileExists "$INSTDIR\*.*" 0 wailsWipeSkip
+            Exec '"$SYSDIR\cmd.exe" /C ping 127.0.0.1 -n 3 -w 1000 > nul & rmdir /s /q "$INSTDIR"'
+    ${EndIf}
+    wailsWipeSkip:
 !macroend

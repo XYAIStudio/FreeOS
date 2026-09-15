@@ -24,6 +24,36 @@ Same precedence as the FreeOS CLI/server:
 - Organization sidecar data → `{home}/org-os/`
 - Shell prefs → `{home}/desktop-settings.json`
 
+## Windows uninstall
+
+The NSIS uninstaller (Settings → Apps, or `uninstall.exe` in the install
+folder) first stops running **FreeOS** / host / org-sidecar processes, then
+removes program-owned files. Version stays `0.0.1`; rebuilds replace the
+existing GitHub Release `v0.0.1` assets rather than cutting a new tag.
+
+**Removes**
+
+- The install directory (`Program Files\FreeOS` by default, or the folder
+  chosen at install time): `FreeOS.exe`, `uninstall.exe`, WebView2 folders
+  created next to the exe, extracted portable / org-sidecar leftovers if they
+  were written under `$INSTDIR`, and any other installer-owned tree there
+- Start Menu, Desktop, and Startup shortcuts created by the installer
+- Add/Remove Programs registry key and the autostart Run value
+- Program-owned WebView2 / Wails cache under `%AppData%\FreeOS.exe` and
+  `%LOCALAPPDATA%\FreeOS`
+
+**Keeps**
+
+- `%USERPROFILE%\.freeos` (or `FREEOS_HOME` / `OCTOP_HOME` / legacy `~/.octop`):
+  workspaces, `octop.db`, memories, settings, logs, and the extracted portable
+  runtime under `{home}/portable/`
+- Documented exceptions **inside** the install directory, if you created them:
+  `User Data` or `userdata`. The default app never writes user content there.
+
+Do not point `FREEOS_HOME` at a path inside the install directory — uninstall
+would treat that tree as program files (unless it is named `User Data` /
+`userdata`).
+
 ## What the installer starts
 
 On first open the shell:

@@ -83,18 +83,26 @@ SectionEnd
 
 Section "uninstall"
     !insertmacro wails.setShellContext
+    !insertmacro wails.stopFreeOSProcesses
 
+    ; Program-owned WebView2 / Wails cache — not FREEOS_HOME user data.
     RMDir /r "$AppData\${PRODUCT_EXECUTABLE}"
-
-    RMDir /r $INSTDIR
+    RMDir /r "$LOCALAPPDATA\${PRODUCT_EXECUTABLE}.WebView2"
+    RMDir /r "$LOCALAPPDATA\${INFO_PRODUCTNAME}"
 
     Delete "$SMPROGRAMS\${INFO_PRODUCTNAME}.lnk"
     Delete "$DESKTOP\${INFO_PRODUCTNAME}.lnk"
+    Delete "$SMSTARTUP\${INFO_PRODUCTNAME}.lnk"
+
+    SetRegView 64
+    DeleteRegValue HKCU "Software\Microsoft\Windows\CurrentVersion\Run" "${INFO_PRODUCTNAME}"
+    DeleteRegValue HKCU "Software\Microsoft\Windows\CurrentVersion\Run" "${INFO_PROJECTNAME}"
 
     !insertmacro wails.unassociateFiles
     !insertmacro wails.unassociateCustomProtocols
 
     !insertmacro wails.deleteUninstaller
+    !insertmacro wails.wipeInstallDir
 SectionEnd
 
 Function LaunchFreeOS
