@@ -20,10 +20,8 @@ FreeOS grows its own AI workforce and capability catalog:
 3. openXYOS assets (org tree, `openxyos.agent-blueprint.v1`, governance,
    module catalog, talent market, knowledge/reflections) **feed back**
    into FreeOS to spawn or upgrade more runtime agents and skills.
-4. The loop repeats. Phase A is the safety gate + module↔skill pipe.
-   Phase B is the blueprint compiler, colleague lifecycle, and the
-   bidirectional asset factory. Operator guide:
-   [asset-loop.md](asset-loop.md).
+4. The loop repeats and is **runnable**: `freeos org loop run`. Operator
+   guide: [asset-loop.md](asset-loop.md).
 
 FreeOS is an independent project. It is not affiliated with Tencent Cloud,
 Octop, XYAIStudio, or XYOS trademarks beyond accurate license attribution.
@@ -46,11 +44,12 @@ See [NOTICE](../NOTICE) and `modules/openxyos/TRADEMARKS.md`.
   talent market                     running agent instances
 ```
 
-## Chosen MVP topology (Phase A — Directions 2 + 3)
+## Running topology
 
-Phase A does **not** compile blueprints or merge chat UIs. It inserts
-governance in front of high-risk data-plane tools, and generates real
-module skills that call sidecar `/api/*` with tenant headers.
+The host inserts governance in front of high-risk data-plane tools,
+generates module skills that call sidecar `/api/*` with tenant headers,
+compiles blueprints into chat-usable colleagues, and applies asset packs
+onto openXYOS-shaped surfaces.
 
 ```
                  ┌─────────────────────────────────────────────┐
@@ -127,11 +126,9 @@ Polished → freeos org skills publish <dir>
          → operator enables per tenant; not auto-on
 ```
 
-## Seven directions
+## Seven directions (all required for the running loop)
 
-### Phase A — implement now (highest value / verifiable)
-
-#### Direction 2 — `xyos-governance-mcp`
+#### Direction 2 — `xyos-governance-mcp` + host tool_guard
 
 Wrap openXYOS governance/audit as an MCP server and insert it **before**
 high-risk tool calls.
@@ -163,7 +160,7 @@ until the pause is approved for the same action digest.
 | CLI | `freeos org skills generate` · `freeos org skills publish` |
 | How-to | `src/octop/modules/org_os/skill_bridge/README.md` |
 
-### Phase B — implemented (Directions 1 + 4 + asset loop)
+### Directions 1 + 4 + asset loop (implemented)
 
 #### Direction 1 — `xyos2freeos` / blueprint compiler
 
@@ -214,25 +211,25 @@ sidecar SQL.js.
 
 High-risk runtime actions still pass through Phase A governance.
 
-### Phase C — architecture only (do not implement in this pass)
+#### Direction 5 — Chat / session routing (implemented as far as the loop needs)
 
-#### Direction 5 — Chat / session routing Web ↔ IM
+Compiled colleagues are registered as FreeOS agents (`org-<slug>`) with a
+tenant routing table (`tenants/<id>/routing.json`). `AgentManager.resolve_user_agent`
+resolves colleague slugs and display names so produced employees are
+usable in FreeOS chat. This does **not** duplicate openXYOS chat.
 
-One conversation identity across FreeOS dashboard chat and Octop IM
-channels. Route; do not duplicate openXYOS chat as the agent loop.
+#### Direction 6 — Org memory hooks (implemented as far as the loop needs)
 
-#### Direction 6 — Reflections ↔ harness-memory
+Colleague `MEMORY.md` + `knowledge/` sync into
+`tenants/<id>/org-knowledge/live/<slug>/`. Offboard still archives into
+`org-knowledge/archived-colleagues/`. Tenant isolation stays at the
+workspace boundary.
 
-openXYOS reflections become an org learning loop that writes into
-harness-memory (and back). Keep tenant isolation at the workspace
-boundary, not in the prompt.
+#### Direction 7 — Org-as-code GitOps (beyond the running loop)
 
-#### Direction 7 — Org-as-code GitOps (end-state, not MVP start)
-
-Reconcile control-plane YAML (modules, blueprints, policy) with running
-agents. Desired end-state: git is the source of org intent; FreeOS
-instances converge. Not the starting point — the contract and runtime
-must exist first (Phases A/B).
+Reconcile control-plane YAML with running agents. The contract and
+runtime now exist; GitOps convergence remains an operator workflow on
+top of `freeos org loop run`, not a substitute for it.
 
 ## Risks (encoded in design)
 
@@ -277,7 +274,9 @@ The Phase A work sits on the existing FreeOS bootstrap:
 | Module ↔ skill bridge (Phase A) | Bridge | `freeos org skills generate|publish` |
 | Blueprint compiler (Phase B) | Bridge | `xyos2freeos` · `/api/org-module/blueprints/compile` |
 | Colleague lifecycle (Phase B) | Bridge | `freeos org employee *` · `{home}/tenants/<id>/employees/` |
-| Asset factory (Phase B) | Bridge | `freeos org assets publish\|import` · `{home}/asset-packs/` |
+| Asset factory | Bridge | `freeos org assets publish\|import\|apply` · `{home}/asset-packs/` · `{home}/openxyos-mirror/` |
+| Self-growth loop | Bridge | `freeos org loop run` · `/api/org-module/loop/run` |
+| Colleague agents | Host agents table | `org-<slug>` · `{home}/org-agents/` · tenant `routing.json` |
 | Org APIs | openXYOS sidecar | `/api/org`, `/api/employees`, `/api/governance`, `/api/module-settings`, … |
 | Org UI | openXYOS Vite/Express | sidecar `:3780`; iframe on `/organization` when healthy |
 
@@ -348,6 +347,10 @@ copy the openXYOS working directory themselves.
 | Blueprint compiler | `src/octop/modules/org_os/compiler/` |
 | Colleague lifecycle | `src/octop/modules/org_os/lifecycle/` |
 | Asset factory | `src/octop/modules/org_os/assets/` |
+| Apply + mirror | `src/octop/modules/org_os/apply/` |
+| Loop orchestrator | `src/octop/modules/org_os/loop/` |
+| Colleague spawn / routing / memory | `src/octop/modules/org_os/runtime/` |
+| Host governance middleware | `src/octop/infra/agents/middleware/org_governance.py` |
 | Bundled plugin | `src/octop/infra/agents/plugins/bundled/org-os/` |
 | Dashboard page | `dashboard/src/pages/Organization/index.tsx` |
 | CLI | `src/octop/cli/commands/org.py` |

@@ -115,6 +115,14 @@ def transition(
     _apply_flags(record)
     if workspace.is_dir():
         _set_cron_enabled(workspace, record.cron_enabled)
+        from octop.modules.org_os.runtime.memory import sync_colleague_memory
+
+        sync_colleague_memory(record, store.home)
+        if target in {"shadow", "active"} and not record.agent_id:
+            from octop.modules.org_os.runtime.spawn import spawn_colleague_agent
+
+            spawned = spawn_colleague_agent(store.home, record)
+            record.agent_id = spawned.agent_id
         if target == "offboard":
             _revoke_credentials(workspace)
             record.credentials_revoked = True

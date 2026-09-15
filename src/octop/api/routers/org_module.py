@@ -341,3 +341,80 @@ async def import_assets(
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     return imported.to_dict()
+
+
+class AssetApplyBody(BaseModel):
+    pack_dir: str | None = None
+    tenant_id: str = ""
+    base_url: str = ""
+
+
+class LoopRunBody(BaseModel):
+    tenant_id: str = "1"
+    blueprint_path: str | None = None
+    policies_path: str | None = None
+    base_url: str = ""
+
+
+class EmployeeSpawnBody(BaseModel):
+    slug: str
+    tenant_id: str = ""
+
+
+@router.post("/assets/apply", summary="Apply an asset pack to openXYOS (HTTP + local mirror)")
+async def apply_assets(
+    body: AssetApplyBody,
+    server: OctopServer = Depends(get_server),
+    _user: Any = Depends(require_permission("plugins")),
+) -> dict[str, Any]:
+    from pathlib import Path
+
+    from octop.modules.org_os.apply.apply import apply_asset_pack
+
+    service = _service(server)
+    dest = Path(body.pack_dir) if body.pack_dir else service.home / "asset-packs" / "latest"
+    return apply_asset_pack(
+        dest,
+        home=service.home,
+        tenant_id=body.tenant_id or service.tenant_id() or "default",
+        base_url=body.base_url,
+    ).to_dict()
+
+
+@router.post("/employees/spawn", summary="Register a compiled colleague as a FreeOS chat agent")
+async def spawn_employee(
+    body: EmployeeSpawnBody,
+    server: OctopServer = Depends(get_server),
+    _user: Any = Depends(require_permission("plugins")),
+) -> dict[str, Any]:
+    from octop.modules.org_os.lifecycle.store import LifecycleStore
+    from octop.modules.org_os.runtime.spawn import spawn_colleague_agent
+
+    service = _service(server)
+    tid = body.tenant_id or service.tenant_id() or "default"
+    record = LifecycleStore(service.home, tid).get(body.slug)
+    if record is None:
+        raise HTTPException(status_code=404, detail=f"unknown colleague: {body.slug}")
+    return spawn_colleague_agent(service.home, record).to_dict()
+
+
+@router.post("/loop/run", summary="Run the finished FreeOS self-growth loop")
+async def run_loop(
+    body: LoopRunBody,
+    server: OctopServer = Depends(get_server),
+    _user: Any = Depends(require_permission("plugins")),
+) -> dict[str, Any]:
+    from pathlib import Path
+
+    from octop.modules.org_os.loop.run import run_growth_loop
+
+    service = _service(server)
+    proof = run_growth_loop(
+        service.home,
+        tenant_id=body.tenant_id or service.tenant_id() or "1",
+        blueprint_path=Path(body.blueprint_path) if body.blueprint_path else None,
+        policies_path=Path(body.policies_path) if body.policies_path else None,
+        sidecar_url=body.base_url or service.sidecar_url(),
+        config_path=service.config_path,
+    )
+    return proof.to_dict()

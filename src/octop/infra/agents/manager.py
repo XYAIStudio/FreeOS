@@ -845,7 +845,14 @@ class AgentManager:
             if row.name.lower() == ql:
                 return row
         partial = [r for r in rows if ql in r.name.lower()]
-        return partial[0] if len(partial) == 1 else None
+        if len(partial) == 1:
+            return partial[0]
+        from octop.modules.org_os.runtime.routing import resolve_routed_agent
+
+        routed = resolve_routed_agent(self._paths.root, q)
+        if routed:
+            return self.get_row(routed)
+        return None
 
     def get_config(self, agent_id: str) -> dict[str, Any]:
         """Return harness config for agent_id, overlaying column skill_package_ids."""
@@ -2749,6 +2756,7 @@ class AgentManager:
 
         from octop.infra.agents.middleware.binary_read_guard import BinaryReadGuardMiddleware
         from octop.infra.agents.middleware.browser_profile import BrowserProfileMiddleware
+        from octop.infra.agents.middleware.org_governance import OrgGovernanceMiddleware
         from octop.infra.agents.middleware.reasoning import ReasoningRequestMiddleware
         from octop.infra.agents.middleware.thread_artifacts import ThreadArtifactsMiddleware
         from octop.infra.agents.middleware.token_quota import TokenQuotaMiddleware
@@ -2763,6 +2771,7 @@ class AgentManager:
         # WorkspaceImageMaterialize expands path-only vision refs at model-call time.
         agent_middleware: list[Any] = [
             *plugin_middleware,
+            OrgGovernanceMiddleware.from_home(self._paths.root, config_path=self._paths.config),
             TokenQuotaMiddleware(
                 policy_repo=self._repos.user_policy_repo,
                 usage_repo=self._repos.usage_repo,

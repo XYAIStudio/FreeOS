@@ -3,10 +3,10 @@
 </p>
 
 <p align="center">
-  <strong>FreeOS — 自托管多用户、多 Agent 助手，可选组织 OS 模块。</strong>
+  <strong>FreeOS — 自托管多智能体 OS，能生产并回收自己的 AI 员工。</strong>
 </p>
 
-<p align="center">运行、组织模块、治理 MCP、蓝图编译与资产环见 <a href="README.md">README.md</a>；七条集成方向见 <a href="docs/architecture-integration.md">docs/architecture-integration.md</a>；非开发者闭环见 <a href="docs/asset-loop.md">docs/asset-loop.md</a>。</p>
+<p align="center">产品闭环：<code>uv run freeos org loop run</code>。详见 <a href="README.md">README.md</a> 与 <a href="docs/asset-loop.md">docs/asset-loop.md</a>。</p>
 
 <p align="center">
   <a href="https://www.python.org/downloads/"><img alt="Python 3.12+" src="https://img.shields.io/badge/python-3.12%2B-blue?logo=python&logoColor=white" /></a>

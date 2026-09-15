@@ -31,6 +31,6 @@ COMMANDS: dict[str, tuple[str, str, str]] = {
     "org": (
         ".commands.org",
         "org",
-        "Organization module, governance MCP, and module↔skill bridge.",
+        "Organization self-growth loop, governance, and module↔skill bridge.",
     ),
 }
