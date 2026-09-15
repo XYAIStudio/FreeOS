@@ -120,8 +120,10 @@ def parse_blueprint(data: dict[str, Any] | str | Path, *, tenant_id: str = "") -
             )
         )
 
-    ima = payload.get("ima") if isinstance(payload.get("ima"), dict) else {}
-    gov = payload.get("governance") if isinstance(payload.get("governance"), dict) else {}
+    ima_raw = payload.get("ima")
+    ima: dict[str, Any] = ima_raw if isinstance(ima_raw, dict) else {}
+    gov_raw = payload.get("governance")
+    gov: dict[str, Any] = gov_raw if isinstance(gov_raw, dict) else {}
     duties: list[JobDuty] = []
     for item in payload.get("job_duties") or payload.get("duties") or []:
         if not isinstance(item, dict):

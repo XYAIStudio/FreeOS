@@ -5,13 +5,20 @@ from __future__ import annotations
 import json
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import Any, TypedDict
 from urllib.parse import urlparse
 
 import httpx
 
+
+class OpenXyosStatus(TypedDict):
+    talent: str | None
+    employee: str | None
+    employment_category: str | None
+
+
 # Maps FreeOS lifecycle → openXYOS talent_pool.status / employees.employment_category
-OPENXYOS_STATUS_MAP = {
+OPENXYOS_STATUS_MAP: dict[str, OpenXyosStatus] = {
     "draft": {"talent": "draft", "employee": None, "employment_category": None},
     "market": {"talent": "available", "employee": None, "employment_category": None},
     "recruit": {"talent": "recruited", "employee": "active", "employment_category": "reserve"},
