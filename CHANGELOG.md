@@ -8,6 +8,12 @@
 
 ### 新增
 
+- Finished self-growth loop: `freeos org loop run` compiles blueprints, promotes colleagues, registers FreeOS chat agents, publishes an asset pack, applies it to openXYOS (HTTP + local mirror), imports back, and proves governance blocks high-risk tools
+- `freeos org assets apply` POSTs/PUTs employees, talent, plugins, and module-settings; durable `{FREEOS_HOME}/openxyos-mirror/`
+- Inbound import / lifecycle `shadow|active` spawn real FreeOS agents (`org-<slug>`) via the host agents table + routing
+- Host-wide governance: `OrgGovernanceMiddleware` spliced into the harness tool path so pending/deny cannot execute
+- Colleague routing + org-knowledge live memory so produced employees are usable in FreeOS chat
+- Demo fixtures in `tests/fixtures/org-loop/` and e2e proof `tests/e2e/test_org_growth_loop.py`
 - Phase A: `xyos-governance-mcp` default-denies high-risk tools and durable-pauses for human approval (`freeos org governance`)
 - Phase A: module ↔ skill bridge generates catalog skills with tenant headers and a tenant-toggle publish draft (`freeos org skills`)
 - Phase B: `xyos2freeos` compiles `openxyos.agent-blueprint.v1` into tenant-scoped employee workspaces

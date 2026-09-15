@@ -34,6 +34,7 @@ class ColleagueRecord:
     memory_archived: str = ""
     openxyos_talent_status: str = ""
     openxyos_employment_category: str = ""
+    agent_id: str = ""
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -55,6 +56,7 @@ class ColleagueRecord:
             memory_archived=str(data.get("memory_archived") or ""),
             openxyos_talent_status=str(data.get("openxyos_talent_status") or ""),
             openxyos_employment_category=str(data.get("openxyos_employment_category") or ""),
+            agent_id=str(data.get("agent_id") or ""),
         )
 
 

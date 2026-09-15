@@ -94,7 +94,7 @@ class _LazyCLI(click.Group):
     is_eager=True,
     expose_value=False,
     callback=_print_version,
-    help="Show the installed octop version.",
+    help="Show the installed FreeOS / octop version.",
 )
 @click.option(
     "--user",
@@ -124,7 +124,7 @@ def cli(
     agent_id: str | None,
     json_out: bool,
 ) -> None:
-    """Octop command-line interface."""
+    """FreeOS command-line interface (octop-compatible)."""
     _ensure_utf8_stdio()
     ctx.ensure_object(dict)
     ctx.obj["as_user"] = as_user

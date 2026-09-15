@@ -22,6 +22,7 @@ from octop.modules.org_os.skill_bridge.generate import generate_module_skills
 class ImportedAssets:
     skills: list[str] = field(default_factory=list)
     employees: list[str] = field(default_factory=list)
+    agents: list[str] = field(default_factory=list)
     policies: str = ""
     notes: list[str] = field(default_factory=list)
 
@@ -29,6 +30,7 @@ class ImportedAssets:
         return {
             "skills": list(self.skills),
             "employees": list(self.employees),
+            "agents": list(self.agents),
             "policies": self.policies,
             "notes": list(self.notes),
         }
@@ -64,6 +66,7 @@ def import_openxyos_assets(
     blueprint_path: Path | None = None,
     policies_path: Path | None = None,
     from_sidecar: bool = False,
+    spawn_agents: bool = True,
 ) -> ImportedAssets:
     result = ImportedAssets()
     tid = tenant_id or "default"
@@ -86,6 +89,14 @@ def import_openxyos_assets(
         )
         result.employees.append(compiled.slug)
         result.notes.append(f"compiled blueprint → {compiled.workspace}")
+        if spawn_agents:
+            from octop.modules.org_os.runtime.spawn import spawn_colleague_agent
+
+            record = store.get(compiled.slug)
+            if record is not None:
+                spawned = spawn_colleague_agent(home, record)
+                result.agents.append(spawned.agent_id)
+                result.notes.append(f"spawned FreeOS agent {spawned.agent_id}")
 
     policies_raw: Any | None = None
     policies_source = ""

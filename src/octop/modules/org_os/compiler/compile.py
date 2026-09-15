@@ -61,7 +61,7 @@ def _render_soul(blueprint: AgentBlueprint) -> str:
         "",
         "## Governance (must follow)",
         "",
-        "You run on the FreeOS/Octop **data plane**. openXYOS is the control plane.",
+        "You run on the FreeOS **data plane**. openXYOS is the control plane.",
         "Do not start a second chat runtime.",
         "",
         "- High-risk tools (outbound / delete / pay / prod) go through",

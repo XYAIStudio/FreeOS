@@ -201,13 +201,13 @@ class OrgModuleService:
         enabled = self.is_enabled()
         notes = [
             "Host identity stays in FreeOS (JWT users under the platform home).",
-            "openXYOS is the control plane; FreeOS/Octop is the data plane. "
-            "Do not replace the Octop agent runtime with openXYOS chat.",
+            "openXYOS is the control plane; FreeOS is the data plane. "
+            "Do not replace the FreeOS agent runtime with openXYOS chat.",
             "Proxy forwards X-FreeOS-User* and X-FreeOS-Tenant-Id; sign in to "
             "the sidecar separately for mutating org routes.",
             "Plugin id org-os is seeded disabled; enable it here or via "
             "Admin → Plugins / `freeos org enable`.",
-            "Phase A: `freeos org governance enable` and `freeos org skills generate`.",
+            "Run the finished loop with `freeos org loop run`.",
         ]
         if not sidecar.reachable and enabled:
             notes.append(

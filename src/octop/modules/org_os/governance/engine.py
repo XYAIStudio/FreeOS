@@ -237,7 +237,7 @@ class GovernanceEngine:
             status="pending",
             execute=False,
             blocked=True,
-            reason=f"{reason}; paused for human approval via FreeOS/Octop IM or "
+            reason=f"{reason}; paused for human approval via FreeOS IM or "
             f"`freeos org governance approve {pause.pause_id}`",
             category=category,
             pause_id=pause.pause_id,

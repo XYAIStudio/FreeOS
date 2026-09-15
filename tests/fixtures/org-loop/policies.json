@@ -1,0 +1,26 @@
+{
+  "source": "freeos.demo-fixture",
+  "rules": [
+    {
+      "category": "delete",
+      "action": "delete_employee",
+      "allow": false,
+      "reason": "Demo policy: deleting employees is denied until a human approves."
+    },
+    {
+      "category": "pay",
+      "allow": false,
+      "reason": "Demo policy: payments stay default-deny."
+    },
+    {
+      "category": "outbound",
+      "allow": false,
+      "reason": "Demo policy: outbound send is gated."
+    },
+    {
+      "category": "prod",
+      "allow": false,
+      "reason": "Demo policy: production changes stay gated."
+    }
+  ]
+}

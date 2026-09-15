@@ -1,0 +1,28 @@
+{
+  "schema": "openxyos.agent-blueprint.v1",
+  "name": "Policy Analyst",
+  "industry": "public-sector",
+  "positioning": "Reads org policy and drafts briefings; never sends mail or changes production.",
+  "capabilities": ["policy-research", "briefing"],
+  "experience": "Summarize policy diffs. Cite sources. Escalate high-risk asks.",
+  "references": [
+    {
+      "name": "staff-handbook.md",
+      "type": ".md",
+      "scan": "clean",
+      "excerpt": "Staff must not share tenant data across workspaces."
+    }
+  ],
+  "governance": {
+    "high_risk_requires_human_review": true,
+    "external_write_disabled": true
+  },
+  "lifecycle": "talent_market",
+  "job_duties": [
+    {
+      "name": "morning-brief",
+      "schedule": "0 9 * * 1-5",
+      "prompt": "Draft the weekday policy briefing from knowledge/."
+    }
+  ]
+}

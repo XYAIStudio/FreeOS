@@ -1,4 +1,4 @@
-"""``freeos org`` / ``octop org`` — organization module, governance, skills."""
+"""``freeos org`` — organization self-growth loop, governance, and skills."""
 
 from __future__ import annotations
 
@@ -238,8 +238,18 @@ def employee_spawn(blueprint_path: Path, tenant_id: str) -> None:
         workspace=compiled.workspace,
         lifecycle="draft",
     )
+    from octop.modules.org_os.runtime.spawn import spawn_colleague_agent
+
+    spawned = spawn_colleague_agent(service.home, record)
     click.echo(
-        json.dumps({"compiled": compiled.to_dict(), "lifecycle": record.to_dict()}, indent=2)
+        json.dumps(
+            {
+                "compiled": compiled.to_dict(),
+                "lifecycle": record.to_dict(),
+                "agent": spawned.to_dict(),
+            },
+            indent=2,
+        )
     )
     click.echo("Next: freeos org employee transition <slug> market|recruit|shadow|active")
 
@@ -342,3 +352,56 @@ def assets_import(
         from_sidecar=from_sidecar,
     )
     click.echo(json.dumps(imported.to_dict(), indent=2))
+
+
+@org_assets.command("apply")
+@click.option("--pack", "pack_dir", type=click.Path(path_type=Path, exists=True), default=None)
+@click.option("--tenant-id", default="")
+@click.option("--base-url", default="", help="openXYOS origin; also reads OPENXYOS_BASE_URL.")
+def assets_apply(pack_dir: Path | None, tenant_id: str, base_url: str) -> None:
+    """Apply a published pack to openXYOS (HTTP when reachable, always a local mirror)."""
+    from octop.modules.org_os.apply.apply import apply_asset_pack
+
+    service = _service()
+    dest = pack_dir or (service.home / "asset-packs" / "latest")
+    result = apply_asset_pack(
+        dest,
+        home=service.home,
+        tenant_id=tenant_id or service.tenant_id() or "default",
+        base_url=base_url,
+    )
+    click.echo(json.dumps(result.to_dict(), indent=2))
+
+
+@org.group("loop")
+def org_loop() -> None:
+    """Finished self-growth loop: produce → assemble → feed back → govern."""
+
+
+@org_loop.command("run")
+@click.option("--tenant-id", default="1")
+@click.option("--blueprint", "blueprint_path", type=click.Path(path_type=Path, exists=True))
+@click.option("--policies", "policies_path", type=click.Path(path_type=Path, exists=True))
+@click.option(
+    "--base-url",
+    default="",
+    help="openXYOS origin. Defaults to OPENXYOS_BASE_URL / FREEOS_ORG_SIDECAR_URL.",
+)
+def loop_run(
+    tenant_id: str, blueprint_path: Path | None, policies_path: Path | None, base_url: str
+) -> None:
+    """Run the full FreeOS ↔ openXYOS loop with fixtures when the sidecar is down."""
+    from octop.modules.org_os.loop.run import run_growth_loop
+
+    service = _service()
+    proof = run_growth_loop(
+        service.home,
+        tenant_id=tenant_id or service.tenant_id() or "1",
+        blueprint_path=blueprint_path,
+        policies_path=policies_path,
+        sidecar_url=base_url or service.sidecar_url(),
+        config_path=service.config_path,
+    )
+    click.echo(json.dumps(proof.to_dict(), indent=2))
+    if not proof.ok:
+        raise SystemExit(2)
