@@ -1,0 +1,48 @@
+# Dependencies
+node_modules/
+oh_modules/
+
+# Local configuration and credentials
+.env
+.env.*
+!.env.example
+!**/.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Runtime data
+backend/data/*.db
+backend/data/*.sqlite*
+backend/data/backups/
+uploads/
+*.db
+*.sqlite
+*.sqlite3
+*.bak
+*.log
+
+# Generated output
+dist/
+build/
+coverage/
+.hvigor/
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+
+# Editors and operating systems
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+*.swp
+
+# Local scratch and reports
+.tmp/
+tmp/
+artifacts/
+reports/
+

@@ -1,0 +1,30 @@
+name: xyos
+
+services:
+  xyos:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    restart: unless-stopped
+    env_file:
+      - ./.env
+    environment:
+      NODE_ENV: production
+      DEPLOY_MODE: community
+      PORT: "3000"
+      SEED_DEMO_DATA: "false"
+    ports:
+      - "3000:3000"
+    volumes:
+      - xyos_data:/app/backend/data
+      - xyos_uploads:/app/uploads
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/health/readyz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+volumes:
+  xyos_data: {}
+  xyos_uploads: {}
