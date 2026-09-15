@@ -47,9 +47,6 @@ def test_update_yes_runs_upgrade(monkeypatch: pytest.MonkeyPatch) -> None:
     )
     monkeypatch.setattr(update_cmd, "get_local_version", lambda: "0.1.0")
     monkeypatch.setattr(update_cmd, "get_editable_path", lambda: None)
-    monkeypatch.setattr(
-        update_cmd, "resolve_venv_python", lambda: "/home/user/.octop/venv/bin/python"
-    )
 
     called: dict[str, bool] = {}
 
@@ -172,9 +169,6 @@ def test_update_allow_prerelease_installs_prerelease(
     )
     monkeypatch.setattr(update_cmd, "get_local_version", lambda: "0.1.0")
     monkeypatch.setattr(update_cmd, "get_editable_path", lambda: None)
-    monkeypatch.setattr(
-        update_cmd, "resolve_venv_python", lambda: "/home/user/.octop/venv/bin/python"
-    )
 
     called: dict[str, object] = {}
 

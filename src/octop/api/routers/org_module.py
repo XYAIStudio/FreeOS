@@ -96,7 +96,8 @@ async def org_module_start_sidecar(
     service = _service(server)
     if not service.is_enabled():
         service.set_enabled(True)
-    return await asyncio.to_thread(start_sidecar, service)
+    started = await asyncio.to_thread(start_sidecar, service)
+    return started.to_dict()
 
 
 @router.post("/assemble", summary="Assemble digital employees from an openXYOS blueprint")

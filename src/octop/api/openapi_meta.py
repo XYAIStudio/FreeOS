@@ -142,7 +142,10 @@ OPENAPI_TAGS: list[dict[str, str]] = [
         "description": "Per-agent subagent definitions (agents/*.md) and bundled catalog install.",
     },
     {"name": "terminal", "description": "AI-assisted remote terminal sessions."},
-    {"name": "update", "description": "In-place FreeOS update checks against XYAIStudio/FreeOS GitHub Releases."},
+    {
+        "name": "update",
+        "description": "In-place FreeOS update checks against XYAIStudio/FreeOS GitHub Releases.",
+    },
     {
         "name": "org-module",
         "description": "Organization OS: FreeOS data plane ↔ openXYOS control plane, sidecar, and growth loop.",

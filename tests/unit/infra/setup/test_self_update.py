@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-import pytest
-
 from pathlib import Path
+
+import pytest
 
 from octop.infra.setup.github_releases import GitHubReleaseInfo, ReleaseAsset
 from octop.infra.setup.self_update import (
