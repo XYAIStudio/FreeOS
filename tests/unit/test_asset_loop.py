@@ -24,7 +24,7 @@ def test_import_from_sidecar_writes_policies(tmp_path: Path, monkeypatch) -> Non
         def __init__(self, *args: object, **kwargs: object) -> None:
             pass
 
-        def __enter__(self) -> "_Client":
+        def __enter__(self) -> _Client:
             return self
 
         def __exit__(self, *args: object) -> None:
