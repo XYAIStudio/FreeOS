@@ -41,6 +41,7 @@ function renderLogin() {
 describe("LoginPage local session", () => {
   beforeEach(() => {
     localStorage.clear();
+    sessionStorage.clear();
     localSession.mockReset();
     getAuthStatus.mockReset();
     getOidcStatus.mockReset();
@@ -80,6 +81,37 @@ describe("LoginPage local session", () => {
 
     expect(await screen.findByText("login form")).toBeInTheDocument();
     expect(screen.queryByText("usable app")).toBeNull();
+  });
+
+  it("opens desktop first launch on model setup", async () => {
+    localSession.mockResolvedValue({
+      access_token: "guest-token",
+      token_type: "Bearer",
+      expires_in: 3600,
+      user: {
+        id: 1,
+        username: "local",
+        role: "admin",
+        display_name: "FreeOS",
+        locale: "zh",
+        is_local: true,
+      },
+      token: "guest-token",
+    });
+
+    render(
+      <MemoryRouter initialEntries={["/login?desktop=1"]}>
+        <Routes>
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/chat" element={<div>usable app</div>} />
+          <Route path="/setup" element={<div>model setup</div>} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText("model setup")).toBeInTheDocument();
+    expect(screen.queryByText("login form")).toBeNull();
+    expect(getAuthToken()).toBe("guest-token");
   });
 
   it("does not render the login form inside the desktop shell", async () => {

@@ -13,6 +13,7 @@ import {
 import AuthForm, { type AuthFormMode } from "../../components/AuthForm";
 import BrandMark from "../../components/BrandMark";
 import { applyGuestLocale, applyUserLocale } from "../../utils/locale";
+import { desktopPostSessionPath } from "../../utils/desktopOnboarding";
 import { isDesktopShell } from "../../utils/desktopShell";
 
 export default function LoginPage() {
@@ -37,7 +38,11 @@ export default function LoginPage() {
           const session = await authApi.localSession();
           setAuthToken(session.access_token);
           await applyUserLocale(session.user.locale);
-          if (!cancelled) navigate("/chat", { replace: true });
+          if (!cancelled) {
+            navigate(desktop ? desktopPostSessionPath() : "/chat", {
+              replace: true,
+            });
+          }
           return;
         } catch {
           if (attempt < attempts - 1) {
@@ -53,7 +58,9 @@ export default function LoginPage() {
             const session = await authApi.localSession();
             setAuthToken(session.access_token);
             await applyUserLocale(session.user.locale);
-            if (!cancelled) navigate("/chat", { replace: true });
+            if (!cancelled) {
+              navigate(desktopPostSessionPath(), { replace: true });
+            }
             return;
           } catch {
             await new Promise((resolve) => {

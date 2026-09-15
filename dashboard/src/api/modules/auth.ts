@@ -36,6 +36,10 @@ export interface AuthStatus {
   database_bound: boolean;
   /** Active control-plane driver when bound (`sqlite` | `postgresql`). */
   database_driver?: string | null;
+  /** True when the host process is the Wails desktop / portable shell. */
+  desktop?: boolean;
+  /** True when at least one LLM provider is already configured. */
+  has_providers?: boolean;
 }
 
 export interface OctopUser {
@@ -77,6 +81,8 @@ interface RawSetupStatus {
   wizard_password_path?: string;
   database_bound?: boolean;
   database_driver?: string | null;
+  desktop?: boolean;
+  has_providers?: boolean;
 }
 
 interface RawLoginResponse {
@@ -121,6 +127,8 @@ export const authApi = {
           wizard_password_path: raw.wizard_password_path,
           database_bound: raw.database_bound ?? false,
           database_driver: raw.database_driver ?? null,
+          desktop: raw.desktop ?? false,
+          has_providers: raw.has_providers ?? false,
         };
         return applySetupFlags(value);
       } finally {

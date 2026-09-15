@@ -89,12 +89,28 @@ function handleSetupRequired(): void {
   }
   _redirectingToSetup = true;
   // Full reload drops any in-flight React state.
-  window.location.replace("/setup");
+  window.location.replace(setupRedirectPath());
 }
 
-/** Wizard endpoints stay reachable while lockdown is active. */
+/** Remembered Wails shell flag — keep ``?desktop=1`` if the query was dropped. */
+function setupRedirectPath(): string {
+  try {
+    if (window.sessionStorage.getItem("freeos:desktop-shell") === "1") {
+      return "/setup?desktop=1";
+    }
+  } catch {
+    /* private mode */
+  }
+  return "/setup";
+}
+
+/** Wizard + desktop guest session stay reachable while lockdown is active. */
 function isSetupApiPath(path: string): boolean {
-  return path === "/setup/status" || path.startsWith("/setup/");
+  return (
+    path === "/setup/status" ||
+    path.startsWith("/setup/") ||
+    path === "/auth/local-session"
+  );
 }
 
 /**

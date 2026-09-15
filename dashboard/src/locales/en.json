@@ -4238,6 +4238,8 @@
   },
   "wizard": {
     "title": "Initial setup",
+    "desktopTitle": "Configure a model",
+    "checking": "Checking setup status…",
     "back": "Back",
     "sessionExpired": "Wizard session expired. Please verify the bootstrap password again.",
     "stepDatabase": "Choose database",
@@ -4309,6 +4311,7 @@
     "model": {
       "intro": "Configure one model provider so the assistant can reply. You can skip this step and configure it later.",
       "skip": "Skip",
+      "skipToWorkspace": "Skip and enter workspace",
       "presetTab": "Preset provider",
       "customTab": "Custom provider",
       "showMorePresets": "Show more providers ({{count}})",

@@ -1,14 +1,21 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Segmented, Steps, Typography } from "antd";
+import { message } from "@/utils/antdMessage";
 import { Lock, UserCog, Cpu, CheckCircle, Wand2, Database } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { ensureLocaleBundle } from "../../i18n";
 import { storeUiLocale, type UiLocale } from "../../utils/locale";
 
 import { authApi } from "../../api/modules/auth";
+import { setAuthToken } from "../../api/request";
 import { preferencesApi } from "../../api/modules/preferences";
 import BrandMark from "../../components/BrandMark";
+import {
+  desktopPostSessionPath,
+  markDesktopModelOnboardingDone,
+} from "../../utils/desktopOnboarding";
+import { isDesktopShell } from "../../utils/desktopShell";
 import DatabaseStep from "./steps/DatabaseStep";
 import PasswordStep from "./steps/PasswordStep";
 import AdminStep from "./steps/AdminStep";
@@ -32,6 +39,8 @@ export default function SetupPage() {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const [checking, setChecking] = useState(true);
+  const [desktopFlow, setDesktopFlow] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [passwordRequired, setPasswordRequired] = useState(true);
   const [current, setCurrentRaw] = useState<number>(STEP_PASSWORD);
   const [adminCreds, setAdminCreds] = useState<{
@@ -62,12 +71,42 @@ export default function SetupPage() {
     return r.wizard_token;
   }, []);
 
+  const enterWorkspace = useCallback(() => {
+    markDesktopModelOnboardingDone();
+    wizardSession.clearAll();
+    navigate("/chat", { replace: true });
+  }, [navigate]);
+
   useEffect(() => {
     let cancelled = false;
     authApi
       .getAuthStatus()
       .then(async (status) => {
         if (cancelled) return;
+        const desktop = isDesktopShell() || status.desktop === true;
+
+        if (desktop) {
+          if (
+            desktopPostSessionPath(status.has_providers === true) === "/chat"
+          ) {
+            wizardSession.clearAll();
+            navigate("/chat", { replace: true });
+            return;
+          }
+          try {
+            const session = await authApi.localSession();
+            setAuthToken(session.access_token);
+            wizardSession.saveSetupJwt(session.access_token);
+          } catch {
+            /* AuthGuard / login will keep retrying; stay on the model step */
+          }
+          if (cancelled) return;
+          setDesktopFlow(true);
+          goToStep(STEP_MODEL);
+          setChecking(false);
+          return;
+        }
+
         if (!status.setup_required) {
           wizardSession.clearAll();
           navigate("/login", { replace: true });
@@ -161,7 +200,26 @@ export default function SetupPage() {
     goToStep(STEP_PASSWORD);
   };
 
-  if (checking) {
+  const handleDesktopContinue = async (draft: ProviderDraft) => {
+    const token =
+      wizardSession.loadSetupJwt() || wizardSession.loadToken() || "";
+    if (!token) {
+      message.error(t("wizard.sessionExpired"));
+      return;
+    }
+    setSaving(true);
+    try {
+      await wizardApi.finish({ provider_draft: draft }, token);
+      enterWorkspace();
+    } catch (err) {
+      message.error(
+        err instanceof Error ? err.message : t("wizard.finish.providerFailed"),
+      );
+      setSaving(false);
+    }
+  };
+
+  if (checking || saving) {
     return (
       <div
         style={{
@@ -172,7 +230,9 @@ export default function SetupPage() {
           background: "var(--fn-bg-layout)",
         }}
       >
-        <Text type="secondary">Checking setup status…</Text>
+        <Text type="secondary">
+          {saving ? t("wizard.finish.running") : t("wizard.checking")}
+        </Text>
       </div>
     );
   }
@@ -229,7 +289,8 @@ export default function SetupPage() {
               <BrandMark height={36} className={styles.wizardHeaderLogo} />
               <div className={styles.wizardHeaderBrandText}>
                 <Text type="secondary" className={styles.wizardHeaderSubtitle}>
-                  <Wand2 size={11} /> {t("wizard.title")}
+                  <Wand2 size={11} />{" "}
+                  {desktopFlow ? t("wizard.desktopTitle") : t("wizard.title")}
                 </Text>
               </div>
             </div>
@@ -244,13 +305,15 @@ export default function SetupPage() {
               onChange={handleLanguageChange}
             />
           </div>
-          <Steps
-            className={styles.wizardHeaderSteps}
-            current={stepIndex}
-            labelPlacement="vertical"
-            responsive={false}
-            items={stepItems}
-          />
+          {desktopFlow ? null : (
+            <Steps
+              className={styles.wizardHeaderSteps}
+              current={stepIndex}
+              labelPlacement="vertical"
+              responsive={false}
+              items={stepItems}
+            />
+          )}
         </div>
 
         <div
@@ -258,42 +321,59 @@ export default function SetupPage() {
             isModelStep ? styles.wizardBodyFlush : ""
           }`}
         >
-          {current === STEP_PASSWORD && passwordRequired && (
-            <PasswordStep onVerified={handlePasswordVerified} />
-          )}
-          {current === STEP_DATABASE && (
-            <DatabaseStep
-              onContinue={() => void handleDatabaseContinue()}
-              onBack={passwordRequired ? handleBackFromDatabase : undefined}
-            />
-          )}
-          {current === STEP_ADMIN && (
-            <AdminStep
-              createdCreds={adminCreds}
-              onBack={handleBackFromAdmin}
-              onCreated={(creds) => {
-                setAdminCreds(creds);
-                wizardSession.saveDraft({ adminUsername: creds.username });
-                goToStep(STEP_MODEL);
-              }}
-            />
-          )}
-          {current === STEP_MODEL && (
+          {desktopFlow ? (
             <ModelStep
-              onBack={() => goToStep(STEP_ADMIN)}
-              onSkip={() => {
-                setProviderDraft(null);
-                wizardSession.saveDraft({});
-                goToStep(STEP_FINISH);
-              }}
+              hideBack
+              skipLabel={t("wizard.model.skipToWorkspace")}
+              onBack={() => undefined}
+              onSkip={enterWorkspace}
               onContinue={(draft) => {
-                setProviderDraft(draft);
-                goToStep(STEP_FINISH);
+                void handleDesktopContinue(draft);
               }}
             />
-          )}
-          {current === STEP_FINISH && adminCreds && (
-            <FinishStep adminCreds={adminCreds} providerDraft={providerDraft} />
+          ) : (
+            <>
+              {current === STEP_PASSWORD && passwordRequired && (
+                <PasswordStep onVerified={handlePasswordVerified} />
+              )}
+              {current === STEP_DATABASE && (
+                <DatabaseStep
+                  onContinue={() => void handleDatabaseContinue()}
+                  onBack={passwordRequired ? handleBackFromDatabase : undefined}
+                />
+              )}
+              {current === STEP_ADMIN && (
+                <AdminStep
+                  createdCreds={adminCreds}
+                  onBack={handleBackFromAdmin}
+                  onCreated={(creds) => {
+                    setAdminCreds(creds);
+                    wizardSession.saveDraft({ adminUsername: creds.username });
+                    goToStep(STEP_MODEL);
+                  }}
+                />
+              )}
+              {current === STEP_MODEL && (
+                <ModelStep
+                  onBack={() => goToStep(STEP_ADMIN)}
+                  onSkip={() => {
+                    setProviderDraft(null);
+                    wizardSession.saveDraft({});
+                    goToStep(STEP_FINISH);
+                  }}
+                  onContinue={(draft) => {
+                    setProviderDraft(draft);
+                    goToStep(STEP_FINISH);
+                  }}
+                />
+              )}
+              {current === STEP_FINISH && adminCreds && (
+                <FinishStep
+                  adminCreds={adminCreds}
+                  providerDraft={providerDraft}
+                />
+              )}
+            </>
           )}
         </div>
       </div>

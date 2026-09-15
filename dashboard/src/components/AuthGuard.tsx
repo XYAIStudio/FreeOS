@@ -4,6 +4,7 @@ import { Spin } from "antd";
 import { clearAuthToken, getAuthToken, setAuthToken } from "../api/request";
 import { authApi, type OctopUser } from "../api/modules/auth";
 import { applyUserLocale } from "../utils/locale";
+import { desktopPostSessionPath } from "../utils/desktopOnboarding";
 import { isDesktopShell } from "../utils/desktopShell";
 import { CurrentUserProvider } from "../hooks/useCurrentUser";
 import { AuthPromptProvider } from "../context/AuthPromptContext";
@@ -38,20 +39,32 @@ export default function AuthGuard({ children }: AuthGuardProps) {
       }
     };
 
-    const adoptLocal = async (): Promise<boolean> => {
+    const enterAfterSession = async (me: OctopUser, hasProviders: boolean) => {
+      if (desktop && desktopPostSessionPath(hasProviders) === "/setup") {
+        if (!cancelled) navigate("/setup", { replace: true });
+        return;
+      }
+      await adopt(me);
+    };
+
+    const adoptLocal = async (hasProviders = false): Promise<boolean> => {
       try {
         const res = await authApi.localSession();
         setAuthToken(res.access_token);
-        await adopt(res.user);
+        await enterAfterSession(res.user, hasProviders);
         return true;
       } catch {
         return false;
       }
     };
 
-    const tryLocalSession = async (attempts: number, delayMs: number) => {
+    const tryLocalSession = async (
+      attempts: number,
+      delayMs: number,
+      hasProviders = false,
+    ) => {
       for (let attempt = 0; attempt < attempts; attempt += 1) {
-        if (await adoptLocal()) return true;
+        if (await adoptLocal(hasProviders)) return true;
         if (attempt < attempts - 1) {
           await new Promise((resolve) => {
             window.setTimeout(resolve, delayMs);
@@ -61,9 +74,9 @@ export default function AuthGuard({ children }: AuthGuardProps) {
       return false;
     };
 
-    const holdForDesktop = async () => {
+    const holdForDesktop = async (hasProviders = false) => {
       while (!cancelled) {
-        if (await adoptLocal()) return;
+        if (await adoptLocal(hasProviders)) return;
         await new Promise((resolve) => {
           window.setTimeout(resolve, 400);
         });
@@ -75,10 +88,16 @@ export default function AuthGuard({ children }: AuthGuardProps) {
         const status = await authApi.getAuthStatus();
 
         if (status.setup_required) {
-          if (await tryLocalSession(desktop ? 20 : 4, desktop ? 250 : 150))
+          if (
+            await tryLocalSession(
+              desktop ? 20 : 4,
+              desktop ? 250 : 150,
+              status.has_providers === true,
+            )
+          )
             return;
           if (desktop) {
-            await holdForDesktop();
+            await holdForDesktop(status.has_providers === true);
             return;
           }
           clearAuthToken();
@@ -86,9 +105,25 @@ export default function AuthGuard({ children }: AuthGuardProps) {
           return;
         }
 
+        if (
+          desktop &&
+          desktopPostSessionPath(status.has_providers === true) === "/setup"
+        ) {
+          if (await tryLocalSession(20, 250, status.has_providers === true))
+            return;
+          if (!cancelled) navigate("/setup", { replace: true });
+          return;
+        }
+
         const token = getAuthToken();
         if (!token) {
-          if (await tryLocalSession(desktop ? 20 : 4, desktop ? 250 : 150))
+          if (
+            await tryLocalSession(
+              desktop ? 20 : 4,
+              desktop ? 250 : 150,
+              status.has_providers === true,
+            )
+          )
             return;
           if (desktop) {
             await holdForDesktop();
