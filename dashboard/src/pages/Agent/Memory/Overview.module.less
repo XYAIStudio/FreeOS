@@ -456,7 +456,7 @@
 /* ---- Dark-mode tweaks: brighter accents, chart grid, dossier header ---- */
 :global(html[data-theme="dark"]) {
   .tone_rose {
-    --tone-bg: rgba(240, 139, 154, 0.14);
+    --tone-bg: color-mix(in srgb, var(--fn-color-brand) 14%, transparent);
   }
   .tone_amber {
     --tone-bg: rgba(251, 191, 36, 0.14);
@@ -477,7 +477,7 @@
   .dossierHeader {
     background: linear-gradient(
       135deg,
-      rgba(240, 139, 154, 0.1),
+      color-mix(in srgb, var(--fn-color-brand) 10%, transparent),
       transparent 46%
     );
   }

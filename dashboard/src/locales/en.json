@@ -3301,6 +3301,7 @@
     "themeLight": "Light",
     "themeDark": "Dark",
     "palette": {
+      "freeos": "FreeOS",
       "rose": "Rose",
       "tech": "Tech",
       "indigo": "Indigo",

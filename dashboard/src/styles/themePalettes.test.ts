@@ -25,6 +25,7 @@ function contrastRatio(foreground: string, background: string): number {
 describe("theme palettes", () => {
   it("exposes the curated palette set", () => {
     expect(VALID_PALETTES).toEqual([
+      "freeos",
       "rose",
       "tech",
       "indigo",
@@ -36,7 +37,15 @@ describe("theme palettes", () => {
     ]);
   });
 
-  it("keeps the historic Elegant Rose default brand tokens", () => {
+  it("uses FreeOS logo-center blue as the default brand tokens", () => {
+    expect(ANTD_BRAND_TOKENS.freeos.light.colorPrimary).toBe("#0033FF");
+    expect(ANTD_BRAND_TOKENS.freeos.light.colorPrimaryHover).toBe("#002EE6");
+    expect(ANTD_BRAND_TOKENS.freeos.light.colorPrimaryActive).toBe("#0024CC");
+    expect(ANTD_BRAND_TOKENS.freeos.dark.colorPrimary).toBe("#0033FF");
+    expect(ANTD_BRAND_TOKENS.freeos.dark.colorLink).toBe("#6B8CFF");
+  });
+
+  it("keeps Elegant Rose as an optional palette", () => {
     expect(ANTD_BRAND_TOKENS.rose.light.colorPrimary).toBe("#E85D75");
     expect(ANTD_BRAND_TOKENS.rose.light.colorPrimaryHover).toBe("#D14A62");
     expect(ANTD_BRAND_TOKENS.rose.light.colorPrimaryActive).toBe("#B83A50");

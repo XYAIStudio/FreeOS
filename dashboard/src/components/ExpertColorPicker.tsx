@@ -20,7 +20,7 @@ function isCurated(value: string): value is ThemePalette {
 }
 
 /**
- * Curated 8-swatch picker for expert/agent accent color, plus a custom
+ * Curated swatch picker for expert/agent accent color, plus a custom
  * color swatch backed by the Ant Design color picker (palette + hex input).
  * The onChange callback receives a palette key or a hex string.
  */

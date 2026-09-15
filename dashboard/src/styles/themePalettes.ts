@@ -1,6 +1,7 @@
 /** Brand palettes — orthogonal to light/dark mode (`data-theme`). */
 
 export type ThemePalette =
+  | "freeos"
   | "rose"
   | "tech"
   | "indigo"
@@ -12,6 +13,7 @@ export type ThemePalette =
   | "custom";
 
 export const VALID_PALETTES: ThemePalette[] = [
+  "freeos",
   "rose",
   "tech",
   "indigo",
@@ -25,8 +27,12 @@ export const VALID_PALETTES: ThemePalette[] = [
 /** Curated palettes only — "custom" is handled separately via a hex value. */
 export const CURATED_PALETTES: ThemePalette[] = [...VALID_PALETTES];
 
-export const DEFAULT_PALETTE: ThemePalette = "rose";
+/** FreeOS logo-center teardrop blue (sampled from the circular mark). */
+export const DEFAULT_PALETTE: ThemePalette = "freeos";
 export const DEFAULT_CUSTOM_COLOR = "#4B74FA";
+export const FREEOS_BRAND_BLUE = "#0033FF";
+/** Dark-mode text/link: same hue, lightened to ≥4.5:1 on #141414. */
+export const FREEOS_BRAND_BLUE_ON_DARK = "#6B8CFF";
 
 /** True when the value is one of the curated palette keys (not "custom"/hex). */
 export function isCuratedPalette(value: string): value is ThemePalette {
@@ -44,6 +50,7 @@ export const PALETTE_STORAGE_KEY = LEGACY_PALETTE_STORAGE_KEY;
 
 /** Swatch color shown in the palette picker (light brand). */
 export const PALETTE_SWATCH: Record<ThemePalette, string> = {
+  freeos: FREEOS_BRAND_BLUE,
   rose: "#E85D75",
   tech: "#4B74FA",
   indigo: "#6366F1",
@@ -74,6 +81,27 @@ export const ANTD_BRAND_TOKENS: Record<
   Exclude<ThemePalette, "custom">,
   { light: AntdBrandTokens; dark: AntdBrandTokens }
 > = {
+  freeos: {
+    light: {
+      colorPrimary: FREEOS_BRAND_BLUE,
+      colorPrimaryHover: "#002EE6",
+      colorPrimaryActive: "#0024CC",
+      colorLink: FREEOS_BRAND_BLUE,
+    },
+    dark: {
+      colorPrimary: FREEOS_BRAND_BLUE,
+      colorPrimaryBg: "rgba(0, 51, 255, 0.14)",
+      colorPrimaryBgHover: "rgba(0, 51, 255, 0.2)",
+      colorPrimaryBorder: "rgba(0, 51, 255, 0.3)",
+      colorPrimaryBorderHover: "rgba(0, 51, 255, 0.4)",
+      colorPrimaryHover: "#002EE6",
+      colorPrimaryActive: "#0024CC",
+      colorPrimaryText: FREEOS_BRAND_BLUE_ON_DARK,
+      colorPrimaryTextHover: "#8AA8FF",
+      colorPrimaryTextActive: FREEOS_BRAND_BLUE,
+      colorLink: FREEOS_BRAND_BLUE_ON_DARK,
+    },
+  },
   rose: {
     light: {
       colorPrimary: "#E85D75",

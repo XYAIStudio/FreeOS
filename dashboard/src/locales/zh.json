@@ -3298,6 +3298,7 @@
     "themeLight": "浅色",
     "themeDark": "深色",
     "palette": {
+      "freeos": "FreeOS 蓝",
       "rose": "玫瑰",
       "tech": "科技",
       "indigo": "靛蓝",

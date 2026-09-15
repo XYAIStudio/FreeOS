@@ -17,7 +17,7 @@ afterEach(() => {
 });
 
 describe("appearanceStorage", () => {
-  it("defaults to system preference and rose palette", () => {
+  it("defaults to system preference and the FreeOS palette", () => {
     expect(readStoredAppearance().preference).toBe("system");
     expect(readStoredAppearance().palette).toBe(DEFAULT_PALETTE);
   });

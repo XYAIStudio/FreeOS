@@ -10,13 +10,14 @@ import {
 
 describe("resolveExpertPalette", () => {
   it("matches exact curated swatches", () => {
+    expect(resolveExpertPalette("#0033FF")).toBe("freeos");
     expect(resolveExpertPalette("#E85D75")).toBe("rose");
     expect(resolveExpertPalette("#6366F1")).toBe("indigo");
   });
 
-  it("falls back to rose when color is missing", () => {
-    expect(resolveExpertPalette(null)).toBe("rose");
-    expect(resolveExpertPalette(undefined)).toBe("rose");
+  it("falls back to the default palette when color is missing", () => {
+    expect(resolveExpertPalette(null)).toBe("freeos");
+    expect(resolveExpertPalette(undefined)).toBe("freeos");
   });
 
   it("snaps nearby template pastels onto the nearest swatch", () => {
