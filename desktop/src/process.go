@@ -31,6 +31,7 @@ func hostLaunchEnv(root string, port int) map[string]string {
 		"FREEOS_ORG_SIDECAR_PORT": strconv.Itoa(defaultSidecarPort),
 		"OPENXYOS_BASE_URL":       sidecarURL(),
 		"OCTOP_PORT":              strconv.Itoa(port),
+		"OCTOP_DESKTOP":           "1",
 	}
 }
 

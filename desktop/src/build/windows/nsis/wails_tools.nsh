@@ -5,6 +5,7 @@
 !include "x64.nsh"
 !include "WinVer.nsh"
 !include "FileFunc.nsh"
+!include "LogicLib.nsh"
 
 !ifndef INFO_PROJECTNAME
     !define INFO_PROJECTNAME "FreeOS"
@@ -241,4 +242,95 @@ RequestExecutionLevel "${REQUEST_EXECUTION_LEVEL}"
 
 !macro wails.unassociateCustomProtocols
     ; No custom protocols
+!macroend
+
+# Shared filter: desktop shell, anything under $INSTDIR, portable host
+# (python + launch.py run), and org-sidecar node. $R7 is "1" when any match.
+!macro wails.detectFreeOSProcesses
+    StrCpy $R7 "0"
+    nsExec::Exec 'powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "$$ErrorActionPreference=''SilentlyContinue''; $$n = @(Get-CimInstance Win32_Process | Where-Object { ($$_.Name -eq ''${PRODUCT_EXECUTABLE}'') -or ($$_.ExecutablePath -like ''$INSTDIR*'') -or ($$_.CommandLine -like ''*\portable\*launch.py* run*'') -or ($$_.ExecutablePath -like ''*\org-sidecar\*'') }).Count; if ($$n -gt 0) { exit 11 } else { exit 0 }"'
+    Pop $0
+    ${If} $0 == 11
+        StrCpy $R7 "1"
+    ${Else}
+        nsExec::Exec 'cmd.exe /C tasklist /FI "IMAGENAME eq ${PRODUCT_EXECUTABLE}" | find /I "${PRODUCT_EXECUTABLE}"'
+        Pop $0
+        ${If} $0 == 0
+            StrCpy $R7 "1"
+        ${EndIf}
+    ${EndIf}
+!macroend
+
+# If FreeOS is running: ask first (never kill on Cancel). Yes → close then
+# force-stop, then uninstall continues. LangString UN_FREEOS_RUNNING is
+# defined in project.nsi after MUI_LANGUAGE.
+!macro wails.confirmRunningFreeOS
+    !insertmacro wails.detectFreeOSProcesses
+    ${If} $R7 == "1"
+        MessageBox MB_YESNO|MB_ICONEXCLAMATION|MB_DEFBUTTON2 "$(UN_FREEOS_RUNNING)" IDYES wailsConfirmKill
+        Abort
+        wailsConfirmKill:
+        !insertmacro wails.stopFreeOSProcesses
+    ${EndIf}
+!macroend
+
+# Close the shell / host / sidecar. Caller must have confirmed when they
+# were running. Graceful CloseMainWindow / taskkill, then force leftovers.
+!macro wails.stopFreeOSProcesses
+    DetailPrint "Stopping FreeOS processes..."
+    nsExec::ExecToLog 'taskkill /T /IM "${PRODUCT_EXECUTABLE}"'
+    Pop $0
+    nsExec::ExecToLog 'powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "$$ErrorActionPreference=''SilentlyContinue''; $$sel = { ($$_.Name -eq ''${PRODUCT_EXECUTABLE}'') -or ($$_.ExecutablePath -like ''$INSTDIR*'') -or ($$_.CommandLine -like ''*\portable\*launch.py* run*'') -or ($$_.ExecutablePath -like ''*\org-sidecar\*'') }; Get-CimInstance Win32_Process | Where-Object $$sel | ForEach-Object { try { $$p = Get-Process -Id $$_.ProcessId; [void]$$p.CloseMainWindow() } catch {} }; Start-Sleep -Seconds 2; Get-CimInstance Win32_Process | Where-Object $$sel | ForEach-Object { Stop-Process -Id $$_.ProcessId -Force }"'
+    Pop $0
+    nsExec::ExecToLog 'taskkill /F /T /IM "${PRODUCT_EXECUTABLE}"'
+    Pop $0
+    Sleep 1500
+!macroend
+
+# Recursively remove the install directory. User profile homes stay intact:
+# %USERPROFILE%\.freeos, FREEOS_HOME / OCTOP_HOME, and legacy ~/.octop.
+# Documented exceptions inside $INSTDIR: "User Data" and "userdata".
+!macro wails.wipeInstallDir
+    StrCmp $INSTDIR "" wailsWipeSkip
+    StrCmp $INSTDIR "$PROFILE" wailsWipeSkip
+    StrCmp $INSTDIR "$PROFILE\.freeos" wailsWipeSkip
+    StrCmp $INSTDIR "$PROFILE\.octop" wailsWipeSkip
+    StrCmp $INSTDIR "$WINDIR" wailsWipeSkip
+    StrCmp $INSTDIR "$SYSDIR" wailsWipeSkip
+    StrCmp $INSTDIR "$PROGRAMFILES" wailsWipeSkip
+    StrCmp $INSTDIR "$PROGRAMFILES64" wailsWipeSkip
+
+    ; RMDir cannot remove the current working directory.
+    SetOutPath "$TEMP"
+    RMDir /r "$TEMP\FreeOS-keep-UserData"
+    RMDir /r "$TEMP\FreeOS-keep-userdata"
+
+    StrCpy $R8 ""
+    StrCpy $R9 ""
+    IfFileExists "$INSTDIR\User Data" 0 +3
+        Rename "$INSTDIR\User Data" "$TEMP\FreeOS-keep-UserData"
+        StrCpy $R8 "1"
+    IfFileExists "$INSTDIR\userdata" 0 +3
+        Rename "$INSTDIR\userdata" "$TEMP\FreeOS-keep-userdata"
+        StrCpy $R9 "1"
+
+    RMDir /r "$INSTDIR"
+
+    Delete /REBOOTOK "$INSTDIR\${PRODUCT_EXECUTABLE}"
+    Delete /REBOOTOK "$INSTDIR\uninstall.exe"
+
+    ${If} $R8 == "1"
+    ${OrIf} $R9 == "1"
+        CreateDirectory "$INSTDIR"
+        ${If} $R8 == "1"
+            Rename "$TEMP\FreeOS-keep-UserData" "$INSTDIR\User Data"
+        ${EndIf}
+        ${If} $R9 == "1"
+            Rename "$TEMP\FreeOS-keep-userdata" "$INSTDIR\userdata"
+        ${EndIf}
+    ${Else}
+        IfFileExists "$INSTDIR\*.*" 0 wailsWipeSkip
+            Exec '"$SYSDIR\cmd.exe" /C ping 127.0.0.1 -n 3 -w 1000 > nul & rmdir /s /q "$INSTDIR"'
+    ${EndIf}
+    wailsWipeSkip:
 !macroend

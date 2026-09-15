@@ -64,7 +64,7 @@ Operator detail: [docs/asset-loop.md](docs/asset-loop.md).
 3. 打开 **FreeOS**。第一次启动会解压内置运行环境（可能要一两分钟），然后直接进入可用会话，无需先登录。
 4. 保存、导出或发布到账号时再注册或登录。组织控制台（openXYOS）已随安装包内置，无需再装 Node；侧栏 **Organization** 默认打开。
 
-数据目录默认是 `%USERPROFILE%\.freeos`（可用环境变量 `FREEOS_HOME` 改）。旧版 Octop 的 `~/.octop` 仍会被识别。
+数据目录默认是 `%USERPROFILE%\.freeos`（可用环境变量 `FREEOS_HOME` 改）。旧版 Octop 的 `~/.octop` 仍会被识别。卸载安装包会清空安装目录（默认为 `Program Files\FreeOS`）并删除快捷方式，但**不会**删除该用户数据目录；详见 [desktop/README.md](desktop/README.md#windows-uninstall)。
 
 安装包由 CI 工作流 **FreeOS Desktop Package**（文件名仍是 `.github/workflows/octop-desktop.yml`，给现有发版脚本用）在 Windows runner 上打出来。本仓库的云环境打不出 `.exe`；合并后由该 job 产出。
 

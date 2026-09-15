@@ -6,8 +6,14 @@
 
 ## [Unreleased]
 
+### 修复
+
+- Windows NSIS uninstall now stops FreeOS / host / sidecar processes and recursively removes `$INSTDIR` (quoted `RMDir /r`, plus a delayed cleanup after `uninstall.exe` exits). If those processes are still running, uninstall asks first (cancel aborts and leaves them running; confirm closes them then wipes the install dir). User profile data under `%USERPROFILE%\.freeos` / `FREEOS_HOME` / legacy `~/.octop` is kept. Product version remains 0.0.1.
+
 ### 变更
 
+- Windows NSIS finish page shows a “运行 FreeOS” checkbox, checked by default, and launches from `$INSTDIR`.
+- Desktop shell sets `OCTOP_DESKTOP=1` on the bundled host so first-run can treat the process as the Wails app.
 - First launch on desktop / loopback opens a local guest session — no login wall. Register or sign in only when saving, exporting, or publishing to an account.
 - Login, splash, favicons, and desktop icons use the circular XYAI mark. Product version remains 0.0.1.
 
