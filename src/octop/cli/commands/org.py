@@ -175,3 +175,170 @@ def skills_publish(skill_dir: Path, out_dir: Path | None) -> None:
         skill_dir = skill_dir.parent
     draft = publish_skill(skill_dir, out_dir=out_dir)
     click.echo(json.dumps(draft.to_dict(), indent=2))
+
+
+@org.command("compile-blueprint")
+@click.argument("blueprint", type=click.Path(path_type=Path, exists=True))
+@click.option("--tenant-id", default="")
+@click.option("--out", "out_dir", type=click.Path(path_type=Path), default=None)
+def compile_blueprint_cmd(blueprint: Path, tenant_id: str, out_dir: Path | None) -> None:
+    """Compile openxyos.agent-blueprint.v1 into a FreeOS employee workspace."""
+    from octop.modules.org_os.compiler.compile import compile_blueprint
+    from octop.modules.org_os.lifecycle.store import LifecycleStore
+    from octop.modules.org_os.lifecycle.transitions import register_compiled
+
+    service = _service()
+    tid = tenant_id or service.tenant_id() or "default"
+    compiled = compile_blueprint(
+        blueprint,
+        home=service.home,
+        tenant_id=tid,
+        sidecar_url=service.sidecar_url(),
+        out_dir=out_dir,
+    )
+    store = LifecycleStore(service.home, tid)
+    register_compiled(
+        store,
+        slug=compiled.slug,
+        name=compiled.slug,
+        workspace=compiled.workspace,
+        lifecycle="draft",
+    )
+    click.echo(json.dumps(compiled.to_dict(), indent=2))
+
+
+@org.group("employee")
+def org_employee() -> None:
+    """Digital-colleague lifecycle: spawn, list, transition, export-profile."""
+
+
+@org_employee.command("spawn")
+@click.option(
+    "--blueprint", "blueprint_path", type=click.Path(path_type=Path, exists=True), required=True
+)
+@click.option("--tenant-id", default="")
+def employee_spawn(blueprint_path: Path, tenant_id: str) -> None:
+    """Compile a blueprint and register the colleague in draft (then recruit)."""
+    from octop.modules.org_os.compiler.blueprint import parse_blueprint
+    from octop.modules.org_os.compiler.compile import compile_blueprint
+    from octop.modules.org_os.lifecycle.store import LifecycleStore
+    from octop.modules.org_os.lifecycle.transitions import register_compiled
+
+    service = _service()
+    tid = tenant_id or service.tenant_id() or "default"
+    blueprint = parse_blueprint(blueprint_path, tenant_id=tid)
+    compiled = compile_blueprint(
+        blueprint, home=service.home, tenant_id=tid, sidecar_url=service.sidecar_url()
+    )
+    store = LifecycleStore(service.home, tid)
+    record = register_compiled(
+        store,
+        slug=compiled.slug,
+        name=blueprint.name,
+        workspace=compiled.workspace,
+        lifecycle="draft",
+    )
+    click.echo(
+        json.dumps({"compiled": compiled.to_dict(), "lifecycle": record.to_dict()}, indent=2)
+    )
+    click.echo("Next: freeos org employee transition <slug> market|recruit|shadow|active")
+
+
+@org_employee.command("list")
+@click.option("--tenant-id", default="")
+def employee_list(tenant_id: str) -> None:
+    """List persisted colleagues for this tenant."""
+    from octop.modules.org_os.lifecycle.store import LifecycleStore
+
+    service = _service()
+    tid = tenant_id or service.tenant_id() or "default"
+    rows = [item.to_dict() for item in LifecycleStore(service.home, tid).list()]
+    click.echo(json.dumps(rows, indent=2))
+
+
+@org_employee.command("transition")
+@click.argument("slug")
+@click.argument("state")
+@click.option("--tenant-id", default="")
+@click.option("--reason", default="")
+def employee_transition(slug: str, state: str, tenant_id: str, reason: str) -> None:
+    """Move draft→market→recruit→shadow→active or offboard (revokes credentials)."""
+    from octop.modules.org_os.lifecycle.store import LifecycleStore
+    from octop.modules.org_os.lifecycle.transitions import transition
+
+    service = _service()
+    tid = tenant_id or service.tenant_id() or "default"
+    record = transition(LifecycleStore(service.home, tid), slug, state, reason=reason)
+    click.echo(json.dumps(record.to_dict(), indent=2))
+
+
+@org_employee.command("export-profile")
+@click.argument("slug")
+@click.option("--tenant-id", default="")
+def employee_export_profile(slug: str, tenant_id: str) -> None:
+    """Write a capability digest + openXYOS HR payload (local draft; sidecar optional)."""
+    from octop.modules.org_os.compiler.telemetry import (
+        OpenXyosHrClient,
+        export_capability_digest,
+    )
+    from octop.modules.org_os.lifecycle.store import LifecycleStore
+
+    service = _service()
+    tid = tenant_id or service.tenant_id() or "default"
+    record = LifecycleStore(service.home, tid).get(slug)
+    if record is None:
+        raise SystemExit(f"unknown colleague: {slug}")
+    digest = export_capability_digest(Path(record.workspace), lifecycle=record.lifecycle)
+    result = OpenXyosHrClient(service.sidecar_url()).upsert_employee_profile(
+        digest, draft_dir=service.home / "tenants" / tid / "hr-drafts"
+    )
+    click.echo(json.dumps({"digest": digest.to_dict(), "hr": result}, indent=2))
+
+
+@org.group("assets")
+def org_assets() -> None:
+    """Bidirectional asset factory: publish pack / import catalog+blueprints."""
+
+
+@org_assets.command("publish")
+@click.option("--out", "out_dir", type=click.Path(path_type=Path), default=None)
+def assets_publish(out_dir: Path | None) -> None:
+    """Package produced skills/plugins/MCPs/agents as an openXYOS-shaped draft."""
+    from octop.modules.org_os.assets.pack import publish_asset_pack
+
+    service = _service()
+    pack = publish_asset_pack(service.home, tenant_id=service.tenant_id(), out_dir=out_dir)
+    click.echo(json.dumps(pack.to_dict(), indent=2))
+
+
+@org_assets.command("import")
+@click.option("--catalog", is_flag=True, help="Generate skills from the openXYOS module catalog.")
+@click.option("--blueprint", "blueprint_path", type=click.Path(path_type=Path, exists=True))
+@click.option("--policies", "policies_path", type=click.Path(path_type=Path, exists=True))
+@click.option(
+    "--from-sidecar",
+    is_flag=True,
+    help="Best-effort GET /api/governance/permissions from the sidecar.",
+)
+@click.option("--tenant-id", default="")
+def assets_import(
+    catalog: bool,
+    blueprint_path: Path | None,
+    policies_path: Path | None,
+    from_sidecar: bool,
+    tenant_id: str,
+) -> None:
+    """Import control-plane catalog/blueprint/policies into FreeOS generators."""
+    from octop.modules.org_os.assets.importer import import_openxyos_assets
+
+    service = _service()
+    imported = import_openxyos_assets(
+        service.home,
+        tenant_id=tenant_id or service.tenant_id() or "default",
+        sidecar_url=service.sidecar_url(),
+        catalog=catalog,
+        blueprint_path=blueprint_path,
+        policies_path=policies_path,
+        from_sidecar=from_sidecar,
+    )
+    click.echo(json.dumps(imported.to_dict(), indent=2))

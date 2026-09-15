@@ -143,6 +143,32 @@ class PathLayout:
         out.mkdir(parents=True, exist_ok=True)
         return out
 
+    @staticmethod
+    def _safe_id(value: str) -> str:
+        cleaned = "".join(ch if ch.isalnum() or ch in "-_" else "-" for ch in (value or "").strip())
+        return cleaned.strip("-_")[:80] or "default"
+
+    def tenant_dir(self, tenant_id: str) -> Path:
+        """One tenant = one tree: ``~/.freeos/tenants/<id>/``."""
+        return self.root / "tenants" / self._safe_id(tenant_id)
+
+    def employee_dir(self, tenant_id: str, slug: str) -> Path:
+        return self.tenant_dir(tenant_id) / "employees" / self._safe_id(slug)
+
+    def ensure_employee_dir(self, tenant_id: str, slug: str) -> Path:
+        out = self.employee_dir(tenant_id, slug)
+        out.mkdir(parents=True, exist_ok=True)
+        return out
+
+    @property
+    def asset_packs_dir(self) -> Path:
+        return self.root / "asset-packs"
+
+    def ensure_asset_packs_dir(self) -> Path:
+        out = self.asset_packs_dir
+        out.mkdir(parents=True, exist_ok=True)
+        return out
+
     @property
     def backups_dir(self) -> Path:
         """Stored system backup archives: ``~/.octop/backups/``."""
