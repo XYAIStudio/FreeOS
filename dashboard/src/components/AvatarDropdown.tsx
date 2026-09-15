@@ -41,12 +41,13 @@ import { useIsMobile } from "../hooks/useIsMobile";
 import ThemeSwitcher from "./ThemeSwitcher";
 import PaletteSwitcher from "./PaletteSwitcher";
 import type { OctopUser } from "../api/modules/auth";
+import { useAuthPrompt } from "../context/AuthPromptContext";
 import { useLayoutMode } from "../context/LayoutModeContext";
 import type { LayoutMode } from "../layouts/layoutModeStorage";
 import { userCan } from "../utils/permissions";
 import styles from "./AvatarDropdown.module.less";
 
-const GITHUB_URL = "https://github.com/TencentCloud/Octop";
+const GITHUB_URL = "https://github.com/XYAIStudio/FreeOS";
 
 interface AvatarDropdownProps {
   user: OctopUser | null;
@@ -74,6 +75,7 @@ export default function AvatarDropdown({
   const role = useUserRole();
   const isMobile = useIsMobile();
   const { layoutMode, setLayoutMode } = useLayoutMode();
+  const { openAuthPrompt } = useAuthPrompt();
   const [menuOpen, setMenuOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [passwordOpen, setPasswordOpen] = useState(false);
@@ -230,7 +232,7 @@ export default function AvatarDropdown({
 
       <a
         className={styles.menuItem}
-        href="https://tencentcloud.github.io/Octop/"
+        href="https://github.com/XYAIStudio/FreeOS"
         target="_blank"
         rel="noopener noreferrer"
         onClick={() => setMenuOpen(false)}
@@ -255,10 +257,28 @@ export default function AvatarDropdown({
         <span>{t("account.settings")}</span>
       </button>
 
-      <button type="button" className={styles.menuItem} onClick={openPassword}>
-        <KeyRound size={16} strokeWidth={1.8} />
-        <span>{t("account.changePassword")}</span>
-      </button>
+      {user?.is_local ? (
+        <button
+          type="button"
+          className={styles.menuItem}
+          onClick={() => {
+            setMenuOpen(false);
+            void openAuthPrompt();
+          }}
+        >
+          <KeyRound size={16} strokeWidth={1.8} />
+          <span>{t("login.signInOrRegister")}</span>
+        </button>
+      ) : (
+        <button
+          type="button"
+          className={styles.menuItem}
+          onClick={openPassword}
+        >
+          <KeyRound size={16} strokeWidth={1.8} />
+          <span>{t("account.changePassword")}</span>
+        </button>
+      )}
 
       {userCan(user, "update") && (
         <button
@@ -274,16 +294,19 @@ export default function AvatarDropdown({
         </button>
       )}
 
-      <Divider className={styles.menuDivider} />
-
-      <button
-        type="button"
-        className={`${styles.menuItem} ${styles.menuItemDanger}`}
-        onClick={() => void handleLogout()}
-      >
-        <LogOut size={16} strokeWidth={1.8} />
-        <span>{t("auth.logout")}</span>
-      </button>
+      {user?.is_local ? null : (
+        <>
+          <Divider className={styles.menuDivider} />
+          <button
+            type="button"
+            className={`${styles.menuItem} ${styles.menuItemDanger}`}
+            onClick={() => void handleLogout()}
+          >
+            <LogOut size={16} strokeWidth={1.8} />
+            <span>{t("auth.logout")}</span>
+          </button>
+        </>
+      )}
     </div>
   );
 

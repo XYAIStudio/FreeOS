@@ -132,6 +132,11 @@ FreeOS circular mark (gray ring, yellow / green / red teardrops, blue center).
 | File | Used for | Rule |
 |------|----------|------|
 | `src/build/appicon.png` | Windows `.ico`, Linux | Full-bleed 512x512 artwork (mark ≥90% of canvas; regenerate with `python3 src/build/generate_appicons.py`) |
+
+Windows installer icons (`.ico`) are produced on the **FreeOS Desktop Package** CI
+job (`.github/workflows/octop-desktop.yml`) via `wails3 generate icons -input appicon.png`.
+This Linux checkout cannot emit a signed `.exe`; after merging, that workflow
+rebuilds `windows/icon.ico` and the NSIS shortcut from the updated `appicon.png`.
 | `src/build/appicon-macos.png` | macOS `.icns` | 1024x1024 canvas, artwork 824x824 centred |
 | `src/assets/tray-icon.png` | Tray + app icon on Windows/Linux | Full-bleed |
 | `src/assets/tray-icon-template.png` | macOS menu bar | 88px canvas, 64px black-on-transparent glyph |

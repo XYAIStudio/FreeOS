@@ -186,6 +186,11 @@ class UserManager:
         """Adopt a user row created outside ``create`` (e.g. invite redeem)."""
         self._users[user.username] = user
 
+    def replace_cached_user(self, old_username: str, user: User) -> None:
+        """Swap a cached identity after rename / local-account claim."""
+        self._users.pop(old_username, None)
+        self._users[user.username] = user
+
     async def create_from_invite(
         self,
         *,

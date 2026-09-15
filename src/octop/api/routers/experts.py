@@ -64,6 +64,7 @@ from octop.infra.agents.experts.skillhub_market import (
 )
 from octop.infra.errors import ErrorCode, OctopError
 from octop.infra.trajectory.settings import apply_enable_trajectory
+from octop.infra.users.local_session import require_claimed_account
 from octop.infra.utils.locale import resolve_user_locale
 
 router = APIRouter()
@@ -408,6 +409,7 @@ async def publish_agent_expert(
     server: Any = Depends(get_server),
 ) -> dict[str, Any]:
     """Snapshot an owned agent workspace into a globally installable expert template."""
+    require_claimed_account(server, user)
     source = require_agent_owner_row(agent_id, user=user, as_user=None, server=server)
     if not user_owns_agent(source, user):
         raise OctopError(ErrorCode.FORBIDDEN, "agent not owned by user")

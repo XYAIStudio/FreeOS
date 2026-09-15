@@ -38,6 +38,7 @@ from octop.infra.backup.system_archive import create_system_backup, restore_syst
 from octop.infra.db.pool import DatabasePool
 from octop.infra.db.repos.audit import ACTOR_ADMIN
 from octop.infra.errors import ErrorCode, OctopError
+from octop.infra.users.local_session import require_claimed_account
 from octop.infra.utils.paths import PathLayout
 
 logger = logging.getLogger(__name__)
@@ -246,10 +247,11 @@ async def get_auto_backup_settings(
 @router.put("/backup/auto", summary="Update automatic backup settings")
 async def put_auto_backup_settings(
     body: AutoBackupSettingsBody,
-    _: Any = Depends(require_permission("backup")),
+    user: Any = Depends(require_permission("backup")),
     server: Any = Depends(get_server),
 ) -> dict[str, Any]:
     """Persist auto-backup settings and reschedule the in-process system job."""
+    require_claimed_account(server, user)
     backup = backup_config_from_payload(body.model_dump())
     update_server_backup_config(server, backup)
     return {"ok": True, **_auto_settings_payload(server)}
@@ -274,10 +276,11 @@ async def run_auto_backup_now(
 @router.post("/backup/create", summary="Create backup and save to backups dir")
 async def create_backup(
     body: CreateBackupBody | None = None,
-    _: Any = Depends(require_permission("backup")),
+    user: Any = Depends(require_permission("backup")),
     server: Any = Depends(get_server),
 ) -> dict[str, Any]:
     """Create a selected-content backup and persist it under ``backups_dir``."""
+    require_claimed_account(server, user)
     assert server.services is not None
     options = body or CreateBackupBody()
     _raise_if_backup_busy()

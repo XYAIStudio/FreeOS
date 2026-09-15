@@ -10,16 +10,20 @@ from fastapi.openapi.utils import get_openapi
 from octop.api.deps import is_jwt_exempt_path
 
 API_DESCRIPTION = """\
-**Octop** is a smarter, self-hosted AI assistant for multiple users and agents. All routes are served under `/api`.
+**FreeOS** is a self-hosted multi-agent assistant. All routes are served under `/api`.
 
 ## Authentication
 
 Most endpoints require a JWT bearer token:
 
-1. Complete initial setup via `/api/setup/*` (first install only).
-2. `POST /api/auth/login` with `username` and `password`, or complete the OIDC flow
+1. On desktop or loopback first launch, `POST /api/auth/local-session` issues a
+   guest JWT so the UI can open without a login wall. Register later via
+   `POST /api/auth/register` when a save needs an account.
+2. Complete the optional setup wizard via `/api/setup/*` when a remote install
+   still has no users.
+3. `POST /api/auth/login` with `username` and `password`, or complete the OIDC flow
    with `/api/auth/oidc/start` and `/api/auth/oidc/exchange` when SSO is enabled.
-3. Send `Authorization: Bearer <access_token>` on subsequent requests.
+4. Send `Authorization: Bearer <access_token>` on subsequent requests.
 
 Access tokens use sliding renewal: when less than one-third of
 `access_token_ttl_seconds` remains, authenticated responses may include a fresh
@@ -27,7 +31,7 @@ token in the `X-Octop-Access-Token` header. Clients should replace the stored
 token when present.
 
 Public endpoints (no token): `/api/docs`, `/api/openapi.json`, `/api/health`,
-`/api/setup/*`, `/api/auth/login`, `/api/auth/oidc/status`, `/api/auth/oidc/start`,
+`/api/setup/*`, `/api/auth/login`, `/api/auth/local-session`, `/api/auth/oidc/status`, `/api/auth/oidc/start`,
 `/api/auth/oidc/callback`, `/api/auth/oidc/exchange`, `/api/auth/invite/validate`,
 `/api/auth/invite/redeem`, `/api/connectors/oauth/callback`,
 and `/api/internal/mcp/*`.

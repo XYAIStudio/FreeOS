@@ -168,6 +168,10 @@ class UserRepo:
         with self._db.transaction() as conn:
             conn.execute("UPDATE users SET role = ? WHERE id = ?", (role, user_id))
 
+    def set_username(self, user_id: int, username: str) -> None:
+        with self._db.transaction() as conn:
+            conn.execute("UPDATE users SET username = ? WHERE id = ?", (username, user_id))
+
     def set_password_hash(self, user_id: int, password_hash: str) -> None:
         with self._db.transaction() as conn:
             conn.execute(

@@ -184,6 +184,7 @@ export default defineConfig(({ mode }) => {
         includeAssets: [
           "offline.html",
           "logo.svg",
+          "xyai-mark.png",
           "logo_name.png",
           "logo_name_dark.png",
           "pwa-192.png",

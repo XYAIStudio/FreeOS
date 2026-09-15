@@ -61,8 +61,8 @@ Operator detail: [docs/asset-loop.md](docs/asset-loop.md).
    `FreeOS-desktop-windows-amd64-<version>.exe`（普通 64 位电脑）或
    `FreeOS-desktop-windows-arm64-<version>.exe`（ARM 电脑）。
 2. 双击安装包。安装程序会放到「程序文件」并创建开始菜单和桌面快捷方式。
-3. 打开 **FreeOS**。第一次启动会解压内置运行环境（可能要一两分钟），然后出现设置向导。
-4. 设好管理员密码后即可聊天。组织控制台（openXYOS）已随安装包内置，无需再装 Node；侧栏 **Organization** 默认打开。
+3. 打开 **FreeOS**。第一次启动会解压内置运行环境（可能要一两分钟），然后直接进入可用会话，无需先登录。
+4. 保存、导出或发布到账号时再注册或登录。组织控制台（openXYOS）已随安装包内置，无需再装 Node；侧栏 **Organization** 默认打开。
 
 数据目录默认是 `%USERPROFILE%\.freeos`（可用环境变量 `FREEOS_HOME` 改）。旧版 Octop 的 `~/.octop` 仍会被识别。
 
