@@ -35,14 +35,21 @@ export default function AuthGuard({ children }: AuthGuardProps) {
     };
 
     const tryLocalSession = async (): Promise<boolean> => {
-      try {
-        const res = await authApi.localSession();
-        setAuthToken(res.access_token);
-        await adopt(res.user);
-        return true;
-      } catch {
-        return false;
+      for (let attempt = 0; attempt < 4; attempt += 1) {
+        try {
+          const res = await authApi.localSession();
+          setAuthToken(res.access_token);
+          await adopt(res.user);
+          return true;
+        } catch {
+          if (attempt < 3) {
+            await new Promise((resolve) => {
+              window.setTimeout(resolve, 150);
+            });
+          }
+        }
       }
+      return false;
     };
 
     const check = async () => {

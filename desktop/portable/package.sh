@@ -34,8 +34,13 @@ build_octop_wheel() {
   # Drop previous local octop wheels so we pick the fresh build.
   find "$wheel_dir" -maxdepth 1 -type f -name 'octop-*.whl' -delete 2>/dev/null || true
   if [[ ! -f "${REPO_ROOT}/src/octop/dashboard/index.html" ]]; then
-    echo "[package] WARNING: dashboard not built (src/octop/dashboard/index.html missing)." >&2
+    echo "[package] dashboard not built (src/octop/dashboard/index.html missing)." >&2
     echo "  Run: make build-frontend" >&2
+    exit 1
+  fi
+  if ! grep -q 'xyai-mark.png' "${REPO_ROOT}/src/octop/dashboard/index.html"; then
+    echo "[package] dashboard boot splash is missing xyai-mark.png — refuse to ship Octop-branded UI." >&2
+    exit 1
   fi
   echo "[package] building octop wheel → ${wheel_dir}" >&2
   uv build --wheel --out-dir "$wheel_dir" "$REPO_ROOT" >&2
@@ -260,6 +265,15 @@ assemble_one() {
       echo "org_sidecar=1"
     fi
   } > "${staging}/VERSION.txt"
+
+  # Same semver (0.0.1) rebuilds must still replace leftover Octop / stale
+  # dashboards. The desktop host compares this stamp, not the product version.
+  stamp="${GITHUB_SHA:-}"
+  if [[ -z "$stamp" ]]; then
+    stamp="$(git -C "$REPO_ROOT" rev-parse HEAD 2>/dev/null || true)"
+  fi
+  stamp="${stamp:-local}-$(date -u +%Y%m%d%H%M%S)"
+  printf '%s\n' "$stamp" > "${staging}/FREEOS_STAMP"
 
   rm -f "$zip_path"
   echo "[package] ${plat}: zipping → ${zip_path}"

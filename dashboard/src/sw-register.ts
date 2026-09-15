@@ -15,6 +15,13 @@
 let pendingRegistration: ServiceWorkerRegistration | null = null;
 let applyingUpdate = false;
 
+/** Wails desktop opens `/?desktop=1` so leftover Octop SWs cannot pin old login HTML. */
+export function isDesktopAppQuery(
+  search: string = window.location.search,
+): boolean {
+  return new URLSearchParams(search).get("desktop") === "1";
+}
+
 function notifyUpdateReady(): void {
   window.dispatchEvent(new CustomEvent("pwa:update-ready"));
 }
@@ -112,7 +119,7 @@ export async function registerProductionSW(): Promise<void> {
 export async function registerSW(): Promise<void> {
   if (!("serviceWorker" in navigator)) return;
 
-  if (import.meta.env.DEV) {
+  if (import.meta.env.DEV || isDesktopAppQuery()) {
     try {
       await unregisterAllServiceWorkers();
     } catch (err) {

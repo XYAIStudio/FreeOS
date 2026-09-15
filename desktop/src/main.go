@@ -224,7 +224,7 @@ func (a *App) showDashboard(base string) {
 	if a.window == nil {
 		return
 	}
-	a.window.SetURL(base)
+	a.window.SetURL(withDesktopQuery(base))
 	a.scheduleDragOverlay()
 	s := a.store.get()
 	go func() {

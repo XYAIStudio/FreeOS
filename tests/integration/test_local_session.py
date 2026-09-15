@@ -76,3 +76,20 @@ async def test_local_session_refuses_when_multiple_users(app_client) -> None:
     await create_user(c, admin_auth, username="bob", password="TestPass12")
     r = await c.post("/api/auth/local-session")
     assert r.status_code == 403
+
+
+async def test_local_session_desktop_picks_admin_when_multiple_users(
+    app_client, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    c, _srv, home = app_client
+    await bootstrap_admin(c, home, username="alice", password="TestPass12")
+    tok = (
+        await c.post("/api/auth/login", json={"username": "alice", "password": "TestPass12"})
+    ).json()["access_token"]
+    admin_auth = {"Authorization": f"Bearer {tok}"}
+    await create_user(c, admin_auth, username="bob", password="TestPass12")
+    monkeypatch.setenv("OCTOP_DESKTOP", "1")
+    r = await c.post("/api/auth/local-session")
+    assert r.status_code == 200
+    assert r.json()["user"]["username"] == "alice"
+    assert r.json()["user"]["role"] == "admin"

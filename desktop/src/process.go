@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strconv"
+	"strings"
 )
 
 func mustEnv(cmd *exec.Cmd, extra map[string]string) {
@@ -32,6 +33,7 @@ func hostLaunchEnv(root string, port int) map[string]string {
 		"OPENXYOS_BASE_URL":       sidecarURL(),
 		"OCTOP_PORT":              strconv.Itoa(port),
 		"OCTOP_DESKTOP":           "1",
+		"FREEOS_DESKTOP":          "1",
 	}
 }
 
@@ -68,4 +70,16 @@ func stopOctop(cmd *exec.Cmd) {
 
 func dashboardURL(port int) string {
 	return fmt.Sprintf("http://127.0.0.1:%d/", port)
+}
+
+// withDesktopQuery marks the SPA as the Wails shell so it can skip PWA
+// service-worker caching and treat first open as a local desktop session.
+func withDesktopQuery(base string) string {
+	if strings.Contains(base, "desktop=1") {
+		return base
+	}
+	if strings.Contains(base, "?") {
+		return base + "&desktop=1"
+	}
+	return strings.TrimRight(base, "/") + "/?desktop=1"
 }

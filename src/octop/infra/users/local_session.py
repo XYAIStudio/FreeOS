@@ -25,8 +25,23 @@ _provision_lock = asyncio.Lock()
 
 
 def is_desktop_process() -> bool:
-    raw = (os.environ.get("OCTOP_DESKTOP") or "").strip().lower()
-    return raw in {"1", "true", "yes", "on"}
+    for key in ("OCTOP_DESKTOP", "FREEOS_DESKTOP"):
+        raw = (os.environ.get(key) or "").strip().lower()
+        if raw in {"1", "true", "yes", "on"}:
+            return True
+    return bool((os.environ.get("OCTOP_GREEN_PACKAGES") or "").strip())
+
+
+def is_loopback_host(host: str) -> bool:
+    """True for localhost, IPv4/IPv6 loopback, and IPv4-mapped ::ffff:127.0.0.1."""
+    h = (host or "").strip().lower()
+    if h.startswith("[") and h.endswith("]"):
+        h = h[1:-1]
+    if h in {"127.0.0.1", "::1", "localhost", "testclient"}:
+        return True
+    if h.startswith("::ffff:"):
+        return h.rsplit(":", 1)[-1] in {"127.0.0.1", "localhost"}
+    return False
 
 
 def is_unclaimed_local_user(server: Any, user: User) -> bool:
@@ -85,8 +100,30 @@ def _single_user(server: Any) -> User | None:
     return users[0] if users else None
 
 
+def preferred_existing_user(server: Any) -> User | None:
+    """Pick a safe desktop session user without wiping existing homes."""
+    um = server.user_manager
+    if um is None:
+        return None
+    users = [user for user in um.list() if isinstance(user, User)]
+    if not users:
+        return None
+    for user in users:
+        if user.username == LOCAL_USERNAME and is_unclaimed_local_user(server, user):
+            return user
+    for user in users:
+        if user.username == LOCAL_USERNAME:
+            return user
+    admins = [user for user in users if user.is_admin]
+    if len(admins) == 1:
+        return admins[0]
+    if admins:
+        return min(admins, key=lambda user: user.id)
+    return min(users, key=lambda user: user.id)
+
+
 async def ensure_local_user(server: Any, *, locale: str) -> User:
-    """Bind SQLite if needed, provision a local guest, or return the only user."""
+    """Bind SQLite if needed, provision a local guest, or return a desktop user."""
     loc = normalize_locale(locale)
     async with _provision_lock:
         if not server.database_bound:
@@ -101,9 +138,18 @@ async def ensure_local_user(server: Any, *, locale: str) -> User:
             return await _provision_local_user(server, locale=loc)
 
         user = _single_user(server)
-        if user is None:
-            raise OctopError(ErrorCode.FORBIDDEN, "interactive login required")
-        return user
+        if user is not None:
+            return user
+        if is_desktop_process():
+            picked = preferred_existing_user(server)
+            if picked is not None:
+                logger.info(
+                    "desktop local-session using existing user %s id=%s",
+                    picked.username,
+                    picked.id,
+                )
+                return picked
+        raise OctopError(ErrorCode.FORBIDDEN, "interactive login required")
 
 
 async def claim_local_account(
