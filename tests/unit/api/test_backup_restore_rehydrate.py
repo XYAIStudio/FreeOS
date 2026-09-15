@@ -143,7 +143,7 @@ async def test_create_backup_offloads_to_thread(monkeypatch: pytest.MonkeyPatch)
     server.paths = object()
     server.app_runtime = MagicMock()
 
-    result = await backup_router.create_backup(_=None, server=server)
+    result = await backup_router.create_backup(user=MagicMock(username="admin"), server=server)
 
     assert result == {"ok": True, "item": entry.to_dict()}
     assert called["pool"] is server.services.db
@@ -175,7 +175,7 @@ async def test_create_backup_passes_selected_content(monkeypatch: pytest.MonkeyP
         include_workspaces=False,
         include_chats=True,
     )
-    await backup_router.create_backup(body=body, _=None, server=server)
+    await backup_router.create_backup(body=body, user=MagicMock(username="admin"), server=server)
 
     assert called["options"] == body
 
@@ -185,7 +185,10 @@ async def test_create_backup_rejects_when_lock_held() -> None:
     await BACKUP_LOCK.acquire()
     try:
         with pytest.raises(OctopError) as exc_info:
-            await backup_router.create_backup(_=None, server=MagicMock(services=MagicMock()))
+            await backup_router.create_backup(
+                user=MagicMock(username="admin"),
+                server=MagicMock(services=MagicMock()),
+            )
         assert exc_info.value.code == ErrorCode.BACKUP_IN_PROGRESS
     finally:
         BACKUP_LOCK.release()

@@ -514,7 +514,7 @@
   },
   "setupWizard": {
     "title": "Setup Wizard",
-    "subtitle": "Welcome to Octop",
+    "subtitle": "Welcome to FreeOS",
     "stepPassword": "Set Password",
     "stepMigrate": "Migrate OpenClaw",
     "stepScene": "Scene",

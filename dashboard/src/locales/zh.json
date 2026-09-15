@@ -514,7 +514,7 @@
   },
   "setupWizard": {
     "title": "设置向导",
-    "subtitle": "欢迎使用 Octop",
+    "subtitle": "欢迎使用 FreeOS",
     "stepPassword": "设置密码",
     "stepMigrate": "迁移 OpenClaw",
     "stepScene": "应用场景",

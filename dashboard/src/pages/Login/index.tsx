@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { message } from "@/utils/antdMessage";
 
 import { useTranslation } from "react-i18next";
-import { clearAuthToken } from "../../api";
+import { clearAuthToken, setAuthToken } from "../../api";
 import {
   authApi,
   type LoginResponse,
@@ -11,7 +11,7 @@ import {
 } from "../../api/modules/auth";
 import AuthForm, { type AuthFormMode } from "../../components/AuthForm";
 import BrandMark from "../../components/BrandMark";
-import { applyGuestLocale } from "../../utils/locale";
+import { applyGuestLocale, applyUserLocale } from "../../utils/locale";
 
 export default function LoginPage() {
   const { t } = useTranslation();
@@ -26,23 +26,31 @@ export default function LoginPage() {
 
   useEffect(() => {
     let cancelled = false;
-    authApi
-      .getAuthStatus()
-      .then((status) => {
+    const boot = async () => {
+      try {
+        const session = await authApi.localSession();
+        setAuthToken(session.access_token);
+        await applyUserLocale(session.user.locale);
+        if (!cancelled) navigate("/chat", { replace: true });
+        return;
+      } catch {
+        // Remote / multi-user installs still show the form.
+      }
+      try {
+        const status = await authApi.getAuthStatus();
         if (cancelled) return;
         if (status.setup_required) {
           clearAuthToken();
           navigate("/setup", { replace: true });
           return;
         }
-        authApi
-          .getOidcStatus()
-          .then((next) => {
-            if (!cancelled) setOidc(next);
-          })
-          .catch(() => {});
-      })
-      .catch(() => {});
+        const next = await authApi.getOidcStatus();
+        if (!cancelled) setOidc(next);
+      } catch {
+        // Keep the login form when status probes fail.
+      }
+    };
+    void boot();
     return () => {
       cancelled = true;
     };

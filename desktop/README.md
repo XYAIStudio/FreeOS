@@ -31,8 +31,9 @@ On first open the shell:
 1. Extracts the bundled portable runtime (Python host + Node + openXYOS).
 2. Starts the openXYOS sidecar on `http://127.0.0.1:3780` when `org-sidecar/` is present.
 3. Starts the FreeOS host with `FREEOS_HOME` and `FREEOS_ORG_ENABLE=1`.
-4. Opens the desktop window on the host UI. After the setup wizard, chat and
-   **Organization** are both available — no separate Node install.
+4. Opens the desktop window on the host UI with a local guest session (no
+   login wall). Chat and **Organization** are both available — no separate
+   Node install. Register or sign in later when a save needs an account.
 
 ## Build green zip
 
