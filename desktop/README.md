@@ -27,9 +27,12 @@ Same precedence as the FreeOS CLI/server:
 ## Windows uninstall
 
 The NSIS uninstaller (Settings → Apps, or `uninstall.exe` in the install
-folder) first stops running **FreeOS** / host / org-sidecar processes, then
-removes program-owned files. Version stays `0.0.1`; rebuilds replace the
-existing GitHub Release `v0.0.1` assets rather than cutting a new tag.
+folder) removes program-owned files. If FreeOS (or its host / org-sidecar)
+is still running, it **asks** before continuing (Chinese / English). Cancel
+aborts uninstall and leaves processes running. Confirm closes them
+(graceful, then force) and then wipes the install directory. Version stays
+`0.0.1`; rebuilds replace the existing GitHub Release `v0.0.1` assets
+rather than cutting a new tag.
 
 **Removes**
 

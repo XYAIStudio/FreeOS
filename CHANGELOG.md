@@ -8,7 +8,7 @@
 
 ### 修复
 
-- Windows NSIS uninstall now stops FreeOS / host / sidecar processes and recursively removes `$INSTDIR` (quoted `RMDir /r`, plus a delayed cleanup after `uninstall.exe` exits). User profile data under `%USERPROFILE%\.freeos` / `FREEOS_HOME` / legacy `~/.octop` is kept. Product version remains 0.0.1.
+- Windows NSIS uninstall now stops FreeOS / host / sidecar processes and recursively removes `$INSTDIR` (quoted `RMDir /r`, plus a delayed cleanup after `uninstall.exe` exits). If those processes are still running, uninstall asks first (cancel aborts and leaves them running; confirm closes them then wipes the install dir). User profile data under `%USERPROFILE%\.freeos` / `FREEOS_HOME` / legacy `~/.octop` is kept. Product version remains 0.0.1.
 
 ### 变更
 

@@ -244,13 +244,45 @@ RequestExecutionLevel "${REQUEST_EXECUTION_LEVEL}"
     ; No custom protocols
 !macroend
 
-# Stop the desktop shell and leftover host / sidecar processes so $INSTDIR
-# files (and extracted portable trees) are not locked during uninstall.
+# Shared filter: desktop shell, anything under $INSTDIR, portable host
+# (python + launch.py run), and org-sidecar node. $R7 is "1" when any match.
+!macro wails.detectFreeOSProcesses
+    StrCpy $R7 "0"
+    nsExec::Exec 'powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "$$ErrorActionPreference=''SilentlyContinue''; $$n = @(Get-CimInstance Win32_Process | Where-Object { ($$_.Name -eq ''${PRODUCT_EXECUTABLE}'') -or ($$_.ExecutablePath -like ''$INSTDIR*'') -or ($$_.CommandLine -like ''*\portable\*launch.py* run*'') -or ($$_.ExecutablePath -like ''*\org-sidecar\*'') }).Count; if ($$n -gt 0) { exit 11 } else { exit 0 }"'
+    Pop $0
+    ${If} $0 == 11
+        StrCpy $R7 "1"
+    ${Else}
+        nsExec::Exec 'cmd.exe /C tasklist /FI "IMAGENAME eq ${PRODUCT_EXECUTABLE}" | find /I "${PRODUCT_EXECUTABLE}"'
+        Pop $0
+        ${If} $0 == 0
+            StrCpy $R7 "1"
+        ${EndIf}
+    ${EndIf}
+!macroend
+
+# If FreeOS is running: ask first (never kill on Cancel). Yes → close then
+# force-stop, then uninstall continues. LangString UN_FREEOS_RUNNING is
+# defined in project.nsi after MUI_LANGUAGE.
+!macro wails.confirmRunningFreeOS
+    !insertmacro wails.detectFreeOSProcesses
+    ${If} $R7 == "1"
+        MessageBox MB_YESNO|MB_ICONEXCLAMATION|MB_DEFBUTTON2 "$(UN_FREEOS_RUNNING)" IDYES wailsConfirmKill
+        Abort
+        wailsConfirmKill:
+        !insertmacro wails.stopFreeOSProcesses
+    ${EndIf}
+!macroend
+
+# Close the shell / host / sidecar. Caller must have confirmed when they
+# were running. Graceful CloseMainWindow / taskkill, then force leftovers.
 !macro wails.stopFreeOSProcesses
     DetailPrint "Stopping FreeOS processes..."
-    nsExec::ExecToLog 'taskkill /F /T /IM "${PRODUCT_EXECUTABLE}"'
+    nsExec::ExecToLog 'taskkill /T /IM "${PRODUCT_EXECUTABLE}"'
     Pop $0
-    nsExec::ExecToLog 'powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "$$ErrorActionPreference=''SilentlyContinue''; Get-CimInstance Win32_Process | Where-Object { ($$_.Name -eq ''${PRODUCT_EXECUTABLE}'') -or ($$_.ExecutablePath -like ''$INSTDIR*'') -or ($$_.CommandLine -like ''*\portable\*launch.py* run*'') -or ($$_.ExecutablePath -like ''*\org-sidecar\*'') } | ForEach-Object { Stop-Process -Id $$_.ProcessId -Force }"'
+    nsExec::ExecToLog 'powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "$$ErrorActionPreference=''SilentlyContinue''; $$sel = { ($$_.Name -eq ''${PRODUCT_EXECUTABLE}'') -or ($$_.ExecutablePath -like ''$INSTDIR*'') -or ($$_.CommandLine -like ''*\portable\*launch.py* run*'') -or ($$_.ExecutablePath -like ''*\org-sidecar\*'') }; Get-CimInstance Win32_Process | Where-Object $$sel | ForEach-Object { try { $$p = Get-Process -Id $$_.ProcessId; [void]$$p.CloseMainWindow() } catch {} }; Start-Sleep -Seconds 2; Get-CimInstance Win32_Process | Where-Object $$sel | ForEach-Object { Stop-Process -Id $$_.ProcessId -Force }"'
+    Pop $0
+    nsExec::ExecToLog 'taskkill /F /T /IM "${PRODUCT_EXECUTABLE}"'
     Pop $0
     Sleep 1500
 !macroend

@@ -41,6 +41,9 @@ ManifestDPIAware true
 !insertmacro MUI_LANGUAGE "English"
 !insertmacro MUI_RESERVEFILE_LANGDLL
 
+LangString UN_FREEOS_RUNNING ${LANG_SIMPCHINESE} "检测到 FreeOS 仍在运行（主程序、主机或组织侧车）。$\r$\n$\r$\n继续将结束这些进程，并删除安装目录中的程序文件。$\r$\n用户数据（%USERPROFILE%\.freeos）会保留。$\r$\n$\r$\n要继续卸载吗？"
+LangString UN_FREEOS_RUNNING ${LANG_ENGLISH} "FreeOS is still running (shell, host, or organization sidecar).$\r$\n$\r$\nContinuing will stop those processes and remove program files from the install folder.$\r$\nUser data (%USERPROFILE%\.freeos) is kept.$\r$\n$\r$\nContinue uninstall?"
+
 Name "${INFO_PRODUCTNAME}"
 !ifndef INSTALLER_OUTFILE
     !define INSTALLER_OUTFILE "..\..\..\bin\${INFO_PROJECTNAME}-desktop-windows-${ARCH}-${INFO_PRODUCTVERSION}.exe"
@@ -58,6 +61,10 @@ Function .onInit
     !insertmacro MUI_LANGDLL_DISPLAY
     skipLang:
     !insertmacro wails.checkArchitecture
+FunctionEnd
+
+Function un.onInit
+    !insertmacro wails.confirmRunningFreeOS
 FunctionEnd
 
 Section
@@ -83,7 +90,7 @@ SectionEnd
 
 Section "uninstall"
     !insertmacro wails.setShellContext
-    !insertmacro wails.stopFreeOSProcesses
+    ; Processes were already confirmed + stopped in un.onInit when present.
 
     ; Program-owned WebView2 / Wails cache — not FREEOS_HOME user data.
     RMDir /r "$AppData\${PRODUCT_EXECUTABLE}"
