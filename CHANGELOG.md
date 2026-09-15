@@ -9,6 +9,7 @@
 ### 新增
 
 - Organization OS 首页双循环：FreeOS 数据面与 openXYOS 控制面的实时状态、一键装配员工 / 打包回流 / 运行 org loop，以及边车离线时的启动恢复。
+- FreeOS 官网源码：`website/`（Vite + React 静态站，正式域名 https://freeos.cnxy.tech）。视觉与章节节奏对齐 XYAI Labs（天蓝→亮光、毛玻璃、01/02/…、底座 / 系统 / 生态），文案仍是 FreeOS 产品自己的话；圆形标志 + XYAI 机器人六姿态，无 Octop 红或章鱼形象。构建产物可整包上传到 `/www/wwwroot/freeos.cnxy.tech`。
 
 ### 变更
 
