@@ -52,10 +52,25 @@ Operator detail: [docs/asset-loop.md](docs/asset-loop.md).
 
 ## Run FreeOS
 
+### Windows 用户：下载安装包 → 安装 → 打开即用 FreeOS（Octop壳+组织能力）
+
+给非开发者的路径：
+
+1. 打开 [GitHub Releases](https://github.com/XYAIStudio/FreeOS/releases/latest)，下载
+   `FreeOS-desktop-windows-amd64-<version>.exe`（普通 64 位电脑）或
+   `FreeOS-desktop-windows-arm64-<version>.exe`（ARM 电脑）。
+2. 双击安装包。安装程序会放到「程序文件」并创建开始菜单和桌面快捷方式。
+3. 打开 **FreeOS**。第一次启动会解压内置运行环境（可能要一两分钟），然后出现设置向导。
+4. 设好管理员密码后即可聊天。组织控制台（openXYOS）已随安装包内置，无需再装 Node；侧栏 **Organization** 默认打开。
+
+数据目录默认是 `%USERPROFILE%\.freeos`（可用环境变量 `FREEOS_HOME` 改）。旧版 Octop 的 `~/.octop` 仍会被识别。
+
+安装包由 CI 工作流 **FreeOS Desktop Package**（文件名仍是 `.github/workflows/octop-desktop.yml`，给现有发版脚本用）在 Windows runner 上打出来。本仓库的云环境打不出 `.exe`；合并后由该 job 产出。
+
 ### Prerequisites
 
 - Python 3.12+ (the project uses [uv](https://docs.astral.sh/uv/))
-- Node.js 20.19+ only if you start the organization sidecar or rebuild the dashboard
+- Node.js 20.19+ only if you start the organization sidecar from source, or rebuild the dashboard. The Windows installer already bundles Node + openXYOS.
 
 ### From this repository
 
@@ -133,7 +148,7 @@ Inbound import compiles the blueprint **and** registers a FreeOS agent (`org-pol
 
 ## Host platform features (from Octop)
 
-Unchanged in this fork: multi-user JWT, multi-agent chat, expert library, connectors, ACP, knowledge bases, bundled plugins, cron, terminal/browser/desktop surfaces. Upstream-oriented installers and desktop artifacts still refer to **Octop** and `~/.octop/` — use `freeos` / `FREEOS_HOME` here.
+Unchanged in this fork: multi-user JWT, multi-agent chat, expert library, connectors, ACP, knowledge bases, bundled plugins, cron, terminal/browser/desktop surfaces. The **Windows desktop installer** is branded **FreeOS** and defaults to `~/.freeos` / `FREEOS_HOME`. The Python package, `octop` CLI alias, `OCTOP_*` env vars, and `octop.db` stay for compatibility.
 
 Longer host docs: [docs/user-guide.md](docs/user-guide.md), [docs/configuration.md](docs/configuration.md), [docs/architecture.md](docs/architecture.md), [README_CN.md](README_CN.md).
 
@@ -151,7 +166,8 @@ Intentional for package compatibility (not a rebrand miss):
 
 - Python package name `octop` and `import octop`
 - CLI `octop` alongside `freeos`
-- `OCTOP_*` environment variables
+- `OCTOP_*` environment variables (desktop also sets `FREEOS_HOME`)
 - SQLite file `octop.db` inside the home directory
+- CI workflow **filename** `.github/workflows/octop-desktop.yml` (display name is FreeOS Desktop Package)
 
 See [docs/architecture-integration.md](docs/architecture-integration.md) for the control/data-plane split and the running self-growth loop.

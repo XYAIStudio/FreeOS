@@ -308,6 +308,7 @@ class OctopServer:
         )
         self.plugin_manager.seed_bundled()
         self.plugin_manager.load_installed(install_deps=True)
+        self._apply_desktop_org_defaults()
 
         import time  # noqa: PLC0415
 
@@ -535,6 +536,14 @@ class OctopServer:
             logger.info("octop server stopped")
 
     # ----- helpers -----
+
+    def _apply_desktop_org_defaults(self) -> None:
+        """Turn on the organization module for the desktop first-run path."""
+        from octop.modules.org_os.service import org_module_from_paths
+
+        service = org_module_from_paths(self.paths)
+        if service.enable_from_desktop_env():
+            logger.info("organization module enabled (FREEOS_ORG_ENABLE)")
 
     def _setup_logging(self) -> None:
         log_dir = self.paths.logs_dir

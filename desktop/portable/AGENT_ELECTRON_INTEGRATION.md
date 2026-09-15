@@ -9,7 +9,7 @@ path (no system Python, no `PYTHONPATH=packages`).
 CI / `make -f desktop/portable/Makefile green` produces:
 
 ```
-desktop/portable/release/Octop-portable-<plat>-<version>.zip
+desktop/portable/release/FreeOS-portable-<plat>-<version>.zip
 ```
 
 Platforms: `darwin-arm64` `darwin-amd64` `linux-amd64` `linux-arm64`
@@ -18,9 +18,10 @@ Platforms: `darwin-arm64` `darwin-amd64` `linux-amd64` `linux-arm64`
 Layout after extract (outside asar):
 
 ```
-Octop-<plat>/
+FreeOS-<plat>/
   runtime/     portable CPython
   packages/    site-packages
+  org-sidecar/ bundled Node + openXYOS
   launch.py
   start.sh / start.bat
 ```
@@ -32,11 +33,11 @@ Octop-<plat>/
    beside the executable (Linux); the desktop shell does not download it at runtime.
 2. Extract to a writable user directory **outside** `app.asar`.
 3. On macOS, after checksum: `xattr -dr com.apple.quarantine <extractDir>`.
-4. Set `OCTOP_HOME` to Octop's default data dir (`~/.octop`, or `$OCTOP_HOME`
-   if already set). Do **not** use the zip's `./data` folder when launching
-   from the Wails desktop shell (`desktop/src`).
-   Extract the zip under `~/.octop/portable/` so runtime files stay next to
-   user data without overwriting `octop.db`.
+4. Set `FREEOS_HOME` (and `OCTOP_HOME` to the same path). Default is `~/.freeos`
+   unless `OCTOP_HOME` is already set or `~/.octop` already exists.
+   Do **not** use the zip's `./data` folder when launching from the Wails
+   desktop shell (`desktop/src`). Extract the zip under `{home}/portable/`
+   so runtime files stay next to user data without overwriting `octop.db`.
 5. Set `PYTHONNOUSERSITE=1` and `OCTOP_GREEN_PACKAGES=<extract>/packages`.
    **Do not set `PYTHONPATH`.**
 

@@ -1,15 +1,15 @@
 {
   "fixed": {
-    "file_version": "0.9.26"
+    "file_version": "1.0.0"
   },
   "info": {
     "0000": {
-      "ProductVersion": "0.9.26",
-      "CompanyName": "Octop",
-      "FileDescription": "Octop desktop",
-      "LegalCopyright": "Copyright © 2026",
-      "ProductName": "Octop",
-      "Comments": "Octop desktop shell"
+      "ProductVersion": "1.0.0",
+      "CompanyName": "XYAI Studio",
+      "FileDescription": "FreeOS desktop",
+      "LegalCopyright": "Copyright © 2026 XYAI Studio",
+      "ProductName": "FreeOS",
+      "Comments": "FreeOS desktop — Octop shell + openXYOS"
     }
   }
 }

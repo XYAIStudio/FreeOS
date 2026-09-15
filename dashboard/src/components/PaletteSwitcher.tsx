@@ -6,7 +6,7 @@ import { PALETTE_SWATCH, VALID_PALETTES } from "../styles/themePalettes";
 import styles from "./PaletteSwitcher.module.less";
 
 /**
- * Curated 8-swatch brand palette picker plus a custom color swatch.
+ * Curated brand palette picker plus a custom color swatch.
  * The custom swatch opens the Ant Design color picker (palette + hex input);
  * picking a color switches the active brand palette to "custom".
  */

@@ -15,7 +15,8 @@ const (
 	LocaleEN Locale = "en"
 )
 
-// Settings is persisted at ~/.octop/desktop-settings.json
+// Settings is persisted at ~/.freeos/desktop-settings.json
+// (legacy ~/.octop/desktop-settings.json is still honored when that home wins).
 type Settings struct {
 	Locale         Locale `json:"locale"`
 	Autostart      bool   `json:"autostart"`
@@ -34,23 +35,40 @@ func defaultSettings() Settings {
 	}
 }
 
-func octopHome() string {
+func productHome() string {
+	if v := os.Getenv("FREEOS_HOME"); v != "" {
+		return v
+	}
 	if v := os.Getenv("OCTOP_HOME"); v != "" {
 		return v
 	}
 	home, err := os.UserHomeDir()
 	if err != nil {
-		return ".octop"
+		return ".freeos"
 	}
-	return filepath.Join(home, ".octop")
+	freeos := filepath.Join(home, ".freeos")
+	octop := filepath.Join(home, ".octop")
+	if _, err := os.Stat(freeos); err == nil {
+		return freeos
+	}
+	if _, err := os.Stat(octop); err == nil {
+		return octop
+	}
+	return freeos
+}
+
+// octopHome is the historical name used throughout the desktop shell.
+// It now resolves FREEOS_HOME first, then OCTOP_HOME, then ~/.freeos.
+func octopHome() string {
+	return productHome()
 }
 
 func portableDir() string {
-	return filepath.Join(octopHome(), "portable")
+	return filepath.Join(productHome(), "portable")
 }
 
 func settingsPath() string {
-	return filepath.Join(octopHome(), "desktop-settings.json")
+	return filepath.Join(productHome(), "desktop-settings.json")
 }
 
 type settingsStore struct {
@@ -93,7 +111,7 @@ func (st *settingsStore) save(next Settings) error {
 	if next.Port == 0 {
 		next.Port = 8088
 	}
-	if err := os.MkdirAll(octopHome(), 0o755); err != nil {
+	if err := os.MkdirAll(productHome(), 0o755); err != nil {
 		return err
 	}
 	data, err := json.MarshalIndent(next, "", "  ")

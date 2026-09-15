@@ -1,4 +1,4 @@
-# Shared NSIS helpers for the Octop desktop installer.
+# Shared NSIS helpers for the FreeOS desktop installer.
 # INFO_PRODUCTVERSION fallback for a local makensis without -D.
 # Release packaging passes -DINFO_PRODUCTVERSION from pyproject.toml.
 
@@ -7,19 +7,19 @@
 !include "FileFunc.nsh"
 
 !ifndef INFO_PROJECTNAME
-    !define INFO_PROJECTNAME "Octop"
+    !define INFO_PROJECTNAME "FreeOS"
 !endif
 !ifndef INFO_COMPANYNAME
-    !define INFO_COMPANYNAME "Octop"
+    !define INFO_COMPANYNAME "XYAI Studio"
 !endif
 !ifndef INFO_PRODUCTNAME
-    !define INFO_PRODUCTNAME "Octop"
+    !define INFO_PRODUCTNAME "FreeOS"
 !endif
 !ifndef INFO_PRODUCTVERSION
-    !define INFO_PRODUCTVERSION "0.9.31"
+    !define INFO_PRODUCTVERSION "1.0.0"
 !endif
 !ifndef INFO_COPYRIGHT
-    !define INFO_COPYRIGHT "(c) 2026, Octop"
+    !define INFO_COPYRIGHT "(c) 2026, XYAI Studio"
 !endif
 !ifndef PRODUCT_EXECUTABLE
     !define PRODUCT_EXECUTABLE "${INFO_PROJECTNAME}.exe"
@@ -201,6 +201,30 @@ RequestExecutionLevel "${REQUEST_EXECUTION_LEVEL}"
 
     SetDetailsPrint both
     ok:
+    !insertmacro wails.requireWebView2
+!macroend
+
+!macro wails.requireWebView2
+    !ifndef WAILS_WEBVIEW2_REQUIRED
+        !define WAILS_WEBVIEW2_REQUIRED "FreeOS needs the Microsoft WebView2 Runtime. Install it from https://go.microsoft.com/fwlink/p/?LinkId=2124703 and open FreeOS again."
+    !endif
+    SetRegView 64
+    ReadRegStr $0 HKLM "SOFTWARE\WOW6432Node\Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}" "pv"
+    ${If} $0 == ""
+        ReadRegStr $0 HKLM "SOFTWARE\Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}" "pv"
+    ${EndIf}
+    ${If} $0 == ""
+        ReadRegStr $0 HKCU "Software\Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}" "pv"
+    ${EndIf}
+    ${If} $0 == ""
+        IfSilent silentWebView2 notSilentWebView2
+        silentWebView2:
+            SetErrorLevel 66
+            Abort
+        notSilentWebView2:
+            MessageBox MB_OK "${WAILS_WEBVIEW2_REQUIRED}"
+            Abort
+    ${EndIf}
 !macroend
 
 !macro wails.associateFiles

@@ -29,6 +29,7 @@ type App struct {
 	store          *settingsStore
 	sleep          *sleepGuard
 	cmd            *exec.Cmd
+	sidecar        *exec.Cmd
 	mu             sync.Mutex
 	quitting       bool
 
@@ -45,9 +46,12 @@ func (a *App) ServiceShutdown() error {
 	a.sleep.stop()
 	a.mu.Lock()
 	cmd := a.cmd
+	sidecar := a.sidecar
 	a.cmd = nil
+	a.sidecar = nil
 	a.mu.Unlock()
 	stopOctop(cmd)
+	stopOctop(sidecar)
 	return nil
 }
 
@@ -137,9 +141,10 @@ func (a *App) applyDashboardPrefs(s Settings) {
 	if a.window == nil {
 		return
 	}
+	encoded := jsonString(string(s.Locale))
 	js := fmt.Sprintf(
-		`(function(){try{localStorage.setItem('octop:ui-locale',%s);}catch(e){}})();`,
-		jsonString(string(s.Locale)),
+		`(function(){try{localStorage.setItem('octop:ui-locale',%s);localStorage.setItem('freeos:ui-locale',%s);}catch(e){}})();`,
+		encoded, encoded,
 	)
 	a.window.ExecJS(js)
 }
@@ -172,24 +177,44 @@ func (a *App) boot() {
 	}
 	s := a.store.get()
 	a.setStatus(desktopText(locale, copyStatusCheckingRuntime))
+	firstLaunch := !launchReady(portableDir())
 	if err := ensurePortable(locale, a.setStatus); err != nil {
+		logStartupError("portable runtime", err)
 		a.setStatus(err.Error())
+		showFatalError("FreeOS", formatFatalStartup(locale, err))
 		return
 	}
 	root := portableDir()
 	a.mu.Lock()
 	stopOctop(a.cmd)
+	stopOctop(a.sidecar)
+	if sidecarReady(root) {
+		a.setStatus(desktopText(locale, copyStatusStartingOrg))
+		sidecar, serr := startOrgSidecar(root, s.Port)
+		a.sidecar = sidecar
+		if serr != nil {
+			logStartupError("organization sidecar", serr)
+		}
+	}
 	cmd, err := startOctop(root, s.Port)
 	a.cmd = cmd
 	a.mu.Unlock()
 	if err != nil {
+		logStartupError("start host", err)
 		a.setStatus(err.Error())
+		showFatalError("FreeOS", formatFatalStartup(locale, err))
 		return
 	}
 	base := dashboardURL(s.Port)
 	a.setStatus(desktopText(locale, copyStatusStartingService))
-	if err := waitHealth(locale, base, 2*time.Minute); err != nil {
+	timeout := 2 * time.Minute
+	if firstLaunch {
+		timeout = 5 * time.Minute
+	}
+	if err := waitHealth(locale, base, timeout); err != nil {
+		logStartupError("host health", err)
 		a.setStatus(err.Error())
+		showFatalError("FreeOS", formatFatalStartup(locale, err))
 		return
 	}
 	a.showDashboard(base)
@@ -287,6 +312,24 @@ func (a *App) requestQuit() {
 }
 
 func main() {
+	initDesktopLog()
+	if claimDesktopInstance() {
+		locale := LocaleEN
+		if data, err := os.ReadFile(settingsPath()); err == nil {
+			var s Settings
+			if json.Unmarshal(data, &s) == nil && s.Locale == LocaleZH {
+				locale = LocaleZH
+			}
+		}
+		if activateExistingInstance() {
+			log.Printf("handed off to the running FreeOS window")
+			return
+		}
+		showFatalError("FreeOS", desktopText(locale, copyAlreadyRunning))
+		return
+	}
+	defer clearDesktopPid()
+
 	store := &settingsStore{cur: loadSettings()}
 	api := &App{
 		store: store,
@@ -294,8 +337,8 @@ func main() {
 	}
 
 	app := application.New(application.Options{
-		Name:        "Octop",
-		Description: "Octop desktop",
+		Name:        "FreeOS",
+		Description: "FreeOS desktop — Octop shell + openXYOS",
 		Services: []application.Service{
 			application.NewService(api),
 		},
@@ -316,10 +359,11 @@ func main() {
 	attachOpenURLEventListener(app, api.OpenExternal)
 	app.Event.OnApplicationEvent(events.Common.ApplicationStarted, func(_ *application.ApplicationEvent) {
 		applyAppIcon(app)
+		api.showWindow()
 	})
 
 	win := app.Window.NewWithOptions(application.WebviewWindowOptions{
-		Title:                "Octop",
+		Title:                "FreeOS",
 		Width:                1200,
 		Height:               800,
 		URL:                  "/",
@@ -342,7 +386,7 @@ func main() {
 	win.OnWindowEvent(events.Windows.WebViewNavigationCompleted, installDragOverlay)
 	win.OnWindowEvent(events.Linux.WindowLoadFinished, installDragOverlay)
 	settingsWin := app.Window.NewWithOptions(application.WebviewWindowOptions{
-		Title:            "Octop 设置",
+		Title:            "FreeOS 设置",
 		Width:            settingsWindowWidth,
 		Height:           settingsWindowOuterHeight(),
 		URL:              "/?settings=1",
@@ -386,7 +430,7 @@ func main() {
 
 	tray := app.SystemTray.New()
 	applyTrayIcon(tray)
-	tray.SetTooltip("Octop")
+	tray.SetTooltip("FreeOS")
 	tray.AttachWindow(settingsWin).WindowOffset(6)
 	showSettings := func() { tray.ShowWindow() }
 	if trayLeftClickShowsSettings(runtime.GOOS) {
@@ -407,6 +451,8 @@ func main() {
 	go api.boot()
 
 	if err := app.Run(); err != nil {
-		log.Fatal(err)
+		logStartupError("app.Run", err)
+		showFatalError("FreeOS", formatFatalStartup(api.store.get().Locale, err))
+		os.Exit(1)
 	}
 }

@@ -1,5 +1,9 @@
-name: Octop Desktop Package
+name: FreeOS Desktop Package
 
+# Filename kept as octop-desktop.yml so auto-tag / existing dispatch keep working.
+# Publishes FreeOS-desktop-* / FreeOS-portable-* (Windows NSIS .exe is the
+# product installer: Octop shell + bundled openXYOS).
+#
 # 正式发版：Auto Tag 在打 v* 后与 Release / Docker Publish 一并 dispatch。
 # 产物 upsert 到同一 GitHub Release。手工补包：workflow_dispatch + release_tag
 # （不必跑在 v* ref 上）。attach_from_run 只挂已有 artifact、不重打。
@@ -11,6 +15,7 @@ on:
   pull_request:
     paths:
       - "desktop/**"
+      - "modules/openxyos/**"
       - ".github/workflows/octop-desktop.yml"
   workflow_dispatch:
     inputs:
@@ -30,7 +35,7 @@ on:
         default: ""
         type: string
       attach_from_run:
-        description: "Existing workflow run ID — attach its Octop-* artifacts and skip the 6-platform rebuild"
+        description: "Existing workflow run ID — attach its FreeOS-* artifacts and skip the 6-platform rebuild"
         required: false
         default: ""
         type: string
@@ -160,6 +165,12 @@ jobs:
           enable-cache: true
           python-version: "3.12"
 
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: modules/openxyos/package-lock.json
+
       # GitHub Cache outages must not fail the build — PBS download is cheap enough.
       - name: Cache python-build-standalone downloads
         continue-on-error: true
@@ -184,7 +195,7 @@ jobs:
       - name: Smoke import (native host only)
         run: |
           set -euo pipefail
-          staging="desktop/portable/release/Octop-${{ matrix.plat }}"
+          staging="desktop/portable/release/FreeOS-${{ matrix.plat }}"
           if [[ -x "${staging}/runtime/bin/python3" ]]; then
             py="${staging}/runtime/bin/python3"
           elif [[ -f "${staging}/runtime/python.exe" ]]; then
@@ -209,6 +220,16 @@ jobs:
           PYTHONNOUSERSITE=1 \
             "$py" desktop/portable/verify_imports.py \
               "${verify_args[@]}"
+          if [[ ! -f "${staging}/org-sidecar/openxyos/backend/server.ts" ]]; then
+            echo "org-sidecar missing under ${staging}" >&2
+            exit 1
+          fi
+          if [[ -f "${staging}/org-sidecar/node/node.exe" || -x "${staging}/org-sidecar/node/bin/node" ]]; then
+            echo "org-sidecar Node runtime present"
+          else
+            echo "bundled Node missing under ${staging}/org-sidecar/node" >&2
+            exit 1
+          fi
           # macOS: fail if any native extension linked Homebrew/MacPorts paths.
           if [[ "${{ matrix.plat }}" == darwin-* ]]; then
             REPO_ROOT="$PWD" # shellcheck source=desktop/portable/_common.sh
@@ -247,14 +268,14 @@ jobs:
           wails3 task package
           ARCH=${{ matrix.arch }}
           VERSION=${{ env.OCTOP_VERSION }}
-          PORTABLE_ZIP=../portable/release/Octop-portable-${{ matrix.plat }}-${{ env.OCTOP_VERSION }}.zip
+          PORTABLE_ZIP=../portable/release/FreeOS-portable-${{ matrix.plat }}-${{ env.OCTOP_VERSION }}.zip
 
       # archive: false — upload the prebuilt zip as-is. Default archive=true would
       # wrap it again, so Actions UI / "Download artifact" becomes zip-in-zip.
       # With archive:false, artifact name is the filename (name: is ignored).
       - uses: actions/upload-artifact@v7
         with:
-          path: desktop/portable/release/Octop-portable-${{ matrix.plat }}-${{ env.OCTOP_VERSION }}.zip
+          path: desktop/portable/release/FreeOS-portable-${{ matrix.plat }}-${{ env.OCTOP_VERSION }}.zip
           archive: false
           if-no-files-found: error
           retention-days: 14
@@ -262,7 +283,7 @@ jobs:
       - name: Upload bundled desktop package
         uses: actions/upload-artifact@v7
         with:
-          path: desktop/src/bin/Octop-desktop-${{ matrix.plat }}-${{ env.OCTOP_VERSION }}.*
+          path: desktop/src/bin/FreeOS-desktop-${{ matrix.plat }}-${{ env.OCTOP_VERSION }}.*
           archive: false
           if-no-files-found: error
           retention-days: 14
@@ -310,7 +331,7 @@ jobs:
       # zips into directories, so files: release-assets/* would skip them.
       - uses: actions/download-artifact@v8
         with:
-          pattern: Octop-*
+          pattern: FreeOS-*
           path: release-assets
           merge-multiple: true
           skip-decompress: true
