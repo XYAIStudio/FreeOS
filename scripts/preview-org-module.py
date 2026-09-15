@@ -37,8 +37,7 @@ HTML = """<!doctype html>
     :root { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: #111827; }
     body { margin: 0; background: #f7f8fa; }
     header { display: flex; align-items: center; gap: 16px; padding: 20px 28px; background: #fff; border-bottom: 1px solid #e5e7eb; }
-    header img.mark { width: 48px; height: 48px; }
-    header img.word { height: 36px; }
+    header img.word { height: 40px; }
     main { max-width: 960px; margin: 24px auto; padding: 0 20px 48px; }
     .card { background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px; margin-bottom: 16px; }
     table { width: 100%; border-collapse: collapse; font-size: 14px; }
@@ -50,7 +49,6 @@ HTML = """<!doctype html>
 </head>
 <body>
   <header>
-    <img class="mark" src="/logo.png" alt="FreeOS mark"/>
     <img class="word" src="/logo_name.png" alt="FreeOS"/>
   </header>
   <main>
