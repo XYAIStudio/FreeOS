@@ -17,17 +17,34 @@ func mustEnv(cmd *exec.Cmd, extra map[string]string) {
 	}
 }
 
+const defaultSidecarPort = 3780
+
+func hostLaunchEnv(root string, port int) map[string]string {
+	home := productHome()
+	return map[string]string{
+		"FREEOS_HOME":             home,
+		"OCTOP_HOME":              home,
+		"OCTOP_GREEN_PACKAGES":    filepath.Join(root, "packages"),
+		"PYTHONNOUSERSITE":        "1",
+		"PYTHONPATH":              "",
+		"FREEOS_ORG_ENABLE":       "1",
+		"FREEOS_ORG_SIDECAR_URL":  sidecarURL(),
+		"FREEOS_ORG_SIDECAR_PORT": strconv.Itoa(defaultSidecarPort),
+		"OPENXYOS_BASE_URL":       sidecarURL(),
+		"OCTOP_PORT":              strconv.Itoa(port),
+	}
+}
+
+func sidecarURL() string {
+	return fmt.Sprintf("http://127.0.0.1:%d", defaultSidecarPort)
+}
+
 func startOctop(root string, port int) (*exec.Cmd, error) {
 	py := pythonExe(root)
 	launch := filepath.Join(root, "launch.py")
 	cmd := exec.Command(py, launch, "run", "--host", "127.0.0.1", "--port", strconv.Itoa(port))
 	cmd.Dir = root
-	mustEnv(cmd, map[string]string{
-		"OCTOP_HOME":           octopHome(),
-		"OCTOP_GREEN_PACKAGES": filepath.Join(root, "packages"),
-		"PYTHONNOUSERSITE":     "1",
-		"PYTHONPATH":           "",
-	})
+	mustEnv(cmd, hostLaunchEnv(root, port))
 	configureProcGroup(cmd)
 	if runtime.GOOS == "linux" {
 		// The Linux desktop release has no server terminal; the shell owns status

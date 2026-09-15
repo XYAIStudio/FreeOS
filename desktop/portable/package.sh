@@ -11,13 +11,14 @@
 #   OCTOP_GREEN_OFFLINE=1 bash desktop/portable/package.sh   # require local wheels
 #
 # Layout of each zip:
-#   Octop-<plat>/
+#   FreeOS-<plat>/
 #     runtime/     portable CPython
 #     packages/    site-packages (uv --target, relocatable)
+#     org-sidecar/ bundled Node + openXYOS (organization console)
 #     start.sh / start.bat
 #     README.txt
 #
-# Public filename is Octop-portable-<plat>-<version>.zip (see portable_zip_basename).
+# Public filename is FreeOS-portable-<plat>-<version>.zip (see portable_zip_basename).
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
@@ -84,7 +85,7 @@ assemble_one() {
   local plat="$1"
   local runtime="${GREEN_RUNTIMES}/${plat}"
   local wheel_dir="${GREEN_WHEELS}/${plat}"
-  local staging="${GREEN_RELEASE}/Octop-${plat}"
+  local staging="${GREEN_RELEASE}/$(portable_staging_name "$plat")"
   local zip_path="${GREEN_RELEASE}/$(portable_zip_basename "$plat")"
   local pyplat
 
@@ -235,6 +236,9 @@ assemble_one() {
   cp "${TEMPLATES}/README.txt" "${staging}/README.txt"
   chmod +x "${staging}/start.sh"
 
+  echo "[package] ${plat}: bundling openXYOS sidecar" >&2
+  bash "${REPO_ROOT}/desktop/portable/bundle-org-sidecar.sh" "$plat" "$staging"
+
   # Windows: pywin32 DLLs must be findable next to python.exe (or on PATH).
   # --target installs leave them under packages/pywin32_system32 only.
   if [[ "$plat" == windows-* ]]; then
@@ -252,6 +256,9 @@ assemble_one() {
     echo "pbs_tag=${PBS_TAG}"
     sed -n 's/^version[[:space:]]*=[[:space:]]*"\([^"]*\)".*/octop_version=\1/p' \
       "${REPO_ROOT}/pyproject.toml" | head -1
+    if [[ -d "${staging}/org-sidecar/openxyos" ]]; then
+      echo "org_sidecar=1"
+    fi
   } > "${staging}/VERSION.txt"
 
   rm -f "$zip_path"
@@ -262,7 +269,7 @@ assemble_one() {
   (
     cd "$GREEN_RELEASE"
     if command -v zip >/dev/null 2>&1; then
-      zip -qry "$zip_name" "Octop-${plat}"
+      zip -qry "$zip_name" "$(portable_staging_name "$plat")"
     else
       # Windows runners often have `python` but not `python3` / `zip`.
       py=""
@@ -275,7 +282,7 @@ assemble_one() {
         echo "[package] need zip or python to create archive" >&2
         exit 1
       fi
-      "$py" -c "import shutil; shutil.make_archive('${zip_stem}', 'zip', '.', 'Octop-${plat}')"
+      "$py" -c "import shutil; shutil.make_archive('${zip_stem}', 'zip', '.', '$(portable_staging_name "$plat")')"
     fi
   )
   echo "[package] wrote ${zip_path}"

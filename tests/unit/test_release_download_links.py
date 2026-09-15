@@ -25,19 +25,19 @@ def test_split_tag_accepts_with_or_without_v() -> None:
 def test_render_download_section_matches_github_asset_names() -> None:
     mod = _load()
     body = mod.render_download_section("0.9.31")
-    base = "https://github.com/TencentCloud/Octop/releases/download/v0.9.31"
-    assert f"{base}/Octop-desktop-windows-amd64-0.9.31.exe" in body
-    assert f"{base}/Octop-desktop-windows-arm64-0.9.31.exe" in body
-    assert f"{base}/Octop-portable-windows-amd64-0.9.31.zip" in body
-    assert f"{base}/Octop-portable-windows-arm64-0.9.31.zip" in body
-    assert f"{base}/Octop-desktop-darwin-arm64-0.9.31.dmg" in body
-    assert f"{base}/Octop-desktop-darwin-amd64-0.9.31.dmg" in body
-    assert f"{base}/Octop-portable-darwin-arm64-0.9.31.zip" in body
-    assert f"{base}/Octop-portable-darwin-amd64-0.9.31.zip" in body
-    assert f"{base}/Octop-desktop-linux-amd64-0.9.31.tar.gz" in body
-    assert f"{base}/Octop-desktop-linux-arm64-0.9.31.tar.gz" in body
-    assert f"{base}/Octop-portable-linux-amd64-0.9.31.zip" in body
-    assert f"{base}/Octop-portable-linux-arm64-0.9.31.zip" in body
+    base = "https://github.com/XYAIStudio/FreeOS/releases/download/v0.9.31"
+    assert f"{base}/FreeOS-desktop-windows-amd64-0.9.31.exe" in body
+    assert f"{base}/FreeOS-desktop-windows-arm64-0.9.31.exe" in body
+    assert f"{base}/FreeOS-portable-windows-amd64-0.9.31.zip" in body
+    assert f"{base}/FreeOS-portable-windows-arm64-0.9.31.zip" in body
+    assert f"{base}/FreeOS-desktop-darwin-arm64-0.9.31.dmg" in body
+    assert f"{base}/FreeOS-desktop-darwin-amd64-0.9.31.dmg" in body
+    assert f"{base}/FreeOS-portable-darwin-arm64-0.9.31.zip" in body
+    assert f"{base}/FreeOS-portable-darwin-amd64-0.9.31.zip" in body
+    assert f"{base}/FreeOS-desktop-linux-amd64-0.9.31.tar.gz" in body
+    assert f"{base}/FreeOS-desktop-linux-arm64-0.9.31.tar.gz" in body
+    assert f"{base}/FreeOS-portable-linux-amd64-0.9.31.zip" in body
+    assert f"{base}/FreeOS-portable-linux-arm64-0.9.31.zip" in body
     assert f"{base}/Octop-fnos-docker-0.9.31.fpk" in body
     assert f"{base}/Octop-fnos-native-0.9.31.fpk" in body
     assert "pip install" not in body

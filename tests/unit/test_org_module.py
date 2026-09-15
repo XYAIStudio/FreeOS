@@ -61,6 +61,23 @@ def test_path_layout_keeps_existing_octop_home(
     assert PathLayout.from_env().root == tmp_path / ".octop"
 
 
+def test_enable_from_desktop_env_first_run_only(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    config = tmp_path / "config.json"
+    service = OrgModuleService(config_path=config, home=tmp_path)
+    monkeypatch.delenv("FREEOS_ORG_ENABLE", raising=False)
+    assert service.enable_from_desktop_env() is False
+    monkeypatch.setenv("FREEOS_ORG_ENABLE", "1")
+    monkeypatch.setenv("FREEOS_ORG_SIDECAR_URL", "http://127.0.0.1:3780")
+    assert service.enable_from_desktop_env() is True
+    assert service.is_enabled() is True
+    assert service.sidecar_url() == "http://127.0.0.1:3780"
+    service.set_enabled(False)
+    assert service.enable_from_desktop_env() is False
+    assert service.is_enabled() is False
+
+
 def test_org_module_enable_persists(tmp_path: Path) -> None:
     config = tmp_path / "config.json"
     service = OrgModuleService(config_path=config, home=tmp_path)

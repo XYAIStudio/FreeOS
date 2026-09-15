@@ -1,8 +1,8 @@
-# Octop 绿色便携包（多平台）
+# FreeOS 绿色便携包（多平台）
 
-解压即用：内置便携 CPython + Octop 及依赖，通过 `start.sh` / `start.bat` 启动。  
-**不依赖**系统 Python，也**不包含** Wails / 桌面壳——用浏览器打开 Dashboard。  
-首启走上游正常 setup wizard（本目录**不含** OOB / UI 裁剪）。
+解压即用：内置便携 CPython + FreeOS 宿主 + Node/openXYOS 组织边车，通过 `start.sh` / `start.bat` 启动。  
+**不依赖**系统 Python / Node。单独解压绿包时用浏览器打开 Dashboard；完整「安装即用」产品是 Wails NSIS 安装包。  
+首启走正常 setup wizard。
 
 ## 与上游解耦
 
@@ -29,12 +29,13 @@ make -f desktop/portable/Makefile green
 
 ## 产物布局
 
-公开文件名：`Octop-portable-<plat>-<version>.zip`。zip 内目录仍是：
+公开文件名：`FreeOS-portable-<plat>-<version>.zip`。zip 内目录是：
 
 ```
-Octop-<plat>/
+FreeOS-<plat>/
   runtime/       # python-build-standalone
-  packages/      # Octop + 依赖（site-packages，可搬迁）
+  packages/      # FreeOS 宿主 + 依赖（site-packages，可搬迁）
+  org-sidecar/   # 内置 Node + 已构建的 openXYOS
   launch.py      # 启动引导（site.addsitedir / Windows pywin32）
   start.sh       # macOS / Linux
   start.bat      # Windows
@@ -114,5 +115,5 @@ Actions 使用 GitHub 上游 PBS（`PBS_BASE_URL`），本机构建默认 npmmir
 
 ## Electron 壳
 
-壳只消费 `Octop-portable-<plat>-<version>.zip`（zip 内仍是 `Octop-<plat>/`），不要把绿包编进 asar。步骤见
+壳只消费 `FreeOS-portable-<plat>-<version>.zip`（zip 内是 `FreeOS-<plat>/`），不要把绿包编进 asar。步骤见
 [`AGENT_ELECTRON_INTEGRATION.md`](AGENT_ELECTRON_INTEGRATION.md)。

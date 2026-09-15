@@ -143,6 +143,21 @@ class OrgModuleService:
         modules[_CONFIG_SECTION] = section
         _write_json(self.config_path, data)
 
+    def enable_from_desktop_env(self) -> bool:
+        """Enable org on first desktop launch when ``FREEOS_ORG_ENABLE`` is set.
+
+        Does nothing if ``modules.org_os.enabled`` is already present, so a user
+        who later turns the module off in the dashboard is not overridden.
+        """
+        flag = os.environ.get("FREEOS_ORG_ENABLE", "").strip().lower()
+        if flag not in {"1", "true", "yes", "on"}:
+            return False
+        if "enabled" in self._section():
+            return False
+        sidecar = os.environ.get("FREEOS_ORG_SIDECAR_URL", "").strip() or None
+        self.set_enabled(True, sidecar_url=sidecar)
+        return True
+
     def set_enabled(self, enabled: bool, *, sidecar_url: str | None = None) -> None:
         data = _read_json(self.config_path)
         modules = data.get("modules")

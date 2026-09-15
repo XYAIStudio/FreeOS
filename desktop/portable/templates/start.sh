@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Octop green portable launcher (macOS / Linux).
+# FreeOS green portable launcher (macOS / Linux).
 # Usage:
 #   ./start.sh
 #   ./start.sh --home /path/to/data
@@ -7,7 +7,8 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-export OCTOP_HOME="${OCTOP_HOME:-${ROOT}/data}"
+export FREEOS_HOME="${FREEOS_HOME:-${OCTOP_HOME:-${ROOT}/data}}"
+export OCTOP_HOME="${FREEOS_HOME}"
 
 HOST="127.0.0.1"
 PORT="8088"
@@ -17,6 +18,7 @@ while [[ $# -gt 0 ]]; do
   case "$1" in
     --home)
       [[ $# -ge 2 ]] || { echo "start.sh: --home requires a path" >&2; exit 1; }
+      FREEOS_HOME="$2"
       OCTOP_HOME="$2"
       shift 2
       ;;
@@ -32,17 +34,18 @@ while [[ $# -gt 0 ]]; do
       ;;
     -h|--help)
       cat <<EOF
-Octop green portable launcher
+FreeOS green portable launcher
 
-Usage: ./start.sh [--home DIR] [--host HOST] [--port PORT] [octop run args...]
+Usage: ./start.sh [--home DIR] [--host HOST] [--port PORT] [freeos run args...]
 
 Defaults:
-  OCTOP_HOME / --home   ${ROOT}/data
-  --host                127.0.0.1
-  --port                8088
+  FREEOS_HOME / --home   ${ROOT}/data
+  --host                 127.0.0.1
+  --port                 8088
 
 Environment:
-  OCTOP_HOME            User data directory (overridden by --home)
+  FREEOS_HOME            User data directory (overridden by --home)
+  OCTOP_HOME             Legacy alias; set to the same path
 EOF
       exit 0
       ;;
@@ -53,8 +56,11 @@ EOF
   esac
 done
 
-export OCTOP_HOME
-mkdir -p "$OCTOP_HOME"
+export FREEOS_HOME OCTOP_HOME
+export FREEOS_ORG_ENABLE="${FREEOS_ORG_ENABLE:-1}"
+export FREEOS_ORG_SIDECAR_URL="${FREEOS_ORG_SIDECAR_URL:-http://127.0.0.1:3780}"
+export OPENXYOS_BASE_URL="${OPENXYOS_BASE_URL:-${FREEOS_ORG_SIDECAR_URL}}"
+mkdir -p "$FREEOS_HOME"
 
 PY=""
 if [[ -x "${ROOT}/runtime/bin/python3" ]]; then
@@ -70,8 +76,13 @@ fi
 export PYTHONNOUSERSITE=1
 unset PYTHONPATH || true
 
-echo "[octop] home=${OCTOP_HOME}"
-echo "[octop] http://${HOST}:${PORT}"
+if [[ -x "${ROOT}/org-sidecar/start-sidecar.sh" ]]; then
+  echo "[freeos] organization sidecar → ${FREEOS_ORG_SIDECAR_URL}"
+  "${ROOT}/org-sidecar/start-sidecar.sh" &
+fi
+
+echo "[freeos] home=${FREEOS_HOME}"
+echo "[freeos] http://${HOST}:${PORT}"
 if [[ ${#EXTRA[@]} -gt 0 ]]; then
   exec "$PY" "${ROOT}/launch.py" run --host "$HOST" --port "$PORT" "${EXTRA[@]}"
 else

@@ -5,17 +5,17 @@
         <key>CFBundlePackageType</key>
         <string>APPL</string>
         <key>CFBundleName</key>
-        <string>Octop</string>
+        <string>FreeOS</string>
         <key>CFBundleExecutable</key>
-        <string>Octop</string>
+        <string>FreeOS</string>
         <key>CFBundleIdentifier</key>
-        <string>com.tencent.octop</string>
+        <string>com.xyaistudio.freeos</string>
         <key>CFBundleVersion</key>
-        <string>0.9.26</string>
+        <string>1.0.0</string>
         <key>CFBundleGetInfoString</key>
-        <string>Octop desktop shell</string>
+        <string>FreeOS desktop shell</string>
         <key>CFBundleShortVersionString</key>
-        <string>0.9.26</string>
+        <string>1.0.0</string>
         <key>CFBundleIconFile</key>
         <string>icons</string>
         <key>LSMinimumSystemVersion</key>
