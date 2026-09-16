@@ -46,6 +46,10 @@ def test_create_and_update_text_document(
         "octop.infra.knowledge.service.assert_knowledge_usable",
         lambda *_a, **_k: None,
     )
+    monkeypatch.setattr(
+        "octop.infra.knowledge.service.assert_knowledge_enabled",
+        lambda *_a, **_k: None,
+    )
     svc = KnowledgeService(services)
     base = svc.create_base(owner_user_id=services.owner_id, name="Docs")
     created = svc.create_text_document(
@@ -78,6 +82,10 @@ def test_upload_spreadsheet_documents(
 ) -> None:
     monkeypatch.setattr(
         "octop.infra.knowledge.service.assert_knowledge_usable",
+        lambda *_a, **_k: None,
+    )
+    monkeypatch.setattr(
+        "octop.infra.knowledge.service.assert_knowledge_enabled",
         lambda *_a, **_k: None,
     )
     svc = KnowledgeService(services)
@@ -139,6 +147,10 @@ def test_image_upload_requires_ocr(
 ) -> None:
     monkeypatch.setattr(
         "octop.infra.knowledge.service.assert_knowledge_usable",
+        lambda *_a, **_k: None,
+    )
+    monkeypatch.setattr(
+        "octop.infra.knowledge.service.assert_knowledge_enabled",
         lambda *_a, **_k: None,
     )
     svc = KnowledgeService(services)

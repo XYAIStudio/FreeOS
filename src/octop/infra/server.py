@@ -338,6 +338,7 @@ class OctopServer:
         db = open_database(config, self.paths)
         run_migrations(db)
         self.services = build_shared_services(db=db, paths=self.paths, config=config)
+        self._apply_desktop_knowledge_defaults()
         self._ensure_jwt_secret()
         await self._boot_runtime(config)
         self._started = True
@@ -365,6 +366,7 @@ class OctopServer:
             db.close()
             raise
         self.services = build_shared_services(db=db, paths=self.paths, config=config)
+        self._apply_desktop_knowledge_defaults()
         self._ensure_jwt_secret()
         await self._boot_runtime(config)
         logger.info(
@@ -558,6 +560,18 @@ class OctopServer:
             logger.info("octop server stopped")
 
     # ----- helpers -----
+
+    def _apply_desktop_knowledge_defaults(self) -> None:
+        """Turn on knowledge bases for the desktop / FreeOS first-run path."""
+        if self.services is None:
+            return
+        from octop.infra.knowledge.gate import apply_desktop_knowledge_default
+
+        if apply_desktop_knowledge_default(
+            self.services.settings_repo.get,
+            self.services.settings_repo.set,
+        ):
+            logger.info("knowledge bases enabled by default (desktop first-run)")
 
     def _apply_desktop_org_defaults(self) -> None:
         """Turn on the organization module for the desktop first-run path."""

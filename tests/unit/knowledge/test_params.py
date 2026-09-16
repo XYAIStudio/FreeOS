@@ -45,6 +45,7 @@ def test_capability_includes_advanced_defaults(monkeypatch: pytest.MonkeyPatch) 
 
     monkeypatch.setattr(gate, "local_embedding_deps_available", lambda: True)
     monkeypatch.setattr(gate, "is_model_downloaded", lambda _model: False)
+    monkeypatch.setattr(gate, "is_desktop_process", lambda: False)
 
     capability = gate.get_capability(lambda _key: None)
 

@@ -791,6 +791,78 @@
   flex: 1;
 }
 
+.mountHome {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  width: min(920px, 100%);
+  margin: 0 auto;
+  padding: 28px 24px 32px;
+}
+
+.mountHomeTitle {
+  margin: 8px 0 0 !important;
+  text-align: center;
+}
+
+.mountHomeLead {
+  margin: 0 auto 8px !important;
+  max-width: 640px;
+  text-align: center;
+  color: var(--fn-text-secondary);
+}
+
+.mountHomeCards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+  margin-top: 8px;
+}
+
+.mountCard {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid var(--fn-border-secondary);
+  border-radius: var(--fn-radius-lg);
+  background: var(--fn-bg-primary);
+}
+
+.mountCardIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  margin-bottom: 4px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--fn-color-brand) 12%, transparent);
+  color: var(--fn-color-brand);
+}
+
+.mountHomeAdvanced {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 4px 8px;
+  margin-top: 12px;
+  text-align: center;
+}
+
+.settingsTabs {
+  margin-top: 4px;
+}
+
+.settingsAdvanced {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--fn-border-secondary);
+}
+
 .setupMascot {
   display: block;
   width: 120px;

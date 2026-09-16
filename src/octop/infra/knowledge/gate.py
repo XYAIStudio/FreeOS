@@ -14,6 +14,7 @@ from octop.infra.agents.providers.onnx_service import (
     require_embedding_prerequisites_for_model,
 )
 from octop.infra.knowledge.params import get_advanced_settings
+from octop.infra.users.local_session import is_desktop_process
 
 _FEATURE_ENABLED_KEY = "knowledge_bases_enabled"
 _EMBEDDING_BACKEND_KEY = "knowledge_embedding_backend"
@@ -75,7 +76,8 @@ def get_capability(settings_get: SettingsGet, provider_repo: Any = None) -> dict
         if backend == "remote"
         else embedding_prerequisites_ok_for_model(selected_model)
     )
-    feature_enabled = _as_bool(settings_get(_FEATURE_ENABLED_KEY))
+    stored = settings_get(_FEATURE_ENABLED_KEY)
+    feature_enabled = is_desktop_process() if stored is None else _as_bool(stored)
     return {
         "feature_enabled": feature_enabled,
         "selected_model": selected_model,
@@ -91,6 +93,26 @@ def get_capability(settings_get: SettingsGet, provider_repo: Any = None) -> dict
         },
         **get_advanced_settings(settings_get),
     }
+
+
+def apply_desktop_knowledge_default(
+    settings_get: SettingsGet,
+    settings_set: SettingsSet,
+) -> bool:
+    """Persist the desktop first-run default once. Does not overwrite an explicit choice."""
+    if not is_desktop_process():
+        return False
+    if settings_get(_FEATURE_ENABLED_KEY) is not None:
+        return False
+    settings_set(_FEATURE_ENABLED_KEY, "true")
+    return True
+
+
+def assert_knowledge_enabled(settings_get: SettingsGet, provider_repo: Any = None) -> None:
+    """Raise when the instance switch is off. Embedding readiness is not required."""
+    capability = get_capability(settings_get, provider_repo)
+    if not capability["feature_enabled"]:
+        raise RuntimeError("knowledge feature is disabled")
 
 
 def set_feature_enabled(

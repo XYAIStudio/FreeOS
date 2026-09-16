@@ -37,6 +37,7 @@ from octop.infra.agents.providers.onnx_service import (
 from octop.infra.errors import ErrorCode, OctopError
 from octop.infra.knowledge.files import document_path
 from octop.infra.knowledge.gate import (
+    assert_knowledge_enabled,
     assert_knowledge_usable,
     get_capability,
     set_feature_enabled,
@@ -264,6 +265,16 @@ def _enable_onnx_service(server: OctopServer, model: str) -> None:
         server.services.settings_repo.set,
         OnnxServiceConfig(enabled=True, model=verified),
     )
+
+
+def _require_enabled(server: OctopServer, request: Request) -> None:
+    assert server.services is not None
+    try:
+        assert_knowledge_enabled(server.services.settings_repo.get, server.services.provider_repo)
+    except (RuntimeError, ValueError) as exc:
+        raise _map_knowledge_error(
+            exc, locale=resolve_request_locale(request), server=server
+        ) from exc
 
 
 def _require_usable(server: OctopServer, request: Request) -> None:
@@ -520,7 +531,7 @@ async def create_base(
 ) -> dict[str, Any]:
     locale = resolve_request_locale(request)
     try:
-        _require_usable(server, request)
+        _require_enabled(server, request)
         base = _knowledge_service(server).create_base(
             owner_user_id=user.id,
             name=body.name.strip(),

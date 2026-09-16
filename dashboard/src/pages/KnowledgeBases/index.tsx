@@ -26,6 +26,7 @@ import {
   Select,
   Spin,
   Switch,
+  Tabs,
   Tag,
   Tooltip,
   Typography,
@@ -118,6 +119,7 @@ import {
   isKnowledgeMarkdownDocument,
 } from "../../utils/knowledgeDocPreview";
 import { CloudMountPanel } from "./CloudMountPanel";
+import { KnowledgeMountHome } from "./KnowledgeMountHome";
 import { LocalMountPanel } from "./LocalMountPanel";
 import TextDocumentEditorModal, {
   type TextDocumentFormat,
@@ -1850,8 +1852,32 @@ export default function KnowledgeBasesPage() {
   const showListPane = !isMobile || mobilePane === "list";
   const showDetailPane = !isMobile || mobilePane === "detail";
   const showListPanel = showListPane && (isMobile || !listPanelCollapsed);
-  const showEnableGuide = !loading && !usable;
-  const showEmptyGuide = !loading && usable && bases.length === 0;
+  const featureEnabled = Boolean(capability?.feature_enabled);
+  const showDisabled = !loading && !featureEnabled;
+  const showMountHome = !loading && featureEnabled && bases.length === 0;
+
+  const ensureKb = async (name: string) => {
+    if (atBaseLimit) {
+      message.warning(
+        t("knowledgeBases.baseLimitReached", {
+          count: limits.max_bases_per_owner,
+        }),
+      );
+      throw new Error(
+        t("knowledgeBases.baseLimitReached", {
+          count: limits.max_bases_per_owner,
+        }),
+      );
+    }
+    const created = await knowledgeBasesApi.create({
+      name,
+      default_open: true,
+    });
+    await loadBases();
+    await loadDetail(created.id);
+    if (isMobile) setMobilePane("detail");
+    return created.id;
+  };
   const emptyLayoutClassName = `${styles.emptyLayout}${
     isMobile ? ` ${styles.emptyLayoutMobile}` : ""
   }`;
@@ -1871,7 +1897,7 @@ export default function KnowledgeBasesPage() {
       actions={
         canConfigureKb ? (
           <Button icon={<Settings size={15} />} onClick={openSettings}>
-            {t("knowledgeBases.settingsTitle")}
+            {t("knowledgeBases.settingsFoundation")}
           </Button>
         ) : undefined
       }
@@ -1882,7 +1908,7 @@ export default function KnowledgeBasesPage() {
             <Spin />
           </div>
         </div>
-      ) : showEnableGuide ? (
+      ) : showDisabled ? (
         <div className={emptyLayoutClassName}>
           <StreamSetupGuide
             className={styles.emptyGuide}
@@ -1890,36 +1916,19 @@ export default function KnowledgeBasesPage() {
             icon={setupMascot}
             title={
               canConfigureKb
-                ? t("knowledgeBases.enableGuideTitle")
+                ? t("knowledgeBases.disabledTitle")
                 : t("knowledgeBases.unavailableTitle")
             }
             description={
               canConfigureKb
-                ? t("knowledgeBases.enableGuideDesc")
+                ? t("knowledgeBases.disabledDesc")
                 : t("knowledgeBases.unavailableDescriptionNonAdmin")
             }
-            steps={
-              canConfigureKb
-                ? [
-                    {
-                      label: t("knowledgeBases.enableGuideStepOpen"),
-                      detail: t("knowledgeBases.enableGuideStepOpenDetail"),
-                    },
-                    {
-                      label: t("knowledgeBases.enableGuideStepToggle"),
-                      detail: t("knowledgeBases.enableGuideStepToggleDetail"),
-                    },
-                    {
-                      label: t("knowledgeBases.enableGuideStepModel"),
-                      detail: t("knowledgeBases.enableGuideStepModelDetail"),
-                    },
-                  ]
-                : []
-            }
+            steps={[]}
             primaryAction={
               canConfigureKb
                 ? {
-                    label: t("knowledgeBases.settingsTitle"),
+                    label: t("knowledgeBases.settingsFoundation"),
                     onClick: openSettings,
                     icon: <Settings size={14} />,
                   }
@@ -1927,34 +1936,13 @@ export default function KnowledgeBasesPage() {
             }
           />
         </div>
-      ) : showEmptyGuide ? (
+      ) : showMountHome ? (
         <div className={emptyLayoutClassName}>
-          <StreamSetupGuide
-            className={styles.emptyGuide}
-            wide
-            icon={setupMascot}
-            title={t("knowledgeBases.emptyGuideTitle")}
-            description={t("knowledgeBases.emptyGuideDesc")}
-            steps={[
-              {
-                label: t("knowledgeBases.emptyGuideStepWhat"),
-                detail: t("knowledgeBases.emptyGuideStepWhatDetail"),
-              },
-              {
-                label: t("knowledgeBases.emptyGuideStepHow"),
-                detail: t("knowledgeBases.emptyGuideStepHowDetail"),
-              },
-              {
-                label: t("knowledgeBases.emptyGuideStepShare"),
-                detail: t("knowledgeBases.emptyGuideStepShareDetail"),
-              },
-            ]}
-            primaryAction={{
-              label: t("knowledgeBases.create"),
-              onClick: openCreate,
-              icon: <Plus size={14} />,
-              disabled: atBaseLimit,
-            }}
+          <KnowledgeMountHome
+            canConfigure={canConfigureKb}
+            onOpenSettings={openSettings}
+            ensureKb={ensureKb}
+            onMounted={() => void refresh()}
           />
         </div>
       ) : (
@@ -3080,7 +3068,7 @@ export default function KnowledgeBasesPage() {
       </Drawer>
 
       <Drawer
-        title={t("knowledgeBases.settingsTitle")}
+        title={t("knowledgeBases.settingsFoundation")}
         placement="right"
         width={isMobile ? "100%" : 520}
         // Below antd's default dialog layer (1000) so confirm/progress modals
@@ -3118,26 +3106,17 @@ export default function KnowledgeBasesPage() {
           </div>
         }
       >
-        <div className={styles.formOptions}>
-          <div className={styles.formOptionRow}>
-            <div className={styles.formOptionCopy}>
-              <span className={styles.switchLabel}>
-                {t("knowledgeBases.settingsOpen")}
-              </span>
-              <span className={styles.formOptionHint}>
-                {t("knowledgeBases.settingsLead")}
-              </span>
-            </div>
-            <Switch
-              size="small"
-              checked={featureEnabledDraft}
-              onChange={setFeatureEnabledDraft}
-            />
-          </div>
-        </div>
-
-        {featureEnabledDraft ? (
-          <Spin spinning={featureOptionsLoading}>
+        <Typography.Paragraph type="secondary" className={styles.settingsHint}>
+          {t("knowledgeBases.settingsFoundationLead")}
+        </Typography.Paragraph>
+        <Spin spinning={featureOptionsLoading}>
+          <Tabs
+            className={styles.settingsTabs}
+            items={[
+              {
+                key: "vector",
+                label: t("knowledgeBases.settingsTabVector"),
+                children: (
             <div className={styles.settingsBody}>
               <div className={styles.settingsFieldLabel}>
                 {t("knowledgeBases.selectModel")}
@@ -3338,7 +3317,49 @@ export default function KnowledgeBasesPage() {
               <Typography.Link onClick={() => navigate("/admin/models")}>
                 {t("knowledgeBases.manageModels")}
               </Typography.Link>
-              <div className={styles.ocrSettings}>
+            </div>
+                ),
+              },
+              {
+                key: "image",
+                label: t("knowledgeBases.settingsTabImage"),
+                children: (
+                  <div className={styles.settingsBody}>
+                    <Typography.Paragraph
+                      type="secondary"
+                      className={styles.settingsHint}
+                    >
+                      {t("knowledgeBases.imageSettingsDesc")}
+                    </Typography.Paragraph>
+                    <div className={styles.formOptionRow}>
+                      <div className={styles.formOptionCopy}>
+                        <span className={styles.switchLabel}>
+                          {t("knowledgeBases.imageSettingsTitle")}
+                        </span>
+                        <span className={styles.formOptionHint}>
+                          {t("knowledgeBases.ocrDescription")}
+                        </span>
+                      </div>
+                      <Switch
+                        size="small"
+                        checked={ocrEnabledDraft}
+                        onChange={setOcrEnabledDraft}
+                      />
+                    </div>
+                  </div>
+                ),
+              },
+              {
+                key: "ocr",
+                label: t("knowledgeBases.settingsTabOcr"),
+                children: (
+              <div className={`${styles.settingsBody} ${styles.ocrSettings}`}>
+                <Typography.Paragraph
+                  type="secondary"
+                  className={styles.settingsHint}
+                >
+                  {t("knowledgeBases.ocrFoundationHint")}
+                </Typography.Paragraph>
                 <div className={styles.formOptionRow}>
                   <div className={styles.formOptionCopy}>
                     <span className={styles.switchLabel}>
@@ -3427,9 +3448,28 @@ export default function KnowledgeBasesPage() {
                   </div>
                 ) : null}
               </div>
+                ),
+              },
+            ]}
+          />
+        </Spin>
+        <div className={styles.settingsAdvanced}>
+          <div className={styles.formOptionRow}>
+            <div className={styles.formOptionCopy}>
+              <span className={styles.switchLabel}>
+                {t("knowledgeBases.settingsOpen")}
+              </span>
+              <span className={styles.formOptionHint}>
+                {t("knowledgeBases.settingsLead")}
+              </span>
             </div>
-          </Spin>
-        ) : null}
+            <Switch
+              size="small"
+              checked={featureEnabledDraft}
+              onChange={setFeatureEnabledDraft}
+            />
+          </div>
+        </div>
       </Drawer>
       <Modal
         open={downloadProgressOpen}
