@@ -11,6 +11,10 @@ import {
 } from "lucide-react";
 import type { OctopUser } from "../api/modules/auth";
 import { navAllowed } from "../utils/permissions";
+import {
+  CONVERSATION_LIST_PATH,
+  WORKSPACE_PROJECTS_PATH,
+} from "./conversationHome";
 
 export const EXPANDED_WIDTH = 220;
 export const COLLAPSED_WIDTH = 56;
@@ -54,7 +58,7 @@ export function buildNavSections(
   const items: NavItem[] = [
     {
       key: "chat",
-      path: "/chat",
+      path: CONVERSATION_LIST_PATH,
       icon: <MessageSquareText size={iconSize} strokeWidth={iconStroke} />,
       labelKey: "nav.conversations",
     },
@@ -95,7 +99,7 @@ export function buildNavSections(
   });
   items.push({
     key: "projects",
-    path: "/projects",
+    path: WORKSPACE_PROJECTS_PATH,
     icon: <FolderKanban size={iconSize} strokeWidth={iconStroke} />,
     labelKey: "nav.workspace",
   });

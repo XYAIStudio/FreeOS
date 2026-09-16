@@ -15,11 +15,11 @@ describe("desktopOnboarding", () => {
     expect(desktopPostSessionPath()).toBe("/setup");
     markDesktopModelOnboardingDone();
     expect(isDesktopModelOnboardingDone()).toBe(true);
-    expect(desktopPostSessionPath()).toBe("/chat");
+    expect(desktopPostSessionPath()).toBe("/projects");
   });
 
   it("treats an existing provider as already finished", () => {
-    expect(desktopPostSessionPath(true)).toBe("/chat");
+    expect(desktopPostSessionPath(true)).toBe("/projects");
     expect(isDesktopModelOnboardingDone()).toBe(true);
   });
 });

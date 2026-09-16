@@ -306,7 +306,7 @@ export default function ProjectsPage() {
   ];
 
   return (
-    <PageShell title={t("nav.workspace")} subtitle={t("projects.subtitle")}>
+    <PageShell title={t("nav.workspace")} subtitle={t("projects.listHint")}>
       <div className={styles.zone}>
         <div className={styles.tabs} role="tablist">
           {zoneTabs.map((tab) => (

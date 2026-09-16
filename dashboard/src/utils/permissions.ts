@@ -3,6 +3,9 @@
 export type PermissionHolder = {
   role: "admin" | "user" | string;
   permissions?: string[] | null;
+  /** Unclaimed desktop / loopback guest from ``/auth/local-session``. */
+  is_local?: boolean;
+  username?: string;
 };
 
 /** Any-of module keys, or ``"admin"`` for role-only. */
@@ -27,6 +30,20 @@ export const PERM = {
   securityPage: ["security", "admin_console"],
   advancedPage: ["update", "envs", "tls", "observability", "backup"],
 } as const satisfies Record<string, readonly string[]>;
+
+const DESKTOP_GUEST_KEYS = new Set<string>([
+  ...PERM.modelsPage,
+  ...PERM.knowledgeBasesPage,
+]);
+
+/** First-run desktop guest should reach 模型 / 知识库 without a claimed account. */
+export function isLocalDesktopGuest(
+  user: PermissionHolder | null | undefined,
+): boolean {
+  if (!user) return false;
+  if (user.is_local) return true;
+  return user.username === "local";
+}
 
 /** Sidebar item key → permission keys. Shared with path guards. */
 export const NAV_PERMISSIONS = {
@@ -77,6 +94,7 @@ export function userCan(
 ): boolean {
   if (!user) return false;
   if (user.role === "admin") return true;
+  if (isLocalDesktopGuest(user) && DESKTOP_GUEST_KEYS.has(key)) return true;
   return (user.permissions ?? []).includes(key);
 }
 
@@ -87,6 +105,12 @@ export function userCanAny(
 ): boolean {
   if (!user) return false;
   if (user.role === "admin") return true;
+  if (
+    isLocalDesktopGuest(user) &&
+    keys.some((k) => DESKTOP_GUEST_KEYS.has(k))
+  ) {
+    return true;
+  }
   const held = new Set(user.permissions ?? []);
   return keys.some((k) => held.has(k));
 }

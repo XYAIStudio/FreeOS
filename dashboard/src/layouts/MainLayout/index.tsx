@@ -55,7 +55,7 @@ function ChatWithKey() {
 export default function MainLayout() {
   const location = useLocation();
   const currentPath = location.pathname;
-  const selectedKey = resolveSelectedKey(currentPath);
+  const selectedKey = resolveSelectedKey(currentPath, location.search);
   const isMobile = useIsMobile();
   const { layoutMode } = useLayoutMode();
   useDashboardPushToast();

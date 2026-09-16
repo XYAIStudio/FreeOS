@@ -20,11 +20,11 @@ export function markDesktopModelOnboardingDone(): void {
   }
 }
 
-/** Path after a desktop local session: model setup once, then the workspace. */
+/** Path after a desktop local session: model setup once, then the shared conversation list. */
 export function desktopPostSessionPath(hasProviders = false): string {
   if (hasProviders || isDesktopModelOnboardingDone()) {
     if (hasProviders) markDesktopModelOnboardingDone();
-    return "/chat";
+    return "/projects";
   }
   return "/setup";
 }

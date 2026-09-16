@@ -107,7 +107,12 @@
     "catalogEnabled": "Shown",
     "catalogDisabled": "Hidden",
     "catalogToggleHint": "When off, the module disappears from the openXYOS preview sidebar.",
-    "autoStartingSidecar": "Starting the openXYOS sidecar…"
+    "autoStartingSidecar": "Starting the openXYOS sidecar…",
+    "glossary": "Employees: already assigned to a department. Colleagues: peers in the same organization (use this word in group chat). Experts / smart helpers: not yet placed in a department — manage them on Experts.",
+    "receiptTitle": "What just happened",
+    "assembleReceipt": "Imported {{count}} employee(s) assigned to a department. In group chat call them colleagues, not experts.",
+    "assembleNext": "Next: open Conversations and invite colleagues to a group. Unassigned helpers stay on Experts.",
+    "packReceipt": "Packed and tried to push to openXYOS. Details below."
   },
   "systemSettings": {
     "subtitle": "Workbench, remote desktop, and host administration in one place."
@@ -130,8 +135,8 @@
     "createGroup": "New group",
     "groupTitle": "Group name",
     "groupTitlePlaceholder": "Optional, e.g. Weekly sync",
-    "groupMembers": "Choose experts",
-    "groupMembersRequired": "Select at least two experts",
+    "groupMembers": "Choose colleagues or smart helpers",
+    "groupMembersRequired": "Select at least two colleagues or smart helpers",
     "groupCreated": "Group chat created",
     "groupCreateFailed": "Could not create the group chat",
     "kindDirect": "Direct",
@@ -828,7 +833,7 @@
     }
   },
   "experts": {
-    "subtitle": "Spin up a pre-configured agent (with identity / soul / heartbeat baked in) from a scenario template. Each expert ships with its own system prompt — once created, just bind a provider and start it.",
+    "subtitle": "Experts (also called smart helpers) are not yet assigned to a department. Departmental staff are employees on Organization; in group chat call same-org peers colleagues.",
     "loadFailed": "Failed to load experts",
     "loadDetailFailed": "Failed to load expert details",
     "share": {
@@ -1378,14 +1383,14 @@
     "skillPicker": "Select skills",
     "skillPickerSearch": "Search skills",
     "skillPickerEmpty": "No skills available",
-    "expertPicker": "Select experts",
-    "expertPickerSearch": "Search experts or agents",
-    "expertPickerEmpty": "No other experts available",
+    "expertPicker": "Choose colleagues or smart helpers",
+    "expertPickerSearch": "Search colleagues or smart helpers",
+    "expertPickerEmpty": "No one to chat with yet. Add a smart helper on Experts, or import employees on Organization — then call them colleagues in the group.",
     "expertPickerManage": "Manage experts",
     "expertPickerCheck": "Select {{name}} for group chat",
-    "expertPickerGroupHint": "Check multiple experts or agents, then enter a group chat",
+    "expertPickerGroupHint": "Check colleagues or smart helpers, then enter a group chat and @ them",
     "expertPickerEnterGroupCount": "Enter group chat ({{count}})",
-    "expertPickerGroupOpened": "Opened group chat",
+    "expertPickerGroupOpened": "Opened group chat. Type @ to mention a colleague or smart helper",
     "subagentPicker": "Select subagents",
     "subagentPickerSearch": "Search subagents",
     "subagentPickerEmpty": "No installed subagents",
@@ -3244,7 +3249,10 @@
     "onnxNotReady": "not ready",
     "onnxCacheDir": "Cache: {{dir}}",
     "onnxLocalCached": "Cached models",
-    "onnxQuickDownload": "Quick download from catalog…"
+    "onnxQuickDownload": "Quick download from catalog…",
+    "useInChat": "Switch in chat",
+    "localInstallRegistered": "Installed {{name}} and registered it. Open Conversations to switch.",
+    "localInstallNeedProvider": "Downloaded. Enable the Ollama provider on this page, then switch in chat."
   },
   "advancedSettings": {
     "description": "Manage runtime configuration and environment variables.",
@@ -5399,7 +5407,7 @@
   "pageShell": {
     "experts": {
       "title": "Experts",
-      "subtitle": "Create and manage your AI experts, or pick a scenario template to get started quickly."
+      "subtitle": "Experts / smart helpers are not yet in a department. Employees live on Organization; in group chat call same-org peers colleagues."
     },
     "tasks": {
       "title": "Automation",

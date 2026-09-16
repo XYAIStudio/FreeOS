@@ -39,7 +39,7 @@ describe("sidebarNav", () => {
     ]);
   });
 
-  it("hides models and knowledge when the user lacks those permissions", () => {
+  it("hides models and knowledge when a non-desktop user lacks those permissions", () => {
     const guest = {
       id: 2,
       username: "guest",
@@ -56,6 +56,24 @@ describe("sidebarNav", () => {
     expect(keys).toContain("projects");
     expect(keys).toContain("chat");
     expect(keys).toContain("experts");
+  });
+
+  it("shows models and knowledge for the first-run desktop guest", () => {
+    const desktopGuest = {
+      id: 3,
+      username: "local",
+      role: "user",
+      permissions: [],
+      is_local: true,
+    } as OctopUser;
+    const items = buildNavSections(desktopGuest).flatMap((s) => s.items);
+    const keys = items.map((i) => i.key);
+    expect(keys).toContain("models");
+    expect(keys).toContain("knowledge-bases");
+    expect(items.find((i) => i.key === "chat")?.path).toBe("/projects");
+    expect(items.find((i) => i.key === "projects")?.path).toBe(
+      "/projects?view=projects",
+    );
   });
 
   it("labels organization without the OS suffix", () => {

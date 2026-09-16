@@ -13,6 +13,7 @@ import {
   Typography,
 } from "antd";
 import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
 import {
   localModelsApi,
   type LocalInstalledModel,
@@ -25,7 +26,30 @@ import {
   canPickDesktopFolder,
   pickDesktopFolder,
 } from "../../../../utils/desktopFolder";
+import { providerApi } from "../../../../api/modules/provider";
 import { message } from "../../../../utils/antdMessage";
+import { CONVERSATION_LIST_PATH } from "../../../../layouts/conversationHome";
+import { isOllamaProviderRow } from "../presetUtils";
+
+async function registerOllamaModel(name: string): Promise<boolean> {
+  const providers = await providerApi.listProviders();
+  const ollama = providers.find(
+    (row) =>
+      row.id === "ollama" ||
+      isOllamaProviderRow({
+        name: row.name,
+        base_url: row.current_base_url,
+        api_key: row.current_api_key,
+      }),
+  );
+  if (!ollama) return false;
+  const already = [...(ollama.models ?? []), ...(ollama.extra_models ?? [])].some(
+    (model) => model.id === name || model.name === name,
+  );
+  if (already) return true;
+  await providerApi.addModel(ollama.id, { id: name, name });
+  return true;
+}
 
 function mergeModels(
   ...groups: Array<LocalInstalledModel[] | undefined>
@@ -51,6 +75,7 @@ function canRegister(item: LocalInstalledModel): boolean {
 
 export function LocalHardwarePanel() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const [probe, setProbe] = useState<LocalProbe | null>(null);
   const [loading, setLoading] = useState(false);
   const [installing, setInstalling] = useState<string | null>(null);
@@ -170,7 +195,20 @@ export function LocalHardwarePanel() {
         await refresh();
         return;
       }
-      message.success(t("models.localInstallDone", { name }));
+      let registered = false;
+      try {
+        registered = await registerOllamaModel(name);
+      } catch {
+        registered = false;
+      }
+      message.success(
+        t(
+          registered
+            ? "models.localInstallRegistered"
+            : "models.localInstallNeedProvider",
+          { name },
+        ),
+      );
       await refresh();
     } catch (err) {
       message.error(
@@ -358,7 +396,6 @@ export function LocalHardwarePanel() {
       <Typography.Paragraph type="secondary">
         {t("models.localHardwareHint")}
       </Typography.Paragraph>
-
       {ollamaInstalled && !ollamaUp && (
         <Alert
           type="warning"
@@ -401,6 +438,15 @@ export function LocalHardwarePanel() {
           }
         />
       )}
+
+      <Button
+        size="small"
+        type="link"
+        style={{ paddingLeft: 0, marginBottom: 8 }}
+        onClick={() => navigate(CONVERSATION_LIST_PATH)}
+      >
+        {t("models.useInChat")}
+      </Button>
 
       <Typography.Title level={5}>
         {t("models.localInstalled")}
