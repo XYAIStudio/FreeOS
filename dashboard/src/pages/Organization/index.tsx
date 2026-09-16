@@ -31,7 +31,6 @@ import {
 } from "../../utils/desktopFolder";
 import { message } from "../../utils/antdMessage";
 import { resolveOpenxyosSourceDest } from "./pickSourceDest";
-import { sidecarRecoverPhase } from "./sidecarRecover";
 import styles from "./Organization.module.less";
 
 type ActionKey = "assemble" | "pack" | "loop" | "sidecar" | "produce" | null;
@@ -67,8 +66,6 @@ export default function OrganizationPage() {
   const [produceName, setProduceName] = useState("");
   const [produceIma, setProduceIma] = useState("");
   const [landed, setLanded] = useState<Record<string, unknown> | null>(null);
-  const [autoStartFailed, setAutoStartFailed] = useState(false);
-  const [recoverDetail, setRecoverDetail] = useState("");
   const autoStartRef = useRef(false);
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
 
@@ -178,10 +175,9 @@ export default function OrganizationPage() {
     }
   };
 
-  const startSidecar = (opts?: { silent?: boolean }) =>
+  const startSidecar = () =>
     runAction("sidecar", async () => {
       setPreviewPending(true);
-      setAutoStartFailed(false);
       try {
         const result = await orgModuleApi.startSidecar();
         setLastActionNotes([result.detail, result.command].filter(Boolean));
@@ -189,22 +185,10 @@ export default function OrganizationPage() {
           ? await applyOverview(true)
           : await waitForSidecar();
         if (next?.sidecar_reachable) {
-          setRecoverDetail("");
-          if (!opts?.silent) {
-            message.success(t("organization.sidecarStarted"));
-          }
           return;
         }
-        const detail = result.detail || t("organization.sidecarStartPending");
-        setAutoStartFailed(true);
-        setRecoverDetail(detail);
-        message.error(t("organization.sidecarAutoStartFailed", { detail }));
-      } catch (err) {
-        const detail =
-          err instanceof Error ? err.message : t("organization.actionFailed");
-        setAutoStartFailed(true);
-        setRecoverDetail(detail);
-        message.error(t("organization.sidecarAutoStartFailed", { detail }));
+      } catch {
+        // FreeOS still embeds the local URL; no user-facing start CTA.
       } finally {
         setPreviewPending(false);
       }
@@ -219,7 +203,7 @@ export default function OrganizationPage() {
     if (!overview || overview.sidecar_reachable) return;
     if (!canSilentStart) return;
     autoStartRef.current = true;
-    void startSidecar({ silent: true });
+    void startSidecar();
   }, [canSilentStart, overview, overview?.sidecar_reachable]);
 
   const toggleModule = async (key: string, enabled: boolean) => {
@@ -396,22 +380,17 @@ export default function OrganizationPage() {
         .map((row) => row.key),
     [catalog, moduleToggles],
   );
+  const localConsoleUrl = (
+    overview?.sidecar_url || "http://127.0.0.1:3780"
+  ).replace(/\/$/, "");
   const previewUrl = useMemo(() => {
-    if (!overview?.sidecar_url) return "";
-    const base = `${overview.sidecar_url.replace(/\/$/, "")}/`;
+    const base = `${localConsoleUrl}/`;
     if (!disabledKeys.length) return base;
     return `${base}?freeos_disabled=${encodeURIComponent(
       disabledKeys.join(","),
     )}`;
-  }, [overview?.sidecar_url, disabledKeys]);
-  const showFrame = Boolean(sidecarUp && previewUrl);
-  const recoverPhase = sidecarRecoverPhase({
-    sidecarUp,
-    installReady: Boolean(overview?.install_ready),
-    startAvailable: Boolean(overview?.start_available),
-    autoStarting: previewPending || busy === "sidecar",
-    autoStartFailed,
-  });
+  }, [localConsoleUrl, disabledKeys]);
+  const showFrame = Boolean(previewUrl);
 
   const pushTogglesToPreview = useCallback(() => {
     const frame = iframeRef.current?.contentWindow;
@@ -460,7 +439,7 @@ export default function OrganizationPage() {
             <span className={styles.chip}>
               {sidecarUp
                 ? t("organization.sidecarUp")
-                : t("organization.sidecarDown")}
+                : t("organization.sidecarOpening")}
             </span>
             <span className={styles.chip}>
               {t("organization.lastSync")}: {lastSync}
@@ -486,47 +465,6 @@ export default function OrganizationPage() {
                 onChange={(checked) => void toggle(checked)}
               />
             </div>
-
-            {recoverPhase === "starting" && !sidecarUp && (
-              <section className={styles.recover}>
-                <p className={styles.recoverTitle}>
-                  {t("organization.sidecarAutoStarting")}
-                </p>
-                <p className={styles.recoverBody}>
-                  {t("organization.sidecarStartPending")}
-                </p>
-              </section>
-            )}
-
-            {recoverPhase === "recover" && (
-              <section className={styles.recover}>
-                <p className={styles.recoverTitle}>
-                  {t("organization.startSidecarTitle")}
-                </p>
-                <p className={styles.recoverBody}>
-                  {t("organization.startSidecarBody")}
-                </p>
-                {recoverDetail ? (
-                  <p className={styles.recoverBody}>{recoverDetail}</p>
-                ) : null}
-                <p className={styles.recoverBody}>
-                  {t("organization.sidecarRecoverHint")}
-                </p>
-                <Space wrap>
-                  <Button
-                    icon={<Play size={14} />}
-                    loading={busy === "sidecar"}
-                    disabled={!overview?.start_available && !overview}
-                    onClick={() => void startSidecar()}
-                  >
-                    {t("organization.startSidecarAction")}
-                  </Button>
-                  {overview?.start_command && (
-                    <code>{overview.start_command}</code>
-                  )}
-                </Space>
-              </section>
-            )}
 
             {firstRun && (
               <section className={styles.empty}>
@@ -629,7 +567,9 @@ export default function OrganizationPage() {
                   </div>
                   <div className={styles.metric}>
                     <span className={styles.metricValue}>
-                      {sidecarUp ? t("organization.sidecarUp") : "—"}
+                      {sidecarUp
+                        ? t("organization.sidecarUp")
+                        : t("organization.sidecarOpening")}
                     </span>
                     <span className={styles.metricLabel}>
                       {t("organization.metricHealth")}
@@ -914,43 +854,15 @@ export default function OrganizationPage() {
               </Space>
             </div>
             <div className={styles.previewBody}>
-              {showFrame ? (
-                <iframe
-                  ref={iframeRef}
-                  title={t("organization.previewTitle")}
-                  src={previewUrl}
-                  className={styles.embed}
-                  allow="clipboard-read; clipboard-write"
-                  onLoad={pushTogglesToPreview}
-                />
-              ) : (
-                <div className={styles.previewEmpty}>
-                  <p className={styles.recoverTitle}>
-                    {recoverPhase === "starting" || previewPending
-                      ? t("organization.previewLoading")
-                      : t("organization.startSidecarTitle")}
-                  </p>
-                  <p className={styles.recoverBody}>
-                    {recoverPhase === "starting" || previewPending
-                      ? t("organization.sidecarAutoStarting")
-                      : recoverDetail || t("organization.previewOffline")}
-                  </p>
-                  {recoverPhase === "recover" && (
-                    <Space wrap>
-                      <Button
-                        icon={<Play size={14} />}
-                        loading={busy === "sidecar" || previewPending}
-                        onClick={() => void startSidecar()}
-                      >
-                        {t("organization.startSidecarAction")}
-                      </Button>
-                      {overview?.start_command && (
-                        <code>{overview.start_command}</code>
-                      )}
-                    </Space>
-                  )}
-                </div>
-              )}
+              <iframe
+                key={sidecarUp ? "open" : "opening"}
+                ref={iframeRef}
+                title={t("organization.previewTitle")}
+                src={previewUrl}
+                className={styles.embed}
+                allow="clipboard-read; clipboard-write"
+                onLoad={pushTogglesToPreview}
+              />
             </div>
           </aside>
         </div>

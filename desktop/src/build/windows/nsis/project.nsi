@@ -52,32 +52,44 @@ ManifestDPIAware true
 
 LangString FINISH_RUN ${LANG_SIMPCHINESE} "运行 FreeOS"
 LangString FINISH_RUN ${LANG_ENGLISH} "Run FreeOS"
-LangString OPENXYOS_WORKDIR ${LANG_SIMPCHINESE} "创建 openXYOS 工作目录（写入 %LOCALAPPDATA%\\FreeOS\\openxyos，安装期完成部署）"
-LangString OPENXYOS_WORKDIR ${LANG_ENGLISH} "Create the openXYOS work directory (%LOCALAPPDATA%\\FreeOS\\openxyos; deploy during Setup)"
-LangString OPENXYOS_COPY_ZIP ${LANG_SIMPCHINESE} "复制 openXYOS 运行包（前端+后端）"
-LangString OPENXYOS_COPY_ZIP ${LANG_ENGLISH} "Copy the openXYOS runtime payload (frontend + backend)"
-LangString OPENXYOS_EXTRACT ${LANG_SIMPCHINESE} "解压 openXYOS 前端与后端到 %LOCALAPPDATA%\\FreeOS\\openxyos"
-LangString OPENXYOS_EXTRACT ${LANG_ENGLISH} "Extract openXYOS frontend and backend into %LOCALAPPDATA%\\FreeOS\\openxyos"
-LangString OPENXYOS_FE_OK ${LANG_SIMPCHINESE} "已就绪：%LOCALAPPDATA%\\FreeOS\\openxyos\\dist\\index.html"
-LangString OPENXYOS_FE_OK ${LANG_ENGLISH} "Ready: %LOCALAPPDATA%\\FreeOS\\openxyos dist\\index.html"
-LangString OPENXYOS_NODE_OK ${LANG_SIMPCHINESE} "已就绪：bundled Node（node.exe）"
-LangString OPENXYOS_NODE_OK ${LANG_ENGLISH} "Ready: bundled Node (node.exe)"
-LangString OPENXYOS_STAGED_OK ${LANG_SIMPCHINESE} "已从 openxyos-runtime 备份展开到本机工作目录"
-LangString OPENXYOS_STAGED_OK ${LANG_ENGLISH} "Expanded the sealed runtime backup into the live workdir"
-LangString OPENXYOS_EXTRACT_CODE ${LANG_SIMPCHINESE} "解压结束，退出码 "
-LangString OPENXYOS_EXTRACT_CODE ${LANG_ENGLISH} "Extract finished, exit code "
-LangString OPENXYOS_EXTRACT_FAIL ${LANG_SIMPCHINESE} "安装失败：未能把完整的 openXYOS 运行环境解压到 %LOCALAPPDATA%\\FreeOS\\openxyos（需要 node\\node.exe 与 dist\\index.html）。请重新下载安装包。"
-LangString OPENXYOS_EXTRACT_FAIL ${LANG_ENGLISH} "Setup failed: could not extract a complete openXYOS runtime into %LOCALAPPDATA%\\FreeOS\\openxyos (need node\\node.exe and dist\\index.html). Download the installer again."
-LangString OPENXYOS_AUTOSTART ${LANG_SIMPCHINESE} "写入本机 openXYOS 常驻启动脚本（登录后自动拉起，无需「启动边车」）"
-LangString OPENXYOS_AUTOSTART ${LANG_ENGLISH} "Write the persistent openXYOS start helper (logon auto-start; no Start sidecar click)"
-LangString OPENXYOS_PROBE ${LANG_SIMPCHINESE} "正在以当前用户启动本机 openXYOS 并检查 http://127.0.0.1:3780/api/health/livez"
-LangString OPENXYOS_PROBE ${LANG_ENGLISH} "Starting local openXYOS as the current user and checking http://127.0.0.1:3780/api/health/livez"
-LangString OPENXYOS_PROBE_OK ${LANG_SIMPCHINESE} "openXYOS 已在本机运行，并已登记用户级开机自启"
-LangString OPENXYOS_PROBE_OK ${LANG_ENGLISH} "openXYOS is running locally and registered for user-level auto-start"
-LangString OPENXYOS_PROBE_WARN ${LANG_SIMPCHINESE} "openXYOS 文件已就绪，但 http://127.0.0.1:3780/api/health/livez 暂未响应。安装将继续；登录后会自动拉起本机服务，也可稍后在组织页重试。"
-LangString OPENXYOS_PROBE_WARN ${LANG_ENGLISH} "openXYOS files are in place, but http://127.0.0.1:3780/api/health/livez is not ready yet. Setup will continue; the service auto-starts at logon, or retry from Organization later."
-LangString UN_FREEOS_RUNNING ${LANG_SIMPCHINESE} "检测到 FreeOS 仍在运行（主程序、主机或组织侧车）。$\r$\n$\r$\n继续将结束这些进程，并删除安装目录中的程序文件。$\r$\n用户数据（%USERPROFILE%\.freeos）会保留。$\r$\n$\r$\n要继续卸载吗？"
-LangString UN_FREEOS_RUNNING ${LANG_ENGLISH} "FreeOS is still running (shell, host, or organization sidecar).$\r$\n$\r$\nContinuing will stop those processes and remove program files from the install folder.$\r$\nUser data (%USERPROFILE%\.freeos) is kept.$\r$\n$\r$\nContinue uninstall?"
+LangString OPENXYOS_WORKDIR ${LANG_SIMPCHINESE} "创建 openXYOS 工作目录（写入 %LOCALAPPDATA%\\FreeOS\\openxyos）"
+LangString OPENXYOS_WORKDIR ${LANG_ENGLISH} "Create the openXYOS work directory (%LOCALAPPDATA%\\FreeOS\\openxyos)"
+LangString OPENXYOS_COPY_ZIP ${LANG_SIMPCHINESE} "复制 openXYOS 运行包（前端+后端）与预配子进程"
+LangString OPENXYOS_COPY_ZIP ${LANG_ENGLISH} "Copy the openXYOS runtime payload and provisioner subprocess"
+LangString OPENXYOS_PROVISION ${LANG_SIMPCHINESE} "正在以子进程部署 openXYOS（解压、启动前后端、等待健康检查）"
+LangString OPENXYOS_PROVISION ${LANG_ENGLISH} "Running the openXYOS provisioner subprocess (extract, start FE/BE, wait for health)"
+LangString OPENXYOS_PROVISION_CODE ${LANG_SIMPCHINESE} "openXYOS 预配子进程退出码 "
+LangString OPENXYOS_PROVISION_CODE ${LANG_ENGLISH} "openXYOS provisioner subprocess exit code "
+LangString OPENXYOS_PROVISION_OK ${LANG_SIMPCHINESE} "本机 openXYOS 已就绪（http://127.0.0.1:3780 健康检查通过）"
+LangString OPENXYOS_PROVISION_OK ${LANG_ENGLISH} "Local openXYOS is ready (http://127.0.0.1:3780 health check passed)"
+LangString OPENXYOS_PROVISION_RETRY ${LANG_SIMPCHINESE} "正在重试 openXYOS 预配子进程"
+LangString OPENXYOS_PROVISION_RETRY ${LANG_ENGLISH} "Retrying the openXYOS provisioner subprocess"
+LangString OPENXYOS_PROVISION_FAIL ${LANG_SIMPCHINESE} "安装失败：openXYOS 预配未完成。"
+LangString OPENXYOS_PROVISION_FAIL ${LANG_ENGLISH} "Setup failed: openXYOS provisioning did not finish."
+LangString OPENXYOS_FAIL_ZIP ${LANG_SIMPCHINESE} "找不到 openXYOS 运行包（openxyos-runtime.zip）。请重新下载安装包。"
+LangString OPENXYOS_FAIL_ZIP ${LANG_ENGLISH} "The openXYOS runtime zip (openxyos-runtime.zip) is missing. Download the installer again."
+LangString OPENXYOS_FAIL_EXTRACT ${LANG_SIMPCHINESE} "用 tar.exe 解压 openXYOS 到本机工作目录失败。请查看 provision.log。"
+LangString OPENXYOS_FAIL_EXTRACT ${LANG_ENGLISH} "tar.exe could not extract openXYOS into the live workdir. See provision.log."
+LangString OPENXYOS_FAIL_TAR ${LANG_SIMPCHINESE} "系统缺少 tar.exe（Windows 10 自带）。无法解压运行包。"
+LangString OPENXYOS_FAIL_TAR ${LANG_ENGLISH} "tar.exe is missing (shipped with Windows 10). Cannot extract the runtime."
+LangString OPENXYOS_FAIL_NODE ${LANG_SIMPCHINESE} "解压后缺少 bundled Node（node\\node.exe）。安装包不完整。"
+LangString OPENXYOS_FAIL_NODE ${LANG_ENGLISH} "Bundled Node (node\\node.exe) is missing after extract. The package is incomplete."
+LangString OPENXYOS_FAIL_FE ${LANG_SIMPCHINESE} "解压后缺少前端（dist\\index.html）。安装包不完整。"
+LangString OPENXYOS_FAIL_FE ${LANG_ENGLISH} "Frontend (dist\\index.html) is missing after extract. The package is incomplete."
+LangString OPENXYOS_FAIL_START ${LANG_SIMPCHINESE} "未能以当前用户启动 openXYOS（Node 未拉起）。请查看 %LOCALAPPDATA%\\FreeOS\\openxyos\\provision.log。"
+LangString OPENXYOS_FAIL_START ${LANG_ENGLISH} "Could not start openXYOS as the current user (Node did not launch). See %LOCALAPPDATA%\\FreeOS\\openxyos\\provision.log."
+LangString OPENXYOS_FAIL_LIVEZ ${LANG_SIMPCHINESE} "openXYOS 已尝试启动，但健康检查未通过。请查看 %LOCALAPPDATA%\\FreeOS\\openxyos\\provision.log 中的启动记录，而不是先假设 3780 端口被占用。"
+LangString OPENXYOS_FAIL_LIVEZ ${LANG_ENGLISH} "openXYOS was started but the health check did not pass. See %LOCALAPPDATA%\\FreeOS\\openxyos\\provision.log for the start record; do not assume port 3780 is the cause."
+LangString OPENXYOS_FAIL_MARKER ${LANG_SIMPCHINESE} "健康检查已通过，但未能写入 .install-ready。"
+LangString OPENXYOS_FAIL_MARKER ${LANG_ENGLISH} "Health check passed, but .install-ready could not be written."
+LangString OPENXYOS_FAIL_UNKNOWN ${LANG_SIMPCHINESE} "openXYOS 预配子进程失败。请查看 provision.log 中的具体步骤（解压 / 启动 / 健康检查）。"
+LangString OPENXYOS_FAIL_UNKNOWN ${LANG_ENGLISH} "The openXYOS provisioner subprocess failed. See provision.log for the extract / start / health-check step."
+LangString OPENXYOS_FAIL_CODE ${LANG_SIMPCHINESE} "退出码 "
+LangString OPENXYOS_FAIL_CODE ${LANG_ENGLISH} "Exit code "
+LangString OPENXYOS_FAIL_LOG ${LANG_SIMPCHINESE} "详细日志：%LOCALAPPDATA%\\FreeOS\\openxyos\\provision.log"
+LangString OPENXYOS_FAIL_LOG ${LANG_ENGLISH} "Log: %LOCALAPPDATA%\\FreeOS\\openxyos\\provision.log"
+LangString UN_FREEOS_RUNNING ${LANG_SIMPCHINESE} "检测到 FreeOS 仍在运行（主程序、主机或本机 openXYOS）。$\r$\n$\r$\n继续将结束这些进程，并删除安装目录中的程序文件。$\r$\n用户数据（%USERPROFILE%\.freeos）会保留。$\r$\n$\r$\n要继续卸载吗？"
+LangString UN_FREEOS_RUNNING ${LANG_ENGLISH} "FreeOS is still running (shell, host, or local openXYOS).$\r$\n$\r$\nContinuing will stop those processes and remove program files from the install folder.$\r$\nUser data (%USERPROFILE%\.freeos) is kept.$\r$\n$\r$\nContinue uninstall?"
 
 Name "${INFO_PRODUCTNAME}"
 !ifndef INSTALLER_OUTFILE
@@ -144,6 +156,7 @@ Section "uninstall"
     SetRegView 64
     DeleteRegValue HKCU "Software\Microsoft\Windows\CurrentVersion\Run" "${INFO_PRODUCTNAME}"
     DeleteRegValue HKCU "Software\Microsoft\Windows\CurrentVersion\Run" "${INFO_PROJECTNAME}"
+    ; Older installers registered logon autostart; this build does not.
     DeleteRegValue HKCU "Software\Microsoft\Windows\CurrentVersion\Run" "FreeOS-openXYOS"
     nsExec::ExecToLog 'schtasks.exe /Delete /TN "FreeOS-openXYOS" /F'
     Pop $0
@@ -154,28 +167,6 @@ Section "uninstall"
     !insertmacro wails.deleteUninstaller
     !insertmacro wails.wipeInstallDir
 SectionEnd
-
-# Launch the live openXYOS helper as the unelevated user and keep it.
-# An admin CreateProcess would High-integrity ~/.freeos; #29 then killed
-# the probe process, so Organization still asked to 启动边车.
-Function PersistOpenXYOS
-    !insertmacro wails.userLocalAppData
-    SetRegView 64
-    WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Run" "FreeOS-openXYOS" '"$SYSDIR\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File "$R6\FreeOS\openxyos\start-sidecar.ps1"'
-    nsExec::ExecToLog 'schtasks.exe /Create /TN "FreeOS-openXYOS" /SC ONLOGON /RL LIMITED /F /TR "\"$SYSDIR\WindowsPowerShell\v1.0\powershell.exe\" -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File \"$R6\FreeOS\openxyos\start-sidecar.ps1\""'
-    Pop $0
-    System::Call "ole32::CoInitialize(i 0)"
-    System::Call 'ole32::CoCreateInstance(g "{13709620-C279-11CE-A49E-444553540000}",i 0,i 1,g "{A4C6892C-3BA9-11d2-9DEA-00C04FB16162}",*i .r0) i .r1'
-    ${If} $1 == 0
-    ${AndIf} $0 != 0
-        System::Call '$0->31(w "$SYSDIR\WindowsPowerShell\v1.0\powershell.exe", w "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File $\"$R6\FreeOS\openxyos\start-sidecar.ps1\"", w "$R6\FreeOS\openxyos", w "open", i 0)'
-        System::Call "$0->2()"
-    ${Else}
-        nsExec::ExecToLog 'schtasks.exe /Run /TN "FreeOS-openXYOS"'
-        Pop $0
-        Exec '"$WINDIR\explorer.exe" "$R6\FreeOS\openxyos\start-sidecar.cmd"'
-    ${EndIf}
-FunctionEnd
 
 Function LaunchFreeOS
     SetOutPath "$INSTDIR"
