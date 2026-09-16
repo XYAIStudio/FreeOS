@@ -532,12 +532,15 @@ async def apply_assets(
 
     service = _service(server)
     dest = Path(body.pack_dir) if body.pack_dir else service.home / "asset-packs" / "latest"
-    return apply_asset_pack(
-        dest,
-        home=service.home,
-        tenant_id=body.tenant_id or service.tenant_id() or "default",
-        base_url=body.base_url,
-    ).to_dict()
+    try:
+        return apply_asset_pack(
+            dest,
+            home=service.home,
+            tenant_id=body.tenant_id or service.tenant_id() or "default",
+            base_url=body.base_url,
+        ).to_dict()
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 @router.post("/employees/spawn", summary="Register a compiled colleague as a FreeOS chat agent")

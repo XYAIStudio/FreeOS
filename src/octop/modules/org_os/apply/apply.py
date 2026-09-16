@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 from typing import Any
 
+from octop.infra.utils.host_dirs import assert_safe_host_path
 from octop.modules.org_os.apply.client import (
     ApplyReceipt,
     ApplyResult,
@@ -14,12 +16,19 @@ from octop.modules.org_os.apply.client import (
 )
 
 
-def _load_json(path: Path) -> Any:
-    if not path.is_file():
+def _safe_name(name: str) -> bool:
+    if not name or name in {".", ".."}:
+        return False
+    return os.sep not in name and "/" not in name and "\\" not in name
+
+
+def _load_json(path_s: str) -> Any:
+    if not os.path.isfile(path_s):
         return None
     try:
-        return json.loads(path.read_text(encoding="utf-8"))
-    except json.JSONDecodeError:
+        with open(path_s, encoding="utf-8") as handle:
+            return json.load(handle)
+    except (OSError, json.JSONDecodeError):
         return None
 
 
@@ -31,50 +40,90 @@ def _items(doc: Any, key: str) -> list[dict[str, Any]]:
     return []
 
 
-def _plugin_payloads(dest: Path) -> list[dict[str, Any]]:
+def _plugin_payloads(dest_s: str) -> list[dict[str, Any]]:
     payloads: list[dict[str, Any]] = []
-    openxyos_dir = dest / "openxyos"
-    if not openxyos_dir.is_dir():
+    openxyos_s = os.path.realpath(os.path.join(dest_s, "openxyos"))
+    if openxyos_s != dest_s and not openxyos_s.startswith(dest_s + os.sep):
         return payloads
-    for path in sorted(openxyos_dir.glob("*.publish.json")):
-        if path.name.startswith("org-employees") or path.name.startswith("org-talent"):
+    if not os.path.isdir(openxyos_s):
+        return payloads
+    for name in sorted(os.listdir(openxyos_s)):
+        if not _safe_name(name) or not name.endswith(".publish.json"):
             continue
-        raw = _load_json(path)
+        if name.startswith("org-employees") or name.startswith("org-talent"):
+            continue
+        path_s = os.path.realpath(os.path.join(openxyos_s, name))
+        if not path_s.startswith(openxyos_s + os.sep):
+            continue
+        if not os.path.isfile(path_s):
+            continue
+        raw = _load_json(path_s)
         if isinstance(raw, dict):
             payloads.append(raw)
     return payloads
 
 
-def _skill_payloads(dest: Path) -> list[dict[str, Any]]:
+def _skill_payloads(dest_s: str) -> list[dict[str, Any]]:
     out: list[dict[str, Any]] = []
-    skills_root = dest / "skills"
-    if not skills_root.is_dir():
+    skills_s = os.path.realpath(os.path.join(dest_s, "skills"))
+    if skills_s != dest_s and not skills_s.startswith(dest_s + os.sep):
         return out
-    for skill_dir in sorted(path for path in skills_root.iterdir() if path.is_dir()):
-        manifest = skill_dir / "SKILL.md"
-        if not manifest.is_file():
+    if not os.path.isdir(skills_s):
+        return out
+    for name in sorted(os.listdir(skills_s)):
+        if not _safe_name(name):
+            continue
+        skill_s = os.path.realpath(os.path.join(skills_s, name))
+        if not skill_s.startswith(skills_s + os.sep):
+            continue
+        if not os.path.isdir(skill_s):
+            continue
+        manifest_s = os.path.realpath(os.path.join(skill_s, "SKILL.md"))
+        if not manifest_s.startswith(skill_s + os.sep):
+            continue
+        if not os.path.isfile(manifest_s):
+            continue
+        try:
+            with open(manifest_s, encoding="utf-8") as handle:
+                content = handle.read()[:8000]
+        except OSError:
             continue
         out.append(
             {
-                "name": skill_dir.name,
-                "slug": skill_dir.name,
+                "name": name,
+                "slug": name,
                 "category": "FreeOS",
-                "content": manifest.read_text(encoding="utf-8")[:8000],
+                "content": content,
                 "source": "FreeOS",
             }
         )
     return out
 
 
-def _mcp_payloads(dest: Path) -> list[dict[str, Any]]:
+def _mcp_payloads(dest_s: str) -> list[dict[str, Any]]:
     out: list[dict[str, Any]] = []
-    mcp_root = dest / "mcps"
-    if not mcp_root.is_dir():
+    mcp_s = os.path.realpath(os.path.join(dest_s, "mcps"))
+    if mcp_s != dest_s and not mcp_s.startswith(dest_s + os.sep):
         return out
-    for path in sorted(mcp_root.glob("*.json")):
-        raw = _load_json(path)
+    if not os.path.isdir(mcp_s):
+        return out
+    for name in sorted(os.listdir(mcp_s)):
+        if not _safe_name(name) or not name.endswith(".json"):
+            continue
+        path_s = os.path.realpath(os.path.join(mcp_s, name))
+        if not path_s.startswith(mcp_s + os.sep):
+            continue
+        if not os.path.isfile(path_s):
+            continue
+        raw = _load_json(path_s)
         if isinstance(raw, dict):
-            out.append({"name": path.stem, "slug": path.stem, "config_json": json.dumps(raw)})
+            out.append(
+                {
+                    "name": os.path.splitext(name)[0],
+                    "slug": os.path.splitext(name)[0],
+                    "config_json": json.dumps(raw),
+                }
+            )
     return out
 
 
@@ -87,16 +136,29 @@ def apply_asset_pack(
     headers: dict[str, str] | None = None,
 ) -> ApplyResult:
     """Write local mirror + ingest drafts to the control plane when reachable."""
-    dest = pack_dir if pack_dir.is_dir() else Path(pack_dir)
+    try:
+        dest = assert_safe_host_path(os.fspath(pack_dir), restrict_to_root=os.fspath(home))
+    except ValueError as exc:
+        raise ValueError("asset pack is outside FREEOS_HOME") from exc
+    dest_s = os.path.realpath(os.fspath(dest))
+    home_s = os.path.realpath(os.fspath(home))
+    if dest_s != home_s and not dest_s.startswith(home_s + os.sep):
+        raise ValueError("asset pack is outside FREEOS_HOME")
     tid = tenant_id or "default"
     mirror = mirror_root(home, tid)
     mirror.mkdir(parents=True, exist_ok=True)
     client = OpenXyosControlClient(base_url, headers=headers, home=home)
-    employees = _items(_load_json(dest / "openxyos" / "org-employees.publish.json"), "employees")
-    talent = _items(_load_json(dest / "openxyos" / "org-talent.publish.json"), "talent")
-    plugins = _plugin_payloads(dest)
-    skills = _skill_payloads(dest)
-    mcp = _mcp_payloads(dest)
+    employees_s = os.path.realpath(os.path.join(dest_s, "openxyos", "org-employees.publish.json"))
+    talent_s = os.path.realpath(os.path.join(dest_s, "openxyos", "org-talent.publish.json"))
+    employees = (
+        _items(_load_json(employees_s), "employees")
+        if employees_s.startswith(dest_s + os.sep)
+        else []
+    )
+    talent = _items(_load_json(talent_s), "talent") if talent_s.startswith(dest_s + os.sep) else []
+    plugins = _plugin_payloads(dest_s)
+    skills = _skill_payloads(dest_s)
+    mcp = _mcp_payloads(dest_s)
 
     employees_doc = {
         "employees": employees,
@@ -237,8 +299,17 @@ def import_applied_surfaces(
                 client.write_mirror(mirror / f"imported-{key}.json", fetched)
 
     local: dict[str, Any] = {}
+    mirror_s = os.path.realpath(os.fspath(mirror))
+    home_s = os.path.realpath(os.fspath(home))
+    if mirror_s != home_s and not mirror_s.startswith(home_s + os.sep):
+        mirror_s = ""
     for name in ("employees", "talent", "plugins", "skills", "apply-receipt"):
-        raw = _load_json(mirror / f"{name}.json")
+        if not mirror_s or not _safe_name(f"{name}.json"):
+            continue
+        path_s = os.path.realpath(os.path.join(mirror_s, f"{name}.json"))
+        if not path_s.startswith(mirror_s + os.sep):
+            continue
+        raw = _load_json(path_s)
         if raw is not None:
             local[name.replace("-", "_")] = raw
     return {
