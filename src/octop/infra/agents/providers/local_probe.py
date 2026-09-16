@@ -85,6 +85,7 @@ def _ollama_models() -> tuple[bool, list[dict[str, Any]]]:
                 "path": "",
                 "size": int(getattr(item, "size", 0) or 0),
                 "source": "ollama",
+                "registerable": True,
             }
         )
     return True, models

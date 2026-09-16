@@ -28,6 +28,7 @@ import {
 } from "../../../../utils/desktopFolder";
 import { providerApi } from "../../../../api/modules/provider";
 import { message } from "../../../../utils/antdMessage";
+import { apiErrorMessage } from "../../../../utils/apiError";
 import { CONVERSATION_LIST_PATH } from "../../../../layouts/conversationHome";
 import { isOllamaProviderRow } from "../presetUtils";
 
@@ -69,9 +70,11 @@ function mergeModels(
 }
 
 function canRegister(item: LocalInstalledModel): boolean {
-  if (item.source === "ollama" || item.registered) return false;
+  if (item.registered) return false;
   if (item.registerable === false) return false;
-  return item.source === "gguf" || item.source === "ggml";
+  return (
+    item.source === "gguf" || item.source === "ggml" || item.source === "ollama"
+  );
 }
 
 export function LocalHardwarePanel() {
@@ -338,9 +341,7 @@ export function LocalHardwarePanel() {
       message.success(t("models.localRegisterDone", { name: result.name }));
       await refresh();
     } catch (err) {
-      message.error(
-        err instanceof Error ? err.message : t("models.localRegisterFailed"),
-      );
+      message.error(apiErrorMessage(err, t("models.localRegisterFailed"), t));
     } finally {
       setRegistering(null);
     }

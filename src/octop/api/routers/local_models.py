@@ -4,9 +4,11 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
+import subprocess
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
 
 from octop.api.deps import current_user, get_server, require_permission
@@ -23,6 +25,20 @@ from octop.infra.agents.providers.ollama_install import ensure_ollama_runtime
 from octop.infra.errors import ErrorCode, OctopError
 from octop.infra.server import OctopServer
 from octop.infra.utils.ollama_manager import OllamaModelManager, start_ollama_service_result
+
+logger = logging.getLogger(__name__)
+
+_REGISTER_FAIL_TYPES = (
+    OSError,
+    UnicodeError,
+    TimeoutError,
+    ValueError,
+    RuntimeError,
+    TypeError,
+    AttributeError,
+    ImportError,
+    subprocess.SubprocessError,
+)
 
 router = APIRouter()
 
@@ -41,10 +57,16 @@ class LocalScanBody(BaseModel):
 
 class LocalRegisterBody(BaseModel):
     path: str = Field(
-        min_length=1, max_length=1024, description="Absolute path to a GGUF/GGML file"
+        default="",
+        max_length=1024,
+        description="Absolute path to a GGUF/GGML file; empty for an already-pulled Ollama tag",
     )
     name: str | None = Field(default=None, max_length=80, description="Ollama model name to create")
-    source: str = Field(default="gguf", max_length=32, description="gguf, ggml, or safetensors")
+    source: str = Field(
+        default="gguf",
+        max_length=32,
+        description="gguf, ggml, safetensors, or ollama",
+    )
     size: int = Field(default=0, ge=0, description="Size in bytes from the scan result")
 
 
@@ -55,9 +77,27 @@ class LocalEnsureBody(BaseModel):
     )
 
 
+def register_failure(exc: BaseException) -> OctopError:
+    """Map a recoverable register/import failure to a 400 the UI can show."""
+    reason = str(exc).strip() or exc.__class__.__name__
+    return OctopError(
+        ErrorCode.LOCAL_MODEL_REGISTER_FAILED,
+        reason,
+        details={"reason": reason},
+    )
+
+
 def _merge_registered(probe: dict[str, Any], rows: list[dict[str, Any]]) -> dict[str, Any]:
     installed = list(probe.get("installed") or [])
+    registered_names = {str(row.get("name") or "") for row in rows if row.get("name")}
+    registered_paths = {str(row.get("path") or "") for row in rows if row.get("path")}
     seen = {str(item.get("path") or item.get("name") or "") for item in installed}
+    for item in installed:
+        name = str(item.get("name") or "")
+        path = str(item.get("path") or "")
+        if name in registered_names or (path and path in registered_paths):
+            item["registered"] = True
+            item["registerable"] = False
     for row in rows:
         key = str(row.get("path") or row.get("name") or "")
         if key and key in seen:
@@ -146,8 +186,11 @@ async def local_models_install(
     try:
         info = await asyncio.to_thread(OllamaModelManager.pull_model, body.name)
     except Exception as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
-    registered = _register_ollama_model(server, info.name or body.name)
+        raise register_failure(exc) from exc
+    try:
+        registered = _register_ollama_model(server, info.name or body.name)
+    except Exception as exc:
+        raise register_failure(exc) from exc
     return {
         "ok": True,
         "name": info.name,
@@ -214,10 +257,17 @@ async def local_models_register(
             provider_repo=server.services.provider_repo,
             settings_repo=server.services.settings_repo,
         )
-    except OSError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except _REGISTER_FAIL_TYPES as exc:
+        raise register_failure(exc) from exc
     if server.app_runtime is not None and result.get("ok"):
-        await server.app_runtime.agent_registry.on_provider_changed(
-            provider_name=str(result.get("provider_name") or "Ollama (Local)")
-        )
+        try:
+            await server.app_runtime.agent_registry.on_provider_changed(
+                provider_name=str(result.get("provider_name") or "Ollama (Local)")
+            )
+        except Exception as exc:
+            logger.warning(
+                "Registered %s but provider reload failed: %s",
+                result.get("name"),
+                exc,
+            )
     return result
