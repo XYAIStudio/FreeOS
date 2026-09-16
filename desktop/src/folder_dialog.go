@@ -48,6 +48,7 @@ func pickFolderNative() (string, error) {
 // Windows). Interpreting those bytes as UTF-8 garbles Chinese folder names.
 func folderPickerWindowsScript() string {
 	return strings.Join(
+
 		[]string{
 			"Add-Type -AssemblyName System.Windows.Forms",
 			"[void][System.Windows.Forms.Application]::EnableVisualStyles()",

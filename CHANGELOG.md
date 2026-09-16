@@ -10,6 +10,8 @@
 
 - 安装期不再在 livez 探测后 `taskkill` 边车：Setup 把 `start-sidecar.ps1` 写到 `%LOCALAPPDATA%\\FreeOS\\openxyos`，用当前用户（IShellDispatch2 / HKCU Run / 登录计划任务）常驻拉起 FE+BE，确认 `http://127.0.0.1:3780/api/health/livez` 后保持运行。组织页在 `.install-ready` 时自动嵌入本机 openXYOS，不再把「启动边车」当主按钮；仅自动启动失败才显示「重试启动」和中文原因。
 - 「下载最新 openXYOS 源码」端到端 UTF-8：Wails 文件夹选择器以 UTF-8 Base64 回传路径（不再把 GBK/ACP 当 UTF-8）；落盘前修复 CP1252/Latin-1 误读的目标路径；解压按 zip UTF-8 标志或 GBK 还原中文目录名，避免乱码。
+- Windows 知识库本地文件夹挂接：选择器与列表预览按 UTF-8 处理中文路径/文件名，避免 `é¡¹ç®…` 这类乱码；挂接与列表预览不再因向量模型未就绪返回 409。
+
 - 模型页注册本机 GGUF / 已拉取的 Ollama 模型时，Windows 桌面不再返回笼统的 `INTERNAL_ERROR` 500；`ollama create` 使用带引号的 POSIX `FROM` 路径，并把真实失败原因（文件不存在、权限、create 失败）返回给界面。
 
 ### 变更

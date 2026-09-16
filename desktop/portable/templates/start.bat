@@ -86,6 +86,8 @@ if not exist "%ROOT%\launch.py" (
 
 rem Prefer launch.py (site.addsitedir + pywin32 DLL path). Do not set PYTHONPATH.
 set "PYTHONNOUSERSITE=1"
+set "PYTHONUTF8=1"
+set "PYTHONIOENCODING=utf-8"
 set "PYTHONPATH="
 
 if exist "%ROOT%\org-sidecar\start-sidecar.bat" (

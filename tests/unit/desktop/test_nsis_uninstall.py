@@ -304,3 +304,14 @@ def test_organization_source_download_uses_native_folder_picker() -> None:
     zh = (REPO / "dashboard" / "src" / "locales" / "zh.json").read_text(encoding="utf-8")
     assert '"startSidecarAction": "重试启动"' in zh
     assert "正在自动连接安装期本机 openXYOS" in zh
+
+
+def test_windows_folder_picker_emits_utf8_base64() -> None:
+    source = (REPO / "desktop" / "src" / "folder_dialog.go").read_text(encoding="utf-8")
+    assert "[System.Text.Encoding]::UTF8.GetBytes($d.SelectedPath)" in source
+    assert "[Convert]::ToBase64String($bytes)" in source
+    assert "decodeFolderPickerOutput" in source
+    process = (REPO / "desktop" / "src" / "process.go").read_text(encoding="utf-8")
+    assert "PYTHONUTF8" in process
+    assert "utf-8" in process
+

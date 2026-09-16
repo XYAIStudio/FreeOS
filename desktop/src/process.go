@@ -26,6 +26,8 @@ func hostLaunchEnv(root string, port int) map[string]string {
 		"OCTOP_HOME":              home,
 		"OCTOP_GREEN_PACKAGES":    filepath.Join(root, "packages"),
 		"PYTHONNOUSERSITE":        "1",
+		"PYTHONUTF8":              "1",
+		"PYTHONIOENCODING":        "utf-8",
 		"PYTHONPATH":              "",
 		"FREEOS_ORG_ENABLE":       "1",
 		"FREEOS_ORG_SIDECAR_URL":  sidecarURL(),

@@ -54,6 +54,9 @@ func TestHostLaunchEnvSetsFreeosHomeAndOrgEnable(t *testing.T) {
 	if env["OCTOP_DESKTOP"] != "1" || env["FREEOS_DESKTOP"] != "1" {
 		t.Fatalf("desktop flags: %+v", env)
 	}
+	if env["PYTHONUTF8"] != "1" || env["PYTHONIOENCODING"] != "utf-8" {
+		t.Fatalf("utf8 env: %+v", env)
+	}
 }
 
 func TestWithDesktopQueryMarksSpa(t *testing.T) {

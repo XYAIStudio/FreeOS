@@ -16,6 +16,7 @@ func TestFolderPickerWindowsScriptUsesUTF8Base64(t *testing.T) {
 	}
 }
 
+
 func TestDecodeFolderPickerOutputPrefersUTF8Base64(t *testing.T) {
 	path := `D:\项目\资料`
 	encoded := base64.StdEncoding.EncodeToString([]byte(path))
@@ -54,8 +55,9 @@ func TestDecodeFolderPickerOutputEmpty(t *testing.T) {
 		t.Fatalf("empty picker should be %q, got %q", "", got)
 	}
 }
-
 func TestRepairUTF8MojibakeChineseFilename(t *testing.T) {
+	// UTF-8 of 项目结构.png interpreted as Windows-1252.
+
 	mojibake := string([]rune{
 		0x00E9, 0x00A1, 0x00B9,
 		0x00E7, 0x009B, 0x00AE,
