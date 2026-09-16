@@ -74,8 +74,8 @@ LangString OPENXYOS_PROBE ${LANG_SIMPCHINESE} "正在以当前用户启动本机
 LangString OPENXYOS_PROBE ${LANG_ENGLISH} "Starting local openXYOS as the current user and checking http://127.0.0.1:3780/api/health/livez"
 LangString OPENXYOS_PROBE_OK ${LANG_SIMPCHINESE} "openXYOS 已在本机运行，并已登记用户级开机自启"
 LangString OPENXYOS_PROBE_OK ${LANG_ENGLISH} "openXYOS is running locally and registered for user-level auto-start"
-LangString OPENXYOS_PROBE_FAIL ${LANG_SIMPCHINESE} "安装失败：已解压 openXYOS，但 http://127.0.0.1:3780/api/health/livez 未就绪。请检查 3780 端口占用后重试安装。"
-LangString OPENXYOS_PROBE_FAIL ${LANG_ENGLISH} "Setup failed: openXYOS is on disk but http://127.0.0.1:3780/api/health/livez did not become ready. Free port 3780 and run Setup again."
+LangString OPENXYOS_PROBE_WARN ${LANG_SIMPCHINESE} "openXYOS 文件已就绪，但 http://127.0.0.1:3780/api/health/livez 暂未响应。安装将继续；登录后会自动拉起本机服务，也可稍后在组织页重试。"
+LangString OPENXYOS_PROBE_WARN ${LANG_ENGLISH} "openXYOS files are in place, but http://127.0.0.1:3780/api/health/livez is not ready yet. Setup will continue; the service auto-starts at logon, or retry from Organization later."
 LangString UN_FREEOS_RUNNING ${LANG_SIMPCHINESE} "检测到 FreeOS 仍在运行（主程序、主机或组织侧车）。$\r$\n$\r$\n继续将结束这些进程，并删除安装目录中的程序文件。$\r$\n用户数据（%USERPROFILE%\.freeos）会保留。$\r$\n$\r$\n要继续卸载吗？"
 LangString UN_FREEOS_RUNNING ${LANG_ENGLISH} "FreeOS is still running (shell, host, or organization sidecar).$\r$\n$\r$\nContinuing will stop those processes and remove program files from the install folder.$\r$\nUser data (%USERPROFILE%\.freeos) is kept.$\r$\n$\r$\nContinue uninstall?"
 

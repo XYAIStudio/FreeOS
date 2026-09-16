@@ -26,12 +26,14 @@ Same precedence as the FreeOS CLI/server:
   else `{home}/openxyos`. The NSIS installer expands a prebuilt
   `openxyos-runtime.zip` **directly into that live workdir** during Setup
   (and keeps `$INSTDIR\openxyos` / `$INSTDIR\openxyos-runtime` as backups).
-  Install fails if `node` or `dist` is missing, or if
-  `http://127.0.0.1:3780/api/health/livez` does not pass before Setup exits.
-  Setup then leaves a **user-level** sidecar running (HKCU Run
-  `FreeOS-openXYOS` + `start-sidecar.ps1`) so Organization embeds immediately
-  — no first-open copy and no 「启动边车」 click. First FreeOS start only
-  attaches to that live tree if the port is already healthy.
+  Install fails if `node` or `dist` is missing. If files are in place but
+  `http://127.0.0.1:3780/api/health/livez` is still down after the install-time
+  wait, Setup warns and continues — HKCU Run / the logon task stay registered
+  so Organization can attach later. Setup then leaves a **user-level** sidecar
+  running (HKCU Run `FreeOS-openXYOS` + `start-sidecar.ps1`) so Organization
+  embeds immediately when livez is already up — no first-open copy and no
+  「启动边车」 click. First FreeOS start only attaches to that live tree if
+  the port is already healthy.
 - Shell prefs → `{home}/desktop-settings.json`
 
 ## Windows install finish
@@ -48,9 +50,9 @@ also copies `openxyos-runtime.zip` (prebuilt Node + openXYOS frontend/backend)
 and extracts it with Windows `tar.exe` (quoted paths, so `Program Files`
 works) into the **live** workdir `%LOCALAPPDATA%\FreeOS\openxyos` during
 Setup. `$INSTDIR\openxyos` and `$INSTDIR\openxyos-runtime` are sealed
-backups only. Setup **aborts** if `node\node.exe` or `dist\index.html` is
-missing, or if the user-level sidecar cannot reach
-`/api/health/livez` — a README-only tree is not a successful install.
+backups only. Setup **aborts** only if `node\node.exe` or `dist\index.html` is
+missing — a README-only tree is not a successful install. A livez
+timeout after those files exist is a warning, not an abort.
 The probe **does not** start Node as Administrator and **does not**
 `taskkill` it afterwards (that left Organization asking to 启动边车).
 PersistOpenXYOS launches `start-sidecar.ps1` with the explorer token,

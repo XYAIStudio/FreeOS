@@ -8,6 +8,7 @@
 
 ### 修复
 
+- Windows 安装包解压 openXYOS 时修正 `extract-openxyos.cmd` 的 `cmd.exe` 标签（`:liveNodeOk`）。原先写成 `liveNodeOk:`，goto 找不到标签会以退出码 1 结束；文件已齐备时 livez 在 90 秒内未就绪改为警告并继续安装，不再整包 Abort。`.install-ready` 在 layout 通过后、livez 探测前写入，HKCU Run / 登录任务保留，组织页可随后拉起边车。
 - 安装期不再在 livez 探测后 `taskkill` 边车：Setup 把 `start-sidecar.ps1` 写到 `%LOCALAPPDATA%\\FreeOS\\openxyos`，用当前用户（IShellDispatch2 / HKCU Run / 登录计划任务）常驻拉起 FE+BE，确认 `http://127.0.0.1:3780/api/health/livez` 后保持运行。组织页在 `.install-ready` 时自动嵌入本机 openXYOS，不再把「启动边车」当主按钮；仅自动启动失败才显示「重试启动」和中文原因。
 - 「下载最新 openXYOS 源码」端到端 UTF-8：Wails 文件夹选择器以 UTF-8 Base64 回传路径（不再把 GBK/ACP 当 UTF-8）；落盘前修复 CP1252/Latin-1 误读的目标路径；解压按 zip UTF-8 标志或 GBK 还原中文目录名，避免乱码。
 - Windows 知识库本地文件夹挂接：选择器与列表预览按 UTF-8 处理中文路径/文件名，避免 `é¡¹ç®…` 这类乱码；挂接与列表预览不再因向量模型未就绪返回 409。

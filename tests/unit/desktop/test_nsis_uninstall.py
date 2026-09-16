@@ -230,9 +230,14 @@ def test_nsis_extracts_runtime_with_quoted_paths_and_aborts_if_incomplete() -> N
     assert "wait-openxyos.ps1" in nsh
     assert "probe-openxyos.ps1" not in nsh
     assert "/api/health/livez" in nsh
-    assert "SetErrorLevel 68" in nsh
-    assert "LangString OPENXYOS_PROBE_FAIL ${LANG_SIMPCHINESE}" in nsi
-    assert ".install-ready" in nsh
+    assert "LangString OPENXYOS_PROBE_WARN ${LANG_SIMPCHINESE}" in nsi
+    assert "安装将继续" in nsi
+    assert ".install-ready" in provision
+    assert provision.index(".install-ready") < provision.index("!insertmacro wails.probeOpenXYOS")
+    assert provision.index("!insertmacro wails.requireOpenXYOSLayout") < provision.index(
+        ".install-ready"
+    )
+    assert provision.index("Call PersistOpenXYOS") < provision.index(".install-ready")
     assert "start-sidecar.ps1" in nsh
     assert "FreeOS-openXYOS" in nsi
     workflow = (REPO / ".github" / "workflows" / "octop-desktop.yml").read_text(encoding="utf-8")
@@ -261,6 +266,38 @@ def test_desktop_readme_documents_uninstall_keep_vs_remove() -> None:
     assert "install-time" in text.lower() or "during Setup" in text or "安装期" in text
 
 
+def _filewrite_payloads(block: str) -> list[str]:
+    payloads: list[str] = []
+    for raw in block.splitlines():
+        stripped = raw.strip()
+        if not stripped.startswith("FileWrite"):
+            continue
+        start = stripped.find("`")
+        end = stripped.rfind("`")
+        if start != -1 and end > start:
+            payloads.append(stripped[start + 1 : end].replace("$\\r$\\n", "\n"))
+    return payloads
+
+
+def test_nsis_extract_cmd_uses_colon_prefixed_batch_labels() -> None:
+    """cmd.exe goto targets must be ':label'; 'label:' is not found."""
+    nsh = NSH.read_text(encoding="utf-8")
+    provision = nsh[
+        nsh.index("!macro wails.provisionOpenXYOS") : nsh.index(
+            "!macro wails.requireOpenXYOSLayout"
+        )
+    ]
+    script = "".join(_filewrite_payloads(provision))
+    assert "goto liveNodeOk" in script
+    assert ":liveNodeOk" in script
+    assert "exit /b 0" in script
+    assert "FileWrite $0 `liveNodeOk:" not in nsh
+    for line in script.splitlines():
+        token = line.strip()
+        if token.endswith(":") and " " not in token and not token.startswith(":"):
+            raise AssertionError(f"cmd label missing leading colon: {token!r}")
+
+
 def test_nsis_leaves_user_level_sidecar_running() -> None:
     """#29 probed then taskkill'd Node; Organization still asked to 启动边车."""
     nsi = NSI.read_text(encoding="utf-8-sig")
@@ -277,7 +314,11 @@ def test_nsis_leaves_user_level_sidecar_running() -> None:
     assert "taskkill.exe" not in autostart
     assert "taskkill.exe" not in probe
     assert "Start-Process" not in probe
+    assert "Abort" not in probe
+    assert "SetErrorLevel 68" not in probe
     assert "wait-openxyos.ps1" in probe
+    assert "OPENXYOS_PROBE_WARN" in probe
+    assert "schtasks.exe /Run" in probe
     assert "Call PersistOpenXYOS" in nsh
     assert "FreeOS-openXYOS" in persist
     assert "A4C6892C-3BA9-11d2-9DEA-00C04FB16162" in persist
