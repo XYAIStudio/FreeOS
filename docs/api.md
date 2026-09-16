@@ -203,6 +203,23 @@ the server derives one from `prompt`.
 | `GET` | `/models/active` | user | `{provider_name, model}` |
 | `PUT` | `/models/active` | admin | body `{provider_name, model}` |
 
+### Local desktop models
+
+These endpoints power the Models page local-runtime panel. Mutating routes
+require the `ollama_models` permission.
+
+| Method | Path | Auth | Notes |
+|--------|------|------|-------|
+| `GET` | `/local-models/probe` | user | Hardware, Ollama install/reachability, known-dir GGUF/GGML hits, recommended pulls |
+| `POST` | `/local-models/start-ollama` | ollama_models | Start an already-installed Ollama app/daemon. Does not download Ollama |
+| `POST` | `/local-models/ensure-deps` | ollama_models | body `{install?}` — start Ollama, or one-click install only when winget/brew/official script can run |
+| `POST` | `/local-models/install` | ollama_models | body `{name}` — pull a recommended Ollama tag after the daemon is up |
+| `POST` | `/local-models/scan` | ollama_models | body `{root?, full_disk?}` — background weight search (progress + cancel) |
+| `GET` | `/local-models/scan` | ollama_models | latest scan job |
+| `GET` | `/local-models/scan/{job_id}` | ollama_models | poll scan progress |
+| `DELETE` | `/local-models/scan/{job_id}` | ollama_models | cancel a running scan |
+| `POST` | `/local-models/register` | ollama_models | body `{path, name?, source, size?}` — `ollama create` from GGUF/GGML and enable the local provider |
+
 ### Media generation models
 
 These instance-wide endpoints require the `providers` permission (administrators bypass
