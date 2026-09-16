@@ -24,13 +24,35 @@ describe("desktopFolder", () => {
       removeEventListener: window.removeEventListener.bind(window),
     } as unknown as Window & { _wails?: { invoke?: (m: string) => void } };
     const path = await pickDesktopFolder(win, 1000);
-    expect(invoke).toHaveBeenCalledWith("wails:event:emit:desktop:select-folder");
+    expect(invoke).toHaveBeenCalledWith(
+      "wails:event:emit:desktop:select-folder",
+    );
     expect(path).toBe("D:\\Projects\\demo");
+  });
+
+  it("repairs UTF-8 Chinese paths that arrived as Windows-1252 mojibake", async () => {
+    const bytes = new TextEncoder().encode("D:\\项目");
+    const garbled = Array.from(bytes, (byte) => String.fromCharCode(byte)).join(
+      "",
+    );
+    const invoke = vi.fn(() => {
+      window.dispatchEvent(
+        new CustomEvent("freeos-folder-selected", { detail: garbled }),
+      );
+    });
+    const win = {
+      _wails: { invoke },
+      addEventListener: window.addEventListener.bind(window),
+      removeEventListener: window.removeEventListener.bind(window),
+    } as unknown as Window & { _wails?: { invoke?: (m: string) => void } };
+    await expect(pickDesktopFolder(win, 1000)).resolves.toBe("D:\\项目");
   });
 
   it("returns null when the user cancels", async () => {
     const invoke = vi.fn(() => {
-      window.dispatchEvent(new CustomEvent("freeos-folder-selected", { detail: "" }));
+      window.dispatchEvent(
+        new CustomEvent("freeos-folder-selected", { detail: "" }),
+      );
     });
     const win = {
       _wails: { invoke },

@@ -20,11 +20,12 @@ def _request() -> Request:
 
 
 def _services(**extra: object) -> SimpleNamespace:
-    return SimpleNamespace(
-        settings_repo=SimpleNamespace(get=lambda _key: None, set=lambda *_: None),
-        provider_repo=SimpleNamespace(list_all=lambda: []),
-        **extra,
-    )
+    payload: dict[str, object] = {
+        "settings_repo": SimpleNamespace(get=lambda _key: None, set=lambda *_: None),
+        "provider_repo": SimpleNamespace(list_all=lambda: []),
+    }
+    payload.update(extra)
+    return SimpleNamespace(**payload)
 
 
 @dataclass
@@ -704,3 +705,118 @@ async def test_update_base_rejects_max_documents_out_of_range() -> None:
     assert knowledge_bases.UpdateBaseBody(max_documents=0).max_documents == 0
     assert knowledge_bases.UpdateBaseBody(max_documents=10_000).max_documents == 10_000
     assert knowledge_bases.UpdateBaseBody().max_documents is None
+
+
+@pytest.mark.asyncio
+async def test_put_mount_allowed_when_embeddings_not_ready(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    from octop.api.routers import knowledge_bases
+
+    source = tmp_path / "项目"
+    source.mkdir()
+    (source / "项目结构.png").write_bytes(b"png")
+    settings = {"knowledge_bases_enabled": "true"}
+    usable_calls: list[str] = []
+    server = SimpleNamespace(
+        services=_services(
+            settings_repo=SimpleNamespace(get=settings.get, set=settings.__setitem__),
+        ),
+        paths=SimpleNamespace(root=tmp_path),
+    )
+    monkeypatch.setattr(
+        knowledge_bases,
+        "_knowledge_service",
+        lambda _server: SimpleNamespace(
+            get_writable_base=lambda *_a, **_k: _Base(),
+        ),
+    )
+    original_usable = knowledge_bases._require_usable
+
+    def deny_usable(*_args: object, **_kwargs: object) -> None:
+        usable_calls.append("usable")
+        original_usable(*_args, **_kwargs)
+
+    monkeypatch.setattr(knowledge_bases, "_require_usable", deny_usable)
+
+    response = await knowledge_bases.put_kb_mount(
+        "kb-1",
+        knowledge_bases.MountBody(source_path=str(source)),
+        request=_request(),
+        server=server,
+        user=SimpleNamespace(id=1, is_admin=False),
+    )
+
+    assert usable_calls == []
+    assert response["mounted"] is True
+    assert {item["name"] for item in response["entries"]} == {"项目结构.png"}
+
+
+@pytest.mark.asyncio
+async def test_get_mount_lists_unicode_preview_without_embeddings(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    from octop.api.routers import knowledge_bases
+    from octop.infra.knowledge.local_mount import KnowledgeMount, save_mount
+
+    source = tmp_path / "资料"
+    source.mkdir()
+    (source / "项目结构.png").write_bytes(b"png")
+    save_mount(KnowledgeMount(kb_id="kb-1", source_path=str(source)), tmp_path)
+    settings = {"knowledge_bases_enabled": "true"}
+    server = SimpleNamespace(
+        services=_services(
+            settings_repo=SimpleNamespace(get=settings.get, set=settings.__setitem__),
+        ),
+        paths=SimpleNamespace(root=tmp_path),
+    )
+    monkeypatch.setattr(
+        knowledge_bases,
+        "_knowledge_service",
+        lambda _server: SimpleNamespace(
+            get_readable_base=lambda *_a, **_k: _Base(),
+        ),
+    )
+
+    response = await knowledge_bases.get_kb_mount(
+        "kb-1",
+        request=_request(),
+        server=server,
+        user=SimpleNamespace(id=1, is_admin=False),
+    )
+
+    assert response["mounted"] is True
+    assert {item["name"] for item in response["entries"]} == {"项目结构.png"}
+
+
+@pytest.mark.asyncio
+async def test_put_mount_missing_dir_is_not_prerequisites(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    from octop.api.routers import knowledge_bases
+
+    settings = {"knowledge_bases_enabled": "true"}
+    server = SimpleNamespace(
+        services=_services(
+            settings_repo=SimpleNamespace(get=settings.get, set=settings.__setitem__),
+        ),
+        paths=SimpleNamespace(root=tmp_path),
+    )
+    monkeypatch.setattr(
+        knowledge_bases,
+        "_knowledge_service",
+        lambda _server: SimpleNamespace(
+            get_writable_base=lambda *_a, **_k: _Base(),
+        ),
+    )
+
+    with pytest.raises(OctopError) as raised:
+        await knowledge_bases.put_kb_mount(
+            "kb-1",
+            knowledge_bases.MountBody(source_path=str(tmp_path / "missing")),
+            request=_request(),
+            server=server,
+            user=SimpleNamespace(id=1, is_admin=False),
+        )
+
+    assert raised.value.code == ErrorCode.KNOWLEDGE_MOUNT_INVALID
