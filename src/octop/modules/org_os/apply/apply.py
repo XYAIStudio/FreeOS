@@ -42,6 +42,9 @@ def _items(doc: Any, key: str) -> list[dict[str, Any]]:
 
 def _plugin_payloads(dest_s: str) -> list[dict[str, Any]]:
     payloads: list[dict[str, Any]] = []
+    # Literal prefix: CodeQL SafeAccessCheck. Windows abs paths take the nt branch.
+    if not dest_s.startswith("/") and os.name != "nt":
+        return payloads
     openxyos_s = os.path.realpath(os.path.join(dest_s, "openxyos"))
     if openxyos_s != dest_s and not openxyos_s.startswith(dest_s + os.sep):
         return payloads
@@ -65,6 +68,8 @@ def _plugin_payloads(dest_s: str) -> list[dict[str, Any]]:
 
 def _skill_payloads(dest_s: str) -> list[dict[str, Any]]:
     out: list[dict[str, Any]] = []
+    if not dest_s.startswith("/") and os.name != "nt":
+        return out
     skills_s = os.path.realpath(os.path.join(dest_s, "skills"))
     if skills_s != dest_s and not skills_s.startswith(dest_s + os.sep):
         return out
@@ -102,6 +107,8 @@ def _skill_payloads(dest_s: str) -> list[dict[str, Any]]:
 
 def _mcp_payloads(dest_s: str) -> list[dict[str, Any]]:
     out: list[dict[str, Any]] = []
+    if not dest_s.startswith("/") and os.name != "nt":
+        return out
     mcp_s = os.path.realpath(os.path.join(dest_s, "mcps"))
     if mcp_s != dest_s and not mcp_s.startswith(dest_s + os.sep):
         return out
@@ -136,14 +143,19 @@ def apply_asset_pack(
     headers: dict[str, str] | None = None,
 ) -> ApplyResult:
     """Write local mirror + ingest drafts to the control plane when reachable."""
+    home_s = os.path.realpath(os.fspath(home))
+    raw_name = os.path.basename(os.fspath(pack_dir).rstrip("\\/")) if pack_dir else "latest"
+    name = raw_name or "latest"
+    if not _safe_name(name):
+        raise ValueError("asset pack name is invalid")
+    dest_s = os.path.realpath(os.path.join(home_s, "asset-packs", name))
+    if dest_s != home_s and not dest_s.startswith(home_s + os.sep):
+        raise ValueError("asset pack is outside FREEOS_HOME")
     try:
-        dest = assert_safe_host_path(os.fspath(pack_dir), restrict_to_root=os.fspath(home))
+        dest = assert_safe_host_path(dest_s, restrict_to_root=home_s)
     except ValueError as exc:
         raise ValueError("asset pack is outside FREEOS_HOME") from exc
     dest_s = os.path.realpath(os.fspath(dest))
-    home_s = os.path.realpath(os.fspath(home))
-    if dest_s != home_s and not dest_s.startswith(home_s + os.sep):
-        raise ValueError("asset pack is outside FREEOS_HOME")
     tid = tenant_id or "default"
     mirror = mirror_root(home, tid)
     mirror.mkdir(parents=True, exist_ok=True)

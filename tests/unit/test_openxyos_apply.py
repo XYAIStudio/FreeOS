@@ -15,13 +15,11 @@ from tests.support.openxyos_harness import ControlPlaneState, start_control_plan
 _FIXTURE = Path(__file__).resolve().parents[1] / "fixtures" / "org-loop" / "agent-blueprint.v1.json"
 
 
-def test_apply_rejects_pack_outside_home(tmp_path: Path) -> None:
-    outside = tmp_path / "outside" / "pack"
-    outside.mkdir(parents=True)
-    home = tmp_path / "home"
-    home.mkdir()
-    with pytest.raises(ValueError, match="outside FREEOS_HOME"):
-        apply_asset_pack(outside, home=home, tenant_id="acme", base_url="")
+def test_apply_rejects_unsafe_pack_name(tmp_path: Path) -> None:
+    with pytest.raises(ValueError, match="invalid"):
+        apply_asset_pack(Path(".."), home=tmp_path, tenant_id="acme", base_url="")
+    with pytest.raises(ValueError, match="invalid"):
+        apply_asset_pack(Path("."), home=tmp_path, tenant_id="acme", base_url="")
 
 
 def test_apply_without_url_is_mirror_only(tmp_path: Path, monkeypatch) -> None:
@@ -30,7 +28,9 @@ def test_apply_without_url_is_mirror_only(tmp_path: Path, monkeypatch) -> None:
     import_openxyos_assets(
         tmp_path, tenant_id="acme", catalog=True, blueprint_path=_FIXTURE, spawn_agents=False
     )
-    pack = publish_asset_pack(tmp_path, tenant_id="acme", out_dir=tmp_path / "pack")
+    pack = publish_asset_pack(
+        tmp_path, tenant_id="acme", out_dir=tmp_path / "asset-packs" / "latest"
+    )
     result = apply_asset_pack(pack.directory, home=tmp_path, tenant_id="acme", base_url="")
     assert result.mirrored is True
     assert result.remote_applied is False
@@ -44,7 +44,9 @@ def test_apply_import_roundtrip_against_harness(tmp_path: Path) -> None:
     import_openxyos_assets(
         tmp_path, tenant_id="acme", catalog=True, blueprint_path=_FIXTURE, spawn_agents=False
     )
-    pack = publish_asset_pack(tmp_path, tenant_id="acme", out_dir=tmp_path / "pack")
+    pack = publish_asset_pack(
+        tmp_path, tenant_id="acme", out_dir=tmp_path / "asset-packs" / "latest"
+    )
     state = ControlPlaneState()
     url, server = start_control_plane(state)
     try:
@@ -64,7 +66,9 @@ def test_apply_uses_ingest_token(tmp_path: Path) -> None:
     import_openxyos_assets(
         tmp_path, tenant_id="acme", catalog=True, blueprint_path=_FIXTURE, spawn_agents=False
     )
-    pack = publish_asset_pack(tmp_path, tenant_id="acme", out_dir=tmp_path / "pack")
+    pack = publish_asset_pack(
+        tmp_path, tenant_id="acme", out_dir=tmp_path / "asset-packs" / "latest"
+    )
     state = ControlPlaneState()
     state.ingest_token = "secret-token"
     url, server = start_control_plane(state)
