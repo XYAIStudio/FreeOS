@@ -10,6 +10,7 @@ from pathlib import Path
 import httpx
 
 from octop.infra.utils.host_dirs import assert_safe_host_path
+from octop.infra.utils.win_utf8 import repair_utf8_mojibake
 
 OPENXYOS_SOURCE_ZIP = "https://github.com/XYAIStudio/openXYOS/archive/refs/heads/main.zip"
 
@@ -86,6 +87,7 @@ def download_openxyos_source(dest: str, *, url: str = OPENXYOS_SOURCE_ZIP) -> st
     ``openXYOS-main`` folder under the user-chosen destination. Existing
     files in that destination are not overwritten outside that folder.
     """
+    dest = repair_utf8_mojibake(dest)
     target = Path(dest).expanduser()
     assert_safe_host_path(str(target))
     target.mkdir(parents=True, exist_ok=True)
