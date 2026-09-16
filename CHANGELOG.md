@@ -8,6 +8,7 @@
 
 ### 修复
 
+- Windows 安装期 `start-sidecar.ps1` 不再用 PowerShell 5.1 默认的 `UseShellExecute=true` 拉起 Node（那样不会继承 `$env:CORS_ORIGIN`，生产环境 `parseOrigins` 立刻抛错，进程退出，3780 无监听，预配空等 90s 后才以退出码 12 失败）。改为 `UseShellExecute=false` 并显式写入 `ProcessStartInfo.EnvironmentVariables`，把 Node stdout/stderr 记入 `%LOCALAPPDATA%\\FreeOS\\openxyos\\start.log`；进程在 livez 前退出则预配以退出码 10 失败并附上日志摘录。
 - Windows 安装把 openXYOS 预配改成 **Setup 子进程**（随包装的 `provision-openxyos.ps1`，NSIS `nsExec` 等待退出码）。子进程用 `tar.exe` 解压到 `%LOCALAPPDATA%\\FreeOS\\openxyos`、整理嵌套/扁平布局、以中完整性启动 FE/BE、通过 `livez` 后才写 `.install-ready`。失败按真实原因提示（解压 / Node / 启动 / 健康检查），不再默认归咎 3780 端口，也不再软跳过 livez。不注册 HKCU Run / 登录计划任务；之后由 FreeOS 启动时带上本机 openXYOS。组织页直接嵌入 `http://127.0.0.1:3780`，不再出现「启动边车」。
 - 安装期不再在 livez 探测后 `taskkill` 边车：Setup 把 `start-sidecar.ps1` 写到 `%LOCALAPPDATA%\\FreeOS\\openxyos`，用当前用户（IShellDispatch2 / HKCU Run / 登录计划任务）常驻拉起 FE+BE，确认 `http://127.0.0.1:3780/api/health/livez` 后保持运行。组织页在 `.install-ready` 时自动嵌入本机 openXYOS，不再把「启动边车」当主按钮；仅自动启动失败才显示「重试启动」和中文原因。
 - 「下载最新 openXYOS 源码」端到端 UTF-8：Wails 文件夹选择器以 UTF-8 Base64 回传路径（不再把 GBK/ACP 当 UTF-8）；落盘前修复 CP1252/Latin-1 误读的目标路径；解压按 zip UTF-8 标志或 GBK 还原中文目录名，避免乱码。
