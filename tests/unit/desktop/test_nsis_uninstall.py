@@ -204,8 +204,12 @@ def test_nsis_ships_sealed_zip_and_independent_provisioner() -> None:
     """NSIS copies payload + provisioner; it does not invent extract/start glue."""
     nsi = NSI.read_text(encoding="utf-8-sig")
     nsh = NSH.read_text(encoding="utf-8")
-    ship = nsh[nsh.index("!macro wails.shipOpenXYOSPayload") : nsh.index("!macro wails.provisionOpenXYOS")]
-    launch = nsh[nsh.index("!macro wails.provisionOpenXYOS") : nsh.index("!macro wails.writeUninstaller")]
+    ship = nsh[
+        nsh.index("!macro wails.shipOpenXYOSPayload") : nsh.index("!macro wails.provisionOpenXYOS")
+    ]
+    launch = nsh[
+        nsh.index("!macro wails.provisionOpenXYOS") : nsh.index("!macro wails.writeUninstaller")
+    ]
     install = nsi[nsi.index("Section\n") : nsi.index('Section "uninstall"')]
     assert "Expand-Archive" not in nsh
     assert "extract-openxyos.cmd" not in nsh
@@ -276,7 +280,9 @@ def test_nsis_waits_for_unelevated_provisioner_and_aborts_on_failure() -> None:
     """Provisioner exit 0 + .install-ready is required; livez miss is not a warning."""
     nsi = NSI.read_text(encoding="utf-8-sig")
     nsh = NSH.read_text(encoding="utf-8")
-    launch = nsi[nsi.index("Function LaunchOpenXYOSProvision") : nsi.index("Function WaitOpenXYOSProvision")]
+    launch = nsi[
+        nsi.index("Function LaunchOpenXYOSProvision") : nsi.index("Function WaitOpenXYOSProvision")
+    ]
     wait = nsi[nsi.index("Function WaitOpenXYOSProvision") : nsi.index("Function LaunchFreeOS")]
     assert "openxyos-provision.ps1" in launch
     assert "A4C6892C-3BA9-11d2-9DEA-00C04FB16162" in launch

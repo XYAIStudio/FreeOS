@@ -80,8 +80,7 @@ def test_provisioner_does_not_use_expand_archive() -> None:
         body = path.read_text(encoding="utf-8")
         assert "Expand-Archive" not in body or "not Expand-Archive" in body
         assert not any(
-            line.strip().startswith("Expand-Archive")
-            or "Expand-Archive " in line
+            line.strip().startswith("Expand-Archive") or "Expand-Archive " in line
             for line in body.splitlines()
             if "not Expand-Archive" not in line and "is not used" not in line
         )
