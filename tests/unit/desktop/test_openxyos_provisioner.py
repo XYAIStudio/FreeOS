@@ -57,6 +57,7 @@ def test_provisioner_success_criteria_are_documented() -> None:
     assert "tar.exe" in text
     assert "http://127.0.0.1:3780/api/health/livez" in text
     assert "HKCU" in text or "FreeOS-openXYOS" in text
+    assert "WriteAllText" in text
 
 
 def test_provisioner_writes_ready_marker_only_after_livez() -> None:
