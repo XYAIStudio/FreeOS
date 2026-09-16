@@ -3117,207 +3117,220 @@ export default function KnowledgeBasesPage() {
                 key: "vector",
                 label: t("knowledgeBases.settingsTabVector"),
                 children: (
-            <div className={styles.settingsBody}>
-              <div className={styles.settingsFieldLabel}>
-                {t("knowledgeBases.selectModel")}
-              </div>
-              <Radio.Group
-                className={styles.featureBackend}
-                value={featureBackend}
-                onChange={(event) => {
-                  setFeatureBackend(event.target.value);
-                  setFeatureModel(undefined);
-                }}
-              >
-                <Radio value="onnx">{t("knowledgeBases.localOnnx")}</Radio>
-                <Radio value="remote">
-                  {t("knowledgeBases.remoteEmbedding")}
-                </Radio>
-              </Radio.Group>
-              {featureBackend === "remote" ? (
-                <div className={styles.featureFields}>
-                  <Select
-                    value={featureProviderId}
-                    onChange={(id) => {
-                      setFeatureProviderId(id);
-                      setFeatureModel(undefined);
-                    }}
-                    placeholder={t("knowledgeBases.selectProvider")}
-                    options={remoteProviders.map((provider) => ({
-                      value: provider.provider_id,
-                      label: provider.provider_name,
-                    }))}
-                    notFoundContent={t("knowledgeBases.noProviders")}
-                  />
-                  <div className={styles.onnxModelList}>
-                    {(
-                      remoteProviders.find(
-                        (provider) =>
-                          provider.provider_id === featureProviderId,
-                      )?.models ?? []
-                    ).map((model) => {
-                      const selected = featureModel === model.id;
-                      return (
-                        <button
-                          key={model.id}
-                          type="button"
-                          className={`${styles.onnxModelItem}${
-                            selected ? ` ${styles.onnxModelItemActive}` : ""
-                          }`}
-                          onClick={() => setFeatureModel(model.id)}
-                        >
-                          <span className={styles.onnxModelName}>
-                            {model.name}
-                          </span>
-                        </button>
-                      );
-                    })}
-                    {featureProviderId &&
-                    (remoteProviders.find(
-                      (provider) => provider.provider_id === featureProviderId,
-                    )?.models.length ?? 0) === 0 ? (
-                      <Typography.Text
-                        type="secondary"
-                        className={styles.settingsHint}
-                      >
-                        {t("knowledgeBases.noModels")}
-                      </Typography.Text>
-                    ) : null}
-                  </div>
-                </div>
-              ) : (
-                <div className={styles.onnxModelList}>
-                  {catalog.map((model) => {
-                    const selected = featureModel === model.id;
-                    const size = formatSizeGb(model.size_gb);
-                    const downloading =
-                      onnxDownloading && downloadProgressModel === model.id;
-                    return (
-                      <div
-                        key={model.id}
-                        className={`${styles.onnxModelItem}${
-                          selected ? ` ${styles.onnxModelItemActive}` : ""
-                        }`}
-                        onClick={() => setFeatureModel(model.id)}
-                        onKeyDown={(event) => {
-                          if (event.key === "Enter" || event.key === " ") {
-                            event.preventDefault();
-                            setFeatureModel(model.id);
-                          }
-                        }}
-                        role="button"
-                        tabIndex={0}
-                      >
-                        <div className={styles.onnxModelInfo}>
-                          <span className={styles.onnxModelName}>
-                            {model.name}
-                          </span>
-                          <span className={styles.onnxModelMeta}>
-                            {model.recommended
-                              ? t("knowledgeBases.recommended")
-                              : null}
-                            {model.recommended ? " · " : null}
-                            {size
-                              ? t("knowledgeBases.approxSize", { size })
-                              : t("knowledgeBases.sizeUnknown")}
-                            {model.downloaded
-                              ? null
-                              : ` · ${t("knowledgeBases.notDownloaded")}`}
-                          </span>
+                  <div className={styles.settingsBody}>
+                    <div className={styles.settingsFieldLabel}>
+                      {t("knowledgeBases.selectModel")}
+                    </div>
+                    <Radio.Group
+                      className={styles.featureBackend}
+                      value={featureBackend}
+                      onChange={(event) => {
+                        setFeatureBackend(event.target.value);
+                        setFeatureModel(undefined);
+                      }}
+                    >
+                      <Radio value="onnx">
+                        {t("knowledgeBases.localOnnx")}
+                      </Radio>
+                      <Radio value="remote">
+                        {t("knowledgeBases.remoteEmbedding")}
+                      </Radio>
+                    </Radio.Group>
+                    {featureBackend === "remote" ? (
+                      <div className={styles.featureFields}>
+                        <Select
+                          value={featureProviderId}
+                          onChange={(id) => {
+                            setFeatureProviderId(id);
+                            setFeatureModel(undefined);
+                          }}
+                          placeholder={t("knowledgeBases.selectProvider")}
+                          options={remoteProviders.map((provider) => ({
+                            value: provider.provider_id,
+                            label: provider.provider_name,
+                          }))}
+                          notFoundContent={t("knowledgeBases.noProviders")}
+                        />
+                        <div className={styles.onnxModelList}>
+                          {(
+                            remoteProviders.find(
+                              (provider) =>
+                                provider.provider_id === featureProviderId,
+                            )?.models ?? []
+                          ).map((model) => {
+                            const selected = featureModel === model.id;
+                            return (
+                              <button
+                                key={model.id}
+                                type="button"
+                                className={`${styles.onnxModelItem}${
+                                  selected
+                                    ? ` ${styles.onnxModelItemActive}`
+                                    : ""
+                                }`}
+                                onClick={() => setFeatureModel(model.id)}
+                              >
+                                <span className={styles.onnxModelName}>
+                                  {model.name}
+                                </span>
+                              </button>
+                            );
+                          })}
+                          {featureProviderId &&
+                          (remoteProviders.find(
+                            (provider) =>
+                              provider.provider_id === featureProviderId,
+                          )?.models.length ?? 0) === 0 ? (
+                            <Typography.Text
+                              type="secondary"
+                              className={styles.settingsHint}
+                            >
+                              {t("knowledgeBases.noModels")}
+                            </Typography.Text>
+                          ) : null}
                         </div>
-                        {model.downloaded ? null : (
-                          <Button
-                            size="small"
-                            icon={<Download size={14} />}
-                            loading={downloading}
-                            disabled={onnxDownloading && !downloading}
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              setFeatureModel(model.id);
-                              void startOnnxDownload(model.id);
-                            }}
-                          >
-                            {t("knowledgeBases.downloadModel")}
-                          </Button>
-                        )}
                       </div>
-                    );
-                  })}
-                  {catalog.length === 0 ? (
+                    ) : (
+                      <div className={styles.onnxModelList}>
+                        {catalog.map((model) => {
+                          const selected = featureModel === model.id;
+                          const size = formatSizeGb(model.size_gb);
+                          const downloading =
+                            onnxDownloading &&
+                            downloadProgressModel === model.id;
+                          return (
+                            <div
+                              key={model.id}
+                              className={`${styles.onnxModelItem}${
+                                selected ? ` ${styles.onnxModelItemActive}` : ""
+                              }`}
+                              onClick={() => setFeatureModel(model.id)}
+                              onKeyDown={(event) => {
+                                if (
+                                  event.key === "Enter" ||
+                                  event.key === " "
+                                ) {
+                                  event.preventDefault();
+                                  setFeatureModel(model.id);
+                                }
+                              }}
+                              role="button"
+                              tabIndex={0}
+                            >
+                              <div className={styles.onnxModelInfo}>
+                                <span className={styles.onnxModelName}>
+                                  {model.name}
+                                </span>
+                                <span className={styles.onnxModelMeta}>
+                                  {model.recommended
+                                    ? t("knowledgeBases.recommended")
+                                    : null}
+                                  {model.recommended ? " · " : null}
+                                  {size
+                                    ? t("knowledgeBases.approxSize", { size })
+                                    : t("knowledgeBases.sizeUnknown")}
+                                  {model.downloaded
+                                    ? null
+                                    : ` · ${t("knowledgeBases.notDownloaded")}`}
+                                </span>
+                              </div>
+                              {model.downloaded ? null : (
+                                <Button
+                                  size="small"
+                                  icon={<Download size={14} />}
+                                  loading={downloading}
+                                  disabled={onnxDownloading && !downloading}
+                                  onClick={(event) => {
+                                    event.stopPropagation();
+                                    setFeatureModel(model.id);
+                                    void startOnnxDownload(model.id);
+                                  }}
+                                >
+                                  {t("knowledgeBases.downloadModel")}
+                                </Button>
+                              )}
+                            </div>
+                          );
+                        })}
+                        {catalog.length === 0 ? (
+                          <Typography.Text
+                            type="secondary"
+                            className={styles.settingsHint}
+                          >
+                            {t("knowledgeBases.noModels")}
+                          </Typography.Text>
+                        ) : null}
+                        {catalog.length > 0 && !onnxExpanded ? (
+                          <Button
+                            type="link"
+                            loading={onnxExpanding}
+                            className={styles.showMoreOnnx}
+                            onClick={() => void loadEmbeddingOptions(true)}
+                          >
+                            {t("knowledgeBases.showMoreOnnx")}
+                          </Button>
+                        ) : null}
+                      </div>
+                    )}
+                    {featureBackend === "onnx" && featureModel ? (
+                      <div className={styles.onnxReadiness}>
+                        <ReadinessRow
+                          label={t("knowledgeBases.checkRuntime")}
+                          ok={Boolean(capability?.checks.deps_available)}
+                          okText={t("knowledgeBases.checkInstalled")}
+                          failText={t("knowledgeBases.checkRuntimeMissing")}
+                        />
+                        <ReadinessRow
+                          label={t("knowledgeBases.checkWeights")}
+                          ok={Boolean(
+                            catalog.find((model) => model.id === featureModel)
+                              ?.downloaded,
+                          )}
+                          okText={t("knowledgeBases.checkDownloaded")}
+                          failText={t("knowledgeBases.notDownloaded")}
+                        />
+                        <div className={styles.onnxReadinessRow}>
+                          <span className={styles.onnxReadinessLabel}>
+                            {t("knowledgeBases.checkEncode")}
+                          </span>
+                          {onnxProbe ? (
+                            <Typography.Text
+                              type={onnxProbe.ok ? "success" : "danger"}
+                            >
+                              {onnxProbe.ok
+                                ? t("knowledgeBases.probeOk", {
+                                    dim: onnxProbe.dim ?? "?",
+                                    ms: Math.round(onnxProbe.latency_ms ?? 0),
+                                  })
+                                : onnxProbe.error ??
+                                  t("knowledgeBases.probeFailed")}
+                            </Typography.Text>
+                          ) : (
+                            <Typography.Text type="secondary">
+                              {t("knowledgeBases.probeIdle")}
+                            </Typography.Text>
+                          )}
+                          <Button
+                            type="link"
+                            size="small"
+                            loading={onnxProbing}
+                            onClick={() => void runOnnxProbe()}
+                          >
+                            {t("knowledgeBases.probeRun")}
+                          </Button>
+                        </div>
+                      </div>
+                    ) : null}
                     <Typography.Text
                       type="secondary"
                       className={styles.settingsHint}
                     >
-                      {t("knowledgeBases.noModels")}
+                      {t("knowledgeBases.enableDescription")}
                     </Typography.Text>
-                  ) : null}
-                  {catalog.length > 0 && !onnxExpanded ? (
-                    <Button
-                      type="link"
-                      loading={onnxExpanding}
-                      className={styles.showMoreOnnx}
-                      onClick={() => void loadEmbeddingOptions(true)}
-                    >
-                      {t("knowledgeBases.showMoreOnnx")}
-                    </Button>
-                  ) : null}
-                </div>
-              )}
-              {featureBackend === "onnx" && featureModel ? (
-                <div className={styles.onnxReadiness}>
-                  <ReadinessRow
-                    label={t("knowledgeBases.checkRuntime")}
-                    ok={Boolean(capability?.checks.deps_available)}
-                    okText={t("knowledgeBases.checkInstalled")}
-                    failText={t("knowledgeBases.checkRuntimeMissing")}
-                  />
-                  <ReadinessRow
-                    label={t("knowledgeBases.checkWeights")}
-                    ok={Boolean(
-                      catalog.find((model) => model.id === featureModel)
-                        ?.downloaded,
-                    )}
-                    okText={t("knowledgeBases.checkDownloaded")}
-                    failText={t("knowledgeBases.notDownloaded")}
-                  />
-                  <div className={styles.onnxReadinessRow}>
-                    <span className={styles.onnxReadinessLabel}>
-                      {t("knowledgeBases.checkEncode")}
-                    </span>
-                    {onnxProbe ? (
-                      <Typography.Text
-                        type={onnxProbe.ok ? "success" : "danger"}
-                      >
-                        {onnxProbe.ok
-                          ? t("knowledgeBases.probeOk", {
-                              dim: onnxProbe.dim ?? "?",
-                              ms: Math.round(onnxProbe.latency_ms ?? 0),
-                            })
-                          : onnxProbe.error ?? t("knowledgeBases.probeFailed")}
-                      </Typography.Text>
-                    ) : (
-                      <Typography.Text type="secondary">
-                        {t("knowledgeBases.probeIdle")}
-                      </Typography.Text>
-                    )}
-                    <Button
-                      type="link"
-                      size="small"
-                      loading={onnxProbing}
-                      onClick={() => void runOnnxProbe()}
-                    >
-                      {t("knowledgeBases.probeRun")}
-                    </Button>
+                    <Typography.Link onClick={() => navigate("/admin/models")}>
+                      {t("knowledgeBases.manageModels")}
+                    </Typography.Link>
                   </div>
-                </div>
-              ) : null}
-              <Typography.Text type="secondary" className={styles.settingsHint}>
-                {t("knowledgeBases.enableDescription")}
-              </Typography.Text>
-              <Typography.Link onClick={() => navigate("/admin/models")}>
-                {t("knowledgeBases.manageModels")}
-              </Typography.Link>
-            </div>
                 ),
               },
               {
@@ -3353,101 +3366,109 @@ export default function KnowledgeBasesPage() {
                 key: "ocr",
                 label: t("knowledgeBases.settingsTabOcr"),
                 children: (
-              <div className={`${styles.settingsBody} ${styles.ocrSettings}`}>
-                <Typography.Paragraph
-                  type="secondary"
-                  className={styles.settingsHint}
-                >
-                  {t("knowledgeBases.ocrFoundationHint")}
-                </Typography.Paragraph>
-                <div className={styles.formOptionRow}>
-                  <div className={styles.formOptionCopy}>
-                    <span className={styles.switchLabel}>
-                      {t("knowledgeBases.ocrTitle")}
-                    </span>
-                    <span className={styles.formOptionHint}>
-                      {t("knowledgeBases.ocrDescription")}
-                    </span>
-                  </div>
-                  <Switch
-                    size="small"
-                    checked={ocrEnabledDraft}
-                    onChange={setOcrEnabledDraft}
-                  />
-                </div>
-                {ocrEnabledDraft ? (
-                  <div className={styles.featureFields}>
-                    <Radio.Group
-                      className={styles.featureBackend}
-                      value={ocrBackend}
-                      onChange={(event) => {
-                        const backend = event.target.value as "onnx" | "remote";
-                        setOcrBackend(backend);
-                        setOcrModel(
-                          backend === "onnx" ? "rapidocr" : undefined,
-                        );
-                        setOcrProviderId(undefined);
-                      }}
+                  <div
+                    className={`${styles.settingsBody} ${styles.ocrSettings}`}
+                  >
+                    <Typography.Paragraph
+                      type="secondary"
+                      className={styles.settingsHint}
                     >
-                      <Radio value="onnx">{t("knowledgeBases.ocrLocal")}</Radio>
-                      <Radio value="remote">
-                        {t("knowledgeBases.ocrRemote")}
-                      </Radio>
-                    </Radio.Group>
-                    {ocrBackend === "onnx" ? (
-                      <div
-                        className={`${styles.onnxModelItem} ${styles.onnxModelItemActive}`}
-                      >
-                        <div className={styles.onnxModelInfo}>
-                          <span className={styles.onnxModelName}>
-                            RapidOCR (ONNX)
-                          </span>
-                          <span className={styles.onnxModelMeta}>
-                            {t("knowledgeBases.ocrLocalHint")}
-                          </span>
-                        </div>
+                      {t("knowledgeBases.ocrFoundationHint")}
+                    </Typography.Paragraph>
+                    <div className={styles.formOptionRow}>
+                      <div className={styles.formOptionCopy}>
+                        <span className={styles.switchLabel}>
+                          {t("knowledgeBases.ocrTitle")}
+                        </span>
+                        <span className={styles.formOptionHint}>
+                          {t("knowledgeBases.ocrDescription")}
+                        </span>
                       </div>
-                    ) : (
-                      <>
-                        <Alert
-                          type="warning"
-                          showIcon
-                          message={t("knowledgeBases.ocrRemotePrivacy")}
-                        />
-                        <Select
-                          value={ocrProviderId}
-                          onChange={(id) => {
-                            setOcrProviderId(id);
-                            setOcrModel(undefined);
+                      <Switch
+                        size="small"
+                        checked={ocrEnabledDraft}
+                        onChange={setOcrEnabledDraft}
+                      />
+                    </div>
+                    {ocrEnabledDraft ? (
+                      <div className={styles.featureFields}>
+                        <Radio.Group
+                          className={styles.featureBackend}
+                          value={ocrBackend}
+                          onChange={(event) => {
+                            const backend = event.target.value as
+                              | "onnx"
+                              | "remote";
+                            setOcrBackend(backend);
+                            setOcrModel(
+                              backend === "onnx" ? "rapidocr" : undefined,
+                            );
+                            setOcrProviderId(undefined);
                           }}
-                          placeholder={t("knowledgeBases.selectProvider")}
-                          options={ocrRemoteProviders.map((provider) => ({
-                            value: provider.provider_id,
-                            label: provider.provider_name,
-                          }))}
-                          notFoundContent={t("knowledgeBases.ocrNoProviders")}
-                        />
-                        <Select
-                          value={ocrModel}
-                          onChange={setOcrModel}
-                          placeholder={t("knowledgeBases.ocrSelectModel")}
-                          options={(
-                            ocrRemoteProviders.find(
-                              (provider) =>
-                                provider.provider_id === ocrProviderId,
-                            )?.models ?? []
-                          ).map((model) => ({
-                            value: model.id,
-                            label: model.name,
-                          }))}
-                          disabled={!ocrProviderId}
-                          notFoundContent={t("knowledgeBases.ocrNoModels")}
-                        />
-                      </>
-                    )}
+                        >
+                          <Radio value="onnx">
+                            {t("knowledgeBases.ocrLocal")}
+                          </Radio>
+                          <Radio value="remote">
+                            {t("knowledgeBases.ocrRemote")}
+                          </Radio>
+                        </Radio.Group>
+                        {ocrBackend === "onnx" ? (
+                          <div
+                            className={`${styles.onnxModelItem} ${styles.onnxModelItemActive}`}
+                          >
+                            <div className={styles.onnxModelInfo}>
+                              <span className={styles.onnxModelName}>
+                                RapidOCR (ONNX)
+                              </span>
+                              <span className={styles.onnxModelMeta}>
+                                {t("knowledgeBases.ocrLocalHint")}
+                              </span>
+                            </div>
+                          </div>
+                        ) : (
+                          <>
+                            <Alert
+                              type="warning"
+                              showIcon
+                              message={t("knowledgeBases.ocrRemotePrivacy")}
+                            />
+                            <Select
+                              value={ocrProviderId}
+                              onChange={(id) => {
+                                setOcrProviderId(id);
+                                setOcrModel(undefined);
+                              }}
+                              placeholder={t("knowledgeBases.selectProvider")}
+                              options={ocrRemoteProviders.map((provider) => ({
+                                value: provider.provider_id,
+                                label: provider.provider_name,
+                              }))}
+                              notFoundContent={t(
+                                "knowledgeBases.ocrNoProviders",
+                              )}
+                            />
+                            <Select
+                              value={ocrModel}
+                              onChange={setOcrModel}
+                              placeholder={t("knowledgeBases.ocrSelectModel")}
+                              options={(
+                                ocrRemoteProviders.find(
+                                  (provider) =>
+                                    provider.provider_id === ocrProviderId,
+                                )?.models ?? []
+                              ).map((model) => ({
+                                value: model.id,
+                                label: model.name,
+                              }))}
+                              disabled={!ocrProviderId}
+                              notFoundContent={t("knowledgeBases.ocrNoModels")}
+                            />
+                          </>
+                        )}
+                      </div>
+                    ) : null}
                   </div>
-                ) : null}
-              </div>
                 ),
               },
             ]}

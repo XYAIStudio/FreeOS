@@ -23,12 +23,8 @@ describe("<KnowledgeMountHome />", () => {
       />,
     );
 
-    expect(
-      screen.getByText("knowledgeBases.homeTitle"),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText("knowledgeBases.mountTitle"),
-    ).toBeInTheDocument();
+    expect(screen.getByText("knowledgeBases.homeTitle")).toBeInTheDocument();
+    expect(screen.getByText("knowledgeBases.mountTitle")).toBeInTheDocument();
     expect(
       screen.getByText("knowledgeBases.cloudMountTitle"),
     ).toBeInTheDocument();

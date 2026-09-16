@@ -40,7 +40,9 @@ def test_capability_defaults_enabled_on_desktop(monkeypatch: pytest.MonkeyPatch)
 def test_desktop_explicit_disable_is_respected(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(gate, "is_desktop_process", lambda: True)
 
-    capability = gate.get_capability(lambda key: "false" if key == "knowledge_bases_enabled" else None)
+    capability = gate.get_capability(
+        lambda key: "false" if key == "knowledge_bases_enabled" else None
+    )
 
     assert capability["feature_enabled"] is False
 

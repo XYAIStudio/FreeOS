@@ -38,9 +38,7 @@ export function KnowledgeMountHome({
           </div>
           <LocalMountPanel
             prominent
-            ensureKb={() =>
-              ensureKb(t("knowledgeBases.defaultLocalName"))
-            }
+            ensureKb={() => ensureKb(t("knowledgeBases.defaultLocalName"))}
             onMounted={onMounted}
           />
         </section>
@@ -50,9 +48,7 @@ export function KnowledgeMountHome({
           </div>
           <CloudMountPanel
             prominent
-            ensureKb={() =>
-              ensureKb(t("knowledgeBases.defaultCloudName"))
-            }
+            ensureKb={() => ensureKb(t("knowledgeBases.defaultCloudName"))}
             onMounted={onMounted}
           />
         </section>

@@ -122,7 +122,10 @@ export function LocalMountPanel({
           placeholder={t("knowledgeBases.mountSource")}
           style={{ minWidth: 240 }}
         />
-        <Button icon={<FolderOpen size={14} />} onClick={() => void pickSource()}>
+        <Button
+          icon={<FolderOpen size={14} />}
+          onClick={() => void pickSource()}
+        >
           {t("knowledgeBases.pickFolder")}
         </Button>
         <Button type="primary" loading={busy} onClick={() => void mount()}>
