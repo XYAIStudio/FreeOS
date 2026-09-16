@@ -52,8 +52,8 @@ OPENXYOS_MODULES: tuple[OrgCapability, ...] = (
         "key": "employees",
         "label": "People & agents",
         "label_zh": "人机资源",
-        "description": "Human employees, AI employees, and talent market.",
-        "description_zh": "人类员工、AI 员工、备选员工与人才市场",
+        "description": "Department employees and the talent market.",
+        "description_zh": "已入部门的员工与人才市场",
         "locked": False,
     },
     {

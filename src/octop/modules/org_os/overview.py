@@ -118,7 +118,7 @@ def build_overview(
     }
     notes = [
         "FreeOS does the work. openXYOS owns organization and governance.",
-        "Data plane: employees / skills / MCP / tasks. Control plane: blueprints / modules / governance.",
+        "Data plane: colleagues / experts / skills / MCP / tasks. Control plane: department employees / blueprints / modules / governance.",
     ]
     if not status.sidecar.reachable:
         notes.append("openXYOS sidecar is offline — start it to sync blueprints and approvals.")

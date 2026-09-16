@@ -134,7 +134,7 @@ async def org_module_start_sidecar(
     return payload
 
 
-@router.post("/assemble", summary="Assemble digital employees from an openXYOS blueprint")
+@router.post("/assemble", summary="Import department employees from openXYOS as FreeOS colleagues")
 async def org_module_assemble(
     request: Request,
     server: OctopServer = Depends(get_server),
@@ -154,7 +154,7 @@ class OrgProduceBody(BaseModel):
     name: str = ""
 
 
-@router.post("/produce", summary="Produce a FreeOS colleague from a knowledge corpus")
+@router.post("/produce", summary="Produce a FreeOS expert / assistant from a knowledge corpus")
 async def org_module_produce(
     request: Request,
     body: OrgProduceBody,

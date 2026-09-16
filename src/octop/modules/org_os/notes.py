@@ -24,7 +24,7 @@ _PATTERNS: tuple[tuple[re.Pattern[str], str, tuple[str, ...]], ...] = (
         ("path",),
     ),
     (
-        re.compile(r"^spawned FreeOS agent (.+)$"),
+        re.compile(r"^spawned FreeOS assistant (.+)$"),
         "org.notes.spawned_agent",
         ("agent_id",),
     ),
@@ -88,8 +88,8 @@ _PATTERNS: tuple[tuple[re.Pattern[str], str, tuple[str, ...]], ...] = (
     ),
     (
         re.compile(
-            r"^Data plane: employees / skills / MCP / tasks\. "
-            r"Control plane: blueprints / modules / governance\.$"
+            r"^Data plane: colleagues / experts / skills / MCP / tasks\. "
+            r"Control plane: department employees / blueprints / modules / governance\.$"
         ),
         "org.notes.planes",
         (),
@@ -153,7 +153,7 @@ _PATTERNS: tuple[tuple[re.Pattern[str], str, tuple[str, ...]], ...] = (
     ),
     (
         re.compile(
-            r"^Loop produced employees, published an asset pack, applied it, and imported back\.$"
+            r"^Loop produced colleagues, published an asset pack, applied department employees, and imported back\.$"
         ),
         "org.notes.loop_done",
         (),
@@ -186,7 +186,7 @@ _PATTERNS: tuple[tuple[re.Pattern[str], str, tuple[str, ...]], ...] = (
         ("count", "path"),
     ),
     (
-        re.compile(r"^no knowledge mount; producing a corpus-ready colleague workspace$"),
+        re.compile(r"^no knowledge mount; producing a corpus-ready expert workspace$"),
         "org.notes.corpus_empty",
         (),
     ),

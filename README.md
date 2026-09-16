@@ -19,13 +19,13 @@
   <a href="docs/architecture-integration.md">Architecture</a>
 </p>
 
-**FreeOS** is an independent open-source host. The data plane is derived from [Octop](https://github.com/TencentCloud/Octop) (MIT). The organization control plane comes from [openXYOS](https://github.com/XYAIStudio/openXYOS) (Apache-2.0). They are complementary: FreeOS **produces** AI employees, skills, plugins, and MCPs; those assets **assemble into openXYOS**; openXYOS blueprints, catalog, policies, and talent **feed back** into FreeOS to spawn or upgrade more runtime agents.
+**FreeOS** is an independent open-source host. The data plane is derived from [Octop](https://github.com/TencentCloud/Octop) (MIT). The organization control plane comes from [openXYOS](https://github.com/XYAIStudio/openXYOS) (Apache-2.0). They are complementary: FreeOS **produces** experts / assistants (not yet in a department), skills, plugins, and MCPs; those assets **assemble into openXYOS** as department employees; openXYOS blueprints, catalog, policies, and talent **feed back** into FreeOS as colleagues.
 
 The web shell, README banner, favicons, and PWA icons use the FreeOS circular mark (gray ring, yellow / green / red teardrops, blue center).
 
 ## Run the self-growth loop
 
-This is the product path. One command compiles a blueprint into an AI employee, promotes it `draft → market → recruit → shadow → active`, registers a FreeOS chat agent, publishes an asset pack, applies that pack onto openXYOS-shaped surfaces (live HTTP when `OPENXYOS_BASE_URL` is set, otherwise a durable local mirror), imports the control plane back, and proves governance still **blocks** high-risk tools.
+This is the product path. One command compiles a blueprint into a colleague, promotes it `draft → market → recruit → shadow → active`, registers a FreeOS chat agent, publishes an asset pack, applies that pack onto openXYOS-shaped surfaces as department employees (live HTTP when `OPENXYOS_BASE_URL` is set, otherwise a durable local mirror), imports the control plane back, and proves governance still **blocks** high-risk tools.
 
 ```bash
 git clone https://github.com/XYAIStudio/FreeOS.git

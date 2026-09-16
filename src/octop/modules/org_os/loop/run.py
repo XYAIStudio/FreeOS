@@ -218,7 +218,7 @@ def run_growth_loop(
             *imported.notes,
             *applied.notes,
             *feedback.notes,
-            "Loop produced employees, published an asset pack, applied it, and imported back.",
+            "Loop produced colleagues, published an asset pack, applied department employees, and imported back.",
         ],
     )
     proof.ok = bool(

@@ -8,7 +8,7 @@ def test_localize_loop_notes_zh() -> None:
             "started but not reachable yet; check logs/org-sidecar.log",
             "Local mirror is the durable record. HTTP apply is best-effort.",
             "control plane accepted the FreeOS ingest",
-            "Loop produced employees, published an asset pack, applied it, and imported back.",
+            "Loop produced colleagues, published an asset pack, applied department employees, and imported back.",
         ],
         "zh",
     )
@@ -16,7 +16,7 @@ def test_localize_loop_notes_zh() -> None:
     assert "尚未可达" in notes[1]
     assert "本地镜像" in notes[2]
     assert "控制面已接受" in notes[3]
-    assert "循环已生成员工" in notes[4]
+    assert "循环已生成同事" in notes[4]
 
 
 def test_localize_unknown_note_passthrough() -> None:
