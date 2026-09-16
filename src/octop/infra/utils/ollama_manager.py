@@ -1,18 +1,69 @@
 from __future__ import annotations
 
+import contextlib
 import logging
+import os
 import platform
-import shutil
 import subprocess
 import time
 from datetime import datetime
+from pathlib import Path
 from typing import Any
 
 from pydantic import BaseModel, Field, field_validator
 
+from octop.infra.utils.ollama_paths import (
+    find_ollama_app,
+    find_ollama_binary,
+    ollama_is_installed,
+)
+
 logger = logging.getLogger(__name__)
 
 _OLLAMA_SERVER_STARTED = False
+_OLLAMA_DOCS_URL = "https://ollama.com/download"
+_START_WAIT_SEC = 30 if os.name == "nt" else 15
+
+
+def _popen_kwargs() -> dict[str, Any]:
+    kwargs: dict[str, Any] = {
+        "stdout": subprocess.DEVNULL,
+        "stderr": subprocess.DEVNULL,
+    }
+    if os.name == "nt":
+        flags = 0
+        flags |= int(getattr(subprocess, "CREATE_NO_WINDOW", 0))
+        flags |= int(getattr(subprocess, "DETACHED_PROCESS", 0))
+        flags |= int(getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0))
+        kwargs["creationflags"] = flags
+        kwargs["close_fds"] = True
+    else:
+        kwargs["start_new_session"] = True
+    return kwargs
+
+
+def _launch_argv_candidates() -> list[list[str]]:
+    """Vendor-supported ways to bring the local daemon up.
+
+    Windows installs are typically started via the tray app (``Ollama.exe`` or
+    ``ollama app``). ``ollama serve`` remains the fallback on every OS.
+    """
+    argv: list[list[str]] = []
+    app = find_ollama_app()
+    binary = find_ollama_binary()
+    if platform.system() == "Windows":
+        if app:
+            argv.append([app])
+        if binary:
+            argv.append([binary, "app"])
+            argv.append([binary, "serve"])
+        return argv
+    if app and os.path.isdir(app):
+        opener = "open"
+        argv.append([opener, "-a", app])
+    if binary:
+        argv.append([binary, "serve"])
+    return argv
 
 
 class OllamaModelInfo(BaseModel):
@@ -84,42 +135,81 @@ def _is_ollama_reachable() -> bool:
 
 
 def _start_ollama_server() -> None:
-    """Try to start ``ollama serve`` in the background."""
+    """Try to start the vendor Ollama daemon in the background."""
+    result = start_ollama_service_result()
+    if not result.get("running"):
+        raise OSError(str(result.get("next_step") or result.get("error") or "Ollama did not start"))
+
+
+def start_ollama_service_result() -> dict[str, Any]:
+    """Start Ollama when it is already installed. Never invents an install.
+
+    Returns a structured payload the dashboard can render without guessing.
+    """
     global _OLLAMA_SERVER_STARTED
+    if _is_ollama_reachable():
+        _OLLAMA_SERVER_STARTED = True
+        return {
+            "ok": True,
+            "installed": True,
+            "running": True,
+            "action": "already_running",
+            "binary": find_ollama_binary(),
+        }
+    if not ollama_is_installed():
+        return {
+            "ok": False,
+            "installed": False,
+            "running": False,
+            "action": "not_installed",
+            "docs_url": _OLLAMA_DOCS_URL,
+            "next_step": (
+                "Ollama is not installed. Install it from https://ollama.com/download "
+                "then click Start Ollama."
+            ),
+        }
 
-    ollama_bin = shutil.which("ollama")
-    if ollama_bin is None and platform.system() == "Darwin":
-        candidates = [
-            "/usr/local/bin/ollama",
-            "/opt/homebrew/bin/ollama",
-        ]
-        for c in candidates:
-            if shutil.which(c):
-                ollama_bin = c
-                break
-    if ollama_bin is None:
-        raise OSError(
-            "Ollama binary not found on this system. Please install Ollama from https://ollama.com/download"
-        )
+    launched = False
+    last_error = ""
+    for argv in _launch_argv_candidates():
+        logger.info("Starting Ollama via %s", argv)
+        try:
+            subprocess.Popen(argv, **_popen_kwargs())
+            launched = True
+        except OSError as exc:
+            last_error = str(exc)
+            logger.warning("Ollama launch failed (%s): %s", argv, exc)
+            continue
+        for _ in range(_START_WAIT_SEC):
+            time.sleep(1)
+            if _is_ollama_reachable():
+                logger.info("Ollama daemon is now running.")
+                _OLLAMA_SERVER_STARTED = True
+                return {
+                    "ok": True,
+                    "installed": True,
+                    "running": True,
+                    "action": "started",
+                    "binary": find_ollama_binary(),
+                }
 
-    logger.info("Ollama daemon not reachable, starting ollama serve …")
-    try:
-        subprocess.Popen(
-            [ollama_bin, "serve"],
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-            start_new_session=True,
-        )
-    except Exception as exc:
-        raise OSError(f"Failed to start ollama serve: {exc}") from exc
-
-    for _ in range(10):
-        time.sleep(1)
-        if _is_ollama_reachable():
-            logger.info("Ollama daemon is now running.")
-            _OLLAMA_SERVER_STARTED = True
-            return
-    raise OSError("Started ollama serve but it did not become reachable within 10 seconds.")
+    next_step = (
+        "Ollama is installed but the API at http://127.0.0.1:11434 did not come up. "
+        "Open the Ollama app from the Start menu, wait until the tray icon appears, "
+        "then click Start Ollama again."
+    )
+    if last_error:
+        next_step = f"{next_step} ({last_error})"
+    return {
+        "ok": False,
+        "installed": True,
+        "running": False,
+        "action": "start_failed" if launched else "launch_failed",
+        "docs_url": _OLLAMA_DOCS_URL,
+        "error": last_error or None,
+        "next_step": next_step,
+        "binary": find_ollama_binary(),
+    }
 
 
 def _ensure_ollama_server() -> None:
@@ -144,6 +234,49 @@ def is_ollama_reachable() -> bool:
 def start_ollama_service() -> None:
     """Ensure the Ollama daemon is running (start if needed)."""
     _ensure_ollama_server()
+
+
+def create_from_weight(name: str, weight_path: str) -> None:
+    """Import a local GGUF/GGML file into Ollama via ``ollama create``."""
+    binary = find_ollama_binary()
+    if binary is None:
+        raise OSError(
+            "Ollama is not installed. Install it from https://ollama.com/download "
+            "before registering a local weight file."
+        )
+    _ensure_ollama_server()
+    source = Path(weight_path)
+    if not source.is_file():
+        raise OSError(f"Weight file not found: {weight_path}")
+    import tempfile
+
+    with tempfile.NamedTemporaryFile(
+        mode="w",
+        encoding="utf-8",
+        suffix=".Modelfile",
+        delete=False,
+    ) as handle:
+        handle.write(f"FROM {source}\n")
+        modelfile = handle.name
+    run_kwargs: dict[str, Any] = {
+        "check": False,
+        "capture_output": True,
+        "text": True,
+        "timeout": 600,
+    }
+    if os.name == "nt":
+        run_kwargs["creationflags"] = int(getattr(subprocess, "CREATE_NO_WINDOW", 0))
+    try:
+        completed = subprocess.run(
+            [binary, "create", name, "-f", modelfile],
+            **run_kwargs,
+        )
+    finally:
+        with contextlib.suppress(OSError):
+            os.unlink(modelfile)
+    if completed.returncode != 0:
+        err = (completed.stderr or completed.stdout or "").strip() or "ollama create failed"
+        raise OSError(err)
 
 
 def stop_ollama_service() -> bool:

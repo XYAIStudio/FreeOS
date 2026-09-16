@@ -8,6 +8,7 @@
 
 ### 新增
 
+- 模型页本机大模型：Ollama 已安装但未运行时显示「启动 Ollama」（Windows 走已知安装路径的 `Ollama.exe` / `ollama app` / `ollama serve`）；缺少可自动处理的依赖时提供「一键下载安装」，否则说明需手动安装；「搜索本机模型」后台扫描 `.gguf` / `.ggml`（以及明确的本地 LLM safetensors 目录），结果进入本机列表并可注册到 Ollama 供对话切换。
 - 组织页双向互生长：FreeOS 资产经 `/api/freeos/ingest`（共享写入令牌，无需边车登录墙）落到 openXYOS 员工/人才/插件/技能表；控制面导出再装配回 FreeOS。循环在边车健康时不再把「已推送到控制面」写成 false。
 - 组织页可从本地语料或 ima / 云知识库指针一键生产同事；本地模型一键下载后会注册到 Ollama 供应商。
 

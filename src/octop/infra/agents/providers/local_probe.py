@@ -9,7 +9,10 @@ import subprocess
 from pathlib import Path
 from typing import Any
 
+from octop.infra.agents.providers.local_weights import common_model_roots, scan_weight_roots
+from octop.infra.agents.providers.ollama_install import install_plan
 from octop.infra.utils.ollama_manager import OllamaModelManager, is_ollama_reachable
+from octop.infra.utils.ollama_paths import find_ollama_binary, ollama_is_installed
 
 
 def _ram_gb() -> float:
@@ -64,36 +67,6 @@ def _gpu_name() -> str:
     return ""
 
 
-def _scan_gguf(roots: list[Path]) -> list[dict[str, Any]]:
-    found: list[dict[str, Any]] = []
-    seen: set[str] = set()
-    for root in roots:
-        if not root.is_dir():
-            continue
-        for path in root.rglob("*.gguf"):
-            key = str(path.resolve())
-            if key in seen:
-                continue
-            seen.add(key)
-            try:
-                size = path.stat().st_size
-            except OSError:
-                size = 0
-            found.append({"name": path.stem, "path": str(path), "size": size, "source": "gguf"})
-            if len(found) >= 40:
-                return found
-    return found
-
-
-def _lmstudio_roots() -> list[Path]:
-    home = Path.home()
-    return [
-        home / ".lmstudio" / "models",
-        home / ".cache" / "lm-studio" / "models",
-        home / "Documents" / "LM Studio" / "models",
-    ]
-
-
 def _ollama_models() -> tuple[bool, list[dict[str, Any]]]:
     if not is_ollama_reachable():
         return False, []
@@ -141,12 +114,49 @@ def recommend_models(ram_gb: float, has_gpu: bool) -> list[dict[str, str]]:
     return [{"id": mid, "reason": reason, "install": "ollama"} for mid, reason in picks]
 
 
+def _deps(*, ollama_installed: bool, ollama_up: bool) -> list[dict[str, Any]]:
+    deps: list[dict[str, Any]] = []
+    plan = install_plan()
+    if not ollama_installed:
+        deps.append(
+            {
+                "id": "ollama",
+                "kind": "runtime",
+                "automatable": bool(plan.get("automatable")),
+                "method": plan.get("method"),
+                "docs_url": plan.get("docs_url"),
+                "next_step": plan.get("next_step")
+                or "Install Ollama from https://ollama.com/download.",
+            }
+        )
+    elif not ollama_up:
+        deps.append(
+            {
+                "id": "ollama_daemon",
+                "kind": "runtime",
+                "automatable": True,
+                "method": "start",
+                "docs_url": "https://ollama.com/download",
+                "next_step": "Ollama is installed. Start the local service to pull or chat with models.",
+            }
+        )
+    return deps
+
+
 def probe_local_models() -> dict[str, Any]:
     ram = _ram_gb()
     gpu = _gpu_name()
     ollama_up, ollama_models = _ollama_models()
+    ollama_installed = ollama_is_installed()
     discovered = list(ollama_models)
-    discovered.extend(_scan_gguf(_lmstudio_roots()))
+    discovered.extend(
+        scan_weight_roots(
+            common_model_roots(),
+            full_disk=False,
+            user_picked=False,
+            max_files=40,
+        )
+    )
     return {
         "hardware": {
             "os": platform.system(),
@@ -154,9 +164,12 @@ def probe_local_models() -> dict[str, Any]:
             "cpu_count": os.cpu_count() or 0,
             "ram_gb": ram,
             "gpu": gpu,
-            "ollama_binary": bool(shutil.which("ollama")),
+            "ollama_binary": bool(find_ollama_binary() or ollama_installed),
+            "ollama_installed": ollama_installed,
             "ollama_reachable": ollama_up,
+            "ollama_path": find_ollama_binary() or "",
         },
+        "deps": _deps(ollama_installed=ollama_installed, ollama_up=ollama_up),
         "installed": discovered,
         "recommended": recommend_models(ram, bool(gpu)),
     }
