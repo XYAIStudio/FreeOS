@@ -130,7 +130,9 @@ describe("unknown dashboard paths", () => {
   });
 
   it("highlights personalization for former control and admin URLs", () => {
-    expect(resolveSelectedKey("/system-settings/users")).toBe("personalization");
+    expect(resolveSelectedKey("/system-settings/users")).toBe(
+      "personalization",
+    );
     expect(resolveSelectedKey("/admin/users")).toBe("personalization");
     expect(resolveSelectedKey("/workbench/terminal")).toBe("personalization");
     expect(resolveSelectedKey("/acp")).toBe("personalization");

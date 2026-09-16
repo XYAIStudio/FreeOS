@@ -43,9 +43,10 @@ async function registerOllamaModel(name: string): Promise<boolean> {
       }),
   );
   if (!ollama) return false;
-  const already = [...(ollama.models ?? []), ...(ollama.extra_models ?? [])].some(
-    (model) => model.id === name || model.name === name,
-  );
+  const already = [
+    ...(ollama.models ?? []),
+    ...(ollama.extra_models ?? []),
+  ].some((model) => model.id === name || model.name === name);
   if (already) return true;
   await providerApi.addModel(ollama.id, { id: name, name });
   return true;

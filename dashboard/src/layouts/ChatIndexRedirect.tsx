@@ -28,11 +28,7 @@ export default function ChatIndexRedirect() {
     const agentId = activeAgentId || agents[0]?.agent_id;
     if (agentId) {
       return (
-        <Navigate
-          to={chatCanvasPath(agentId)}
-          replace
-          state={location.state}
-        />
+        <Navigate to={chatCanvasPath(agentId)} replace state={location.state} />
       );
     }
   }
