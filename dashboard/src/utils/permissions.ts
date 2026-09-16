@@ -175,14 +175,43 @@ export function pathPermissionKeys(pathname: string): PermissionKeys | null {
   ) {
     return PERM.channels;
   }
-  if (pathname === "/connectors" || pathname.startsWith("/connectors/")) {
+  if (
+    pathname === "/connectors" ||
+    pathname.startsWith("/connectors/") ||
+    pathname.startsWith("/personalization/connectors")
+  ) {
     return PERM.connectors;
   }
   if (
     pathname === "/skill-packages" ||
-    pathname.startsWith("/skill-packages/")
+    pathname.startsWith("/skill-packages/") ||
+    pathname.startsWith("/personalization/skill-packages")
   ) {
     return PERM.skillPackages;
+  }
+  if (pathname.startsWith("/personalization/workbench")) {
+    return PERM.workbench;
+  }
+  if (pathname.startsWith("/personalization/remote-desktop")) {
+    return ["desktop", "mobile"];
+  }
+  if (pathname.startsWith("/personalization/acp")) {
+    return "admin";
+  }
+  if (pathname.startsWith("/personalization/users")) {
+    return PERM.usersPage;
+  }
+  if (pathname.startsWith("/personalization/storage")) {
+    return PERM.storage;
+  }
+  if (pathname.startsWith("/personalization/host-plugins")) {
+    return PERM.plugins;
+  }
+  if (pathname.startsWith("/personalization/security")) {
+    return PERM.securityPage;
+  }
+  if (pathname.startsWith("/personalization/advanced")) {
+    return PERM.advancedPage;
   }
   if (
     pathname === "/knowledge-bases" ||

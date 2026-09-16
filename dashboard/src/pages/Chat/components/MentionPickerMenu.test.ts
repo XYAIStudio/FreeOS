@@ -2,6 +2,25 @@ import { describe, expect, it } from "vitest";
 import { buildMentionItems, firstFileMentionIndex } from "./MentionPickerMenu";
 
 describe("buildMentionItems", () => {
+  it("adds @所有人 when more than one expert can be mentioned", () => {
+    const items = buildMentionItems(
+      "",
+      [],
+      [
+        { agent_id: "a1", name: "分析师" },
+        { agent_id: "a2", name: "研究员" },
+      ],
+      [],
+      [],
+      { everyoneLabel: "所有人" },
+    );
+    expect(items[0]).toEqual({
+      kind: "everyone",
+      label: "所有人",
+      token: "所有人",
+    });
+  });
+
   it("includes installed subagents as @slug picks", () => {
     const items = buildMentionItems(
       "",

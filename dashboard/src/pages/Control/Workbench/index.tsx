@@ -1,5 +1,6 @@
 import { useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
+import { Segmented } from "antd";
 import { Globe, TerminalSquare } from "lucide-react";
 import PageShell from "../../../layouts/PageShell";
 import { usePathTabs } from "../../../hooks/usePathTabs";
@@ -24,10 +25,13 @@ const TAB_ICONS = {
 interface WorkbenchPageProps {
   /** True when the workbench keep-alive surface is currently shown. */
   isVisible?: boolean;
+  /** Hide the outer page chrome when hosted inside System Settings. */
+  embedded?: boolean;
 }
 
 export default function WorkbenchPage({
   isVisible = true,
+  embedded = false,
 }: WorkbenchPageProps) {
   const { t } = useTranslation();
   const user = useCurrentUser();
@@ -71,6 +75,45 @@ export default function WorkbenchPage({
     `workbench.tabs.${activeTab}`,
   )}`;
 
+  const panels = (
+    <div className={styles.panels}>
+      {isMounted("browser") && (
+        <div
+          className={styles.panel}
+          style={{ display: activeTab === "browser" ? "flex" : "none" }}
+          aria-hidden={activeTab !== "browser"}
+        >
+          <RemoteBrowserPage embedded isVisible={browserVisible} />
+        </div>
+      )}
+      {isMounted("terminal") && (
+        <div
+          className={styles.panel}
+          style={{ display: activeTab === "terminal" ? "flex" : "none" }}
+          aria-hidden={activeTab !== "terminal"}
+        >
+          <TerminalPage embedded isVisible={terminalVisible} />
+        </div>
+      )}
+    </div>
+  );
+
+  if (embedded) {
+    return (
+      <div className={styles.embedded}>
+        <div className={styles.embeddedTabs}>
+          <Segmented
+            size="small"
+            value={pathTabs.value}
+            onChange={(value) => pathTabs.onChange(String(value))}
+            options={pathTabs.options}
+          />
+        </div>
+        {panels}
+      </div>
+    );
+  }
+
   return (
     <PageShell
       title={pageTitle}
@@ -78,26 +121,7 @@ export default function WorkbenchPage({
       fill
       pathTabs={pathTabs}
     >
-      <div className={styles.panels}>
-        {isMounted("browser") && (
-          <div
-            className={styles.panel}
-            style={{ display: activeTab === "browser" ? "flex" : "none" }}
-            aria-hidden={activeTab !== "browser"}
-          >
-            <RemoteBrowserPage embedded isVisible={browserVisible} />
-          </div>
-        )}
-        {isMounted("terminal") && (
-          <div
-            className={styles.panel}
-            style={{ display: activeTab === "terminal" ? "flex" : "none" }}
-            aria-hidden={activeTab !== "terminal"}
-          >
-            <TerminalPage embedded isVisible={terminalVisible} />
-          </div>
-        )}
-      </div>
+      {panels}
     </PageShell>
   );
 }

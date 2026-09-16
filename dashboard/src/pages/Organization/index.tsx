@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { Button, Space, Switch, Tag } from "antd";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Button, Input, Space, Switch, Tag } from "antd";
 import {
   ArrowDownUp,
   Building2,
@@ -45,6 +45,13 @@ export default function OrganizationPage() {
   const [lastActionNotes, setLastActionNotes] = useState<string[]>([]);
   const [previewFullscreen, setPreviewFullscreen] = useState(false);
   const [previewPending, setPreviewPending] = useState(false);
+  const [moduleToggles, setModuleToggles] = useState<Record<string, boolean>>(
+    {},
+  );
+  const [sourceDest, setSourceDest] = useState("");
+  const [downloading, setDownloading] = useState(false);
+  const autoStartRef = useRef(false);
+  const iframeRef = useRef<HTMLIFrameElement | null>(null);
 
   const applyOverview = useCallback(
     async (quiet = false) => {
@@ -52,6 +59,7 @@ export default function OrganizationPage() {
       try {
         const next = await orgModuleApi.overview();
         setOverview(next);
+        if (next.module_toggles) setModuleToggles(next.module_toggles);
         return next;
       } catch (err) {
         if (!quiet) {
@@ -166,6 +174,50 @@ export default function OrganizationPage() {
       }
     });
 
+  useEffect(() => {
+    if (autoStartRef.current) return;
+    if (!overview?.start_available || overview.sidecar_reachable) return;
+    autoStartRef.current = true;
+    void startSidecar();
+  }, [overview?.start_available, overview?.sidecar_reachable]);
+
+  const toggleModule = async (key: string, enabled: boolean) => {
+    const next = { ...moduleToggles, [key]: enabled };
+    setModuleToggles(next);
+    try {
+      const saved = await orgModuleApi.setModules({ [key]: enabled });
+      setModuleToggles(saved.updates);
+    } catch (err) {
+      setModuleToggles(moduleToggles);
+      message.error(
+        err instanceof Error ? err.message : t("organization.saveFailed"),
+      );
+    }
+  };
+
+  const downloadSource = async () => {
+    const dest = sourceDest.trim();
+    if (!dest) {
+      message.error(t("organization.downloadSourceDest"));
+      return;
+    }
+    setDownloading(true);
+    try {
+      const result = await orgModuleApi.downloadSource(dest);
+      message.success(
+        t("organization.downloadSourceDone", { path: result.path }),
+      );
+    } catch (err) {
+      message.error(
+        err instanceof Error
+          ? err.message
+          : t("organization.downloadSourceFailed"),
+      );
+    } finally {
+      setDownloading(false);
+    }
+  };
+
   const assemble = () =>
     runAction("assemble", async () => {
       const result: OrgAssembleResult = await orgModuleApi.assemble();
@@ -203,17 +255,78 @@ export default function OrganizationPage() {
     ? formatServerIsoDateTime(overview.last_sync, timeZone)
     : t("organization.neverSynced");
   const catalog = overview?.catalog ?? [];
-  const previewUrl = overview?.sidecar_url
-    ? `${overview.sidecar_url.replace(/\/$/, "")}/`
-    : "";
+  const disabledKeys = useMemo(
+    () =>
+      catalog
+        .filter((row) => moduleToggles[row.key] === false)
+        .map((row) => row.key),
+    [catalog, moduleToggles],
+  );
+  const previewUrl = useMemo(() => {
+    if (!overview?.sidecar_url) return "";
+    const base = `${overview.sidecar_url.replace(/\/$/, "")}/`;
+    if (!disabledKeys.length) return base;
+    return `${base}?freeos_disabled=${encodeURIComponent(
+      disabledKeys.join(","),
+    )}`;
+  }, [overview?.sidecar_url, disabledKeys]);
   const showFrame = Boolean(sidecarUp && previewUrl);
+
+  const pushTogglesToPreview = useCallback(() => {
+    const frame = iframeRef.current?.contentWindow;
+    if (!frame) return;
+    frame.postMessage(
+      { type: "freeos:module-toggles", disabled: disabledKeys },
+      "*",
+    );
+  }, [disabledKeys]);
+
+  useEffect(() => {
+    if (!showFrame) return;
+    pushTogglesToPreview();
+  }, [showFrame, pushTogglesToPreview]);
 
   return (
     <PageShell
       title={t("organization.title")}
       subtitle={t("organization.subtitle")}
       actions={
-        <Space>
+        <Space wrap>
+          {(sidecarUp || overview?.enabled) && (
+            <Button
+              icon={<Package size={14} />}
+              onClick={() => {
+                const dest = window.prompt(
+                  t("organization.downloadSourceDest"),
+                );
+                if (dest) {
+                  setSourceDest(dest);
+                  void (async () => {
+                    setDownloading(true);
+                    try {
+                      const result = await orgModuleApi.downloadSource(dest);
+                      message.success(
+                        t("organization.downloadSourceDone", {
+                          path: result.path,
+                        }),
+                      );
+                    } catch (err) {
+                      message.error(
+                        err instanceof Error
+                          ? err.message
+                          : t("organization.downloadSourceFailed"),
+                      );
+                    } finally {
+                      setDownloading(false);
+                    }
+                  })();
+                }
+              }}
+              loading={downloading}
+            >
+              {t("organization.downloadSource")}
+            </Button>
+          )}
           <Button icon={<RefreshCw size={14} />} onClick={() => void load()}>
             {t("common.refresh")}
           </Button>
@@ -505,6 +618,9 @@ export default function OrganizationPage() {
               <p className={styles.timelineTitle}>
                 {t("organization.catalogTitle")}
               </p>
+              <p className={styles.catalogDesc} style={{ marginBottom: 12 }}>
+                {t("organization.catalogToggleHint")}
+              </p>
               <div className={styles.catalog}>
                 {catalog.map((row) => (
                   <article key={row.key} className={styles.catalogItem}>
@@ -513,16 +629,53 @@ export default function OrganizationPage() {
                       <Tag>
                         {row.locked
                           ? t("organization.locked")
-                          : t("organization.optional")}
+                          : moduleToggles[row.key] === false
+                          ? t("organization.catalogDisabled")
+                          : t("organization.catalogEnabled")}
                       </Tag>
                     </p>
                     <p className={styles.catalogDesc}>
                       {isZh ? row.description_zh : row.description}
                     </p>
+                    {!row.locked && (
+                      <Switch
+                        size="small"
+                        checked={moduleToggles[row.key] !== false}
+                        onChange={(checked) =>
+                          void toggleModule(row.key, checked)
+                        }
+                      />
+                    )}
                   </article>
                 ))}
               </div>
             </section>
+
+            {(sidecarUp || overview?.enabled) && (
+              <section className={styles.timeline}>
+                <p className={styles.timelineTitle}>
+                  {t("organization.downloadSource")}
+                </p>
+                <p className={styles.catalogDesc}>
+                  {t("organization.downloadSourceHint")}
+                </p>
+                <Space wrap style={{ marginTop: 12 }}>
+                  <Input
+                    value={sourceDest}
+                    onChange={(event) => setSourceDest(event.target.value)}
+                    placeholder={t("organization.downloadSourceDest")}
+                    style={{ minWidth: 260 }}
+                  />
+                  <Button
+                    type="primary"
+                    loading={downloading}
+                    onClick={() => void downloadSource()}
+                  >
+                    {t("organization.downloadSource")}
+                  </Button>
+                </Space>
+              </section>
+            )}
           </div>
 
           <aside
@@ -565,10 +718,12 @@ export default function OrganizationPage() {
             <div className={styles.previewBody}>
               {showFrame ? (
                 <iframe
+                  ref={iframeRef}
                   title={t("organization.previewTitle")}
                   src={previewUrl}
                   className={styles.embed}
                   allow="clipboard-read; clipboard-write"
+                  onLoad={pushTogglesToPreview}
                 />
               ) : (
                 <div className={styles.previewEmpty}>

@@ -39,15 +39,14 @@ def _make_session(
 ) -> terminal._PtySession:
     """Build a real ``_PtySession`` backed by a mock process + a real fd.
 
-    ``proc.poll()`` returns 0 (exited) so ``_destroy_session`` skips the
-    process-group kill / executor path — teardown stays synchronous and
-    no real subprocess is touched.
+    ``proc.poll()`` returns ``None`` (still running) so reconnect can
+    re-attach. Tests that need an exited shell set ``poll.return_value``.
     """
     fd = master_fd if master_fd is not None else os.open(os.devnull, os.O_RDWR)
     proc = Mock()
-    proc.poll.return_value = 0
+    proc.poll.return_value = None
     proc.pid = 99999
-    proc.returncode = 0
+    proc.returncode = None
     session = terminal._PtySession(sid, agent_id, user_id, proc, fd, cols, rows, persistent)
     session.scrollback = bytearray(scrollback)
     return session
@@ -70,8 +69,9 @@ def _reset_terminal_state():
                 s.detach_handle.cancel()
             if not s.closed:
                 s.closed = True
-                with contextlib.suppress(OSError):
-                    os.close(s.master_fd)
+                if s.master_fd >= 0:
+                    with contextlib.suppress(OSError):
+                        os.close(s.master_fd)
     terminal._sessions.clear()
 
 
@@ -273,6 +273,25 @@ async def test_ws_unsupported_platform_closes_4003(monkeypatch) -> None:
     assert ws.close_code == 4003
     msgs = _sent_messages(ws)
     assert msgs and msgs[0]["type"] == "error"
+
+
+async def test_ws_reconnect_after_process_exit_spawns_new_shell(monkeypatch) -> None:
+    server, _ = _make_server()
+    _patch_user(monkeypatch)
+    monkeypatch.setattr(terminal, "resolve_agent_workspace_dir", lambda *_a, **_k: "/tmp/ws")
+    dead = _make_session("tab1", "a1", 1, persistent=True)
+    dead.proc.poll.return_value = 1
+    terminal._sessions[("a1", "tab1")] = dead
+    spawned: list[terminal._PtySession] = []
+    _patch_spawn(monkeypatch, spawned)
+
+    ws = _FakeWS(server)
+    await terminal.terminal_ws(ws, agent_id="a1", token="ok", session_id="tab1", cols=80, rows=24)
+
+    assert len(spawned) == 1
+    assert spawned[0].sid == "tab1"
+    assert dead.closed is True
+    assert spawned[0] is terminal._sessions.get(("a1", "tab1"))
 
 
 @posix_only

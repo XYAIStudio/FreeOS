@@ -117,7 +117,7 @@ def build_overview(
         "approvals": 0,
     }
     notes = [
-        "FreeOS 负责干活，openXYOS 负责组织与治理，两者互相生长。",
+        "FreeOS does the work. openXYOS owns organization and governance.",
         "Data plane: employees / skills / MCP / tasks. Control plane: blueprints / modules / governance.",
     ]
     if not status.sidecar.reachable:

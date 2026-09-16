@@ -3,7 +3,7 @@ import { Button, Card, Empty, Form, Segmented, Spin, Tooltip } from "antd";
 import { LayoutGrid, List, RefreshCw } from "lucide-react";
 import type { CronJobSpecOutput } from "../../../api/types";
 import { useTranslation } from "react-i18next";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { setPendingPrefillText } from "../../Chat/hooks/chatStore";
 import {
   createColumns,
@@ -84,6 +84,7 @@ function CronJobsPage() {
   const { isMobile, viewMode, setViewMode, showCardView } =
     useCardTableView("table");
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { activeAgentId, activeAgent } = useAgent();
   const canManageJobs = activeAgent?.is_owner === true;
   const taskExamples = useTaskExamples(activeAgentId);
@@ -146,6 +147,14 @@ function CronJobsPage() {
     form.resetFields();
     setDrawerOpen(true);
   };
+
+  useEffect(() => {
+    if (searchParams.get("new") !== "1") return;
+    handleCreate();
+    const next = new URLSearchParams(searchParams);
+    next.delete("new");
+    setSearchParams(next, { replace: true });
+  }, [searchParams, setSearchParams]);
 
   const handleSuggestionClick = (text: string) => {
     setPendingPrefillText(text);

@@ -202,9 +202,9 @@ func (a *App) boot() {
 		a.sidecar = sidecar
 		if serr != nil {
 			logStartupError("organization sidecar", serr)
-		} else if werr := waitSidecarLive(45 * time.Second); werr != nil {
-			logStartupError("organization sidecar health", werr)
 		}
+		// Sidecar health is non-blocking: Node/tsx cold start must not hold
+		// the splash. Dashboard Organization polls until livez is up.
 	} else {
 		log.Printf("organization sidecar not bundled under %s", orgSidecarDir(root))
 	}

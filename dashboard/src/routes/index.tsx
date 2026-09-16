@@ -1,23 +1,22 @@
 import { lazy } from "react";
 import { Navigate, useLocation } from "react-router-dom";
+import { SYSTEM_SETTINGS_TO_PERSONALIZATION } from "../pages/Agent/Personalization/tabs";
 import { isSystemSettingsNavPath } from "../pages/SystemSettings/tabs";
 
 // Lazy-loaded pages — Common
 const ExpertsPage = lazy(() => import("../pages/Experts"));
-const CronJobsPage = lazy(() => import("../pages/Control/CronJobs"));
-const ConnectorsPage = lazy(() => import("../pages/Agent/Connectors"));
-const SkillPackagesPage = lazy(() => import("../pages/SkillPackages"));
 const KnowledgeBasesPage = lazy(() => import("../pages/KnowledgeBases"));
 const PersonalizationPage = lazy(
   () => import("../pages/Agent/Personalization"),
 );
 const TokenUsagePage = lazy(() => import("../pages/Control/TokenUsage"));
+const ModelsPage = lazy(() => import("../pages/Settings/Models"));
 
 // Lazy-loaded pages — Control
 const RemoteDesktopPage = lazy(() => import("../pages/Control/RemoteDesktop"));
 
 const OrganizationPage = lazy(() => import("../pages/Organization"));
-const SystemSettingsPage = lazy(() => import("../pages/SystemSettings"));
+const ProjectsPage = lazy(() => import("../pages/Projects"));
 
 // Misc
 const PwaDebugPage = lazy(() => import("../pages/PwaDebug"));
@@ -26,6 +25,26 @@ const NotFoundPage = lazy(() => import("../components/NotFoundPage"));
 function RedirectPreserveSearch({ to }: { to: string }) {
   const location = useLocation();
   return <Navigate to={`${to}${location.search}${location.hash}`} replace />;
+}
+
+function SystemSettingsToPersonalization() {
+  const location = useLocation();
+  const tab =
+    location.pathname.replace(/^\/system-settings\/?/, "").split("/")[0] || "";
+  const mapped = SYSTEM_SETTINGS_TO_PERSONALIZATION[tab];
+  if (mapped?.startsWith("/")) {
+    return (
+      <Navigate to={`${mapped}${location.search}${location.hash}`} replace />
+    );
+  }
+  return (
+    <Navigate
+      to={`/personalization/${mapped || "skills"}${location.search}${
+        location.hash
+      }`}
+      replace
+    />
+  );
 }
 
 export interface RouteConfig {
@@ -40,57 +59,70 @@ export const pathToKey: Record<string, string> = {
   // Common
   "/experts": "experts",
   "/organization": "organization",
-  "/tasks": "tasks",
-  "/connectors": "connectors",
-  "/skill-packages": "skill-packages",
+  "/projects": "projects",
+  "/tasks": "projects",
+  "/connectors": "personalization",
+  "/skill-packages": "personalization",
   "/knowledge-bases": "knowledge-bases",
-  "/acp": "system-settings",
+  "/models": "models",
+  "/acp": "personalization",
   "/personalization": "personalization",
   "/personalization/skills": "personalization",
   "/personalization/tools": "personalization",
   "/personalization/plugins": "personalization",
   "/personalization/subagents": "personalization",
-  "/personalization/channels": "channels",
+  "/personalization/channels": "personalization",
+  "/personalization/connectors": "personalization",
+  "/personalization/skill-packages": "personalization",
   "/personalization/mbti": "personalization",
   "/personalization/memory": "personalization",
+  "/personalization/workbench": "personalization",
+  "/personalization/remote-desktop": "personalization",
+  "/personalization/acp": "personalization",
+  "/personalization/users": "personalization",
+  "/personalization/storage": "personalization",
+  "/personalization/host-plugins": "personalization",
+  "/personalization/security": "personalization",
+  "/personalization/advanced": "personalization",
+  "/personalization/agent-config": "personalization",
   "/skills": "personalization",
   "/token-usage": "token-usage",
-  "/agent-config": "system-settings",
-  "/system-settings": "system-settings",
+  "/agent-config": "personalization",
+  "/system-settings": "personalization",
   // Control
-  "/channels": "channels",
-  "/workbench": "system-settings",
-  "/workbench/terminal": "system-settings",
-  "/workbench/browser": "system-settings",
-  "/terminal": "system-settings",
-  "/remote-browser": "system-settings",
-  "/remote-desktop": "system-settings",
-  "/remote-desktop/desktop": "system-settings",
-  "/remote-desktop/phone": "system-settings",
-  "/remote-desktop/phone/screen": "system-settings",
-  "/remote-desktop/phone/shell": "system-settings",
-  "/remote-phone": "system-settings",
-  "/remote-android": "system-settings",
+  "/channels": "personalization",
+  "/workbench": "personalization",
+  "/workbench/terminal": "personalization",
+  "/workbench/browser": "personalization",
+  "/terminal": "personalization",
+  "/remote-browser": "personalization",
+  "/remote-desktop": "personalization",
+  "/remote-desktop/desktop": "personalization",
+  "/remote-desktop/phone": "personalization",
+  "/remote-desktop/phone/screen": "personalization",
+  "/remote-desktop/phone/shell": "personalization",
+  "/remote-phone": "personalization",
+  "/remote-android": "personalization",
   "/subagents": "personalization",
   "/mbti": "personalization",
   "/memory": "personalization",
   // Admin
-  "/admin/models": "system-settings",
-  "/admin/users": "system-settings",
-  "/admin/backend": "system-settings",
-  "/admin/plugins": "system-settings",
-  "/admin/advanced": "system-settings",
-  "/admin/security": "system-settings",
-  "/system-settings/acp": "system-settings",
-  "/system-settings/users": "system-settings",
-  "/system-settings/models": "system-settings",
-  "/system-settings/storage": "system-settings",
-  "/system-settings/plugins": "system-settings",
-  "/system-settings/security": "system-settings",
-  "/system-settings/advanced": "system-settings",
-  "/system-settings/agent-config": "system-settings",
-  "/system-settings/workbench": "system-settings",
-  "/system-settings/remote-desktop": "system-settings",
+  "/admin/models": "models",
+  "/admin/users": "personalization",
+  "/admin/backend": "personalization",
+  "/admin/plugins": "personalization",
+  "/admin/advanced": "personalization",
+  "/admin/security": "personalization",
+  "/system-settings/acp": "personalization",
+  "/system-settings/users": "personalization",
+  "/system-settings/models": "models",
+  "/system-settings/storage": "personalization",
+  "/system-settings/plugins": "personalization",
+  "/system-settings/security": "personalization",
+  "/system-settings/advanced": "personalization",
+  "/system-settings/agent-config": "personalization",
+  "/system-settings/workbench": "personalization",
+  "/system-settings/remote-desktop": "personalization",
 };
 
 /**
@@ -137,7 +169,12 @@ export function resolveSelectedKey(pathname: string): string {
   if (pathToKey[pathname]) return pathToKey[pathname];
   if (pathname.startsWith("/chat/")) return "chat";
   if (pathname.startsWith("/personalization/")) return "personalization";
-  if (isSystemSettingsNavPath(pathname)) return "system-settings";
+  if (pathname === "/models" || pathname.startsWith("/models/"))
+    return "models";
+  if (isSystemSettingsNavPath(pathname)) {
+    if (pathname.includes("/models")) return "models";
+    return "personalization";
+  }
   return "";
 }
 
@@ -150,9 +187,16 @@ export const routeConfigs: RouteConfig[] = [
   // Common
   { path: "/experts", element: <ExpertsPage /> },
   { path: "/organization", element: <OrganizationPage /> },
-  { path: "/tasks", element: <CronJobsPage /> },
-  { path: "/connectors", element: <ConnectorsPage /> },
-  { path: "/skill-packages", element: <SkillPackagesPage /> },
+  { path: "/projects", element: <ProjectsPage /> },
+  { path: "/tasks", element: <Navigate to="/projects?view=tasks" replace /> },
+  {
+    path: "/connectors",
+    element: <RedirectPreserveSearch to="/personalization/connectors" />,
+  },
+  {
+    path: "/skill-packages",
+    element: <RedirectPreserveSearch to="/personalization/skill-packages" />,
+  },
   { path: "/knowledge-bases", element: <KnowledgeBasesPage /> },
   { path: "/personalization/*", element: <PersonalizationPage /> },
   {
@@ -160,12 +204,13 @@ export const routeConfigs: RouteConfig[] = [
     element: <RedirectPreserveSearch to="/personalization/skills" />,
   },
   { path: "/token-usage", element: <TokenUsagePage /> },
-  { path: "/system-settings/*", element: <SystemSettingsPage /> },
+  { path: "/models", element: <ModelsPage /> },
+  { path: "/system-settings/*", element: <SystemSettingsToPersonalization /> },
 
   // Control (RequirePermission via pathPermissionKeys in MainLayout)
   {
     path: "/acp",
-    element: <RedirectPreserveSearch to="/system-settings/acp" />,
+    element: <RedirectPreserveSearch to="/personalization/acp" />,
   },
   {
     path: "/channels",
@@ -213,101 +258,103 @@ export const routeConfigs: RouteConfig[] = [
   // Settings / admin — folded into System Settings (old URLs still work)
   {
     path: "/admin/models",
-    element: <RedirectPreserveSearch to="/system-settings/models" />,
+    element: <RedirectPreserveSearch to="/models" />,
   },
   {
     path: "/admin/users",
-    element: <RedirectPreserveSearch to="/system-settings/users" />,
+    element: <RedirectPreserveSearch to="/personalization/users" />,
   },
   {
     path: "/admin/sso",
-    element: <Navigate to="/system-settings/users?tab=sso" replace />,
+    element: <Navigate to="/personalization/users?tab=sso" replace />,
   },
   {
     path: "/admin/shared-models",
-    element: <Navigate to="/system-settings/models" replace />,
-  },
-  {
-    path: "/models",
-    element: <Navigate to="/system-settings/models" replace />,
+    element: <Navigate to="/models" replace />,
   },
   {
     path: "/admin/backend",
-    element: <RedirectPreserveSearch to="/system-settings/storage" />,
+    element: <RedirectPreserveSearch to="/personalization/storage" />,
   },
   {
     path: "/admin/audit",
-    element: <Navigate to="/system-settings/security?tab=audit" replace />,
+    element: <Navigate to="/personalization/security?tab=audit" replace />,
   },
   {
     path: "/admin/agents",
-    element: <Navigate to="/system-settings/users" replace />,
+    element: <Navigate to="/personalization/users" replace />,
   },
   {
     path: "/admin/plugins",
-    element: <RedirectPreserveSearch to="/system-settings/plugins" />,
+    element: <RedirectPreserveSearch to="/personalization/host-plugins" />,
   },
   {
     path: "/admin/advanced",
-    element: <RedirectPreserveSearch to="/system-settings/advanced" />,
+    element: <RedirectPreserveSearch to="/personalization/advanced" />,
   },
   {
     path: "/admin/security",
-    element: <RedirectPreserveSearch to="/system-settings/security" />,
+    element: <RedirectPreserveSearch to="/personalization/security" />,
   },
   {
     path: "/admin/voice",
-    element: <Navigate to="/system-settings/models?tab=voice" replace />,
+    element: <Navigate to="/models?tab=voice" replace />,
   },
   {
     path: "/admin/updates",
-    element: <Navigate to="/system-settings/advanced?tab=updates" replace />,
+    element: <Navigate to="/personalization/advanced?tab=updates" replace />,
   },
 
   // Legacy redirects — keeps old bookmarks working
   {
     path: "/admin/storage",
-    element: <Navigate to="/system-settings/storage" replace />,
+    element: <Navigate to="/personalization/storage" replace />,
   },
-  { path: "/orca/cron", element: <Navigate to="/tasks" replace /> },
+  {
+    path: "/orca/cron",
+    element: <Navigate to="/projects?view=tasks" replace />,
+  },
   { path: "/orca/channels", element: <Navigate to="/channels" replace /> },
   {
     path: "/orca/admin/users",
-    element: <Navigate to="/system-settings/users" replace />,
+    element: <Navigate to="/personalization/users" replace />,
   },
   {
     path: "/orca/admin/audit",
-    element: <Navigate to="/system-settings/security?tab=audit" replace />,
+    element: <Navigate to="/personalization/security?tab=audit" replace />,
   },
-  { path: "/octop/cron", element: <Navigate to="/tasks" replace /> },
+  {
+    path: "/octop/cron",
+    element: <Navigate to="/projects?view=tasks" replace />,
+  },
   { path: "/octop/channels", element: <Navigate to="/channels" replace /> },
   {
     path: "/octop/admin/users",
-    element: <Navigate to="/system-settings/users" replace />,
+    element: <Navigate to="/personalization/users" replace />,
   },
   {
     path: "/octop/admin/audit",
-    element: <Navigate to="/system-settings/security?tab=audit" replace />,
+    element: <Navigate to="/personalization/security?tab=audit" replace />,
   },
   {
     path: "/advanced-settings",
-    element: <Navigate to="/system-settings/advanced" replace />,
+    element: <Navigate to="/personalization/advanced" replace />,
   },
   {
     path: "/environments",
-    element: <Navigate to="/system-settings/advanced" replace />,
+    element: <Navigate to="/personalization/advanced" replace />,
   },
   {
     path: "/agent-config",
-    element: <RedirectPreserveSearch to="/system-settings/agent-config" />,
+    element: <RedirectPreserveSearch to="/personalization/agent-config" />,
   },
   {
     path: "/updates",
-    element: <Navigate to="/system-settings/advanced?tab=updates" replace />,
+    element: <Navigate to="/personalization/advanced?tab=updates" replace />,
   },
   {
     path: "/plugins",
-    element: <Navigate to="/system-settings/plugins" replace />,
+    element: <Navigate to="/personalization/host-plugins" replace />,
   },
   { path: "/sessions", element: <Navigate to="/chat" replace /> },
   { path: "/cron-jobs", element: <Navigate to="/tasks" replace /> },

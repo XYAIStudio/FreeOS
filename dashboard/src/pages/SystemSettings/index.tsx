@@ -1,5 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useMemo } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { lazy, Suspense, useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { Segmented } from "antd";
 import {
@@ -21,7 +20,6 @@ import { useIsMobile } from "../../hooks/useIsMobile";
 import { usePathTabs } from "../../hooks/usePathTabs";
 import { useServerCapabilities } from "../../hooks/useServerCapabilities";
 import {
-  SYSTEM_SETTINGS_EXTERNAL_PATH,
   SYSTEM_SETTINGS_LABEL_KEY,
   SYSTEM_SETTINGS_TABS,
   allowedSystemSettingsTabs,
@@ -38,6 +36,8 @@ const AdminStoragePage = lazy(() => import("../Admin/Storage"));
 const AdminPluginsPage = lazy(() => import("../Admin/Plugins"));
 const AdminSecurityPage = lazy(() => import("../Settings/Security"));
 const AdvancedSettingsPage = lazy(() => import("../Settings/AdvancedSettings"));
+const WorkbenchPage = lazy(() => import("../Control/Workbench"));
+const RemoteDesktopPage = lazy(() => import("../Control/RemoteDesktop"));
 
 const TAB_ICONS = {
   workbench: PanelsTopLeft,
@@ -52,30 +52,19 @@ const TAB_ICONS = {
   "agent-config": Settings2,
 } as const;
 
-const HUB_PANELS: readonly SystemSettingsTab[] = [
-  "acp",
-  "users",
-  "models",
-  "storage",
-  "plugins",
-  "security",
-  "advanced",
-  "agent-config",
-];
-
 export default function SystemSettingsPage() {
   const { t } = useTranslation();
   const isMobile = useIsMobile();
   const user = useCurrentUser();
   const { mobileEnabled } = useServerCapabilities();
-  const navigate = useNavigate();
-  const location = useLocation();
   const allowed = useMemo(
     () => allowedSystemSettingsTabs(user, { mobileEnabled }),
     [user, mobileEnabled],
   );
   const allowedSet = useMemo(() => new Set(allowed), [allowed]);
-  const defaultTab = allowed[0] ?? "users";
+  const defaultTab = allowed.includes("users")
+    ? "users"
+    : allowed[0] ?? "users";
   const isAllowed = useCallback(
     (tab: SystemSettingsTab) => allowedSet.has(tab),
     [allowedSet],
@@ -88,29 +77,6 @@ export default function SystemSettingsPage() {
     defaultTab,
     isAllowed,
   });
-
-  useEffect(() => {
-    const external = SYSTEM_SETTINGS_EXTERNAL_PATH[activeTab];
-    if (!external) return;
-    if (location.pathname.startsWith("/system-settings")) {
-      navigate(`${external}${location.search}${location.hash}`, {
-        replace: true,
-      });
-    }
-  }, [activeTab, location.hash, location.pathname, location.search, navigate]);
-
-  const onSelect = useCallback(
-    (value: string | number) => {
-      const next = String(value) as SystemSettingsTab;
-      const external = SYSTEM_SETTINGS_EXTERNAL_PATH[next];
-      if (external) {
-        navigate(`${external}${location.search}${location.hash}`);
-        return;
-      }
-      handleTabChange(next);
-    },
-    [handleTabChange, location.hash, location.search, navigate],
-  );
 
   const options = allowed.map((tab) => {
     const Icon = TAB_ICONS[tab];
@@ -128,41 +94,18 @@ export default function SystemSettingsPage() {
       fill
     >
       <div className={styles.page}>
-        {isMobile && (
-          <div className={styles.mobileNav}>
-            <Segmented
-              size="small"
-              block
-              value={activeTab}
-              onChange={onSelect}
-              options={options.map((opt) => ({
-                value: opt.value,
-                label: opt.label,
-              }))}
-            />
-          </div>
-        )}
+        <div className={styles.topNav} aria-label={t("nav.systemSettings")}>
+          <Segmented
+            size={isMobile ? "small" : "middle"}
+            value={activeTab}
+            onChange={(value) => handleTabChange(String(value))}
+            options={options}
+          />
+        </div>
         <div className={styles.body}>
-          {!isMobile && (
-            <nav className={styles.nav} aria-label={t("nav.systemSettings")}>
-              {options.map((opt) => (
-                <button
-                  key={opt.value}
-                  type="button"
-                  className={`${styles.navItem} ${
-                    activeTab === opt.value ? styles.navItemActive : ""
-                  }`}
-                  onClick={() => onSelect(opt.value)}
-                >
-                  {opt.icon}
-                  <span>{opt.label}</span>
-                </button>
-              ))}
-            </nav>
-          )}
           <div className={styles.content}>
             <Suspense fallback={<PageLoading />}>
-              {HUB_PANELS.map((tab) =>
+              {SYSTEM_SETTINGS_TABS.map((tab) =>
                 isMounted(tab) && allowedSet.has(tab) ? (
                   <div
                     key={tab}
@@ -174,6 +117,15 @@ export default function SystemSettingsPage() {
                       overflow: "hidden",
                     }}
                   >
+                    {tab === "workbench" ? (
+                      <WorkbenchPage
+                        embedded
+                        isVisible={activeTab === "workbench"}
+                      />
+                    ) : null}
+                    {tab === "remote-desktop" ? (
+                      <RemoteDesktopPage embedded />
+                    ) : null}
                     {tab === "acp" ? <ACPPage /> : null}
                     {tab === "users" ? <AdminUsersPage /> : null}
                     {tab === "models" ? <ModelsPage /> : null}

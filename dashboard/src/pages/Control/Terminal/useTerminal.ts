@@ -22,7 +22,7 @@ export interface TerminalCallbacks {
   onOutput: (data: string) => void;
   /** Scrollback replay from the server (on re-attach). Reset + write. */
   onHistory?: (data: string) => void;
-  onExit?: (code: number) => void;
+  onExit?: (code: number, message?: string) => void;
   onStateChange?: (state: TerminalConnState) => void;
 }
 
@@ -311,7 +311,7 @@ function openWs(session: TerminalSession) {
         session.exited = true;
         clearReconnectTimer(session);
         setConnState(session, "error");
-        fanOut(session, (cbs) => cbs.onExit?.(-1));
+        fanOut(session, (cbs) => cbs.onExit?.(-1, msg.message));
       }
     } catch {
       // Non-JSON — ignore.
@@ -493,7 +493,9 @@ function reconnect(id: string) {
   if (!session || !session.agentId) return;
   session.exited = false;
   session.reconnectAttempts = 0;
+  session.scrollback = "";
   clearReconnectTimer(session);
+  fanOut(session, (cbs) => cbs.onHistory?.(""));
   openWs(session);
 }
 

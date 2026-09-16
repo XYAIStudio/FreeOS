@@ -11,8 +11,11 @@ from pydantic import BaseModel, Field
 
 from octop.api.deps import current_user, get_server, require_permission
 from octop.infra.server import OctopServer
+from octop.infra.utils.locale import resolve_request_locale
 from octop.modules.org_os.catalog import OPENXYOS_MODULES
 from octop.modules.org_os.empower import assemble_from_blueprint, pack_to_openxyos
+from octop.modules.org_os.module_toggles import load_module_toggles, save_module_toggles
+from octop.modules.org_os.notes import localize_mapping, localize_note, localize_notes
 from octop.modules.org_os.overview import build_overview
 from octop.modules.org_os.proxy import identity_headers, proxy_request
 from octop.modules.org_os.service import OrgModuleService, org_module_from_paths
@@ -21,6 +24,7 @@ from octop.modules.org_os.sidecar_launch import (
     sidecar_start_command,
     start_sidecar,
 )
+from octop.modules.org_os.source_download import download_openxyos_source
 
 router = APIRouter()
 
@@ -28,6 +32,14 @@ router = APIRouter()
 class OrgModulePatch(BaseModel):
     enabled: bool
     sidecar_url: str | None = Field(default=None, description="openXYOS origin")
+
+
+class OrgSourceDownloadBody(BaseModel):
+    dest: str = Field(min_length=1, description="Destination folder for the source zip")
+
+
+class OrgModuleTogglesBody(BaseModel):
+    updates: dict[str, bool] = Field(default_factory=dict)
 
 
 def _service(server: OctopServer) -> OrgModuleService:
@@ -77,6 +89,7 @@ async def org_module_status(
 
 @router.get("/overview", summary="FreeOS ↔ openXYOS dual-loop snapshot")
 async def org_module_overview(
+    request: Request,
     server: OctopServer = Depends(get_server),
     user: Any = Depends(current_user),
 ) -> dict[str, Any]:
@@ -92,11 +105,18 @@ async def org_module_overview(
     )
     payload = snapshot.to_dict()
     payload["start_command"] = sidecar_start_command()
+    locale = resolve_request_locale(request)
+    payload["notes"] = localize_notes(payload.get("notes"), locale)
+    last_loop = payload.get("last_loop")
+    if isinstance(last_loop, dict) and isinstance(last_loop.get("notes"), list):
+        last_loop["notes"] = localize_notes(last_loop["notes"], locale)
+    payload["module_toggles"] = load_module_toggles(service.home)
     return payload
 
 
 @router.post("/sidecar/start", summary="Start the bundled openXYOS sidecar")
 async def org_module_start_sidecar(
+    request: Request,
     server: OctopServer = Depends(get_server),
     _user: Any = Depends(current_user),
 ) -> dict[str, Any]:
@@ -104,29 +124,41 @@ async def org_module_start_sidecar(
     if not service.is_enabled():
         service.set_enabled(True)
     started = await asyncio.to_thread(start_sidecar, service)
-    return started.to_dict()
+    payload = started.to_dict()
+    locale = resolve_request_locale(request)
+    payload["detail"] = localize_note(str(payload.get("detail") or ""), locale)
+    return payload
 
 
 @router.post("/assemble", summary="Assemble digital employees from an openXYOS blueprint")
 async def org_module_assemble(
+    request: Request,
     server: OctopServer = Depends(get_server),
     _: Any = Depends(require_permission("plugins")),
 ) -> dict[str, Any]:
     service = _service(server)
     if not service.is_enabled():
         service.set_enabled(True)
-    return await asyncio.to_thread(assemble_from_blueprint, service)
+    payload = await asyncio.to_thread(assemble_from_blueprint, service)
+    return localize_mapping(payload, resolve_request_locale(request), "notes")
 
 
 @router.post("/pack", summary="Pack FreeOS skills/MCP back to openXYOS")
 async def org_module_pack(
+    request: Request,
     server: OctopServer = Depends(get_server),
     _: Any = Depends(require_permission("plugins")),
 ) -> dict[str, Any]:
     service = _service(server)
     if not service.is_enabled():
         service.set_enabled(True)
-    return await asyncio.to_thread(pack_to_openxyos, service)
+    packed = await asyncio.to_thread(pack_to_openxyos, service)
+    locale = resolve_request_locale(request)
+    if isinstance(packed.get("pack"), dict):
+        packed["pack"] = localize_mapping(packed["pack"], locale, "notes")
+    if isinstance(packed.get("applied"), dict):
+        packed["applied"] = localize_mapping(packed["applied"], locale, "notes")
+    return packed
 
 
 @router.get("/catalog", summary="openXYOS capability catalog")
@@ -495,6 +527,7 @@ async def spawn_employee(
 
 @router.post("/loop/run", summary="Run the finished FreeOS self-growth loop")
 async def run_loop(
+    request: Request,
     body: LoopRunBody,
     server: OctopServer = Depends(get_server),
     _user: Any = Depends(require_permission("plugins")),
@@ -512,4 +545,35 @@ async def run_loop(
         sidecar_url=body.base_url or service.sidecar_url(),
         config_path=service.config_path,
     )
-    return proof.to_dict()
+    payload = proof.to_dict()
+    return localize_mapping(payload, resolve_request_locale(request), "notes")
+
+
+@router.post("/source/download", summary="Download the latest openXYOS source zip")
+async def org_module_download_source(
+    body: OrgSourceDownloadBody,
+    server: OctopServer = Depends(get_server),
+    _user: Any = Depends(current_user),
+) -> dict[str, Any]:
+    dest = await asyncio.to_thread(download_openxyos_source, body.dest)
+    return {"ok": True, "path": dest, "source": "github.com/XYAIStudio/openXYOS main zip"}
+
+
+@router.get("/modules", summary="Persisted openXYOS module toggles")
+async def org_module_get_toggles(
+    server: OctopServer = Depends(get_server),
+    _user: Any = Depends(current_user),
+) -> dict[str, Any]:
+    service = _service(server)
+    return {"updates": load_module_toggles(service.home)}
+
+
+@router.put("/modules", summary="Toggle openXYOS catalog modules")
+async def org_module_put_toggles(
+    body: OrgModuleTogglesBody,
+    server: OctopServer = Depends(get_server),
+    _user: Any = Depends(require_permission("plugins")),
+) -> dict[str, Any]:
+    service = _service(server)
+    saved = save_module_toggles(service.home, body.updates)
+    return {"updates": saved}

@@ -186,7 +186,7 @@ def test_overview_reports_real_empty_counts(tmp_path: Path) -> None:
     assert payload["freeos"]["tasks"] == 3
     assert payload["sidecar_reachable"] is False
     assert payload["last_loop"] is None
-    assert any("FreeOS 负责干活" in note for note in payload["notes"])
+    assert any("FreeOS does the work" in note for note in payload["notes"])
 
 
 def test_assemble_from_bundled_blueprint(tmp_path: Path) -> None:

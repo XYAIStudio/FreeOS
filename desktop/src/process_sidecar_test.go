@@ -79,3 +79,21 @@ func TestSidecarReadyRequiresFrontendBuild(t *testing.T) {
 		t.Fatal("bundled node + server + frontend should be ready")
 	}
 }
+
+func TestSidecarNodeArgsPrefersCompiledServer(t *testing.T) {
+	app := t.TempDir()
+	args := sidecarNodeArgs(app)
+	if args[0] != "--import" {
+		t.Fatalf("tsx fallback args=%v", args)
+	}
+	if err := os.MkdirAll(filepath.Join(app, "backend-dist"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(app, "backend-dist", "server.js"), []byte("ok"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	args = sidecarNodeArgs(app)
+	if len(args) != 1 || args[0] != "backend-dist/server.js" {
+		t.Fatalf("compiled args=%v", args)
+	}
+}

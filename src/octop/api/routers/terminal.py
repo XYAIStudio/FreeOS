@@ -54,13 +54,15 @@ import json
 import logging
 import os
 import platform
+import queue
 import shutil
 import signal
 import socket
 import subprocess
 import tempfile
+import threading
 import uuid
-from typing import Any
+from typing import IO, Any
 
 from fastapi import APIRouter, Depends, Query, WebSocket, WebSocketDisconnect
 from starlette.websockets import WebSocketState
@@ -88,16 +90,16 @@ _MAX_SCROLLBACK_BYTES = 512 * 1024
 # before it is reaped. Long enough to survive a refresh or a brief network drop.
 _DETACH_GRACE_SECONDS = 300.0
 
-_TERMINAL_UNSUPPORTED_REASON = (
-    "Interactive web terminal is not supported on Windows. "
-    "Use Linux or macOS, or run commands via the agent chat interface."
-)
+_WIN_CREATE_NO_WINDOW = getattr(subprocess, "CREATE_NO_WINDOW", 0x08000000)
+_WIN_NEW_GROUP = getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0x00000200)
 
 
 def terminal_supported() -> tuple[bool, str]:
-    """Return ``(supported, reason_if_unsupported)`` for the PTY WebSocket terminal."""
+    """Return ``(supported, reason_if_unsupported)`` for the WebSocket terminal."""
+    if os.name == "nt":
+        return True, ""
     if os.name != "posix":
-        return False, _TERMINAL_UNSUPPORTED_REASON
+        return False, "Interactive web terminal is not supported on this platform."
     try:
         import fcntl  # noqa: F401
         import pty  # noqa: F401
@@ -210,6 +212,8 @@ class _PtySession:
         rows: int,
         persistent: bool,
         zdotdir: str | None = None,
+        write_handle: IO[bytes] | None = None,
+        pipe_queue: queue.Queue[bytes] | None = None,
     ) -> None:
         self.sid = sid
         self.agent_id = agent_id
@@ -220,6 +224,8 @@ class _PtySession:
         self.cols = cols
         self.rows = rows
         self.zdotdir = zdotdir
+        self.write_handle = write_handle
+        self.pipe_queue = pipe_queue
         # Bounded scrollback ring buffer (raw bytes), replayed on attach.
         self.scrollback: bytearray = bytearray()
         # Output fan-out queues, one per currently attached connection.
@@ -245,10 +251,26 @@ _sessions: dict[tuple[str, str], _PtySession] = {}
 _sessions_lock = asyncio.Lock()
 
 
+def _session_alive(session: _PtySession) -> bool:
+    """True when the shell process is still running."""
+    return not session.closed and session.proc.poll() is None
+
+
 def _terminate_process_group(proc: subprocess.Popen[bytes]) -> None:
     """SIGTERM (then SIGKILL) the shell's process group. Blocking — run in executor."""
     try:
         if proc.poll() is not None:
+            return
+        if os.name == "nt":
+            with contextlib.suppress(ProcessLookupError, OSError):
+                proc.terminate()
+            try:
+                proc.wait(timeout=2)
+            except subprocess.TimeoutExpired:
+                with contextlib.suppress(ProcessLookupError, OSError):
+                    proc.kill()
+                with contextlib.suppress(subprocess.TimeoutExpired):
+                    proc.wait(timeout=1)
             return
         with contextlib.suppress(ProcessLookupError, OSError):
             posix_compat.killpg(posix_compat.getpgid(proc.pid), signal.SIGTERM)
@@ -275,12 +297,27 @@ def _spawn_pty_session(
     rows: int,
     persistent: bool,
 ) -> _PtySession:
-    """Create a PTY pair, spawn the shell at ``workspace_dir`` (pump not started).
+    """Create a PTY (POSIX) or pipe shell (Windows) at ``workspace_dir``.
 
     Caller must subscribe then call :meth:`_PtySession.start_pump` so an
     immediately-exiting shell cannot race the empty subscriber set under
     ``_sessions_lock``.
     """
+    cwd = workspace_dir
+    if not os.path.isdir(cwd):
+        # Fall back rather than fail the whole WebSocket — mkdir races or a
+        # deleted workspace should still yield a usable shell.
+        cwd = os.path.expanduser("~") or ("/" if os.name != "nt" else os.getcwd())
+        logger.warning(
+            "terminal cwd missing, falling back: agent=%s wanted=%s using=%s",
+            agent_id,
+            workspace_dir,
+            cwd,
+        )
+
+    if os.name == "nt":
+        return _spawn_windows_session(sid, agent_id, user_id, cwd, cols, rows, persistent)
+
     master_fd, slave_fd = posix_compat.openpty()
     _set_winsize(master_fd, cols, rows)
     posix_compat.set_nonblock(master_fd)
@@ -294,18 +331,6 @@ def _spawn_pty_session(
     if "zsh" in shell:
         zdotdir = _zsh_web_zdotdir()
         env["ZDOTDIR"] = zdotdir
-
-    cwd = workspace_dir
-    if not os.path.isdir(cwd):
-        # Fall back rather than fail the whole WebSocket — mkdir races or a
-        # deleted workspace should still yield a usable shell.
-        cwd = os.path.expanduser("~") or "/"
-        logger.warning(
-            "terminal cwd missing, falling back: agent=%s wanted=%s using=%s",
-            agent_id,
-            workspace_dir,
-            cwd,
-        )
 
     proc = subprocess.Popen(
         cmd,
@@ -334,6 +359,77 @@ def _spawn_pty_session(
     return session
 
 
+def _spawn_windows_session(
+    sid: str,
+    agent_id: str,
+    user_id: int,
+    cwd: str,
+    cols: int,
+    rows: int,
+    persistent: bool,
+) -> _PtySession:
+    """Spawn cmd/PowerShell with anonymous pipes — ConPTY is not a stdlib API."""
+    shell = _detect_shell()
+    env = _shell_env(shell=shell)
+    cmd = [shell]
+    lower = shell.lower()
+    if lower.endswith("cmd.exe") or lower.endswith("cmd"):
+        cmd = [shell, "/Q", "/K"]
+    elif "powershell" in lower:
+        cmd = [shell, "-NoLogo", "-NoExit"]
+    proc = subprocess.Popen(
+        cmd,
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        cwd=cwd,
+        env=env,
+        bufsize=0,
+        creationflags=_WIN_CREATE_NO_WINDOW | _WIN_NEW_GROUP,
+    )
+    if proc.stdin is None or proc.stdout is None:
+        with contextlib.suppress(Exception):
+            proc.kill()
+        raise RuntimeError("failed to allocate Windows shell pipes")
+    pipe_q: queue.Queue[bytes] = queue.Queue()
+    stdout = proc.stdout
+
+    def _reader() -> None:
+        try:
+            while True:
+                chunk = stdout.read(4096)
+                if not chunk:
+                    pipe_q.put(b"")
+                    return
+                pipe_q.put(chunk)
+        except Exception:
+            pipe_q.put(b"")
+
+    threading.Thread(target=_reader, name=f"term-pipe-{sid}", daemon=True).start()
+    session = _PtySession(
+        sid,
+        agent_id,
+        user_id,
+        proc,
+        -1,
+        cols,
+        rows,
+        persistent,
+        write_handle=proc.stdin,
+        pipe_queue=pipe_q,
+    )
+    logger.info(
+        "terminal opened: agent=%s sid=%s pid=%s shell=%s cwd=%s persistent=%s pipes=1",
+        agent_id,
+        sid,
+        proc.pid,
+        shell,
+        cwd,
+        persistent,
+    )
+    return session
+
+
 def _start_session_pump(session: _PtySession) -> None:
     """Begin PTY fan-out after the first subscriber is attached."""
     if session.pump_task is None and not session.closed:
@@ -347,7 +443,7 @@ async def _pump_pty(session: _PtySession) -> None:
     being captured even while no client is attached.
     """
     while True:
-        data = _read_nonblock(session.master_fd)
+        data = _read_session(session)
         if data is None:
             # Would-block. If the shell has exited, stop draining.
             if session.proc.poll() is not None:
@@ -374,7 +470,9 @@ async def _pump_pty(session: _PtySession) -> None:
     await _destroy_session(session, cancel_pump=False)
 
 
-async def _destroy_session(session: _PtySession, *, cancel_pump: bool) -> None:
+async def _destroy_session(
+    session: _PtySession, *, cancel_pump: bool, hold_lock: bool = False
+) -> None:
     """Tear down a session: stop the pump, close the PTY, kill the shell.
 
     Idempotent — the ``closed`` flag makes consecutive calls safe. The
@@ -386,10 +484,17 @@ async def _destroy_session(session: _PtySession, *, cancel_pump: bool) -> None:
     session.closed = True
 
     key = (session.agent_id, session.sid)
-    async with _sessions_lock:
+
+    def _drop() -> None:
         # NOCA:IdenticalIsComparison(intentional object-identity check before registry delete)
         if _sessions.get(key) is session:
             del _sessions[key]
+
+    if hold_lock:
+        _drop()
+    else:
+        async with _sessions_lock:
+            _drop()
 
     if session.detach_handle is not None:
         session.detach_handle.cancel()
@@ -400,8 +505,13 @@ async def _destroy_session(session: _PtySession, *, cancel_pump: bool) -> None:
         with contextlib.suppress(asyncio.CancelledError, Exception):
             await session.pump_task
 
-    with contextlib.suppress(OSError):
-        os.close(session.master_fd)
+    if session.write_handle is not None:
+        with contextlib.suppress(Exception):
+            session.write_handle.close()
+        session.write_handle = None
+    if session.master_fd >= 0:
+        with contextlib.suppress(OSError):
+            os.close(session.master_fd)
 
     if session.zdotdir:
         shutil.rmtree(session.zdotdir, ignore_errors=True)
@@ -587,6 +697,10 @@ async def terminal_ws(
     try:
         async with _sessions_lock:
             existing = _sessions.get(key) if persistent else None
+            if existing is not None and not _session_alive(existing):
+                # Drop a dead registry entry so reconnect can spawn a new shell.
+                await _destroy_session(existing, cancel_pump=True, hold_lock=True)
+                existing = None
             if existing is not None and not existing.closed:
                 # Ownership check: only the session's creator may re-attach.
                 if existing.user_id != user.id:
@@ -657,7 +771,7 @@ async def terminal_ws(
 
         # Apply this client's current window size to the (shared) PTY.
         session.cols, session.rows = cols, rows
-        if not session.closed:
+        if not session.closed and session.master_fd >= 0:
             _set_winsize(session.master_fd, cols, rows)
 
         # Persistent sessions carry session metadata + scrollback replay so
@@ -706,7 +820,7 @@ async def terminal_ws(
                     data = msg.get("data", "")
                     if isinstance(data, str) and not session.closed:
                         try:
-                            os.write(session.master_fd, data.encode("utf-8"))
+                            _write_session(session, data.encode("utf-8"))
                         except OSError:
                             return
                 elif kind == "close":
@@ -723,7 +837,8 @@ async def terminal_ws(
                         except (TypeError, ValueError):
                             continue
                         session.cols, session.rows = new_cols, new_rows
-                        _set_winsize(session.master_fd, new_cols, new_rows)
+                        if session.master_fd >= 0:
+                            _set_winsize(session.master_fd, new_cols, new_rows)
 
         # Race reader vs writer; whichever finishes first triggers shutdown
         # (matches the original proactive-close behaviour when the shell exits).
@@ -770,9 +885,30 @@ async def terminal_ws(
         logger.info("terminal websocket closed: agent=%s sid=%s", agent_id, close_sid)
 
 
+def _write_session(session: _PtySession, data: bytes) -> None:
+    handle = session.write_handle
+    if handle is not None:
+        handle.write(data)
+        handle.flush()
+        return
+    if session.master_fd >= 0:
+        os.write(session.master_fd, data)
+
+
+def _read_session(session: _PtySession) -> bytes | None:
+    """Return ``bytes`` read, ``None`` if would-block, ``b""`` on EOF."""
+    pipe_q = session.pipe_queue
+    if pipe_q is not None:
+        try:
+            return pipe_q.get_nowait()
+        except queue.Empty:
+            return None
+    return _read_nonblock(session.master_fd)
+
+
 def _read_nonblock(fd: int | None) -> bytes | None:
     """Return ``bytes`` read, ``None`` if would-block, ``b""`` on EOF."""
-    if fd is None:
+    if fd is None or fd < 0:
         return b""
     try:
         return os.read(fd, 4096)

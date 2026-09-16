@@ -1,19 +1,15 @@
 import type { ReactNode } from "react";
 import {
   MessageSquareText,
-  Timer,
-  SlidersHorizontal,
-  Waypoints,
-  Link2,
   Database,
   Activity,
   Sparkles,
-  Package,
   GraduationCap,
   Building2,
+  FolderKanban,
+  Cpu,
 } from "lucide-react";
 import type { OctopUser } from "../api/modules/auth";
-import { canSeeSystemSettings } from "../pages/SystemSettings/tabs";
 import { navAllowed } from "../utils/permissions";
 
 export const EXPANDED_WIDTH = 220;
@@ -28,26 +24,22 @@ export interface NavItem {
   icon: ReactNode;
   labelKey: string;
   badge?: string;
+  children?: NavItem[];
 }
 
 export interface NavSection {
   /** When omitted, items render flat without a group header. */
   groupKey?: string;
+  /** primary = middle list; footer = above the avatar. */
+  placement?: "primary" | "footer";
   items: NavItem[];
 }
 
 /**
- * Catalog of nav item keys that live under the Capabilities group.
- * Permission-independent — used for pane/route helpers; visibility still
- * comes from {@link buildNavSections}.
+ * No separate Capabilities / System Settings sidebar groups.
+ * Kept so rail helpers stay import-compatible.
  */
-export const SIDEBAR_GROUPED_NAV_KEYS = [
-  "personalization",
-  "channels",
-  "connectors",
-  "skill-packages",
-  "knowledge-bases",
-] as const;
+export const SIDEBAR_GROUPED_NAV_KEYS = [] as const;
 
 const GROUPED_NAV_KEY_SET = new Set<string>(SIDEBAR_GROUPED_NAV_KEYS);
 
@@ -57,99 +49,61 @@ export function isGroupedNavKey(key: string): boolean {
 
 export function buildNavSections(
   user: OctopUser | null,
-  opts?: { mobileEnabled?: boolean },
+  _opts?: { mobileEnabled?: boolean },
 ): NavSection[] {
-  const sections: NavSection[] = [
+  const items: NavItem[] = [
     {
-      items: [
-        {
-          key: "chat",
-          path: "/chat",
-          icon: <MessageSquareText size={iconSize} strokeWidth={iconStroke} />,
-          labelKey: "nav.chat",
-        },
-        {
-          key: "experts",
-          path: "/experts",
-          icon: <GraduationCap size={iconSize} strokeWidth={iconStroke} />,
-          labelKey: "nav.experts",
-        },
-        {
-          key: "organization",
-          path: "/organization",
-          icon: <Building2 size={iconSize} strokeWidth={iconStroke} />,
-          labelKey: "nav.organization",
-        },
-        {
-          key: "tasks",
-          path: "/tasks",
-          icon: <Timer size={iconSize} strokeWidth={iconStroke} />,
-          labelKey: "nav.tasks",
-        },
-        {
-          key: "token-usage",
-          path: "/token-usage",
-          icon: <Activity size={iconSize} strokeWidth={iconStroke} />,
-          labelKey: "nav.tokenUsage",
-        },
-        ...(canSeeSystemSettings(user, { mobileEnabled: opts?.mobileEnabled })
-          ? [
-              {
-                key: "system-settings",
-                path: "/system-settings",
-                icon: (
-                  <SlidersHorizontal size={iconSize} strokeWidth={iconStroke} />
-                ),
-                labelKey: "nav.systemSettings",
-              } satisfies NavItem,
-            ]
-          : []),
-      ],
+      key: "chat",
+      path: "/chat",
+      icon: <MessageSquareText size={iconSize} strokeWidth={iconStroke} />,
+      labelKey: "nav.conversations",
+    },
+    {
+      key: "experts",
+      path: "/experts",
+      icon: <GraduationCap size={iconSize} strokeWidth={iconStroke} />,
+      labelKey: "nav.experts",
     },
   ];
-
-  const settingsItems: NavItem[] = [
-    {
-      key: "personalization",
-      path: "/personalization/skills",
-      icon: <Sparkles size={iconSize} strokeWidth={iconStroke} />,
-      labelKey: "nav.personalization",
-    },
-  ];
-  if (navAllowed(user, "channels")) {
-    settingsItems.push({
-      key: "channels",
-      path: "/personalization/channels",
-      icon: <Waypoints size={iconSize} strokeWidth={iconStroke} />,
-      labelKey: "nav.channels",
-    });
-  }
-  if (navAllowed(user, "connectors")) {
-    settingsItems.push({
-      key: "connectors",
-      path: "/connectors",
-      icon: <Link2 size={iconSize} strokeWidth={iconStroke} />,
-      labelKey: "nav.connectors",
-    });
-  }
-  if (navAllowed(user, "skill-packages")) {
-    settingsItems.push({
-      key: "skill-packages",
-      path: "/skill-packages",
-      icon: <Package size={iconSize} strokeWidth={iconStroke} />,
-      labelKey: "nav.skillPackages",
+  if (navAllowed(user, "models")) {
+    items.push({
+      key: "models",
+      path: "/models",
+      icon: <Cpu size={iconSize} strokeWidth={iconStroke} />,
+      labelKey: "nav.models",
     });
   }
   if (navAllowed(user, "knowledge-bases")) {
-    settingsItems.push({
+    items.push({
       key: "knowledge-bases",
       path: "/knowledge-bases",
       icon: <Database size={iconSize} strokeWidth={iconStroke} />,
       labelKey: "nav.knowledgeBases",
     });
   }
-  if (settingsItems.length > 0) {
-    sections.push({ groupKey: "nav.capabilities", items: settingsItems });
-  }
-  return sections;
+  items.push({
+    key: "organization",
+    path: "/organization",
+    icon: <Building2 size={iconSize} strokeWidth={iconStroke} />,
+    labelKey: "nav.organization",
+  });
+  items.push({
+    key: "personalization",
+    path: "/personalization/skills",
+    icon: <Sparkles size={iconSize} strokeWidth={iconStroke} />,
+    labelKey: "nav.personalization",
+  });
+  items.push({
+    key: "projects",
+    path: "/projects",
+    icon: <FolderKanban size={iconSize} strokeWidth={iconStroke} />,
+    labelKey: "nav.workspace",
+  });
+  items.push({
+    key: "token-usage",
+    path: "/token-usage",
+    icon: <Activity size={iconSize} strokeWidth={iconStroke} />,
+    labelKey: "nav.tokenUsage",
+  });
+  return [{ placement: "primary", items }];
 }

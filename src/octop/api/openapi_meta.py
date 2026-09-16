@@ -86,6 +86,14 @@ OPENAPI_TAGS: list[dict[str, str]] = [
         "description": "Private, shareable document knowledge bases and their indexing capability.",
     },
     {
+        "name": "projects",
+        "description": "User projects grouping conversations, tasks, and an optional work directory.",
+    },
+    {
+        "name": "local-models",
+        "description": "Desktop hardware scan, local LLM discovery (Ollama / GGUF), and one-click install.",
+    },
+    {
         "name": "internal-mcp",
         "description": "Internal MCP gateway used by harness agents (no dashboard auth).",
     },
@@ -137,6 +145,10 @@ OPENAPI_TAGS: list[dict[str, str]] = [
     {
         "name": "skill-packages",
         "description": "Instance-global skill package catalog and package skill content.",
+    },
+    {
+        "name": "host-apps",
+        "description": "Read-only scan of local AI desktop apps (Claude, Codex, Cursor, WorkBuddy, …) and import of their skills / plugins / MCP into FreeOS.",
     },
     {"name": "skills", "description": "Per-agent skills and Skill Hub marketplace search."},
     {

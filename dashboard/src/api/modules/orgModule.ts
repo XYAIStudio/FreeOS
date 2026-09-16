@@ -62,6 +62,7 @@ export interface OrgOverview {
   last_loop: Record<string, unknown> | null;
   notes: string[];
   catalog: OrgCapability[];
+  module_toggles?: Record<string, boolean>;
 }
 
 export interface OrgSidecarStart {
@@ -139,4 +140,19 @@ export const orgModuleApi = {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({}),
     }),
+  setModules: (updates: Record<string, boolean>) =>
+    request<{ updates: Record<string, boolean> }>("/org-module/modules", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ updates }),
+    }),
+  downloadSource: (dest: string) =>
+    request<{ ok: boolean; path: string; source: string }>(
+      "/org-module/source/download",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ dest }),
+      },
+    ),
 };

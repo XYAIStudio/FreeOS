@@ -151,6 +151,11 @@ PY
     echo "[org-sidecar] prune to production + tsx (sidecar starts via node --import tsx)" >&2
     npm prune --omit=dev --no-audit --no-fund
     npm install tsx@4.19.2 --omit=dev --no-audit --no-fund --no-package-lock
+    if command -v npx >/dev/null 2>&1; then
+      echo "[org-sidecar] compile backend to backend-dist (skip tsx cold start)" >&2
+      npx --yes esbuild backend/server.ts --bundle --platform=node --packages=external \
+        --outfile=backend-dist/server.js || echo "[org-sidecar] esbuild compile skipped" >&2
+    fi
   )
   if [[ ! -f "${work}/dist/index.html" ]]; then
     echo "[org-sidecar] vite build did not produce dist/index.html" >&2
@@ -251,8 +256,12 @@ copy_openxyos_runtime() {
   local dest="$2"
   rm -rf "$dest"
   mkdir -p "$dest"
-  for part in backend dist node_modules package.json; do
+  for part in backend dist node_modules package.json backend-dist; do
     if [[ ! -e "${work}/${part}" ]]; then
+      if [[ "$part" == "backend-dist" ]]; then
+        echo "[org-sidecar] optional ${part} missing — sidecar will use tsx" >&2
+        continue
+      fi
       echo "[org-sidecar] missing ${work}/${part}" >&2
       exit 1
     fi

@@ -110,7 +110,10 @@ export function useSlashMentionInput({
         mentionAgents,
         availableSubagents,
         mentionFiles,
-        { filesFirst: isPathLikeMentionQuery(mentionQuery) },
+        {
+          filesFirst: isPathLikeMentionQuery(mentionQuery),
+          everyoneLabel: locale.startsWith("zh") ? "所有人" : "everyone",
+        },
       ),
     [
       mentionQuery,
@@ -118,6 +121,7 @@ export function useSlashMentionInput({
       mentionAgents,
       availableSubagents,
       mentionFiles,
+      locale,
     ],
   );
 
@@ -278,6 +282,17 @@ export function useSlashMentionInput({
           mentionAtIndex,
           mentionQuery,
           pick.path,
+        );
+        setText(next.text);
+        focusAt(next.cursor);
+        return;
+      }
+      if (pick.kind === "everyone") {
+        const next = replaceMentionQuery(
+          text,
+          mentionAtIndex,
+          mentionQuery,
+          pick.token,
         );
         setText(next.text);
         focusAt(next.cursor);

@@ -31,6 +31,14 @@ func sidecarAppDir(root string) string {
 	return filepath.Join(orgSidecarDir(root), "openxyos")
 }
 
+func sidecarNodeArgs(app string) []string {
+	compiled := filepath.Join(app, "backend-dist", "server.js")
+	if _, err := os.Stat(compiled); err == nil {
+		return []string{"backend-dist/server.js"}
+	}
+	return []string{"--import", "tsx", "backend/server.ts"}
+}
+
 func sidecarReady(root string) bool {
 	if _, err := os.Stat(sidecarNodeExe(root)); err != nil {
 		return false
@@ -158,7 +166,7 @@ func startOrgSidecar(root string, dashboardPort int) (*exec.Cmd, error) {
 	}
 	app := sidecarAppDir(root)
 	node := sidecarNodeExe(root)
-	cmd := exec.Command(node, "--import", "tsx", "backend/server.ts")
+	cmd := exec.Command(node, sidecarNodeArgs(app)...)
 	cmd.Dir = app
 	mustEnv(cmd, env)
 	configureProcGroup(cmd)

@@ -15,10 +15,12 @@ const adminUser = {
 } as OctopUser;
 
 describe("system settings tabs", () => {
-  it("maps hub tabs to /system-settings and keeps fullscreen tools external", () => {
+  it("maps every former control and admin module onto the hub", () => {
     expect(systemSettingsPath("users")).toBe("/system-settings/users");
-    expect(systemSettingsPath("workbench")).toBe("/workbench");
-    expect(systemSettingsPath("remote-desktop")).toBe("/remote-desktop");
+    expect(systemSettingsPath("workbench")).toBe("/system-settings/workbench");
+    expect(systemSettingsPath("remote-desktop")).toBe(
+      "/system-settings/remote-desktop",
+    );
   });
 
   it("treats old control/admin URLs as the system-settings nav item", () => {

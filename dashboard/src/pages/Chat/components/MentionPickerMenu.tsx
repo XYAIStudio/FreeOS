@@ -18,12 +18,14 @@ export type MentionPick =
   | { kind: "connector"; name: string; label: string }
   | { kind: "agent"; agent_id: string; label: string }
   | { kind: "subagent"; slug: string; label: string }
-  | { kind: "file"; path: string; label: string };
+  | { kind: "file"; path: string; label: string }
+  | { kind: "everyone"; label: string; token: string };
 
 export function mentionPickKey(item: MentionPick): string {
   if (item.kind === "file") return `file:${item.path}`;
   if (item.kind === "subagent") return `subagent:${item.slug}`;
   if (item.kind === "connector") return `connector:${item.name}`;
+  if (item.kind === "everyone") return "everyone";
   return `agent:${item.agent_id}`;
 }
 
@@ -37,10 +39,19 @@ export function buildMentionItems(
   agents: MentionAgentOption[] = [],
   subagents: AgentSubagentSummary[] = [],
   files: WorkspaceMentionFile[] = [],
-  options: { filesFirst?: boolean } = {},
+  options: { filesFirst?: boolean; everyoneLabel?: string } = {},
 ): MentionPick[] {
   const q = query.trim().toLowerCase();
   const people: MentionPick[] = [];
+  const everyoneLabel = options.everyoneLabel || "所有人";
+  const everyoneHaystack = `${everyoneLabel} 所有人 everyone all`.toLowerCase();
+  if (agents.length > 1 && (!q || everyoneHaystack.includes(q))) {
+    people.push({
+      kind: "everyone",
+      label: everyoneLabel,
+      token: "所有人",
+    });
+  }
   for (const c of connectors) {
     if (
       q &&
@@ -130,11 +141,13 @@ export default function MentionPickerMenu({
   const agentSection = t("mention.experts", "Experts");
   const subagentSection = t("mention.subagents", "Subagents");
   const fileSection = t("mention.files", "Workspace files");
+  const groupSection = t("mention.group", "Group");
 
   const sectionFor = (item: MentionPick) => {
     if (item.kind === "connector") return connSection;
     if (item.kind === "subagent") return subagentSection;
     if (item.kind === "file") return fileSection;
+    if (item.kind === "everyone") return groupSection;
     return agentSection;
   };
 
@@ -183,6 +196,8 @@ export default function MentionPickerMenu({
             let icon;
             if (item.kind === "connector") {
               icon = <Plug size={14} />;
+            } else if (item.kind === "everyone") {
+              icon = <span aria-hidden>@</span>;
             } else if (item.kind === "file") {
               icon = <FileText size={14} />;
             } else if (item.kind === "subagent") {

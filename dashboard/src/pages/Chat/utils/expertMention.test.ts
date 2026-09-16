@@ -70,6 +70,17 @@ describe("mentionedExpertIds / ensureExpertMentions", () => {
     expect(mentionedExpertIds("请 @分析师 看一下", experts)).toEqual(["a1"]);
   });
 
+  it("expands @所有人 and @everyone to every expert", () => {
+    expect(mentionedExpertIds("请 @所有人 看一下", experts)).toEqual([
+      "a1",
+      "a2",
+    ]);
+    expect(mentionedExpertIds("@everyone 同步一下", experts)).toEqual([
+      "a1",
+      "a2",
+    ]);
+  });
+
   it("injects missing mentions when reclaiming a queued turn", () => {
     expect(ensureExpertMentions("帮我看看", ["a2"], experts)).toBe(
       "帮我看看 @研究员 ",
