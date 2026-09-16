@@ -117,6 +117,22 @@ def test_ensure_sidecar_skips_source_tree_script(
     assert spawned == []
 
 
+def test_sidecar_install_ready_reads_marker(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from octop.modules.org_os.sidecar_launch import sidecar_install_ready
+
+    live = tmp_path / "local" / "FreeOS" / "openxyos"
+    live.mkdir(parents=True)
+    monkeypatch.setenv("LOCALAPPDATA", str(tmp_path / "local"))
+    monkeypatch.delenv("FREEOS_OPENXYOS_HOME", raising=False)
+    monkeypatch.delenv("OCTOP_GREEN_PACKAGES", raising=False)
+    monkeypatch.setenv("FREEOS_HOME", str(tmp_path / "unused-home"))
+    assert sidecar_install_ready() is False
+    (live / ".install-ready").write_text("live=1\n", encoding="utf-8")
+    assert sidecar_install_ready() is True
+
+
 def test_bundle_rejects_readme_only_workdir(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

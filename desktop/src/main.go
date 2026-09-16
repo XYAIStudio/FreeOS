@@ -49,12 +49,13 @@ func (a *App) ServiceShutdown() error {
 	a.sleep.stop()
 	a.mu.Lock()
 	cmd := a.cmd
-	sidecar := a.sidecar
 	a.cmd = nil
 	a.sidecar = nil
 	a.mu.Unlock()
 	stopOctop(cmd)
-	stopOctop(sidecar)
+	// Leave the user-level openXYOS sidecar running. Install registers
+	// HKCU Run / start-sidecar.ps1 so Organization embeds without a
+	// 「启动边车」 click. Killing it here recreated the #29 first-open gap.
 	return nil
 }
 

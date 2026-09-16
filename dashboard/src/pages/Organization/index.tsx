@@ -31,6 +31,7 @@ import {
 } from "../../utils/desktopFolder";
 import { message } from "../../utils/antdMessage";
 import { resolveOpenxyosSourceDest } from "./pickSourceDest";
+import { sidecarRecoverPhase } from "./sidecarRecover";
 import styles from "./Organization.module.less";
 
 type ActionKey = "assemble" | "pack" | "loop" | "sidecar" | "produce" | null;
@@ -66,6 +67,8 @@ export default function OrganizationPage() {
   const [produceName, setProduceName] = useState("");
   const [produceIma, setProduceIma] = useState("");
   const [landed, setLanded] = useState<Record<string, unknown> | null>(null);
+  const [autoStartFailed, setAutoStartFailed] = useState(false);
+  const [recoverDetail, setRecoverDetail] = useState("");
   const autoStartRef = useRef(false);
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
 
@@ -175,31 +178,49 @@ export default function OrganizationPage() {
     }
   };
 
-  const startSidecar = () =>
+  const startSidecar = (opts?: { silent?: boolean }) =>
     runAction("sidecar", async () => {
       setPreviewPending(true);
+      setAutoStartFailed(false);
       try {
         const result = await orgModuleApi.startSidecar();
         setLastActionNotes([result.detail, result.command].filter(Boolean));
         const next = result.reachable
           ? await applyOverview(true)
           : await waitForSidecar();
-        message.success(
-          next?.sidecar_reachable
-            ? t("organization.sidecarStarted")
-            : t("organization.sidecarStartPending"),
-        );
+        if (next?.sidecar_reachable) {
+          setRecoverDetail("");
+          if (!opts?.silent) {
+            message.success(t("organization.sidecarStarted"));
+          }
+          return;
+        }
+        const detail = result.detail || t("organization.sidecarStartPending");
+        setAutoStartFailed(true);
+        setRecoverDetail(detail);
+        message.error(t("organization.sidecarAutoStartFailed", { detail }));
+      } catch (err) {
+        const detail =
+          err instanceof Error ? err.message : t("organization.actionFailed");
+        setAutoStartFailed(true);
+        setRecoverDetail(detail);
+        message.error(t("organization.sidecarAutoStartFailed", { detail }));
       } finally {
         setPreviewPending(false);
       }
     });
 
+  const canSilentStart = Boolean(
+    overview?.start_available || overview?.install_ready,
+  );
+
   useEffect(() => {
     if (autoStartRef.current) return;
-    if (!overview?.start_available || overview.sidecar_reachable) return;
+    if (!overview || overview.sidecar_reachable) return;
+    if (!canSilentStart) return;
     autoStartRef.current = true;
-    void startSidecar();
-  }, [overview?.start_available, overview?.sidecar_reachable]);
+    void startSidecar({ silent: true });
+  }, [canSilentStart, overview, overview?.sidecar_reachable]);
 
   const toggleModule = async (key: string, enabled: boolean) => {
     const next = { ...moduleToggles, [key]: enabled };
@@ -384,6 +405,13 @@ export default function OrganizationPage() {
     )}`;
   }, [overview?.sidecar_url, disabledKeys]);
   const showFrame = Boolean(sidecarUp && previewUrl);
+  const recoverPhase = sidecarRecoverPhase({
+    sidecarUp,
+    installReady: Boolean(overview?.install_ready),
+    startAvailable: Boolean(overview?.start_available),
+    autoStarting: previewPending || busy === "sidecar",
+    autoStartFailed,
+  });
 
   const pushTogglesToPreview = useCallback(() => {
     const frame = iframeRef.current?.contentWindow;
@@ -459,7 +487,18 @@ export default function OrganizationPage() {
               />
             </div>
 
-            {!sidecarUp && (
+            {recoverPhase === "starting" && !sidecarUp && (
+              <section className={styles.recover}>
+                <p className={styles.recoverTitle}>
+                  {t("organization.sidecarAutoStarting")}
+                </p>
+                <p className={styles.recoverBody}>
+                  {t("organization.sidecarStartPending")}
+                </p>
+              </section>
+            )}
+
+            {recoverPhase === "recover" && (
               <section className={styles.recover}>
                 <p className={styles.recoverTitle}>
                   {t("organization.startSidecarTitle")}
@@ -467,9 +506,14 @@ export default function OrganizationPage() {
                 <p className={styles.recoverBody}>
                   {t("organization.startSidecarBody")}
                 </p>
+                {recoverDetail ? (
+                  <p className={styles.recoverBody}>{recoverDetail}</p>
+                ) : null}
+                <p className={styles.recoverBody}>
+                  {t("organization.sidecarRecoverHint")}
+                </p>
                 <Space wrap>
                   <Button
-                    type="primary"
                     icon={<Play size={14} />}
                     loading={busy === "sidecar"}
                     disabled={!overview?.start_available && !overview}
@@ -882,26 +926,29 @@ export default function OrganizationPage() {
               ) : (
                 <div className={styles.previewEmpty}>
                   <p className={styles.recoverTitle}>
-                    {previewPending
+                    {recoverPhase === "starting" || previewPending
                       ? t("organization.previewLoading")
                       : t("organization.startSidecarTitle")}
                   </p>
                   <p className={styles.recoverBody}>
-                    {t("organization.previewOffline")}
+                    {recoverPhase === "starting" || previewPending
+                      ? t("organization.sidecarAutoStarting")
+                      : recoverDetail || t("organization.previewOffline")}
                   </p>
-                  <Space wrap>
-                    <Button
-                      type="primary"
-                      icon={<Play size={14} />}
-                      loading={busy === "sidecar" || previewPending}
-                      onClick={() => void startSidecar()}
-                    >
-                      {t("organization.startSidecarAction")}
-                    </Button>
-                    {overview?.start_command && (
-                      <code>{overview.start_command}</code>
-                    )}
-                  </Space>
+                  {recoverPhase === "recover" && (
+                    <Space wrap>
+                      <Button
+                        icon={<Play size={14} />}
+                        loading={busy === "sidecar" || previewPending}
+                        onClick={() => void startSidecar()}
+                      >
+                        {t("organization.startSidecarAction")}
+                      </Button>
+                      {overview?.start_command && (
+                        <code>{overview.start_command}</code>
+                      )}
+                    </Space>
+                  )}
                 </div>
               )}
             </div>

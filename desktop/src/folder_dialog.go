@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/base64"
 	"fmt"
 	"log"
 	"os/exec"
@@ -40,9 +41,12 @@ func pickFolderNative() (string, error) {
 	}
 }
 
-func pickFolderWindows() (string, error) {
-	// FolderBrowserDialog with MyComputer so every drive letter is reachable.
-	script := strings.Join(
+// folderPickerWindowsScript prints the selected path as UTF-8 base64.
+// PowerShell's default stdout is the OEM/ACP code page (GBK on zh-CN
+// Windows). Interpreting those bytes as UTF-8 garbles Chinese folder names
+// the same way a KB mount path used to mojibake.
+func folderPickerWindowsScript() string {
+	return strings.Join(
 		[]string{
 			"Add-Type -AssemblyName System.Windows.Forms",
 			"[void][System.Windows.Forms.Application]::EnableVisualStyles()",
@@ -50,28 +54,41 @@ func pickFolderWindows() (string, error) {
 			"$d.Description = 'Select a work folder'",
 			"$d.RootFolder = [System.Environment+SpecialFolder]::MyComputer",
 			"$d.ShowNewFolderButton = $true",
-			"if ($d.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) { $d.SelectedPath }",
+			"if ($d.ShowDialog() -ne [System.Windows.Forms.DialogResult]::OK) { exit 0 }",
+			"$bytes = [System.Text.Encoding]::UTF8.GetBytes($d.SelectedPath)",
+			"[Convert]::ToBase64String($bytes)",
 		},
 		"; ",
 	)
+}
+
+func decodeFolderPickerOutput(raw []byte) (string, error) {
+	token := strings.TrimSpace(string(raw))
+	if token == "" {
+		return "", nil
+	}
+	decoded, err := base64.StdEncoding.DecodeString(token)
+	if err != nil {
+		return "", fmt.Errorf("folder dialog encoding: %w", err)
+	}
+	return strings.TrimSpace(string(decoded)), nil
+}
+
+func pickFolderWindows() (string, error) {
 	cmd := exec.Command(
 		"powershell.exe",
 		"-NoProfile",
 		"-STA",
 		"-ExecutionPolicy", "Bypass",
 		"-Command",
-		script,
+		folderPickerWindowsScript(),
 	)
 	hideConsole(cmd)
 	out, err := cmd.Output()
 	if err != nil {
 		return "", fmt.Errorf("folder dialog: %w", err)
 	}
-	path := strings.TrimSpace(string(out))
-	if path == "" {
-		return "", nil
-	}
-	return path, nil
+	return decodeFolderPickerOutput(out)
 }
 
 func pickFolderDarwin() (string, error) {

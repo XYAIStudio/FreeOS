@@ -28,7 +28,10 @@ Same precedence as the FreeOS CLI/server:
   (and keeps `$INSTDIR\openxyos` / `$INSTDIR\openxyos-runtime` as backups).
   Install fails if `node` or `dist` is missing, or if
   `http://127.0.0.1:3780/api/health/livez` does not pass before Setup exits.
-  First FreeOS start only spawns the already-on-disk sidecar — no copy/unpack.
+  Setup then leaves a **user-level** sidecar running (HKCU Run
+  `FreeOS-openXYOS` + `start-sidecar.ps1`) so Organization embeds immediately
+  — no first-open copy and no 「启动边车」 click. First FreeOS start only
+  attaches to that live tree if the port is already healthy.
 - Shell prefs → `{home}/desktop-settings.json`
 
 ## Windows install finish
@@ -46,8 +49,12 @@ and extracts it with Windows `tar.exe` (quoted paths, so `Program Files`
 works) into the **live** workdir `%LOCALAPPDATA%\FreeOS\openxyos` during
 Setup. `$INSTDIR\openxyos` and `$INSTDIR\openxyos-runtime` are sealed
 backups only. Setup **aborts** if `node\node.exe` or `dist\index.html` is
-missing, or if an install-time sidecar probe cannot reach
+missing, or if the user-level sidecar cannot reach
 `/api/health/livez` — a README-only tree is not a successful install.
+The probe **does not** start Node as Administrator and **does not**
+`taskkill` it afterwards (that left Organization asking to 启动边车).
+PersistOpenXYOS launches `start-sidecar.ps1` with the explorer token,
+registers HKCU Run `FreeOS-openXYOS`, and leaves the process up.
 
 Why LocalAppData, written by an elevated installer: `$INSTDIR` is typically
 `C:\Program Files\FreeOS`, which a later unelevated `FreeOS.exe` cannot
@@ -78,7 +85,8 @@ rather than cutting a new tag.
   created next to the exe, extracted portable / org-sidecar leftovers if they
   were written under `$INSTDIR`, and any other installer-owned tree there
 - Start Menu, Desktop, and Startup shortcuts created by the installer
-- Add/Remove Programs registry key and the autostart Run value
+- Add/Remove Programs registry key and the autostart Run values
+  (`FreeOS` / `FreeOS-openXYOS`) plus the `FreeOS-openXYOS` logon task
 - Program-owned WebView2 / Wails cache under `%AppData%\FreeOS.exe`,
   `%LOCALAPPDATA%\FreeOS.exe.WebView2`, and `%LOCALAPPDATA%\FreeOS`
   (including `WebView2\`)
@@ -104,8 +112,10 @@ On first open the shell:
 2. If that live workdir is already complete, skips any copy/unpack. A
    copy from `$INSTDIR` / `portable/org-sidecar` is heal-only (other
    Windows users, or a tree that Setup never populated).
-3. Starts the openXYOS sidecar on `http://127.0.0.1:3780` from the live
-   workdir and waits until `/api/health/livez` responds.
+3. If `http://127.0.0.1:3780/api/health/livez` is already up (install-time
+   persist / HKCU Run), attaches to it. Otherwise starts the sidecar from
+   the live workdir and waits until livez responds. Closing FreeOS does
+   **not** kill that user-level sidecar.
 4. Starts the FreeOS host with `FREEOS_HOME`, `FREEOS_ORG_ENABLE=1`, and
    `FREEOS_OPENXYOS_HOME`.
 5. Opens the desktop window on the host UI with a local guest session (no

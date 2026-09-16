@@ -723,6 +723,7 @@
       "hero": "FreeOS does the work. openXYOS owns organization and governance.",
       "planes": "Data plane: colleagues / experts / skills / MCP / tasks. Control plane: department employees / blueprints / modules / governance.",
       "sidecar_offline": "openXYOS sidecar is offline — start it to sync blueprints and approvals.",
+      "sidecar_reconnecting": "openXYOS sidecar is offline — reconnecting the install-time local console.",
       "mirror_only": "OPENXYOS_BASE_URL unset; applied to local mirror only.",
       "local_mirror_short": "Local mirror is the durable record.",
       "imported_export": "imported live control-plane export",

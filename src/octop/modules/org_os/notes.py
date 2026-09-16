@@ -100,6 +100,13 @@ _PATTERNS: tuple[tuple[re.Pattern[str], str, tuple[str, ...]], ...] = (
         (),
     ),
     (
+        re.compile(
+            r"^openXYOS sidecar is offline — reconnecting the install-time local console\.$"
+        ),
+        "org.notes.sidecar_reconnecting",
+        (),
+    ),
+    (
         re.compile(r"^OPENXYOS_BASE_URL unset; applied to local mirror only$"),
         "org.notes.mirror_only",
         (),

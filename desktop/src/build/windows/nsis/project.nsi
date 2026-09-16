@@ -68,10 +68,12 @@ LangString OPENXYOS_EXTRACT_CODE ${LANG_SIMPCHINESE} "解压结束，退出码 "
 LangString OPENXYOS_EXTRACT_CODE ${LANG_ENGLISH} "Extract finished, exit code "
 LangString OPENXYOS_EXTRACT_FAIL ${LANG_SIMPCHINESE} "安装失败：未能把完整的 openXYOS 运行环境解压到 %LOCALAPPDATA%\\FreeOS\\openxyos（需要 node\\node.exe 与 dist\\index.html）。请重新下载安装包。"
 LangString OPENXYOS_EXTRACT_FAIL ${LANG_ENGLISH} "Setup failed: could not extract a complete openXYOS runtime into %LOCALAPPDATA%\\FreeOS\\openxyos (need node\\node.exe and dist\\index.html). Download the installer again."
-LangString OPENXYOS_PROBE ${LANG_SIMPCHINESE} "正在启动本机 openXYOS 并检查 http://127.0.0.1:3780/api/health/livez"
-LangString OPENXYOS_PROBE ${LANG_ENGLISH} "Starting local openXYOS and checking http://127.0.0.1:3780/api/health/livez"
-LangString OPENXYOS_PROBE_OK ${LANG_SIMPCHINESE} "openXYOS 已通过安装期健康检查，首次打开无需再解压"
-LangString OPENXYOS_PROBE_OK ${LANG_ENGLISH} "openXYOS passed the install-time health check; first launch will not unpack"
+LangString OPENXYOS_AUTOSTART ${LANG_SIMPCHINESE} "写入本机 openXYOS 常驻启动脚本（登录后自动拉起，无需「启动边车」）"
+LangString OPENXYOS_AUTOSTART ${LANG_ENGLISH} "Write the persistent openXYOS start helper (logon auto-start; no Start sidecar click)"
+LangString OPENXYOS_PROBE ${LANG_SIMPCHINESE} "正在以当前用户启动本机 openXYOS 并检查 http://127.0.0.1:3780/api/health/livez"
+LangString OPENXYOS_PROBE ${LANG_ENGLISH} "Starting local openXYOS as the current user and checking http://127.0.0.1:3780/api/health/livez"
+LangString OPENXYOS_PROBE_OK ${LANG_SIMPCHINESE} "openXYOS 已在本机运行，并已登记用户级开机自启"
+LangString OPENXYOS_PROBE_OK ${LANG_ENGLISH} "openXYOS is running locally and registered for user-level auto-start"
 LangString OPENXYOS_PROBE_FAIL ${LANG_SIMPCHINESE} "安装失败：已解压 openXYOS，但 http://127.0.0.1:3780/api/health/livez 未就绪。请检查 3780 端口占用后重试安装。"
 LangString OPENXYOS_PROBE_FAIL ${LANG_ENGLISH} "Setup failed: openXYOS is on disk but http://127.0.0.1:3780/api/health/livez did not become ready. Free port 3780 and run Setup again."
 LangString UN_FREEOS_RUNNING ${LANG_SIMPCHINESE} "检测到 FreeOS 仍在运行（主程序、主机或组织侧车）。$\r$\n$\r$\n继续将结束这些进程，并删除安装目录中的程序文件。$\r$\n用户数据（%USERPROFILE%\.freeos）会保留。$\r$\n$\r$\n要继续卸载吗？"
@@ -142,6 +144,9 @@ Section "uninstall"
     SetRegView 64
     DeleteRegValue HKCU "Software\Microsoft\Windows\CurrentVersion\Run" "${INFO_PRODUCTNAME}"
     DeleteRegValue HKCU "Software\Microsoft\Windows\CurrentVersion\Run" "${INFO_PROJECTNAME}"
+    DeleteRegValue HKCU "Software\Microsoft\Windows\CurrentVersion\Run" "FreeOS-openXYOS"
+    nsExec::ExecToLog 'schtasks.exe /Delete /TN "FreeOS-openXYOS" /F'
+    Pop $0
 
     !insertmacro wails.unassociateFiles
     !insertmacro wails.unassociateCustomProtocols
@@ -149,6 +154,28 @@ Section "uninstall"
     !insertmacro wails.deleteUninstaller
     !insertmacro wails.wipeInstallDir
 SectionEnd
+
+# Launch the live openXYOS helper as the unelevated user and keep it.
+# An admin CreateProcess would High-integrity ~/.freeos; #29 then killed
+# the probe process, so Organization still asked to 启动边车.
+Function PersistOpenXYOS
+    !insertmacro wails.userLocalAppData
+    SetRegView 64
+    WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Run" "FreeOS-openXYOS" '"$SYSDIR\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File "$R6\FreeOS\openxyos\start-sidecar.ps1"'
+    nsExec::ExecToLog 'schtasks.exe /Create /TN "FreeOS-openXYOS" /SC ONLOGON /RL LIMITED /F /TR "\"$SYSDIR\WindowsPowerShell\v1.0\powershell.exe\" -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File \"$R6\FreeOS\openxyos\start-sidecar.ps1\""'
+    Pop $0
+    System::Call "ole32::CoInitialize(i 0)"
+    System::Call 'ole32::CoCreateInstance(g "{13709620-C279-11CE-A49E-444553540000}",i 0,i 1,g "{A4C6892C-3BA9-11d2-9DEA-00C04FB16162}",*i .r0) i .r1'
+    ${If} $1 == 0
+    ${AndIf} $0 != 0
+        System::Call '$0->31(w "$SYSDIR\WindowsPowerShell\v1.0\powershell.exe", w "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File $\"$R6\FreeOS\openxyos\start-sidecar.ps1\"", w "$R6\FreeOS\openxyos", w "open", i 0)'
+        System::Call "$0->2()"
+    ${Else}
+        nsExec::ExecToLog 'schtasks.exe /Run /TN "FreeOS-openXYOS"'
+        Pop $0
+        Exec '"$WINDIR\explorer.exe" "$R6\FreeOS\openxyos\start-sidecar.cmd"'
+    ${EndIf}
+FunctionEnd
 
 Function LaunchFreeOS
     SetOutPath "$INSTDIR"
