@@ -24,9 +24,11 @@ Same precedence as the FreeOS CLI/server:
 - Organization sidecar data → `{home}/org-os/`
 - Local openXYOS workdir (FE+BE) → `%LOCALAPPDATA%\FreeOS\openxyos` on Windows,
   else `{home}/openxyos`. The NSIS installer expands a prebuilt
-  `openxyos-runtime.zip` into `$INSTDIR\openxyos` and `$INSTDIR\openxyos-runtime`
-  (install fails if `node` or `dist` is missing). First unelevated start copies
-  that tree into the workdir and starts `http://127.0.0.1:3780`.
+  `openxyos-runtime.zip` **directly into that live workdir** during Setup
+  (and keeps `$INSTDIR\openxyos` / `$INSTDIR\openxyos-runtime` as backups).
+  Install fails if `node` or `dist` is missing, or if
+  `http://127.0.0.1:3780/api/health/livez` does not pass before Setup exits.
+  First FreeOS start only spawns the already-on-disk sidecar — no copy/unpack.
 - Shell prefs → `{home}/desktop-settings.json`
 
 ## Windows install finish
@@ -41,16 +43,21 @@ with `makensis -INPUTCHARSET UTF8` from a UTF-8 BOM `project.nsi`.
 The install log is no longer only `FreeOS.exe` + shortcuts. A healthy package
 also copies `openxyos-runtime.zip` (prebuilt Node + openXYOS frontend/backend)
 and extracts it with Windows `tar.exe` (quoted paths, so `Program Files`
-works) into **both** `$INSTDIR\openxyos` and `$INSTDIR\openxyos-runtime`.
-Setup **aborts** if `node\node.exe` or `dist\index.html` is missing after
-extract — a README-only `$INSTDIR\openxyos` is not a successful install.
-The durable workdir is `%LOCALAPPDATA%\FreeOS\openxyos` (and `{home}/openxyos`).
-Program Files is read-only, so first start — not the elevated installer —
-copies the complete tree into the user workdir (and will heal from
-`openxyos-runtime` if `openxyos` was left as a stub). Organization then
-embeds `http://127.0.0.1:3780` without a manual 「启动边车」 click.
-Downloading the latest openXYOS source uses the same native folder picker
-as the project workdir (any drive), not a typed path only.
+works) into the **live** workdir `%LOCALAPPDATA%\FreeOS\openxyos` during
+Setup. `$INSTDIR\openxyos` and `$INSTDIR\openxyos-runtime` are sealed
+backups only. Setup **aborts** if `node\node.exe` or `dist\index.html` is
+missing, or if an install-time sidecar probe cannot reach
+`/api/health/livez` — a README-only tree is not a successful install.
+
+Why LocalAppData, written by an elevated installer: `$INSTDIR` is typically
+`C:\Program Files\FreeOS`, which a later unelevated `FreeOS.exe` cannot
+mutate. The app’s live root is `%LOCALAPPDATA%\FreeOS\openxyos`. Setup
+reads the installing user’s `LOCALAPPDATA` environment variable (not NSIS
+`$LOCALAPPDATA` after `SetShellVarContext all`, which is ProgramData) and
+writes the complete FE+BE there so first launch does not pay a copy/unpack
+cost. Organization then embeds `http://127.0.0.1:3780` without a manual
+「启动边车」 click. Downloading the latest openXYOS source uses the same
+native folder picker as the project workdir (any drive), not a typed path only.
 
 Override the workdir with `FREEOS_OPENXYOS_HOME`.
 
@@ -92,11 +99,13 @@ would treat that tree as program files (unless it is named `User Data` /
 
 On first open the shell:
 
-1. Extracts the bundled portable runtime (Python host + Node + openXYOS).
-2. Provisions the openXYOS workdir (`%LOCALAPPDATA%\FreeOS\openxyos` or
-   `{home}/openxyos`) from `$INSTDIR\openxyos` or `portable/org-sidecar`.
-3. Starts the openXYOS sidecar on `http://127.0.0.1:3780` and waits until
-   `/api/health/livez` responds (first launch allows extra time).
+1. Extracts the bundled portable **Python host** (the openXYOS FE+BE tree
+   was already written to `%LOCALAPPDATA%\FreeOS\openxyos` during Setup).
+2. If that live workdir is already complete, skips any copy/unpack. A
+   copy from `$INSTDIR` / `portable/org-sidecar` is heal-only (other
+   Windows users, or a tree that Setup never populated).
+3. Starts the openXYOS sidecar on `http://127.0.0.1:3780` from the live
+   workdir and waits until `/api/health/livez` responds.
 4. Starts the FreeOS host with `FREEOS_HOME`, `FREEOS_ORG_ENABLE=1`, and
    `FREEOS_OPENXYOS_HOME`.
 5. Opens the desktop window on the host UI with a local guest session (no

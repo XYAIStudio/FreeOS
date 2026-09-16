@@ -134,77 +134,119 @@ RequestExecutionLevel "${REQUEST_EXECUTION_LEVEL}"
     !insertmacro wails.provisionOpenXYOS
 !macroend
 
-# Ship the prebuilt openXYOS FE+BE next to FreeOS.exe and expand it so the
-# finish log is not just FreeOS.exe + shortcuts. First unelevated start also
-# copies this tree into %LOCALAPPDATA%\FreeOS\openxyos (Program Files is read-only).
+# Resolve the installing user's LocalAppData. After SetShellVarContext all,
+# NSIS $LOCALAPPDATA is ProgramData — not the path FreeOS reads at runtime
+# (LOCALAPPDATA env of the unelevated user). ReadEnvStr keeps the original
+# profile so an elevated install can write the live tree the app will use.
+!macro wails.userLocalAppData
+    ReadEnvStr $R6 LOCALAPPDATA
+    ${If} $R6 == ""
+        StrCpy $R6 "$PROFILE\AppData\Local"
+    ${EndIf}
+!macroend
+
+# Ship the prebuilt openXYOS FE+BE and expand it during Setup into the
+# writable live root (%LOCALAPPDATA%\FreeOS\openxyos). Program Files is
+# read-only for a later unelevated FreeOS.exe, so the admin installer
+# writes LocalAppData now — first app start must not copy/unpack.
 #
-# Do NOT call PowerShell to unzip with NSIS ''$INSTDIR'' quoting: "Program
-# Files" splits the command, extract silently fails, and $INSTDIR\openxyos is
-# left README-only. Write a .cmd (paths expanded at install time) and use
-# Windows 10+ tar.exe, which accepts quoted paths with spaces.
+# $INSTDIR\openxyos and $INSTDIR\openxyos-runtime stay as sealed backups
+# (heal other Windows users / portable). Do NOT unzip via PowerShell with
+# NSIS ''$INSTDIR'' quoting: "Program Files" splits the command.
+# Write a .cmd (paths expanded at install time) and use Windows 10+ tar.exe.
 !macro wails.provisionOpenXYOS
+    !insertmacro wails.userLocalAppData
     SetDetailsPrint both
     DetailPrint "$(OPENXYOS_WORKDIR)"
     CreateDirectory "$INSTDIR\openxyos"
     CreateDirectory "$INSTDIR\openxyos-runtime"
-    CreateDirectory "$LOCALAPPDATA\FreeOS\openxyos"
+    CreateDirectory "$R6\FreeOS\openxyos"
     DetailPrint "$(OPENXYOS_COPY_ZIP)"
     File "/oname=openxyos-runtime.zip" "${OPENXYOS_RUNTIME_ZIP}"
     DetailPrint "$(OPENXYOS_EXTRACT)"
     InitPluginsDir
     FileOpen $0 "$PLUGINSDIR\extract-openxyos.cmd" w
     FileWrite $0 `@echo off$\r$\n`
+    FileWrite $0 `setlocal EnableExtensions$\r$\n`
     FileWrite $0 `set "TAR=$SYSDIR\tar.exe"$\r$\n`
-    FileWrite $0 `if not exist "$INSTDIR\openxyos-runtime.zip" exit /b 2$\r$\n`
+    FileWrite $0 `set "LIVE=$R6\FreeOS\openxyos"$\r$\n`
+    FileWrite $0 `set "ZIP=$INSTDIR\openxyos-runtime.zip"$\r$\n`
+    FileWrite $0 `if not exist "%ZIP%" exit /b 2$\r$\n`
     FileWrite $0 `if not exist "%TAR%" exit /b 5$\r$\n`
+    FileWrite $0 `if not exist "%LIVE%" mkdir "%LIVE%"$\r$\n`
     FileWrite $0 `if not exist "$INSTDIR\openxyos-runtime" mkdir "$INSTDIR\openxyos-runtime"$\r$\n`
     FileWrite $0 `if not exist "$INSTDIR\openxyos" mkdir "$INSTDIR\openxyos"$\r$\n`
-    FileWrite $0 `"%TAR%" -xf "$INSTDIR\openxyos-runtime.zip" -C "$INSTDIR\openxyos-runtime"$\r$\n`
+    FileWrite $0 `"%TAR%" -xf "%ZIP%" -C "%LIVE%"$\r$\n`
     FileWrite $0 `if errorlevel 1 exit /b 3$\r$\n`
-    FileWrite $0 `"%TAR%" -xf "$INSTDIR\openxyos-runtime.zip" -C "$INSTDIR\openxyos"$\r$\n`
+    FileWrite $0 `"%TAR%" -xf "%ZIP%" -C "$INSTDIR\openxyos-runtime"$\r$\n`
     FileWrite $0 `if errorlevel 1 exit /b 4$\r$\n`
+    FileWrite $0 `"%TAR%" -xf "%ZIP%" -C "$INSTDIR\openxyos"$\r$\n`
+    FileWrite $0 `if errorlevel 1 exit /b 8$\r$\n`
+    FileWrite $0 `if not exist "%LIVE%\node\node.exe" (`$\r$\n`
+    FileWrite $0 `  if exist "$INSTDIR\openxyos-runtime\node\node.exe" xcopy /E /I /Y "$INSTDIR\openxyos-runtime\*" "%LIVE%\" >nul`$\r$\n`
+    FileWrite $0 `)`$\r$\n`
+    FileWrite $0 `if not exist "%LIVE%\node\node.exe" exit /b 6$\r$\n`
+    FileWrite $0 `if not exist "%LIVE%\openxyos\dist\index.html" if not exist "%LIVE%\dist\index.html" exit /b 7$\r$\n`
+    FileWrite $0 `if defined USERNAME icacls "$R6\FreeOS" /grant "%USERNAME%:(OI)(CI)M" /T /C /Q >nul 2>&1$\r$\n`
     FileClose $0
     nsExec::ExecToLog '"$PLUGINSDIR\extract-openxyos.cmd"'
     Pop $0
     DetailPrint "$(OPENXYOS_EXTRACT_CODE)$0"
     !insertmacro wails.requireOpenXYOSLayout
+    FileOpen $0 "$R6\FreeOS\openxyos\README.txt" w
+    FileWrite $0 "FreeOS local openXYOS environment$\r$\n"
+    FileWrite $0 "Live workdir (writable): $R6\FreeOS\openxyos$\r$\n"
+    FileWrite $0 "Install backup: $INSTDIR\openxyos$\r$\n"
+    FileWrite $0 "Sealed backup: $INSTDIR\openxyos-runtime$\r$\n"
+    FileWrite $0 "URL: http://127.0.0.1:3780$\r$\n"
+    FileClose $0
     FileOpen $0 "$INSTDIR\openxyos\README.txt" w
     FileWrite $0 "FreeOS local openXYOS environment$\r$\n"
-    FileWrite $0 "Install tree: $INSTDIR\openxyos$\r$\n"
-    FileWrite $0 "Staged tree: $INSTDIR\openxyos-runtime$\r$\n"
-    FileWrite $0 "Work dir: $LOCALAPPDATA\FreeOS\openxyos$\r$\n"
-    FileWrite $0 "Also: %USERPROFILE%\.freeos\openxyos$\r$\n"
+    FileWrite $0 "Live workdir: $R6\FreeOS\openxyos$\r$\n"
+    FileWrite $0 "This folder is a backup. FreeOS starts the live tree.$\r$\n"
     FileWrite $0 "URL: http://127.0.0.1:3780$\r$\n"
+    FileClose $0
+    !insertmacro wails.probeOpenXYOS
+    FileOpen $0 "$R6\FreeOS\openxyos\.install-ready" w
+    FileWrite $0 "live=$R6\FreeOS\openxyos$\r$\n"
+    FileWrite $0 "url=http://127.0.0.1:3780/api/health/livez$\r$\n"
     FileClose $0
     SetDetailsPrint listonly
 !macroend
 
-# Live workdir is $INSTDIR\openxyos (node + openxyos\dist, or flattened dist).
-# openxyos-runtime is the fully expanded zip (heals first-run if live is stub).
-# Missing node.exe or dist\index.html aborts setup — never ship README-only.
+# Live root is %LOCALAPPDATA%\FreeOS\openxyos ($R6). Missing node.exe or
+# dist\index.html aborts setup — never finish with a README-only tree.
 !macro wails.requireOpenXYOSLayout
-    IfFileExists "$INSTDIR\openxyos\node\node.exe" 0 openxyosTryStaged
-    IfFileExists "$INSTDIR\openxyos\openxyos\dist\index.html" openxyosLiveOk openxyosTryFlat
+    IfFileExists "$R6\FreeOS\openxyos\node\node.exe" 0 openxyosTryStaged
+    IfFileExists "$R6\FreeOS\openxyos\openxyos\dist\index.html" openxyosLiveOk openxyosTryFlat
     openxyosTryFlat:
-    IfFileExists "$INSTDIR\openxyos\dist\index.html" openxyosLiveOk openxyosTryStaged
+    IfFileExists "$R6\FreeOS\openxyos\dist\index.html" openxyosLiveOk openxyosTryStaged
     openxyosLiveOk:
         DetailPrint "$(OPENXYOS_FE_OK)"
         DetailPrint "$(OPENXYOS_NODE_OK)"
         Goto openxyosLayoutDone
     openxyosTryStaged:
-    IfFileExists "$INSTDIR\openxyos-runtime\node\node.exe" 0 openxyosLayoutFail
+    IfFileExists "$INSTDIR\openxyos-runtime\node\node.exe" 0 openxyosTryInstHeal
     IfFileExists "$INSTDIR\openxyos-runtime\openxyos\dist\index.html" 0 openxyosTryStagedFlat
         Goto openxyosCopyStaged
     openxyosTryStagedFlat:
-    IfFileExists "$INSTDIR\openxyos-runtime\dist\index.html" 0 openxyosLayoutFail
+    IfFileExists "$INSTDIR\openxyos-runtime\dist\index.html" 0 openxyosTryInstHeal
     openxyosCopyStaged:
         DetailPrint "$(OPENXYOS_STAGED_OK)"
-        nsExec::ExecToLog '"$SYSDIR\cmd.exe" /C xcopy /E /I /Y "$INSTDIR\openxyos-runtime\*" "$INSTDIR\openxyos\"'
+        nsExec::ExecToLog '"$SYSDIR\cmd.exe" /C xcopy /E /I /Y "$INSTDIR\openxyos-runtime\*" "$R6\FreeOS\openxyos\"'
         Pop $0
-        IfFileExists "$INSTDIR\openxyos\node\node.exe" 0 openxyosLayoutFail
-        IfFileExists "$INSTDIR\openxyos\openxyos\dist\index.html" openxyosLiveOk openxyosTryFlatAfterCopy
+        IfFileExists "$R6\FreeOS\openxyos\node\node.exe" 0 openxyosTryInstHeal
+        IfFileExists "$R6\FreeOS\openxyos\openxyos\dist\index.html" openxyosLiveOk openxyosTryFlatAfterCopy
         openxyosTryFlatAfterCopy:
-        IfFileExists "$INSTDIR\openxyos\dist\index.html" openxyosLiveOk openxyosLayoutFail
+        IfFileExists "$R6\FreeOS\openxyos\dist\index.html" openxyosLiveOk openxyosTryInstHeal
+    openxyosTryInstHeal:
+    IfFileExists "$INSTDIR\openxyos\node\node.exe" 0 openxyosLayoutFail
+        nsExec::ExecToLog '"$SYSDIR\cmd.exe" /C xcopy /E /I /Y "$INSTDIR\openxyos\*" "$R6\FreeOS\openxyos\"'
+        Pop $0
+        IfFileExists "$R6\FreeOS\openxyos\node\node.exe" 0 openxyosLayoutFail
+        IfFileExists "$R6\FreeOS\openxyos\openxyos\dist\index.html" openxyosLiveOk openxyosTryFlatAfterInst
+        openxyosTryFlatAfterInst:
+        IfFileExists "$R6\FreeOS\openxyos\dist\index.html" openxyosLiveOk openxyosLayoutFail
     openxyosLayoutFail:
         DetailPrint "$(OPENXYOS_EXTRACT_FAIL)"
         IfSilent openxyosSilentFail openxyosLoudFail
@@ -216,6 +258,57 @@ RequestExecutionLevel "${REQUEST_EXECUTION_LEVEL}"
             SetErrorLevel 67
             Abort
     openxyosLayoutDone:
+!macroend
+
+# Start the install-time live tree long enough for /api/health/livez, then
+# stop it. The probe uses a throwaway sqlite under $PLUGINSDIR so Setup
+# does not stamp ~/.freeos as High integrity. Paths are expanded into a
+# .ps1 (no NSIS $INSTDIR on a -Command line).
+!macro wails.probeOpenXYOS
+    DetailPrint "$(OPENXYOS_PROBE)"
+    FileOpen $0 "$PLUGINSDIR\probe-openxyos.ps1" w
+    FileWrite $0 `$$ErrorActionPreference = 'Continue'$\r$\n`
+    FileWrite $0 `$$node = '$R6\FreeOS\openxyos\node\node.exe'$\r$\n`
+    FileWrite $0 `$$app = '$R6\FreeOS\openxyos\openxyos'$\r$\n`
+    FileWrite $0 `if (-not (Test-Path -LiteralPath $$app)) { $$app = '$R6\FreeOS\openxyos' }$\r$\n`
+    FileWrite $0 `$$livez = 'http://127.0.0.1:3780/api/health/livez'$\r$\n`
+    FileWrite $0 `function Test-Livez { try { $$r = Invoke-WebRequest -UseBasicParsing -TimeoutSec 2 -Uri $$livez; return ($$r.StatusCode -lt 500) } catch { return $$false } }$\r$\n`
+    FileWrite $0 `if (Test-Livez) { exit 0 }$\r$\n`
+    FileWrite $0 `$$env:NODE_ENV = 'production'$\r$\n`
+    FileWrite $0 `$$env:PORT = '3780'$\r$\n`
+    FileWrite $0 `$$env:DB_DIALECT = 'sqlite'$\r$\n`
+    FileWrite $0 `$$env:DATABASE_PATH = '$PLUGINSDIR\openxyos-probe.db'$\r$\n`
+    FileWrite $0 `$$env:AIR_GAP_MODE = 'true'$\r$\n`
+    FileWrite $0 `$$env:SEED_DEMO_DATA = 'false'$\r$\n`
+    FileWrite $0 `$$env:ALLOW_PUBLIC_REGISTRATION = 'false'$\r$\n`
+    FileWrite $0 `$$env:JWT_SECRET = '0123456789abcdef0123456789abcdef'$\r$\n`
+    FileWrite $0 `$$env:COOKIE_SECRET = 'fedcba9876543210fedcba9876543210'$\r$\n`
+    FileWrite $0 `$$env:CORS_ORIGIN = 'http://127.0.0.1:8088,http://localhost:8088,http://127.0.0.1:18900,http://localhost:18900'$\r$\n`
+    FileWrite $0 `$$compiled = Join-Path $$app 'backend-dist\server.js'$\r$\n`
+    FileWrite $0 `if (Test-Path -LiteralPath $$compiled) { $$argv = @('backend-dist/server.js') } else { $$argv = @('--import', 'tsx', 'backend/server.ts') }$\r$\n`
+    FileWrite $0 `$$p = Start-Process -FilePath $$node -ArgumentList $$argv -WorkingDirectory $$app -WindowStyle Hidden -PassThru$\r$\n`
+    FileWrite $0 `$$ok = $$false$\r$\n`
+    FileWrite $0 `for ($$i = 0; $$i -lt 60; $$i++) { Start-Sleep -Seconds 1; if (Test-Livez) { $$ok = $$true; break } }$\r$\n`
+    FileWrite $0 `if ($$p -and -not $$p.HasExited) { & "$$env:SystemRoot\System32\taskkill.exe" /F /T /PID $$p.Id | Out-Null }$\r$\n`
+    FileWrite $0 `if ($$ok) { exit 0 }$\r$\n`
+    FileWrite $0 `exit 12$\r$\n`
+    FileClose $0
+    nsExec::ExecToLog '"$SYSDIR\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -File "$PLUGINSDIR\probe-openxyos.ps1"'
+    Pop $0
+    DetailPrint "$(OPENXYOS_EXTRACT_CODE)$0"
+    IntCmp $0 0 openxyosProbeOk openxyosProbeFail openxyosProbeFail
+    openxyosProbeFail:
+        DetailPrint "$(OPENXYOS_PROBE_FAIL)"
+        IfSilent openxyosProbeSilent openxyosProbeLoud
+        openxyosProbeSilent:
+            SetErrorLevel 68
+            Abort
+        openxyosProbeLoud:
+            MessageBox MB_OK|MB_ICONSTOP "$(OPENXYOS_PROBE_FAIL)"
+            SetErrorLevel 68
+            Abort
+    openxyosProbeOk:
+        DetailPrint "$(OPENXYOS_PROBE_OK)"
 !macroend
 
 !macro wails.writeUninstaller
