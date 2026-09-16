@@ -10,6 +10,7 @@ from octop.infra.knowledge import gate
 def test_capability_is_disabled_by_default(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(gate, "local_embedding_deps_available", lambda: True)
     monkeypatch.setattr(gate, "is_model_downloaded", lambda _model: True)
+    monkeypatch.setattr(gate, "is_desktop_process", lambda: False)
 
     capability = gate.get_capability(lambda _key: None)
 
@@ -23,6 +24,54 @@ def test_capability_is_disabled_by_default(monkeypatch: pytest.MonkeyPatch) -> N
         "deps_available": True,
         "provider_ready": False,
     }
+
+
+def test_capability_defaults_enabled_on_desktop(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(gate, "local_embedding_deps_available", lambda: True)
+    monkeypatch.setattr(gate, "is_model_downloaded", lambda _model: True)
+    monkeypatch.setattr(gate, "is_desktop_process", lambda: True)
+
+    capability = gate.get_capability(lambda _key: None)
+
+    assert capability["feature_enabled"] is True
+    assert capability["usable"] is False
+
+
+def test_desktop_explicit_disable_is_respected(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(gate, "is_desktop_process", lambda: True)
+
+    capability = gate.get_capability(
+        lambda key: "false" if key == "knowledge_bases_enabled" else None
+    )
+
+    assert capability["feature_enabled"] is False
+
+
+def test_apply_desktop_knowledge_default_writes_once(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(gate, "is_desktop_process", lambda: True)
+    values: dict[str, str] = {}
+
+    assert gate.apply_desktop_knowledge_default(values.get, values.__setitem__) is True
+    assert values["knowledge_bases_enabled"] == "true"
+    assert gate.apply_desktop_knowledge_default(values.get, values.__setitem__) is False
+
+
+def test_assert_knowledge_enabled_allows_missing_embeddings_on_desktop(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(gate, "is_desktop_process", lambda: True)
+    monkeypatch.setattr(gate, "embedding_prerequisites_ok_for_model", lambda _model: False)
+    gate.assert_knowledge_enabled(lambda _key: None)
+
+
+def test_apply_desktop_knowledge_default_skips_non_desktop(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(gate, "is_desktop_process", lambda: False)
+    values: dict[str, str] = {}
+
+    assert gate.apply_desktop_knowledge_default(values.get, values.__setitem__) is False
+    assert values == {}
 
 
 def test_enabled_capability_uses_selected_model_not_onnx_service(
@@ -77,6 +126,7 @@ def test_enabling_requires_model_and_persists_verified_selection(
 def test_assert_knowledge_usable_distinguishes_disabled_from_prerequisites(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    monkeypatch.setattr(gate, "is_desktop_process", lambda: False)
     monkeypatch.setattr(gate, "embedding_prerequisites_ok_for_model", lambda _model: False)
     with pytest.raises(RuntimeError, match="disabled"):
         gate.assert_knowledge_usable(lambda _key: None)

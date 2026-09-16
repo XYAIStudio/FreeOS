@@ -158,7 +158,7 @@ async def test_create_base_maps_disabled_feature_error(monkeypatch: pytest.Monke
     def fail(*_args: object, **_kwargs: object) -> None:
         raise RuntimeError("knowledge feature is disabled")
 
-    monkeypatch.setattr(knowledge_bases, "assert_knowledge_usable", fail)
+    monkeypatch.setattr(knowledge_bases, "assert_knowledge_enabled", fail)
 
     with pytest.raises(OctopError) as raised:
         await knowledge_bases.create_base(
@@ -183,7 +183,7 @@ async def test_create_base_uses_selected_model_when_usable(
     )
     server = SimpleNamespace(services=_services())
     user = SimpleNamespace(id=1, is_admin=False)
-    monkeypatch.setattr(knowledge_bases, "assert_knowledge_usable", lambda *_a, **_k: None)
+    monkeypatch.setattr(knowledge_bases, "assert_knowledge_enabled", lambda *_a, **_k: None)
     monkeypatch.setattr(knowledge_bases, "_knowledge_service", lambda _server: service)
 
     response = await knowledge_bases.create_base(

@@ -16,7 +16,7 @@ from octop.infra.knowledge.files import (
     document_path,
     write_document,
 )
-from octop.infra.knowledge.gate import assert_knowledge_usable
+from octop.infra.knowledge.gate import assert_knowledge_enabled, assert_knowledge_usable
 from octop.infra.knowledge.index import KnowledgeIndex
 from octop.infra.knowledge.ocr import (
     OCR_IMAGE_SUFFIXES,
@@ -103,7 +103,7 @@ class KnowledgeService:
         icon_name: str = "",
         max_documents: int = MAX_DOCS_PER_KB,
     ) -> KnowledgeBaseRow:
-        assert_knowledge_usable(
+        assert_knowledge_enabled(
             self._services.settings_repo.get, getattr(self._services, "provider_repo", None)
         )
         if max_documents < 0 or max_documents > MAX_KB_MAX_DOCUMENTS:

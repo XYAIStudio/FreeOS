@@ -29,7 +29,30 @@ def service(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> KnowledgeService
         paths=PathLayout.from_env(),
     )
     monkeypatch.setattr(service_module, "assert_knowledge_usable", lambda *_args: None)
+    monkeypatch.setattr(service_module, "assert_knowledge_enabled", lambda *_args: None)
     return KnowledgeService(services)
+
+
+def test_create_base_allowed_when_enabled_without_embeddings(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("OCTOP_HOME", str(tmp_path / "home"))
+    pool = SqlitePool(tmp_path / "octop.db")
+    run_migrations(pool)
+    settings = SettingsRepo(pool)
+    settings.set("knowledge_bases_enabled", "true")
+    services = SimpleNamespace(
+        knowledge_repo=KnowledgeRepo(pool),
+        settings_repo=settings,
+        user_repo=UserRepo(pool),
+        paths=PathLayout.from_env(),
+        provider_repo=None,
+    )
+    monkeypatch.setattr(service_module, "assert_knowledge_usable", lambda *_args: None)
+    svc = KnowledgeService(services)
+    owner = services.user_repo.create(username="owner", password_hash="h", role="user")
+    kb = svc.create_base(owner_user_id=owner, name="Mounted")
+    assert kb.name == "Mounted"
 
 
 def test_create_base_allows_shared_with_default_open(service: KnowledgeService) -> None:
