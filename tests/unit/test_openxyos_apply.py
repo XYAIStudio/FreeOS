@@ -5,21 +5,12 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-import pytest
-
 from octop.modules.org_os.apply.apply import apply_asset_pack, import_applied_surfaces
 from octop.modules.org_os.assets.importer import import_openxyos_assets
 from octop.modules.org_os.assets.pack import publish_asset_pack
 from tests.support.openxyos_harness import ControlPlaneState, start_control_plane
 
 _FIXTURE = Path(__file__).resolve().parents[1] / "fixtures" / "org-loop" / "agent-blueprint.v1.json"
-
-
-def test_apply_rejects_unsafe_pack_name(tmp_path: Path) -> None:
-    with pytest.raises(ValueError, match="invalid"):
-        apply_asset_pack(Path(".."), home=tmp_path, tenant_id="acme", base_url="")
-    with pytest.raises(ValueError, match="invalid"):
-        apply_asset_pack(Path("."), home=tmp_path, tenant_id="acme", base_url="")
 
 
 def test_apply_without_url_is_mirror_only(tmp_path: Path, monkeypatch) -> None:

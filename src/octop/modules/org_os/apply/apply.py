@@ -40,100 +40,6 @@ def _items(doc: Any, key: str) -> list[dict[str, Any]]:
     return []
 
 
-def _plugin_payloads(dest_s: str) -> list[dict[str, Any]]:
-    payloads: list[dict[str, Any]] = []
-    # Literal prefix: CodeQL SafeAccessCheck. Windows abs paths take the nt branch.
-    if not dest_s.startswith("/") and os.name != "nt":
-        return payloads
-    openxyos_s = os.path.realpath(os.path.join(dest_s, "openxyos"))
-    if openxyos_s != dest_s and not openxyos_s.startswith(dest_s + os.sep):
-        return payloads
-    if not os.path.isdir(openxyos_s):
-        return payloads
-    for name in sorted(os.listdir(openxyos_s)):
-        if not _safe_name(name) or not name.endswith(".publish.json"):
-            continue
-        if name.startswith("org-employees") or name.startswith("org-talent"):
-            continue
-        path_s = os.path.realpath(os.path.join(openxyos_s, name))
-        if not path_s.startswith(openxyos_s + os.sep):
-            continue
-        if not os.path.isfile(path_s):
-            continue
-        raw = _load_json(path_s)
-        if isinstance(raw, dict):
-            payloads.append(raw)
-    return payloads
-
-
-def _skill_payloads(dest_s: str) -> list[dict[str, Any]]:
-    out: list[dict[str, Any]] = []
-    if not dest_s.startswith("/") and os.name != "nt":
-        return out
-    skills_s = os.path.realpath(os.path.join(dest_s, "skills"))
-    if skills_s != dest_s and not skills_s.startswith(dest_s + os.sep):
-        return out
-    if not os.path.isdir(skills_s):
-        return out
-    for name in sorted(os.listdir(skills_s)):
-        if not _safe_name(name):
-            continue
-        skill_s = os.path.realpath(os.path.join(skills_s, name))
-        if not skill_s.startswith(skills_s + os.sep):
-            continue
-        if not os.path.isdir(skill_s):
-            continue
-        manifest_s = os.path.realpath(os.path.join(skill_s, "SKILL.md"))
-        if not manifest_s.startswith(skill_s + os.sep):
-            continue
-        if not os.path.isfile(manifest_s):
-            continue
-        try:
-            with open(manifest_s, encoding="utf-8") as handle:
-                content = handle.read()[:8000]
-        except OSError:
-            continue
-        out.append(
-            {
-                "name": name,
-                "slug": name,
-                "category": "FreeOS",
-                "content": content,
-                "source": "FreeOS",
-            }
-        )
-    return out
-
-
-def _mcp_payloads(dest_s: str) -> list[dict[str, Any]]:
-    out: list[dict[str, Any]] = []
-    if not dest_s.startswith("/") and os.name != "nt":
-        return out
-    mcp_s = os.path.realpath(os.path.join(dest_s, "mcps"))
-    if mcp_s != dest_s and not mcp_s.startswith(dest_s + os.sep):
-        return out
-    if not os.path.isdir(mcp_s):
-        return out
-    for name in sorted(os.listdir(mcp_s)):
-        if not _safe_name(name) or not name.endswith(".json"):
-            continue
-        path_s = os.path.realpath(os.path.join(mcp_s, name))
-        if not path_s.startswith(mcp_s + os.sep):
-            continue
-        if not os.path.isfile(path_s):
-            continue
-        raw = _load_json(path_s)
-        if isinstance(raw, dict):
-            out.append(
-                {
-                    "name": os.path.splitext(name)[0],
-                    "slug": os.path.splitext(name)[0],
-                    "config_json": json.dumps(raw),
-                }
-            )
-    return out
-
-
 def apply_asset_pack(
     pack_dir: Path,
     *,
@@ -142,13 +48,15 @@ def apply_asset_pack(
     base_url: str = "",
     headers: dict[str, str] | None = None,
 ) -> ApplyResult:
-    """Write local mirror + ingest drafts to the control plane when reachable."""
+    """Write local mirror + ingest drafts to the control plane when reachable.
+
+    *pack_dir* is accepted for callers but never joined into filesystem
+    paths — only ``{FREEOS_HOME}/asset-packs/latest`` is read (the loop
+    and Organization page always publish there).
+    """
+    _ = pack_dir
     home_s = os.path.realpath(os.fspath(home))
-    raw_name = os.path.basename(os.fspath(pack_dir).rstrip("\\/")) if pack_dir else "latest"
-    name = raw_name or "latest"
-    if not _safe_name(name):
-        raise ValueError("asset pack name is invalid")
-    dest_s = os.path.realpath(os.path.join(home_s, "asset-packs", name))
+    dest_s = os.path.realpath(os.path.join(home_s, "asset-packs", "latest"))
     if dest_s != home_s and not dest_s.startswith(home_s + os.sep):
         raise ValueError("asset pack is outside FREEOS_HOME")
     try:
@@ -168,9 +76,67 @@ def apply_asset_pack(
         else []
     )
     talent = _items(_load_json(talent_s), "talent") if talent_s.startswith(dest_s + os.sep) else []
-    plugins = _plugin_payloads(dest_s)
-    skills = _skill_payloads(dest_s)
-    mcp = _mcp_payloads(dest_s)
+
+    plugins: list[dict[str, Any]] = []
+    openxyos_s = os.path.realpath(os.path.join(dest_s, "openxyos"))
+    if openxyos_s.startswith(dest_s + os.sep) and os.path.isdir(openxyos_s):
+        for child in sorted(os.listdir(openxyos_s)):
+            if not _safe_name(child) or not child.endswith(".publish.json"):
+                continue
+            if child.startswith("org-employees") or child.startswith("org-talent"):
+                continue
+            path_s = os.path.realpath(os.path.join(openxyos_s, child))
+            if not path_s.startswith(openxyos_s + os.sep) or not os.path.isfile(path_s):
+                continue
+            raw = _load_json(path_s)
+            if isinstance(raw, dict):
+                plugins.append(raw)
+
+    skills: list[dict[str, Any]] = []
+    skills_s = os.path.realpath(os.path.join(dest_s, "skills"))
+    if skills_s.startswith(dest_s + os.sep) and os.path.isdir(skills_s):
+        for child in sorted(os.listdir(skills_s)):
+            if not _safe_name(child):
+                continue
+            skill_s = os.path.realpath(os.path.join(skills_s, child))
+            if not skill_s.startswith(skills_s + os.sep) or not os.path.isdir(skill_s):
+                continue
+            manifest_s = os.path.realpath(os.path.join(skill_s, "SKILL.md"))
+            if not manifest_s.startswith(skill_s + os.sep) or not os.path.isfile(manifest_s):
+                continue
+            try:
+                with open(manifest_s, encoding="utf-8") as handle:
+                    content = handle.read()[:8000]
+            except OSError:
+                continue
+            skills.append(
+                {
+                    "name": child,
+                    "slug": child,
+                    "category": "FreeOS",
+                    "content": content,
+                    "source": "FreeOS",
+                }
+            )
+
+    mcp: list[dict[str, Any]] = []
+    mcp_s = os.path.realpath(os.path.join(dest_s, "mcps"))
+    if mcp_s.startswith(dest_s + os.sep) and os.path.isdir(mcp_s):
+        for child in sorted(os.listdir(mcp_s)):
+            if not _safe_name(child) or not child.endswith(".json"):
+                continue
+            path_s = os.path.realpath(os.path.join(mcp_s, child))
+            if not path_s.startswith(mcp_s + os.sep) or not os.path.isfile(path_s):
+                continue
+            raw = _load_json(path_s)
+            if isinstance(raw, dict):
+                mcp.append(
+                    {
+                        "name": os.path.splitext(child)[0],
+                        "slug": os.path.splitext(child)[0],
+                        "config_json": json.dumps(raw),
+                    }
+                )
 
     employees_doc = {
         "employees": employees,
