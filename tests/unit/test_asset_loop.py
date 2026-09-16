@@ -30,9 +30,30 @@ def test_import_from_sidecar_writes_policies(tmp_path: Path, monkeypatch) -> Non
         def __exit__(self, *args: object) -> None:
             return None
 
+        def request(self, method: str, url: str, **kwargs: object) -> _Resp:
+            assert str(method).upper() == "GET"
+            if str(url).endswith("/api/governance/permissions"):
+                return _Resp()
+            if str(url).endswith("/api/freeos/export"):
+
+                class _Export:
+                    status_code = 200
+
+                    def json(self) -> dict[str, object]:
+                        return {"success": True, "data": {}}
+
+                return _Export()  # type: ignore[return-value]
+
+            class _Missing:
+                status_code = 404
+
+                def json(self) -> dict[str, object]:
+                    return {"success": False}
+
+            return _Missing()  # type: ignore[return-value]
+
         def get(self, url: str) -> _Resp:
-            assert url.endswith("/api/governance/permissions")
-            return _Resp()
+            return self.request("GET", url)
 
     import httpx
 

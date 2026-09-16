@@ -104,6 +104,97 @@ _PATTERNS: tuple[tuple[re.Pattern[str], str, tuple[str, ...]], ...] = (
         "org.notes.mirror_only",
         (),
     ),
+    (
+        re.compile(r"^Local mirror is the durable record\.$"),
+        "org.notes.local_mirror_short",
+        (),
+    ),
+    (
+        re.compile(r"^imported live control-plane export$"),
+        "org.notes.imported_export",
+        (),
+    ),
+    (
+        re.compile(r"^sidecar export unreachable; using catalog/blueprint fallback$"),
+        "org.notes.export_unreachable",
+        (),
+    ),
+    (
+        re.compile(r"^control plane accepted the FreeOS ingest$"),
+        "org.notes.ingest_ok",
+        (),
+    ),
+    (
+        re.compile(
+            r"^sidecar is up but FreeOS ingest API is missing; falling back to public routes$"
+        ),
+        "org.notes.ingest_missing",
+        (),
+    ),
+    (
+        re.compile(r"^sidecar rejected the ingest token; falling back to public routes$"),
+        "org.notes.ingest_denied",
+        (),
+    ),
+    (
+        re.compile(r"^sidecar rejected the ingest token; mirror is complete$"),
+        "org.notes.ingest_denied_mirror",
+        (),
+    ),
+    (
+        re.compile(r"^control plane accepted drafts on public routes$"),
+        "org.notes.public_ok",
+        (),
+    ),
+    (
+        re.compile(r"^control plane at (.+) did not accept drafts; mirror is complete$"),
+        "org.notes.control_rejected",
+        ("url",),
+    ),
+    (
+        re.compile(
+            r"^Loop produced employees, published an asset pack, applied it, and imported back\.$"
+        ),
+        "org.notes.loop_done",
+        (),
+    ),
+    (
+        re.compile(r"^Not installed into the sidecar\. Review openxyos/ then enable per tenant\.$"),
+        "org.notes.pack_review",
+        (),
+    ),
+    (
+        re.compile(
+            r"^One tenant = one workspace; do not unpack this pack into a shared sandbox\.$"
+        ),
+        "org.notes.pack_tenant",
+        (),
+    ),
+    (
+        re.compile(r"^Agent \.env values are redacted except tenant/slug/schema keys\.$"),
+        "org.notes.pack_redact",
+        (),
+    ),
+    (
+        re.compile(r"^attached cloud corpus pointer → (.+)$"),
+        "org.notes.corpus_pointer",
+        ("path",),
+    ),
+    (
+        re.compile(r"^distilled (\d+) corpus files → (.+)$"),
+        "org.notes.corpus_distilled",
+        ("count", "path"),
+    ),
+    (
+        re.compile(r"^no knowledge mount; producing a corpus-ready colleague workspace$"),
+        "org.notes.corpus_empty",
+        (),
+    ),
+    (
+        re.compile(r"^sidecar permissions unreachable; pass --policies or retry when signed in$"),
+        "org.notes.permissions_unreachable",
+        (),
+    ),
 )
 
 

@@ -12,7 +12,6 @@ from octop.modules.org_os.apply.client import (
     OpenXyosControlClient,
     mirror_root,
 )
-from octop.modules.org_os.catalog import catalog_keys
 
 
 def _load_json(path: Path) -> Any:
@@ -24,14 +23,59 @@ def _load_json(path: Path) -> Any:
         return None
 
 
-def _module_settings_payload(tenant_id: str) -> dict[str, Any]:
-    updates = dict.fromkeys(catalog_keys(), False)
-    return {
-        "enabled_by_default": False,
-        "tenant_id": tenant_id,
-        "updates": updates,
-        "note": "Drafts only. Operator must toggle each module on.",
-    }
+def _items(doc: Any, key: str) -> list[dict[str, Any]]:
+    if isinstance(doc, dict) and isinstance(doc.get(key), list):
+        return [item for item in doc[key] if isinstance(item, dict)]
+    if isinstance(doc, list):
+        return [item for item in doc if isinstance(item, dict)]
+    return []
+
+
+def _plugin_payloads(dest: Path) -> list[dict[str, Any]]:
+    payloads: list[dict[str, Any]] = []
+    openxyos_dir = dest / "openxyos"
+    if not openxyos_dir.is_dir():
+        return payloads
+    for path in sorted(openxyos_dir.glob("*.publish.json")):
+        if path.name.startswith("org-employees") or path.name.startswith("org-talent"):
+            continue
+        raw = _load_json(path)
+        if isinstance(raw, dict):
+            payloads.append(raw)
+    return payloads
+
+
+def _skill_payloads(dest: Path) -> list[dict[str, Any]]:
+    out: list[dict[str, Any]] = []
+    skills_root = dest / "skills"
+    if not skills_root.is_dir():
+        return out
+    for skill_dir in sorted(path for path in skills_root.iterdir() if path.is_dir()):
+        manifest = skill_dir / "SKILL.md"
+        if not manifest.is_file():
+            continue
+        out.append(
+            {
+                "name": skill_dir.name,
+                "slug": skill_dir.name,
+                "category": "FreeOS",
+                "content": manifest.read_text(encoding="utf-8")[:8000],
+                "source": "FreeOS",
+            }
+        )
+    return out
+
+
+def _mcp_payloads(dest: Path) -> list[dict[str, Any]]:
+    out: list[dict[str, Any]] = []
+    mcp_root = dest / "mcps"
+    if not mcp_root.is_dir():
+        return out
+    for path in sorted(mcp_root.glob("*.json")):
+        raw = _load_json(path)
+        if isinstance(raw, dict):
+            out.append({"name": path.stem, "slug": path.stem, "config_json": json.dumps(raw)})
+    return out
 
 
 def apply_asset_pack(
@@ -42,115 +86,116 @@ def apply_asset_pack(
     base_url: str = "",
     headers: dict[str, str] | None = None,
 ) -> ApplyResult:
-    """Write local mirror + POST/PUT drafts to module-settings/plugins/employees/talent."""
+    """Write local mirror + ingest drafts to the control plane when reachable."""
     dest = pack_dir if pack_dir.is_dir() else Path(pack_dir)
     tid = tenant_id or "default"
     mirror = mirror_root(home, tid)
     mirror.mkdir(parents=True, exist_ok=True)
-    client = OpenXyosControlClient(base_url, headers=headers)
+    client = OpenXyosControlClient(base_url, headers=headers, home=home)
+    employees = _items(_load_json(dest / "openxyos" / "org-employees.publish.json"), "employees")
+    talent = _items(_load_json(dest / "openxyos" / "org-talent.publish.json"), "talent")
+    plugins = _plugin_payloads(dest)
+    skills = _skill_payloads(dest)
+    mcp = _mcp_payloads(dest)
+
+    employees_doc = {
+        "employees": employees,
+        "enabled_by_default": False,
+        "source": "freeos.asset-pack.v1",
+    }
+    talent_doc = {"talent": talent, "enabled_by_default": False, "source": "freeos.asset-pack.v1"}
+    plugins_doc = {"enabled_by_default": False, "plugins": plugins}
+    emp_mirror = client.write_mirror(mirror / "employees.json", employees_doc)
+    talent_mirror = client.write_mirror(mirror / "talent.json", talent_doc)
+    plugins_mirror = client.write_mirror(mirror / "plugins.json", plugins_doc)
+    skills_mirror = client.write_mirror(mirror / "skills.json", {"skills": skills})
+
     result = ApplyResult(
         pack_dir=dest,
         mirror_dir=mirror,
         control_plane_url=client.base_url,
         notes=[
-            "Local mirror is the durable record. HTTP apply is best-effort.",
+            "Local mirror is the durable record.",
             "Nothing is auto-enabled on the control plane.",
         ],
     )
 
-    employees_src = dest / "openxyos" / "org-employees.publish.json"
-    employees = _load_json(employees_src) or {"employees": []}
-    emp_mirror = client.write_mirror(mirror / "employees.json", employees)
-    emp_items = employees.get("employees") if isinstance(employees, dict) else []
-    if not isinstance(emp_items, list):
-        emp_items = []
-    http = client.request(
-        "POST",
-        "/api/employees",
-        payload={
-            "employees": emp_items,
-            "enabled_by_default": False,
-            "source": "freeos.asset-pack.v1",
-        },
-    )
-    if emp_items and client.base_url:
-        # Also upsert each employee the way openXYOS POST /api/employees expects.
-        for item in emp_items:
-            if isinstance(item, dict):
+    ingest_payload = {
+        "tenant_id": tid if tid.isdigit() else 1,
+        "employees": employees,
+        "talent": talent,
+        "plugins": plugins,
+        "skills": skills,
+        "mcp": mcp,
+    }
+    ingest = client.ingest(ingest_payload)
+    if ingest.ok:
+        landed = ingest.body.get("data") if isinstance(ingest.body, dict) else {}
+        result.landed = landed if isinstance(landed, dict) else {}
+        result.receipts.append(
+            ApplyReceipt(
+                surface="ingest",
+                endpoint="/api/freeos/ingest",
+                mirrored=str(emp_mirror),
+                http=ingest,
+                item_count=len(employees) + len(talent) + len(plugins) + len(skills) + len(mcp),
+                landed=result.landed,
+            )
+        )
+        result.notes.append("control plane accepted the FreeOS ingest")
+        client.write_mirror(mirror / "apply-receipt.json", result.to_dict())
+        return result
+
+    if (
+        client.base_url
+        and ingest.reached
+        and ingest.status_code in {401, 403}
+        and client.ingest_token
+    ):
+        result.receipts.append(
+            ApplyReceipt(
+                surface="ingest",
+                endpoint="/api/freeos/ingest",
+                mirrored=str(emp_mirror),
+                http=ingest,
+                item_count=len(employees) + len(talent) + len(plugins) + len(skills) + len(mcp),
+            )
+        )
+        result.notes.append("sidecar rejected the ingest token; mirror is complete")
+        client.write_mirror(mirror / "apply-receipt.json", result.to_dict())
+        return result
+    if client.base_url and ingest.reached and ingest.status_code == 404:
+        result.notes.append(
+            "sidecar is up but FreeOS ingest API is missing; falling back to public routes"
+        )
+    elif client.base_url and ingest.reached and ingest.status_code in {401, 403}:
+        result.notes.append("sidecar rejected the ingest token; falling back to public routes")
+
+    for surface, endpoint, payload, mirrored, count in (
+        ("employees", "/api/employees", employees_doc, emp_mirror, len(employees)),
+        ("talent", "/api/talent", talent_doc, talent_mirror, len(talent)),
+        ("plugins", "/api/plugins", plugins_doc, plugins_mirror, len(plugins)),
+        ("skills", "/api/skills", {"skills": skills}, skills_mirror, len(skills)),
+    ):
+        http = client.request("POST", endpoint, payload=payload)
+        if surface == "employees" and employees and client.base_url and not http.ok:
+            for item in employees:
                 client.request("POST", "/api/employees", payload=item)
-    result.receipts.append(
-        ApplyReceipt(
-            surface="employees",
-            endpoint="/api/employees",
-            mirrored=str(emp_mirror),
-            http=http,
-            item_count=len(emp_items),
+        result.receipts.append(
+            ApplyReceipt(
+                surface=surface,
+                endpoint=endpoint,
+                mirrored=str(mirrored),
+                http=http,
+                item_count=count,
+            )
         )
-    )
-
-    talent_src = dest / "openxyos" / "org-talent.publish.json"
-    talent = _load_json(talent_src) or {"talent": []}
-    talent_mirror = client.write_mirror(mirror / "talent.json", talent)
-    talent_items = talent.get("talent") if isinstance(talent, dict) else []
-    if not isinstance(talent_items, list):
-        talent_items = []
-    http = client.request(
-        "POST",
-        "/api/talent",
-        payload={
-            "talent": talent_items,
-            "enabled_by_default": False,
-            "source": "freeos.asset-pack.v1",
-        },
-    )
-    result.receipts.append(
-        ApplyReceipt(
-            surface="talent",
-            endpoint="/api/talent",
-            mirrored=str(talent_mirror),
-            http=http,
-            item_count=len(talent_items),
-        )
-    )
-
-    plugin_payloads: list[dict[str, Any]] = []
-    openxyos_dir = dest / "openxyos"
-    if openxyos_dir.is_dir():
-        for path in sorted(openxyos_dir.glob("*.publish.json")):
-            if path.name.startswith("org-employees") or path.name.startswith("org-talent"):
-                continue
-            raw = _load_json(path)
-            if isinstance(raw, dict):
-                plugin_payloads.append(raw)
-    plugins_doc = {"enabled_by_default": False, "plugins": plugin_payloads}
-    plugins_mirror = client.write_mirror(mirror / "plugins.json", plugins_doc)
-    http = client.request("POST", "/api/plugins", payload=plugins_doc)
-    result.receipts.append(
-        ApplyReceipt(
-            surface="plugins",
-            endpoint="/api/plugins",
-            mirrored=str(plugins_mirror),
-            http=http,
-            item_count=len(plugin_payloads),
-        )
-    )
-
-    settings = _module_settings_payload(tid)
-    settings_mirror = client.write_mirror(mirror / "module-settings.json", settings)
-    http = client.request("PUT", "/api/module-settings", payload=settings)
-    result.receipts.append(
-        ApplyReceipt(
-            surface="module-settings",
-            endpoint="/api/module-settings",
-            mirrored=str(settings_mirror),
-            http=http,
-            item_count=len(settings.get("updates") or {}),
-        )
-    )
 
     receipt_path = mirror / "apply-receipt.json"
     client.write_mirror(receipt_path, result.to_dict())
-    if client.base_url and not result.remote_applied:
+    if result.remote_applied:
+        result.notes.append("control plane accepted drafts on public routes")
+    elif client.base_url and not result.remote_applied:
         result.notes.append(
             f"control plane at {client.base_url} did not accept drafts; mirror is complete"
         )
@@ -171,13 +216,18 @@ def import_applied_surfaces(
     """
     tid = tenant_id or "default"
     mirror = mirror_root(home, tid)
-    client = OpenXyosControlClient(base_url)
+    client = OpenXyosControlClient(base_url, home=home)
     remote: dict[str, Any] = {}
-    if client.base_url:
+    exported = client.export()
+    if isinstance(exported, dict):
+        remote = exported
+        client.write_mirror(mirror / "imported-export.json", exported)
+    elif client.base_url:
         for key, path in (
             ("employees", "/api/employees"),
             ("talent", "/api/talent"),
             ("plugins", "/api/plugins"),
+            ("skills", "/api/skills"),
             ("module_settings", "/api/module-settings"),
             ("permissions", "/api/governance/permissions"),
         ):
@@ -187,7 +237,7 @@ def import_applied_surfaces(
                 client.write_mirror(mirror / f"imported-{key}.json", fetched)
 
     local: dict[str, Any] = {}
-    for name in ("employees", "talent", "plugins", "module-settings", "apply-receipt"):
+    for name in ("employees", "talent", "plugins", "skills", "apply-receipt"):
         raw = _load_json(mirror / f"{name}.json")
         if raw is not None:
             local[name.replace("-", "_")] = raw

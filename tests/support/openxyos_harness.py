@@ -14,7 +14,10 @@ class ControlPlaneState:
         self.employees: list[dict[str, Any]] = []
         self.talent: list[dict[str, Any]] = []
         self.plugins: list[dict[str, Any]] = []
+        self.skills: list[dict[str, Any]] = []
         self.module_settings: dict[str, Any] = {}
+        self.ingest_token: str = ""
+        self.ingested: dict[str, Any] = {}
         self.permissions: list[dict[str, Any]] = [
             {"category": "delete", "allow": False, "reason": "harness deny"}
         ]
@@ -46,10 +49,41 @@ def start_control_plane(state: ControlPlaneState | None = None) -> tuple[str, Th
             except json.JSONDecodeError:
                 return {}
 
+        def _ingest_ok(self) -> bool:
+            if not store.ingest_token:
+                return True
+            return self.headers.get("X-FreeOS-Ingest-Token") == store.ingest_token
+
         def do_GET(self) -> None:  # noqa: N802
             path = urlparse(self.path).path
             if path == "/api/health/livez":
                 self._json(200, {"ok": True})
+                return
+            if path == "/api/freeos/health":
+                self._json(200, {"success": True, "data": {"ok": True, "ingest": True}})
+                return
+            if path == "/api/freeos/export":
+                if not self._ingest_ok():
+                    self._json(401, {"success": False, "error": "invalid ingest token"})
+                    return
+                self._json(
+                    200,
+                    {
+                        "success": True,
+                        "data": {
+                            "employees": store.employees,
+                            "talent": store.talent,
+                            "plugins": store.plugins,
+                            "skills": store.skills,
+                            "counts": {
+                                "employees": len(store.employees),
+                                "talent": len(store.talent),
+                                "plugins": len(store.plugins),
+                                "skills": len(store.skills),
+                            },
+                        },
+                    },
+                )
                 return
             if path == "/api/employees":
                 self._json(200, {"success": True, "data": store.employees})
@@ -72,6 +106,49 @@ def start_control_plane(state: ControlPlaneState | None = None) -> tuple[str, Th
             path = urlparse(self.path).path
             payload = self._read_json()
             store.posts.append(path)
+            if path == "/api/freeos/ingest":
+                if not self._ingest_ok():
+                    self._json(401, {"success": False, "error": "invalid ingest token"})
+                    return
+                if isinstance(payload, dict):
+                    store.ingested = payload
+                    if isinstance(payload.get("employees"), list):
+                        store.employees.extend(
+                            item for item in payload["employees"] if isinstance(item, dict)
+                        )
+                    if isinstance(payload.get("talent"), list):
+                        store.talent.extend(
+                            item for item in payload["talent"] if isinstance(item, dict)
+                        )
+                    if isinstance(payload.get("plugins"), list):
+                        store.plugins.extend(
+                            item for item in payload["plugins"] if isinstance(item, dict)
+                        )
+                    if isinstance(payload.get("skills"), list):
+                        store.skills.extend(
+                            item for item in payload["skills"] if isinstance(item, dict)
+                        )
+                self._json(
+                    200,
+                    {
+                        "success": True,
+                        "data": {
+                            "landed": {
+                                "employees": {"created": len(store.employees)},
+                                "talent": {"created": len(store.talent)},
+                                "plugins": {"created": len(store.plugins)},
+                                "skills": {"created": len(store.skills)},
+                            },
+                            "counts": {
+                                "employees": len(store.employees),
+                                "talent": len(store.talent),
+                                "plugins": len(store.plugins),
+                                "skills": len(store.skills),
+                            },
+                        },
+                    },
+                )
+                return
             if path == "/api/employees":
                 if isinstance(payload, dict) and isinstance(payload.get("employees"), list):
                     store.employees.extend(

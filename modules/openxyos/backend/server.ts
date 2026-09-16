@@ -47,6 +47,7 @@ import reviewsRoutes from "./routes/reviews";
 import { announcementRoutes } from "./routes/announcements";
 import { analyticsRoutes } from "./routes/analytics";
 import { assistantRoutes } from "./routes/assistant";
+import { freeosBridgeRoutes } from "./routes/freeos-bridge";
 import { seedDatabase } from "./seed";
 import { authenticate } from "./middleware";
 import { setupWebSocket } from "./services/websocket";
@@ -99,7 +100,7 @@ async function main() {
       res.setHeader("Access-Control-Allow-Origin", "*");
       res.setHeader("Access-Control-Allow-Credentials", "true");
       res.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
-      res.setHeader("Access-Control-Allow-Headers", "Content-Type,Authorization");
+      res.setHeader("Access-Control-Allow-Headers", "Content-Type,Authorization,X-FreeOS-Ingest-Token");
       if (req.method === "OPTIONS") return res.sendStatus(200);
       return next();
     }
@@ -178,6 +179,7 @@ app.use(cookieParser(cookieSecret));
   app.use("/api/org", orgRoutes);
   app.use("/api/knowledge", knowledgeRoutes);
   app.use("/api/health", healthRoutes);
+  app.use("/api/freeos", freeosBridgeRoutes);
   app.use("/api/notifications", notificationRoutes);
   app.use("/api/dashboard", dashboardRoutes);
   app.use("/api/settings", settingsRoutes);

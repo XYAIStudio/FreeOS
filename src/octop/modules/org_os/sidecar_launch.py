@@ -7,13 +7,17 @@ import os
 import subprocess
 import sys
 import time
-from contextlib import suppress
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 from octop.infra.utils.paths import PathLayout
 from octop.modules.org_os.service import OrgModuleService
+from octop.modules.org_os.sidecar_secrets import (
+    INGEST_TOKEN_KEY,
+    load_or_create_sidecar_secrets,
+    sidecar_data_dir,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -87,6 +91,23 @@ def _localappdata_openxyos() -> Path | None:
     return path if path.is_dir() else None
 
 
+def _install_openxyos() -> Path | None:
+    """#21 installer tree: $INSTDIR\\openxyos or FREEOS_OPENXYOS_INSTALL."""
+    raw = (os.environ.get("FREEOS_OPENXYOS_INSTALL") or "").strip()
+    if raw:
+        path = Path(raw).expanduser()
+        return path if path.is_dir() else None
+    green = (os.environ.get("OCTOP_GREEN_PACKAGES") or "").strip()
+    if not green:
+        return None
+    # portable/packages → sibling ../openxyos (installer) or ../org-sidecar
+    parent = Path(green).expanduser().resolve().parent
+    for candidate in (parent / "openxyos", parent.parent / "openxyos"):
+        if candidate.is_dir():
+            return candidate
+    return None
+
+
 def portable_root() -> Path | None:
     green = (os.environ.get("OCTOP_GREEN_PACKAGES") or "").strip()
     if green:
@@ -104,6 +125,7 @@ def sidecar_bundle_dir() -> Path | None:
     for candidate in (
         _explicit_openxyos_home(),
         _localappdata_openxyos(),
+        _install_openxyos(),
         PathLayout.from_env().root / "openxyos",
     ):
         if candidate is None:
@@ -199,37 +221,11 @@ def sidecar_node_command(runtime: SidecarRuntime) -> str:
     return " ".join(sidecar_node_argv(runtime))
 
 
-def _load_or_create_secrets(data_dir: Path) -> tuple[str, str]:
-    env_path = data_dir / "sidecar.env"
-    jwt = ""
-    cookie = ""
-    if env_path.is_file():
-        for line in env_path.read_text(encoding="utf-8").splitlines():
-            stripped = line.strip()
-            if not stripped or stripped.startswith("#") or "=" not in stripped:
-                continue
-            key, value = stripped.split("=", 1)
-            if key.strip() == "JWT_SECRET":
-                jwt = value.strip()
-            elif key.strip() == "COOKIE_SECRET":
-                cookie = value.strip()
-    if not jwt:
-        jwt = os.urandom(32).hex()
-    if not cookie:
-        cookie = os.urandom(32).hex()
-    data_dir.mkdir(parents=True, exist_ok=True)
-    env_path.write_text(
-        f"JWT_SECRET={jwt}\nCOOKIE_SECRET={cookie}\n",
-        encoding="utf-8",
-    )
-    with suppress(OSError):
-        env_path.chmod(0o600)
-    return jwt, cookie
-
-
 def sidecar_launch_env(home: Path, *, dashboard_port: int | None = None) -> dict[str, str]:
-    data_dir = Path(os.environ.get("FREEOS_ORG_DATA") or (home / "org-os"))
-    jwt, cookie = _load_or_create_secrets(data_dir)
+    secrets = load_or_create_sidecar_secrets(home)
+    jwt = secrets["JWT_SECRET"]
+    cookie = secrets["COOKIE_SECRET"]
+    ingest = secrets[INGEST_TOKEN_KEY]
     port = (os.environ.get("FREEOS_ORG_SIDECAR_PORT") or "3780").strip() or "3780"
     if dashboard_port is None:
         raw = (os.environ.get("OCTOP_PORT") or "").strip()
@@ -245,12 +241,13 @@ def sidecar_launch_env(home: Path, *, dashboard_port: int | None = None) -> dict
             "NODE_ENV": "production",
             "PORT": port,
             "DB_DIALECT": "sqlite",
-            "DATABASE_PATH": str(data_dir / "xiongyuan.db"),
+            "DATABASE_PATH": str(sidecar_data_dir(home) / "xiongyuan.db"),
             "AIR_GAP_MODE": "true",
             "ALLOW_PUBLIC_REGISTRATION": env.get("ALLOW_PUBLIC_REGISTRATION") or "false",
             "SEED_DEMO_DATA": env.get("SEED_DEMO_DATA") or "false",
             "JWT_SECRET": jwt,
             "COOKIE_SECRET": cookie,
+            INGEST_TOKEN_KEY: ingest,
             "CORS_ORIGIN": env.get("CORS_ORIGIN") or origin,
             "FREEOS_HOME": str(home),
             "OCTOP_HOME": str(home),
@@ -330,7 +327,7 @@ def _wait_reachable(service: OrgModuleService, wait: float) -> Any:
     return last
 
 
-def start_sidecar(service: OrgModuleService, *, wait: float = 8.0) -> SidecarStartResult:
+def start_sidecar(service: OrgModuleService, *, wait: float = 20.0) -> SidecarStartResult:
     health = service.probe_sidecar()
     command = sidecar_start_command()
     runtime = find_sidecar_runtime()
@@ -392,7 +389,7 @@ def start_sidecar(service: OrgModuleService, *, wait: float = 8.0) -> SidecarSta
     )
 
 
-def ensure_sidecar(service: OrgModuleService, *, wait: float = 8.0) -> SidecarStartResult:
+def ensure_sidecar(service: OrgModuleService, *, wait: float = 20.0) -> SidecarStartResult:
     """Keep the bundled sidecar up on desktop / first launch.
 
     Only auto-starts when the portable ``org-sidecar`` runtime is present.

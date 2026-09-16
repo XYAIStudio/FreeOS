@@ -3,12 +3,13 @@
 from __future__ import annotations
 
 import json
+import time
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
 from octop.modules.org_os.apply.apply import apply_asset_pack, import_applied_surfaces
-from octop.modules.org_os.apply.client import resolve_control_plane_url
+from octop.modules.org_os.apply.client import OpenXyosControlClient, resolve_control_plane_url
 from octop.modules.org_os.assets.importer import import_openxyos_assets
 from octop.modules.org_os.assets.pack import publish_asset_pack
 from octop.modules.org_os.governance.interceptor import (
@@ -41,6 +42,7 @@ class LoopProof:
     governance_blocked: bool = False
     governance: dict[str, Any] = field(default_factory=dict)
     notes: list[str] = field(default_factory=list)
+    landed: dict[str, Any] = field(default_factory=dict)
     ok: bool = False
 
     def to_dict(self) -> dict[str, Any]:
@@ -58,8 +60,20 @@ class LoopProof:
             "imported_roundtrip": dict(self.imported_roundtrip),
             "governance_blocked": self.governance_blocked,
             "governance": dict(self.governance),
+            "landed": dict(self.landed),
             "notes": list(self.notes),
         }
+
+
+def _wait_control_plane(url: str, *, home: Path, attempts: int = 12) -> bool:
+    if not url:
+        return False
+    client = OpenXyosControlClient(url, home=home, timeout=2.0, retries=1)
+    for _ in range(max(attempts, 1)):
+        if client.get_json("/api/health/livez") is not None or client.bridge_ready():
+            return True
+        time.sleep(0.5)
+    return False
 
 
 def _promote(store: LifecycleStore, slug: str) -> dict[str, str]:
@@ -97,7 +111,20 @@ def run_growth_loop(
     policies = Path(policies_path) if policies_path else policies_fixture()
     if not blueprint.is_file():
         raise FileNotFoundError(f"blueprint fixture missing: {blueprint}")
-    control_url = resolve_control_plane_url(sidecar_url, service.sidecar_url())
+    control_url = resolve_control_plane_url(sidecar_url)
+    if control_url:
+        _wait_control_plane(control_url, home=home, attempts=8)
+    else:
+        health = service.probe_sidecar(timeout=0.4)
+        if health.reachable:
+            control_url = health.url
+        else:
+            from octop.modules.org_os.sidecar_launch import ensure_sidecar, sidecar_can_start
+
+            if sidecar_can_start():
+                started = ensure_sidecar(service, wait=12.0)
+                if started.reachable:
+                    control_url = started.url or service.sidecar_url()
 
     imported = import_openxyos_assets(
         home,
@@ -186,6 +213,7 @@ def run_growth_loop(
         },
         governance_blocked=blocked,
         governance=governance,
+        landed=applied.landed if isinstance(applied.landed, dict) else {},
         notes=[
             *imported.notes,
             *applied.notes,
