@@ -8,6 +8,8 @@ import uuid
 from pathlib import Path
 from typing import Any, Literal
 
+from octop.infra.utils.win_utf8 import repair_utf8_mojibake
+
 ProbeCode = Literal[
     "not_directory",
     "permission_denied",
@@ -29,7 +31,9 @@ _NOT_ALLOWED_MSG = "path not allowed"
 
 def host_path_text(path: Path) -> str:
     """Serialize a host path for API/UI (POSIX separators, even on Windows)."""
-    return Path(os.path.realpath(os.path.expanduser(str(path)))).as_posix()
+    return repair_utf8_mojibake(
+        Path(os.path.realpath(os.path.expanduser(str(path)))).as_posix()
+    )
 
 
 def host_home_dir() -> Path:
@@ -77,7 +81,9 @@ def is_within_host_home(resolved: Path, *, home: Path | None = None) -> bool:
 
 def normalize_host_path(path: str) -> Path:
     """Canonical absolute path via ``os.path.realpath`` (CodeQL-recognized)."""
-    raw = path.strip() or ("/" if os.name == "posix" else str(Path.home().anchor))
+    raw = repair_utf8_mojibake(path.strip()) or (
+        "/" if os.name == "posix" else str(Path.home().anchor)
+    )
     return Path(os.path.realpath(os.path.expanduser(raw)))
 
 
@@ -192,7 +198,12 @@ def list_host_subdirs(
                 continue
         except OSError:
             continue
-        entries.append({"path": host_path_text(resolved), "name": child.name})
+        entries.append(
+            {
+                "path": host_path_text(resolved),
+                "name": repair_utf8_mojibake(child.name),
+            }
+        )
     return entries
 
 

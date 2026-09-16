@@ -214,6 +214,19 @@ def _map_knowledge_error(
             else ErrorCode.KNOWLEDGE_PREREQUISITES_FAILED
         )
         return OctopError.localized(code, locale)
+    if isinstance(exc, ValueError) and any(
+        token in text
+        for token in (
+            "source_path",
+            "distill_path",
+            "existing directory",
+            "invalid path",
+            "cloud_url",
+            "outside the mounted",
+            "not a directory",
+        )
+    ):
+        return OctopError.localized(ErrorCode.KNOWLEDGE_MOUNT_INVALID, locale)
     if "at most 100" in text:
         return OctopError.localized(ErrorCode.KNOWLEDGE_DOC_LIMIT, locale)
     if "document size exceeds" in text:
@@ -731,14 +744,18 @@ async def upload_document(
             max_bytes=_max_upload_bytes(server),
             code=ErrorCode.KNOWLEDGE_DOC_TOO_LARGE,
         )
+        from octop.infra.utils.win_utf8 import repair_utf8_mojibake
+
+        filename = repair_utf8_mojibake(upload.filename or "")
+        relative = repair_utf8_mojibake(path or filename)
         document = _knowledge_service(server).upload_document(
             kb_id,
             actor_user_id=user.id,
-            filename=upload.filename or "",
+            filename=filename,
             content_type=upload.content_type or "",
             content=content,
             is_admin=_is_admin(user),
-            path=path or upload.filename or "",
+            path=relative,
         )
         assert server.services is not None
         enqueue_index_document(server.services, kb_id, document.id)
@@ -990,6 +1007,7 @@ async def get_kb_mount(
     from octop.infra.knowledge.local_mount import load_mounts, scan_mount
 
     try:
+        _require_enabled(server, request)
         _knowledge_service(server).get_readable_base(
             kb_id, actor_user_id=user.id, is_admin=_is_admin(user)
         )
@@ -1000,7 +1018,7 @@ async def get_kb_mount(
             return {**mount.to_dict(), "mounted": True, "entries": []}
         entries = [
             {"path": item.path, "name": item.name, "is_dir": item.is_dir, "size": item.size}
-            for item in scan_mount(mount.source_path)
+            for item in scan_mount(mount.source_path, preview=True)
         ]
         return {**mount.to_dict(), "mounted": True, "entries": entries}
     except Exception as exc:
@@ -1020,6 +1038,7 @@ async def put_kb_mount(
     from octop.infra.knowledge.local_mount import KnowledgeMount, save_mount, scan_mount
 
     try:
+        _require_enabled(server, request)
         _knowledge_service(server).get_writable_base(
             kb_id, actor_user_id=user.id, is_admin=_is_admin(user)
         )
@@ -1038,7 +1057,7 @@ async def put_kb_mount(
             return {**stored.to_dict(), "mounted": True, "entries": []}
         entries = [
             {"path": item.path, "name": item.name, "is_dir": item.is_dir, "size": item.size}
-            for item in scan_mount(stored.source_path)
+            for item in scan_mount(stored.source_path, preview=True)
         ]
         return {**stored.to_dict(), "mounted": True, "entries": entries}
     except Exception as exc:
@@ -1057,6 +1076,7 @@ async def delete_kb_mount(
     from octop.infra.knowledge.local_mount import clear_mount
 
     try:
+        _require_enabled(server, request)
         _knowledge_service(server).get_writable_base(
             kb_id, actor_user_id=user.id, is_admin=_is_admin(user)
         )
@@ -1087,6 +1107,7 @@ async def distill_kb_mount(
     )
 
     try:
+        _require_enabled(server, request)
         _knowledge_service(server).get_writable_base(
             kb_id, actor_user_id=user.id, is_admin=_is_admin(user)
         )

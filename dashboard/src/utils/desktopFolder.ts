@@ -1,4 +1,5 @@
 import { isDesktopShell } from "./desktopChrome";
+import { repairUtf8Mojibake } from "./utf8Mojibake";
 
 type DesktopWindow = Window & {
   _wails?: { invoke?: (message: string) => void };
@@ -29,7 +30,11 @@ export function pickDesktopFolder(
     };
     const onSelected = (event: Event) => {
       const detail = (event as CustomEvent<unknown>).detail;
-      finish(typeof detail === "string" && detail.trim() ? detail.trim() : null);
+      finish(
+        typeof detail === "string" && detail.trim()
+          ? repairUtf8Mojibake(detail.trim())
+          : null,
+      );
     };
     const timer = window.setTimeout(() => finish(null), timeoutMs);
     win.addEventListener(FOLDER_EVENT, onSelected as EventListener);

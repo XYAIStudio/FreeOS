@@ -74,6 +74,8 @@ fi
 
 # launch.py adds packages/ via site.addsitedir (honours .pth / pywin32).
 export PYTHONNOUSERSITE=1
+export PYTHONUTF8=1
+export PYTHONIOENCODING=utf-8
 unset PYTHONPATH || true
 
 if [[ -x "${ROOT}/org-sidecar/start-sidecar.sh" ]]; then

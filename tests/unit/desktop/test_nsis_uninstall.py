@@ -212,3 +212,13 @@ def test_organization_source_download_uses_native_folder_picker() -> None:
     assert "canPickDesktopFolder" in page
     assert "resolveOpenxyosSourceDest" in page
     assert "browseSourceDest" in page
+
+
+def test_windows_folder_picker_emits_utf8_base64() -> None:
+    source = (REPO / "desktop" / "src" / "folder_dialog.go").read_text(encoding="utf-8")
+    assert "[System.Text.Encoding]::UTF8.GetBytes($d.SelectedPath)" in source
+    assert "[Convert]::ToBase64String($bytes)" in source
+    assert "decodeFolderPickerOutput" in source
+    process = (REPO / "desktop" / "src" / "process.go").read_text(encoding="utf-8")
+    assert "PYTHONUTF8" in process
+    assert "utf-8" in process

@@ -49,6 +49,19 @@ def test_list_host_subdirs_rejects_missing_path(tmp_path: Path) -> None:
         list_host_subdirs(str(tmp_path / "missing"))
 
 
+def test_list_host_subdirs_keeps_unicode_names(tmp_path: Path) -> None:
+    (tmp_path / "项目资料").mkdir()
+    entries = list_host_subdirs(str(tmp_path))
+    assert [item["name"] for item in entries] == ["项目资料"]
+
+
+def test_normalize_host_path_repairs_cp1252_mojibake(tmp_path: Path) -> None:
+    real = tmp_path / "项目"
+    real.mkdir()
+    garbled = str(real).encode("utf-8").decode("cp1252")
+    assert normalize_host_path(garbled) == real.resolve()
+
+
 @posix_only
 def test_assert_safe_host_path_rejects_proc() -> None:
     with pytest.raises(ValueError, match="not allowed"):

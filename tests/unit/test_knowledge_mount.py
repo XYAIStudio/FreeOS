@@ -73,3 +73,29 @@ def test_save_mount_persists(tmp_path: Path) -> None:
     )
     assert stored.readonly is True
     assert stored.source_path.endswith("docs")
+
+
+def test_scan_preview_lists_unicode_image_names(tmp_path: Path) -> None:
+    source = tmp_path / "资料"
+    source.mkdir()
+    (source / "项目结构.png").write_bytes(b"png")
+    (source / "notes.md").write_text("hi", encoding="utf-8")
+    preview = {item.name for item in scan_mount(str(source), preview=True)}
+    distill = {item.name for item in scan_mount(str(source))}
+    assert preview == {"项目结构.png", "notes.md"}
+    assert distill == {"notes.md"}
+
+
+def test_save_mount_repairs_cp1252_mojibake_path(tmp_path: Path) -> None:
+    source = tmp_path / "项目"
+    source.mkdir()
+    (source / "说明.md").write_text("ok", encoding="utf-8")
+    garbled = str(source).encode("utf-8").decode("cp1252")
+    assert garbled != str(source)
+    stored = save_mount(
+        KnowledgeMount(kb_id="kb-zh", source_path=garbled, distill_path=""),
+        tmp_path,
+    )
+    assert Path(stored.source_path) == source.resolve()
+    names = {item.name for item in scan_mount(garbled, preview=True)}
+    assert names == {"说明.md"}

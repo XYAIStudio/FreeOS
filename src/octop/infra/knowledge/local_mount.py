@@ -14,6 +14,7 @@ from typing import Any
 
 from octop.infra.utils.host_dirs import assert_safe_host_path
 from octop.infra.utils.paths import PathLayout
+from octop.infra.utils.win_utf8 import repair_utf8_mojibake
 
 _FILE = "knowledge-mounts.json"
 _PARSEABLE = {".md", ".txt", ".markdown", ".rst", ".csv", ".json", ".html", ".htm"}
@@ -131,11 +132,12 @@ def attach_cloud_pointer(
 def save_mount(mount: KnowledgeMount, home: Path | None = None) -> KnowledgeMount:
     if mount.kind == "cloud" or mount.cloud_url.strip():
         return save_cloud_mount(mount, home)
-    assert_safe_host_path(mount.source_path)
-    source = Path(mount.source_path).expanduser().resolve()
+    source_path = repair_utf8_mojibake(mount.source_path)
+    assert_safe_host_path(source_path)
+    source = Path(source_path).expanduser().resolve()
     if not source.is_dir():
         raise ValueError("source_path must be an existing directory")
-    distill = mount.distill_path.strip()
+    distill = repair_utf8_mojibake(mount.distill_path).strip()
     if distill:
         assert_safe_host_path(distill)
         dest = Path(distill).expanduser().resolve()
@@ -166,8 +168,16 @@ def clear_mount(kb_id: str, home: Path | None = None) -> None:
     )
 
 
-def scan_mount(source_path: str, *, max_docs: int = _MAX_DOCS) -> list[MountEntry]:
-    """List subdirectories and parseable files. Read-only; does not copy or write."""
+def scan_mount(
+    source_path: str, *, max_docs: int = _MAX_DOCS, preview: bool = False
+) -> list[MountEntry]:
+    """List subdirectories and files. Read-only; does not copy or write.
+
+    When *preview* is false (distill), only parseable text suffixes are included.
+    Mount list preview includes every non-hidden entry so Chinese image names
+    stay visible before embeddings are ready.
+    """
+    source_path = repair_utf8_mojibake(source_path)
     assert_safe_host_path(source_path)
     root = Path(source_path).expanduser().resolve()
     if not root.is_dir():
@@ -176,16 +186,18 @@ def scan_mount(source_path: str, *, max_docs: int = _MAX_DOCS) -> list[MountEntr
     for child in sorted(root.iterdir(), key=lambda p: (not p.is_dir(), p.name.lower())):
         if child.name.startswith("."):
             continue
+        name = repair_utf8_mojibake(child.name)
+        path_text = repair_utf8_mojibake(str(child))
         if child.is_dir():
-            entries.append(MountEntry(path=str(child), name=child.name, is_dir=True, size=0))
+            entries.append(MountEntry(path=path_text, name=name, is_dir=True, size=0))
             continue
-        if child.suffix.lower() not in _PARSEABLE:
+        if not preview and child.suffix.lower() not in _PARSEABLE:
             continue
         try:
             size = child.stat().st_size
         except OSError:
             size = 0
-        entries.append(MountEntry(path=str(child), name=child.name, is_dir=False, size=size))
+        entries.append(MountEntry(path=path_text, name=name, is_dir=False, size=size))
         if len(entries) >= max_docs:
             break
     return entries
@@ -198,6 +210,8 @@ def distill_readonly(
     max_docs: int = _MAX_DOCS,
 ) -> dict[str, Any]:
     """Copy parseable text into a new folder. Never writes back to the source."""
+    source_path = repair_utf8_mojibake(source_path)
+    distill_path = repair_utf8_mojibake(distill_path)
     assert_safe_host_path(source_path)
     assert_safe_host_path(distill_path)
     source = Path(source_path).expanduser().resolve()
