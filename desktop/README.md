@@ -23,17 +23,15 @@ Same precedence as the FreeOS CLI/server:
 - Green runtime extract → `{home}/portable/`
 - Organization sidecar data → `{home}/org-os/`
 - Local openXYOS workdir (FE+BE) → `%LOCALAPPDATA%\FreeOS\openxyos` on Windows,
-  else `{home}/openxyos`. The NSIS installer expands a prebuilt
-  `openxyos-runtime.zip` **directly into that live workdir** during Setup
-  (and keeps `$INSTDIR\openxyos` / `$INSTDIR\openxyos-runtime` as backups).
-  Install fails if `node` or `dist` is missing. If files are in place but
-  `http://127.0.0.1:3780/api/health/livez` is still down after the install-time
-  wait, Setup warns and continues — HKCU Run / the logon task stay registered
-  so Organization can attach later. Setup then leaves a **user-level** sidecar
-  running (HKCU Run `FreeOS-openXYOS` + `start-sidecar.ps1`) so Organization
-  embeds immediately when livez is already up — no first-open copy and no
-  「启动边车」 click. First FreeOS start only attaches to that live tree if
-  the port is already healthy.
+  else `{home}/openxyos`. The NSIS installer copies a prebuilt
+  `openxyos-runtime.zip` plus `openxyos-provision.ps1` into `$INSTDIR`, then
+  launches that **independent provisioner** (unelevated / medium IL). The
+  provisioner extracts with `tar.exe`, starts FE+BE, waits for
+  `http://127.0.0.1:3780/api/health/livez`, and writes `.install-ready` only
+  when healthy. A README-only tree or a livez miss is a **provision failure**
+  (Setup aborts). Success leaves a user-level sidecar running (HKCU Run
+  `FreeOS-openXYOS` + `start-sidecar.ps1`) so Organization embeds immediately
+  — no first-open copy and no 「启动边车」 click.
 - Shell prefs → `{home}/desktop-settings.json`
 
 ## Windows install finish
@@ -46,29 +44,58 @@ as High integrity. Uncheck to skip. Chinese installer strings are compiled
 with `makensis -INPUTCHARSET UTF8` from a UTF-8 BOM `project.nsi`.
 
 The install log is no longer only `FreeOS.exe` + shortcuts. A healthy package
-also copies `openxyos-runtime.zip` (prebuilt Node + openXYOS frontend/backend)
-and extracts it with Windows `tar.exe` (quoted paths, so `Program Files`
-works) into the **live** workdir `%LOCALAPPDATA%\FreeOS\openxyos` during
-Setup. `$INSTDIR\openxyos` and `$INSTDIR\openxyos-runtime` are sealed
-backups only. Setup **aborts** only if `node\node.exe` or `dist\index.html` is
-missing — a README-only tree is not a successful install. A livez
-timeout after those files exist is a warning, not an abort.
-The probe **does not** start Node as Administrator and **does not**
-`taskkill` it afterwards (that left Organization asking to 启动边车).
-PersistOpenXYOS launches `start-sidecar.ps1` with the explorer token,
-registers HKCU Run `FreeOS-openXYOS`, and leaves the process up.
+copies `openxyos-runtime.zip` (prebuilt Node + openXYOS frontend/backend)
+and the checked-in `openxyos-provision.ps1` / `start-sidecar.ps1`. NSIS does
+**not** FileWrite `extract-openxyos.cmd` or `goto` labels. After the FreeOS
+shell files and shortcuts are in place, Setup launches the provisioner as a
+separate unelevated process (IShellDispatch2 / explorer token — no High-IL
+Node) and waits for its exit code.
 
-Why LocalAppData, written by an elevated installer: `$INSTDIR` is typically
-`C:\Program Files\FreeOS`, which a later unelevated `FreeOS.exe` cannot
-mutate. The app’s live root is `%LOCALAPPDATA%\FreeOS\openxyos`. Setup
-reads the installing user’s `LOCALAPPDATA` environment variable (not NSIS
-`$LOCALAPPDATA` after `SetShellVarContext all`, which is ProgramData) and
-writes the complete FE+BE there so first launch does not pay a copy/unpack
-cost. Organization then embeds `http://127.0.0.1:3780` without a manual
+That process is the same shape as installing openXYOS alone: `tar.exe`
+extract into `%LOCALAPPDATA%\FreeOS\openxyos`, start Node, wait until
+`http://127.0.0.1:3780/api/health/livez` is healthy, then stamp
+`.install-ready` and register HKCU Run `FreeOS-openXYOS`. Success requires
+runtime on disk **and** services up **and** livez. A README-only tree or a
+livez miss aborts Setup (error 67 = extract/layout, 68 = start/livez /
+provisioner never returned). Read
+`%LOCALAPPDATA%\FreeOS\openxyos\provision.log` for the failed stage
+(`extract` / `start` / `livez`); do not treat a start failure as a generic
+port-3780 check.
+
+`$INSTDIR\openxyos-runtime.zip` is the sealed Program Files backup. The
+elevated installer does not create the live tree itself (that would stamp
+admin ACLs). First FreeOS launch attaches to the already-provisioned live
+root. Organization embeds `http://127.0.0.1:3780` without a manual
 「启动边车」 click. Downloading the latest openXYOS source uses the same
 native folder picker as the project workdir (any drive), not a typed path only.
 
 Override the workdir with `FREEOS_OPENXYOS_HOME`.
+
+### Verify a Windows amd64 silent / elevated install
+
+```bat
+FreeOS-desktop-windows-amd64-<version>.exe /S
+echo %ERRORLEVEL%
+```
+
+Exit `0` means the FreeOS shell copy **and** the independent openXYOS
+provisioner both succeeded. Then:
+
+```bat
+dir "%LOCALAPPDATA%\FreeOS\openxyos\node\node.exe"
+type "%LOCALAPPDATA%\FreeOS\openxyos\.install-ready"
+curl http://127.0.0.1:3780/api/health/livez
+reg query HKCU\Software\Microsoft\Windows\CurrentVersion\Run /v FreeOS-openXYOS
+```
+
+To retry only openXYOS (same process Setup launched):
+
+```bat
+powershell -NoProfile -ExecutionPolicy Bypass -File "C:\Program Files\FreeOS\openxyos-provision.ps1"
+```
+
+Elevated (default machine) install still launches that script at medium
+integrity. Do not `Run as administrator` the provisioner itself.
 
 ## Windows uninstall
 

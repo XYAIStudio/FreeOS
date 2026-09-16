@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Build openxyos-runtime.zip from a green portable zip or staging tree.
 
-The Windows NSIS installer copies this zip into $INSTDIR and expands it to
-$INSTDIR\\openxyos so the finish log shows FE+BE, not only FreeOS.exe.
+The Windows NSIS installer copies this zip next to openxyos-provision.ps1.
+The independent provisioner extracts it with tar.exe into
+%LOCALAPPDATA%\\FreeOS\\openxyos — NSIS does not expand the zip itself.
 """
 
 from __future__ import annotations
