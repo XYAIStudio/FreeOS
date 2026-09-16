@@ -154,6 +154,31 @@ func TestSidecarBundleReadyRejectsReadmeOnly(t *testing.T) {
 	}
 }
 
+func TestProvisionOpenXYOSSkipsCopyWhenWorkdirReady(t *testing.T) {
+	root := t.TempDir()
+	t.Setenv("FREEOS_HOME", root)
+	work := filepath.Join(root, "workdir")
+	t.Setenv("FREEOS_OPENXYOS_HOME", work)
+	t.Setenv("LOCALAPPDATA", filepath.Join(root, "local"))
+	writeSidecarBundle(t, work)
+	portable := filepath.Join(root, "portable")
+	writeSidecarBundle(t, orgSidecarDir(portable))
+	marker := filepath.Join(orgSidecarDir(portable), "copied-from-portable")
+	if err := os.WriteFile(marker, []byte("no"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	got, err := provisionOpenXYOS(portable, LocaleEN, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got != work {
+		t.Fatalf("provision dest=%q want %q", got, work)
+	}
+	if _, err := os.Stat(filepath.Join(work, "copied-from-portable")); err == nil {
+		t.Fatal("install-time complete workdir must not be overwritten from portable")
+	}
+}
+
 func TestProvisionOpenXYOSHealsFromStagedRuntime(t *testing.T) {
 	root := t.TempDir()
 	t.Setenv("FREEOS_HOME", root)

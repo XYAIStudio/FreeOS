@@ -189,6 +189,7 @@ func (a *App) boot() {
 		return
 	}
 	root := portableDir()
+	openxyosReady := sidecarBundleReady(openxyosUserWorkDir())
 	if _, perr := provisionOpenXYOS(root, locale, a.setStatus); perr != nil {
 		log.Printf("openXYOS provision: %v", perr)
 	}
@@ -232,7 +233,7 @@ func (a *App) boot() {
 	}
 	if sidecarReady(root) {
 		wait := 20 * time.Second
-		if firstLaunch {
+		if firstLaunch && !openxyosReady {
 			wait = 45 * time.Second
 		}
 		if err := waitSidecarLive(wait); err != nil {

@@ -224,6 +224,10 @@ jobs:
             echo "org-sidecar missing under ${staging}" >&2
             exit 1
           fi
+          if [[ ! -f "${staging}/org-sidecar/openxyos/dist/index.html" ]]; then
+            echo "openXYOS frontend missing under ${staging}/org-sidecar/openxyos/dist" >&2
+            exit 1
+          fi
           if [[ -f "${staging}/org-sidecar/node/node.exe" || -x "${staging}/org-sidecar/node/bin/node" ]]; then
             echo "org-sidecar Node runtime present"
           else
