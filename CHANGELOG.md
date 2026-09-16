@@ -8,6 +8,13 @@
 
 ### 新增
 
+- 组织页双向互生长：FreeOS 资产经 `/api/freeos/ingest`（共享写入令牌，无需边车登录墙）落到 openXYOS 员工/人才/插件/技能表；控制面导出再装配回 FreeOS。循环在边车健康时不再把「已推送到控制面」写成 false。
+- 组织页可从本地语料或 ima / 云知识库指针一键生产同事；本地模型一键下载后会注册到 Ollama 供应商。
+
+### 变更
+
+- 组织循环时间线的是/否改为中英文本地化，不再混用 `true`/`false`。
+- 边车启动会写入并传递 `FREEOS_INGEST_TOKEN`；Python 启动器同时识别 `%LOCALAPPDATA%\FreeOS\openxyos`、`$INSTDIR\openxyos` 与 portable `org-sidecar`。
 - Windows 安装包写入预构建 openXYOS 运行包（`$INSTDIR\openxyos` + `openxyos-runtime.zip`），首次启动再落到 `%LOCALAPPDATA%\FreeOS\openxyos` / `~/.freeos/openxyos`，自动拉起 `http://127.0.0.1:3780`，组织页不必再点「启动边车」。
 - 项目创建用系统文件夹选择器（Wails 原生对话框，任意盘符）；项目/任务/对话区默认展示实时对话列表，并提供建群/群聊入口。
 - Organization OS 首页双循环：FreeOS 数据面与 openXYOS 控制面的实时状态、一键装配员工 / 打包回流 / 运行 org loop，以及边车离线时的启动恢复。

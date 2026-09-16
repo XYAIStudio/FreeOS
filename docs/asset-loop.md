@@ -24,7 +24,7 @@ That path:
 - compiles colleagues and promotes `draft → market → recruit → shadow → active`
 - **registers real FreeOS agents** (`org-<slug>`) so they appear in chat routing
 - publishes `freeos.asset-pack.v1`
-- **applies** the pack to openXYOS-shaped surfaces (`/api/employees`, `/api/talent`, `/api/plugins`, `/api/module-settings`) — live HTTP when `OPENXYOS_BASE_URL` is set, always a durable `{FREEOS_HOME}/openxyos-mirror/`
+- **applies** the pack to openXYOS via `/api/freeos/ingest` (shared ingest token, no login wall) when the sidecar is healthy, always a durable `{FREEOS_HOME}/openxyos-mirror/`
 - imports the applied surfaces back
 - proves a high-risk tool is blocked (`execute=false`)
 

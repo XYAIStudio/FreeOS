@@ -38,6 +38,12 @@ func hostLaunchEnv(root string, port int) map[string]string {
 	if bundle := resolveSidecarDir(root); bundle != "" {
 		env["FREEOS_OPENXYOS_HOME"] = bundle
 	}
+	if install := openxyosInstallDir(); install != "" {
+		env["FREEOS_OPENXYOS_INSTALL"] = install
+	}
+	if _, _, ingest, err := loadOrCreateSidecarSecrets(home); err == nil && ingest != "" {
+		env["FREEOS_INGEST_TOKEN"] = ingest
+	}
 	return env
 }
 

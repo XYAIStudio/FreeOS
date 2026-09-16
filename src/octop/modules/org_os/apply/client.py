@@ -1,20 +1,23 @@
 """openXYOS control-plane HTTP client with a durable local mirror.
 
-Live HTTP is used when ``OPENXYOS_BASE_URL`` / ``FREEOS_ORG_SIDECAR_URL`` is a
-real origin. A down sidecar never fails the loop open: every payload is written
-under ``{FREEOS_HOME}/openxyos-mirror/<tenant>/`` first.
+Live HTTP uses the FreeOS ingest token when present (``/api/freeos/ingest``).
+A down sidecar never fails the loop open: every payload is written under
+``{FREEOS_HOME}/openxyos-mirror/<tenant>/`` first.
 """
 
 from __future__ import annotations
 
 import json
 import os
+import time
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
 
 import httpx
+
+from octop.modules.org_os.sidecar_secrets import INGEST_TOKEN_KEY, resolve_ingest_token
 
 DEFAULT_CONTROL_URL = "http://127.0.0.1:3780"
 
@@ -67,12 +70,25 @@ class OpenXyosControlClient:
         self,
         base_url: str = "",
         *,
-        timeout: float = 3.0,
+        timeout: float = 8.0,
         headers: dict[str, str] | None = None,
+        home: Path | None = None,
+        retries: int = 4,
     ) -> None:
         self.base_url = resolve_control_plane_url(base_url)
         self.timeout = timeout
+        self.retries = max(retries, 1)
+        self.home = Path(home) if home is not None else None
         self.headers = dict(headers or {})
+        token = self.headers.get("X-FreeOS-Ingest-Token") or resolve_ingest_token(self.home)
+        env_token = (os.environ.get(INGEST_TOKEN_KEY) or "").strip()
+        token = str(token or env_token).strip()
+        if token:
+            self.headers["X-FreeOS-Ingest-Token"] = token
+
+    @property
+    def ingest_token(self) -> str:
+        return str(self.headers.get("X-FreeOS-Ingest-Token") or "")
 
     def write_mirror(self, dest: Path, payload: Any) -> Path:
         dest.parent.mkdir(parents=True, exist_ok=True)
@@ -98,36 +114,50 @@ class OpenXyosControlClient:
                 reason="control-plane URL unset; local mirror only",
             )
         url = f"{self.base_url}{path if path.startswith('/') else '/' + path}"
-        try:
-            with httpx.Client(timeout=self.timeout, follow_redirects=True) as client:
-                response = client.request(
-                    method.upper(),
-                    url,
-                    json=payload,
-                    headers=self.headers or None,
-                )
-        except httpx.HTTPError as exc:
-            return HttpResult(
-                ok=False,
-                reached=False,
-                method=method,
-                path=path,
-                reason=f"control plane unreachable: {exc}",
-            )
-        body: Any
-        try:
-            body = response.json()
-        except ValueError:
-            body = response.text
-        return HttpResult(
-            ok=response.status_code < 400,
-            reached=True,
+        last = HttpResult(
+            ok=False,
+            reached=False,
             method=method,
             path=path,
-            status_code=response.status_code,
-            reason="" if response.status_code < 400 else f"HTTP {response.status_code}",
-            body=body,
+            reason="control plane unreachable",
         )
+        for attempt in range(self.retries):
+            try:
+                with httpx.Client(timeout=self.timeout, follow_redirects=True) as client:
+                    response = client.request(
+                        method.upper(),
+                        url,
+                        json=payload,
+                        headers=self.headers or None,
+                    )
+            except httpx.HTTPError as exc:
+                last = HttpResult(
+                    ok=False,
+                    reached=False,
+                    method=method,
+                    path=path,
+                    reason=f"control plane unreachable: {exc}",
+                )
+                time.sleep(0.4 * (attempt + 1))
+                continue
+            body: Any
+            try:
+                body = response.json()
+            except ValueError:
+                body = response.text
+            last = HttpResult(
+                ok=response.status_code < 400,
+                reached=True,
+                method=method,
+                path=path,
+                status_code=response.status_code,
+                reason="" if response.status_code < 400 else f"HTTP {response.status_code}",
+                body=body,
+            )
+            if last.ok or last.status_code in {400, 401, 403, 404}:
+                return last
+            time.sleep(0.4 * (attempt + 1))
+        return last
 
     def get_json(self, path: str) -> Any | None:
         result = self.request("GET", path)
@@ -138,6 +168,16 @@ class OpenXyosControlClient:
             return body["data"]
         return body
 
+    def ingest(self, payload: dict[str, Any]) -> HttpResult:
+        return self.request("POST", "/api/freeos/ingest", payload=payload)
+
+    def export(self) -> Any | None:
+        return self.get_json("/api/freeos/export")
+
+    def bridge_ready(self) -> bool:
+        body = self.get_json("/api/freeos/health")
+        return isinstance(body, dict) and bool(body.get("ok"))
+
 
 @dataclass
 class ApplyReceipt:
@@ -146,6 +186,7 @@ class ApplyReceipt:
     mirrored: str
     http: HttpResult
     item_count: int = 0
+    landed: dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -153,6 +194,7 @@ class ApplyReceipt:
             "endpoint": self.endpoint,
             "mirrored": self.mirrored,
             "item_count": self.item_count,
+            "landed": dict(self.landed),
             "http": self.http.to_dict(),
         }
 
@@ -164,6 +206,7 @@ class ApplyResult:
     receipts: list[ApplyReceipt] = field(default_factory=list)
     notes: list[str] = field(default_factory=list)
     control_plane_url: str = ""
+    landed: dict[str, Any] = field(default_factory=dict)
 
     @property
     def remote_applied(self) -> bool:
@@ -180,6 +223,7 @@ class ApplyResult:
             "control_plane_url": self.control_plane_url,
             "remote_applied": self.remote_applied,
             "mirrored": self.mirrored,
+            "landed": dict(self.landed),
             "receipts": [item.to_dict() for item in self.receipts],
             "notes": list(self.notes),
         }

@@ -228,7 +228,7 @@ def publish_asset_pack(
         mcp_count=mcp_count,
         agent_count=agent_count,
         notes=[
-            "Not installed into the sidecar. Operator reviews openxyos/ then enables per tenant.",
+            "Not installed into the sidecar. Review openxyos/ then enable per tenant.",
             "One tenant = one workspace; do not unpack this pack into a shared sandbox.",
             "Agent .env values are redacted except tenant/slug/schema keys.",
         ],

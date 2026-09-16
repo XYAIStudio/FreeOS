@@ -27,7 +27,8 @@ def test_growth_loop_with_fixtures(tmp_path: Path) -> None:
     assert (tmp_path / "org-skills" / "org-governance" / "SKILL.md").is_file()
     assert (tmp_path / "asset-packs" / "latest" / "manifest.json").is_file()
     assert (tmp_path / "openxyos-mirror" / "loop" / "employees.json").is_file()
-    assert (tmp_path / "openxyos-mirror" / "loop" / "module-settings.json").is_file()
+    assert (tmp_path / "openxyos-mirror" / "loop" / "skills.json").is_file()
+    assert (tmp_path / "openxyos-mirror" / "loop" / "apply-receipt.json").is_file()
     assert (
         tmp_path / "tenants" / "loop" / "org-knowledge" / "live" / "policy-analyst" / "MEMORY.md"
     ).is_file()
@@ -48,10 +49,9 @@ def test_growth_loop_applies_to_live_control_plane(tmp_path: Path) -> None:
         assert proof.ok is True
         assert proof.remote_applied is True
         assert state.employees
-        assert state.module_settings.get("updates")
-        assert "/api/employees" in state.posts
-        assert "/api/module-settings" in state.posts
+        assert "/api/freeos/ingest" in state.posts
         assert "employees" in proof.imported_roundtrip["remote_surfaces"]
+        assert proof.landed
     finally:
         server.shutdown()
         server.server_close()

@@ -21,13 +21,14 @@ import {
   type OrgLoopProof,
   type OrgOverview,
   type OrgPackResult,
+  type OrgProduceResult,
 } from "../../api/modules/orgModule";
 import { formatServerIsoDateTime } from "../../utils/formatMessageTime";
 import { useServerTimezone } from "../../hooks/useServerTimezone";
 import { message } from "../../utils/antdMessage";
 import styles from "./Organization.module.less";
 
-type ActionKey = "assemble" | "pack" | "loop" | "sidecar" | null;
+type ActionKey = "assemble" | "pack" | "loop" | "sidecar" | "produce" | null;
 
 function metric(value: number | undefined): string {
   return typeof value === "number" ? String(value) : "—";
@@ -50,6 +51,9 @@ export default function OrganizationPage() {
   );
   const [sourceDest, setSourceDest] = useState("");
   const [downloading, setDownloading] = useState(false);
+  const [produceName, setProduceName] = useState("");
+  const [produceIma, setProduceIma] = useState("");
+  const [landed, setLanded] = useState<Record<string, unknown> | null>(null);
   const autoStartRef = useRef(false);
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
 
@@ -60,6 +64,10 @@ export default function OrganizationPage() {
         const next = await orgModuleApi.overview();
         setOverview(next);
         if (next.module_toggles) setModuleToggles(next.module_toggles);
+        const proof = next.last_loop;
+        if (proof && typeof proof === "object" && proof.landed) {
+          setLanded(proof.landed as Record<string, unknown>);
+        }
         return next;
       } catch (err) {
         if (!quiet) {
@@ -227,9 +235,22 @@ export default function OrganizationPage() {
       );
     });
 
+  const produce = () =>
+    runAction("produce", async () => {
+      const result: OrgProduceResult = await orgModuleApi.produce({
+        name: produceName.trim(),
+        ima_url: produceIma.trim(),
+      });
+      setLastActionNotes(result.notes);
+      message.success(
+        t("organization.produceDone", { name: result.slug || produceName }),
+      );
+    });
+
   const packBack = () =>
     runAction("pack", async () => {
       const result: OrgPackResult = await orgModuleApi.pack();
+      if (result.applied.landed) setLanded(result.applied.landed);
       setLastActionNotes([
         ...result.pack.notes,
         ...result.applied.notes,
@@ -244,11 +265,26 @@ export default function OrganizationPage() {
     runAction("loop", async () => {
       const proof = await orgModuleApi.runLoop();
       setLoopProof(proof);
+      if (proof.landed) setLanded(proof.landed);
       setLastActionNotes(proof.notes);
       message.success(
         proof.ok ? t("organization.loopOk") : t("organization.loopPartial"),
       );
     });
+
+  const flagLabel = (value: boolean | undefined) =>
+    value ? t("organization.yes") : t("organization.no");
+
+  const progressLabel =
+    busy === "assemble"
+      ? t("organization.progressAssemble")
+      : busy === "pack"
+      ? t("organization.progressPack")
+      : busy === "loop"
+      ? t("organization.progressLoop")
+      : busy === "produce"
+      ? t("organization.progressProduce")
+      : null;
 
   const lastLoop = (loopProof ?? overview?.last_loop) as OrgLoopProof | null;
   const lastSync = overview?.last_sync
@@ -515,6 +551,12 @@ export default function OrganizationPage() {
               </article>
             </section>
 
+            {progressLabel && (
+              <section className={styles.recover}>
+                <p className={styles.recoverTitle}>{progressLabel}</p>
+              </section>
+            )}
+
             <section className={styles.actions}>
               <button
                 type="button"
@@ -567,6 +609,32 @@ export default function OrganizationPage() {
                   {t("organization.loopAction")}
                 </Button>
               </button>
+              <div className={styles.action}>
+                <Users size={18} />
+                <p className={styles.actionTitle}>
+                  {t("organization.produceTitle")}
+                </p>
+                <p className={styles.actionBody}>
+                  {t("organization.produceBody")}
+                </p>
+                <Input
+                  value={produceName}
+                  onChange={(event) => setProduceName(event.target.value)}
+                  placeholder={t("organization.produceName")}
+                />
+                <Input
+                  value={produceIma}
+                  onChange={(event) => setProduceIma(event.target.value)}
+                  placeholder={t("organization.produceIma")}
+                />
+                <Button
+                  loading={busy === "produce"}
+                  disabled={busy !== null}
+                  onClick={() => void produce()}
+                >
+                  {t("organization.produceAction")}
+                </Button>
+              </div>
             </section>
 
             <section className={styles.timeline}>
@@ -576,7 +644,7 @@ export default function OrganizationPage() {
               {lastLoop ? (
                 <ol className={styles.timelineList}>
                   <li>
-                    {t("organization.timelineOk")}: {String(lastLoop.ok)}
+                    {t("organization.timelineOk")}: {flagLabel(lastLoop.ok)}
                   </li>
                   {lastLoop.employees?.length ? (
                     <li>
@@ -592,11 +660,11 @@ export default function OrganizationPage() {
                   ) : null}
                   <li>
                     {t("organization.timelineRemote")}:{" "}
-                    {String(Boolean(lastLoop.remote_applied))}
+                    {flagLabel(Boolean(lastLoop.remote_applied))}
                   </li>
                   <li>
                     {t("organization.timelineGovernance")}:{" "}
-                    {String(Boolean(lastLoop.governance_blocked))}
+                    {flagLabel(Boolean(lastLoop.governance_blocked))}
                   </li>
                   {(lastLoop.notes ?? []).slice(0, 6).map((note) => (
                     <li key={note}>{note}</li>
@@ -611,6 +679,19 @@ export default function OrganizationPage() {
                     <li key={note}>{note}</li>
                   ))}
                 </ol>
+              )}
+            </section>
+
+            <section className={styles.timeline}>
+              <p className={styles.timelineTitle}>
+                {t("organization.landedTitle")}
+              </p>
+              {landed ? (
+                <pre className={styles.catalogDesc}>
+                  {JSON.stringify(landed, null, 2)}
+                </pre>
+              ) : (
+                <p>{t("organization.landedEmpty")}</p>
               )}
             </section>
 

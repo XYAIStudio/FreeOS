@@ -10,6 +10,7 @@ from urllib.parse import urlparse
 
 import httpx
 
+from octop.modules.org_os.apply.client import OpenXyosControlClient
 from octop.modules.org_os.compiler.blueprint import parse_blueprint
 from octop.modules.org_os.compiler.compile import compile_blueprint
 from octop.modules.org_os.governance.imported import write_imported_policies
@@ -97,6 +98,61 @@ def import_openxyos_assets(
                 spawned = spawn_colleague_agent(home, record)
                 result.agents.append(spawned.agent_id)
                 result.notes.append(f"spawned FreeOS agent {spawned.agent_id}")
+
+    if from_sidecar:
+        client = OpenXyosControlClient(sidecar_url, home=home)
+        exported = client.export()
+        if isinstance(exported, dict):
+            result.notes.append("imported live control-plane export")
+            for item in exported.get("employees") or []:
+                if not isinstance(item, dict):
+                    continue
+                name = str(item.get("name") or "").strip()
+                capabilities = [
+                    part.strip()
+                    for part in str(item.get("skills") or "").split(",")
+                    if part.strip()
+                ]
+                if not name or not capabilities:
+                    continue
+                compiled = compile_blueprint(
+                    {
+                        "schema": "openxyos.agent-blueprint.v1",
+                        "name": name,
+                        "positioning": str(item.get("description") or item.get("role") or name),
+                        "industry": "organization",
+                        "capabilities": capabilities,
+                    },
+                    home=home,
+                    tenant_id=tid,
+                    sidecar_url=sidecar_url,
+                )
+                store = LifecycleStore(home, tid)
+                register_compiled(
+                    store,
+                    slug=compiled.slug,
+                    name=name,
+                    workspace=compiled.workspace,
+                    lifecycle="draft",
+                )
+                result.employees.append(compiled.slug)
+                result.notes.append(f"compiled blueprint → {compiled.workspace}")
+                if spawn_agents:
+                    from octop.modules.org_os.runtime.spawn import spawn_colleague_agent
+
+                    record = store.get(compiled.slug)
+                    if record is not None:
+                        spawned = spawn_colleague_agent(home, record)
+                        result.agents.append(spawned.agent_id)
+                        result.notes.append(f"spawned FreeOS agent {spawned.agent_id}")
+            for item in exported.get("skills") or []:
+                if not isinstance(item, dict):
+                    continue
+                slug = str(item.get("slug") or item.get("name") or "").strip()
+                if slug:
+                    result.skills.append(slug)
+        elif sidecar_url:
+            result.notes.append("sidecar export unreachable; using catalog/blueprint fallback")
 
     policies_raw: Any | None = None
     policies_source = ""

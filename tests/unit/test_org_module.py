@@ -211,6 +211,17 @@ def test_pack_to_openxyos_writes_local_mirror(tmp_path: Path) -> None:
     assert packed["applied"]["remote_applied"] is False
 
 
+def test_produce_from_corpus_spawns_colleague(tmp_path: Path) -> None:
+    from octop.modules.org_os.empower import produce_from_corpus
+
+    service = OrgModuleService(config_path=tmp_path / "config.json", home=tmp_path)
+    result = produce_from_corpus(service, name="Corpus Analyst", ima_url="https://ima.example/kb")
+    assert result["slug"]
+    assert Path(result["workspace"]).is_dir()
+    assert (Path(result["distill_path"]) / "CLOUD_SOURCE.md").is_file()
+    assert result["spawned"]["agent_id"]
+
+
 def test_governance_enable_persists(tmp_path: Path) -> None:
     config = tmp_path / "config.json"
     service = OrgModuleService(config_path=config, home=tmp_path)

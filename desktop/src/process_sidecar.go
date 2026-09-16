@@ -172,7 +172,7 @@ func randomSecret() string {
 	return hex.EncodeToString(buf)
 }
 
-func loadOrCreateSidecarSecrets(home string) (jwt string, cookie string, err error) {
+func loadOrCreateSidecarSecrets(home string) (jwt string, cookie string, ingest string, err error) {
 	path := sidecarSecretsPath(home)
 	if data, readErr := os.ReadFile(path); readErr == nil {
 		for _, line := range strings.Split(string(data), "\n") {
@@ -189,6 +189,8 @@ func loadOrCreateSidecarSecrets(home string) (jwt string, cookie string, err err
 				jwt = strings.TrimSpace(value)
 			case "COOKIE_SECRET":
 				cookie = strings.TrimSpace(value)
+			case "FREEOS_INGEST_TOKEN":
+				ingest = strings.TrimSpace(value)
 			}
 		}
 	}
@@ -198,18 +200,21 @@ func loadOrCreateSidecarSecrets(home string) (jwt string, cookie string, err err
 	if cookie == "" {
 		cookie = randomSecret()
 	}
+	if ingest == "" {
+		ingest = randomSecret()
+	}
 	if err := os.MkdirAll(sidecarDataDir(home), 0o755); err != nil {
-		return "", "", err
+		return "", "", "", err
 	}
-	body := "JWT_SECRET=" + jwt + "\nCOOKIE_SECRET=" + cookie + "\n"
+	body := "JWT_SECRET=" + jwt + "\nCOOKIE_SECRET=" + cookie + "\nFREEOS_INGEST_TOKEN=" + ingest + "\n"
 	if err := os.WriteFile(path, []byte(body), 0o600); err != nil {
-		return "", "", err
+		return "", "", "", err
 	}
-	return jwt, cookie, nil
+	return jwt, cookie, ingest, nil
 }
 
 func sidecarLaunchEnv(home string, dashboardPort int) (map[string]string, error) {
-	jwt, cookie, err := loadOrCreateSidecarSecrets(home)
+	jwt, cookie, ingest, err := loadOrCreateSidecarSecrets(home)
 	if err != nil {
 		return nil, err
 	}
@@ -227,6 +232,7 @@ func sidecarLaunchEnv(home string, dashboardPort int) (map[string]string, error)
 		"SEED_DEMO_DATA":            "false",
 		"JWT_SECRET":                jwt,
 		"COOKIE_SECRET":             cookie,
+		"FREEOS_INGEST_TOKEN":       ingest,
 		"CORS_ORIGIN":               origin,
 		"FREEOS_HOME":               home,
 		"OCTOP_HOME":                home,

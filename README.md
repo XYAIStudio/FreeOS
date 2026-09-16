@@ -45,7 +45,7 @@ uv run pytest tests/e2e/test_org_growth_loop.py tests/unit/test_org_loop.py test
 | When | What happens |
 |---|---|
 | `OPENXYOS_BASE_URL` unset / sidecar down | Uses `tests/fixtures/org-loop/` and writes `{FREEOS_HOME}/openxyos-mirror/` |
-| `OPENXYOS_BASE_URL` (or `FREEOS_ORG_SIDECAR_URL`) set | Also POST/PUT `/api/employees`, `/api/talent`, `/api/plugins`, `/api/module-settings` |
+| `OPENXYOS_BASE_URL` (or `FREEOS_ORG_SIDECAR_URL`) set | Also POST `/api/freeos/ingest` (employees, talent, plugins, skills) when the sidecar is healthy |
 
 High-risk tools (`outbound`, `delete`, `pay`, `prod`) are default-denied in the host tool path (`OrgGovernanceMiddleware` + `xyos-governance-mcp`). `execute` stays false until `freeos org governance approve <id>` and the agent re-checks with the same args.
 

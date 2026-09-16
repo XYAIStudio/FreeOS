@@ -13,7 +13,11 @@ from octop.api.deps import current_user, get_server, require_permission
 from octop.infra.server import OctopServer
 from octop.infra.utils.locale import resolve_request_locale
 from octop.modules.org_os.catalog import OPENXYOS_MODULES
-from octop.modules.org_os.empower import assemble_from_blueprint, pack_to_openxyos
+from octop.modules.org_os.empower import (
+    assemble_from_blueprint,
+    pack_to_openxyos,
+    produce_from_corpus,
+)
 from octop.modules.org_os.module_toggles import load_module_toggles, save_module_toggles
 from octop.modules.org_os.notes import localize_mapping, localize_note, localize_notes
 from octop.modules.org_os.overview import build_overview
@@ -140,6 +144,34 @@ async def org_module_assemble(
     if not service.is_enabled():
         service.set_enabled(True)
     payload = await asyncio.to_thread(assemble_from_blueprint, service)
+    return localize_mapping(payload, resolve_request_locale(request), "notes")
+
+
+class OrgProduceBody(BaseModel):
+    kb_id: str = ""
+    distill_path: str = ""
+    ima_url: str = ""
+    name: str = ""
+
+
+@router.post("/produce", summary="Produce a FreeOS colleague from a knowledge corpus")
+async def org_module_produce(
+    request: Request,
+    body: OrgProduceBody,
+    server: OctopServer = Depends(get_server),
+    _: Any = Depends(require_permission("plugins")),
+) -> dict[str, Any]:
+    service = _service(server)
+    if not service.is_enabled():
+        service.set_enabled(True)
+    payload = await asyncio.to_thread(
+        produce_from_corpus,
+        service,
+        kb_id=body.kb_id,
+        distill_path=body.distill_path,
+        ima_url=body.ima_url,
+        name=body.name,
+    )
     return localize_mapping(payload, resolve_request_locale(request), "notes")
 
 
@@ -500,12 +532,15 @@ async def apply_assets(
 
     service = _service(server)
     dest = Path(body.pack_dir) if body.pack_dir else service.home / "asset-packs" / "latest"
-    return apply_asset_pack(
-        dest,
-        home=service.home,
-        tenant_id=body.tenant_id or service.tenant_id() or "default",
-        base_url=body.base_url,
-    ).to_dict()
+    try:
+        return apply_asset_pack(
+            dest,
+            home=service.home,
+            tenant_id=body.tenant_id or service.tenant_id() or "default",
+            base_url=body.base_url,
+        ).to_dict()
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 @router.post("/employees/spawn", summary="Register a compiled colleague as a FreeOS chat agent")

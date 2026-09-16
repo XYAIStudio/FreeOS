@@ -83,6 +83,15 @@ export interface OrgAssembleResult {
   notes: string[];
 }
 
+export interface OrgProduceResult {
+  slug: string;
+  workspace: string;
+  distill_path: string;
+  copied: number;
+  spawned: Record<string, unknown>;
+  notes: string[];
+}
+
 export interface OrgPackResult {
   pack: {
     directory: string;
@@ -98,6 +107,7 @@ export interface OrgPackResult {
     remote_applied: boolean;
     mirrored: boolean;
     notes: string[];
+    landed?: Record<string, unknown>;
   };
 }
 
@@ -117,6 +127,7 @@ export interface OrgLoopProof {
   governance: Record<string, unknown>;
   notes: string[];
   updated_at?: string;
+  landed?: Record<string, unknown>;
 }
 
 export const orgModuleApi = {
@@ -133,6 +144,17 @@ export const orgModuleApi = {
     request<OrgSidecarStart>("/org-module/sidecar/start", { method: "POST" }),
   assemble: () =>
     request<OrgAssembleResult>("/org-module/assemble", { method: "POST" }),
+  produce: (body: {
+    kb_id?: string;
+    distill_path?: string;
+    ima_url?: string;
+    name?: string;
+  }) =>
+    request<OrgProduceResult>("/org-module/produce", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    }),
   pack: () => request<OrgPackResult>("/org-module/pack", { method: "POST" }),
   runLoop: () =>
     request<OrgLoopProof>("/org-module/loop/run", {

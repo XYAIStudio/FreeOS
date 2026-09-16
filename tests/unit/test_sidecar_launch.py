@@ -13,6 +13,7 @@ from octop.modules.org_os.sidecar_launch import (
     find_sidecar_runtime,
     launch_sidecar_argv,
     portable_root,
+    sidecar_bundle_dir,
     sidecar_can_start,
     sidecar_launch_env,
 )
@@ -130,6 +131,20 @@ def test_sidecar_bundle_dir_prefers_openxyos_home(
     assert found.root == bundle
 
 
+def test_sidecar_bundle_dir_finds_install_tree(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    install = tmp_path / "INSTDIR" / "openxyos"
+    _write_runtime(install)
+    bundle = install / "org-sidecar"
+    monkeypatch.delenv("FREEOS_OPENXYOS_HOME", raising=False)
+    monkeypatch.delenv("OCTOP_GREEN_PACKAGES", raising=False)
+    monkeypatch.setenv("FREEOS_OPENXYOS_INSTALL", str(bundle))
+    monkeypatch.setenv("LOCALAPPDATA", str(tmp_path / "local"))
+    monkeypatch.setenv("FREEOS_HOME", str(tmp_path / "unused-home"))
+    assert sidecar_bundle_dir() == bundle
+
+
 def test_sidecar_launch_env_writes_secrets(tmp_path: Path) -> None:
     env = sidecar_launch_env(tmp_path, dashboard_port=8099)
     assert env["DATABASE_PATH"] == str(tmp_path / "org-os" / "xiongyuan.db")
@@ -137,3 +152,5 @@ def test_sidecar_launch_env_writes_secrets(tmp_path: Path) -> None:
     secrets = (tmp_path / "org-os" / "sidecar.env").read_text(encoding="utf-8")
     assert "JWT_SECRET=" in secrets
     assert "COOKIE_SECRET=" in secrets
+    assert "FREEOS_INGEST_TOKEN=" in secrets
+    assert env["FREEOS_INGEST_TOKEN"]

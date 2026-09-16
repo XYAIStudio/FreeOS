@@ -40,7 +40,7 @@ def test_e2e_loop_command_and_artifacts(tmp_path: Path, monkeypatch: pytest.Monk
         assert (tmp_path / "openxyos-mirror" / "e2e" / "apply-receipt.json").is_file()
         assert len(proof["skills"]) >= len(catalog_keys())
         assert state.employees
-        assert state.module_settings
+        assert "/api/freeos/ingest" in state.posts
     finally:
         server.shutdown()
         server.server_close()

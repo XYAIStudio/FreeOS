@@ -9,18 +9,18 @@ import (
 
 func TestLoadOrCreateSidecarSecretsPersists(t *testing.T) {
 	home := t.TempDir()
-	jwt, cookie, err := loadOrCreateSidecarSecrets(home)
+	jwt, cookie, ingest, err := loadOrCreateSidecarSecrets(home)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if jwt == "" || cookie == "" {
+	if jwt == "" || cookie == "" || ingest == "" {
 		t.Fatal("secrets should be generated")
 	}
-	jwt2, cookie2, err := loadOrCreateSidecarSecrets(home)
+	jwt2, cookie2, ingest2, err := loadOrCreateSidecarSecrets(home)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if jwt != jwt2 || cookie != cookie2 {
+	if jwt != jwt2 || cookie != cookie2 || ingest != ingest2 {
 		t.Fatal("secrets should persist across launches")
 	}
 	raw, err := os.ReadFile(sidecarSecretsPath(home))
