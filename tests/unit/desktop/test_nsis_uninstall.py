@@ -8,6 +8,7 @@ REPO = Path(__file__).resolve().parents[3]
 NSI = REPO / "desktop" / "src" / "build" / "windows" / "nsis" / "project.nsi"
 NSH = REPO / "desktop" / "src" / "build" / "windows" / "nsis" / "wails_tools.nsh"
 DESKTOP_README = REPO / "desktop" / "README.md"
+ORG_PAGE = REPO / "dashboard" / "src" / "pages" / "Organization" / "index.tsx"
 
 
 def _uninstall_section(text: str) -> str:
@@ -141,8 +142,8 @@ def test_nsis_provisions_openxyos_runtime() -> None:
     assert "!insertmacro wails.provisionOpenXYOS" in nsh
     assert 'File "/oname=openxyos-runtime.zip"' in nsh
     assert r"$INSTDIR\openxyos" in nsh
+    assert r"$INSTDIR\openxyos-runtime" in nsh
     assert r"$LOCALAPPDATA\FreeOS\openxyos" in nsh
-    assert "Expand-Archive" in nsh
     assert "http://127.0.0.1:3780" in nsh
     assert "LangString OPENXYOS_WORKDIR ${LANG_SIMPCHINESE}" in nsi
     assert "创建 openXYOS 工作目录" in nsi
@@ -154,6 +155,34 @@ def test_nsis_provisions_openxyos_runtime() -> None:
     assert "stage_openxyos_runtime.py" in task
     package = (REPO / "desktop" / "portable" / "package.sh").read_text(encoding="utf-8")
     assert "openXYOS frontend missing" in package
+
+
+def test_nsis_extracts_runtime_with_quoted_paths_and_aborts_if_incomplete() -> None:
+    """Program Files spaces must not yield a README-only $INSTDIR\\openxyos."""
+    nsi = NSI.read_text(encoding="utf-8-sig")
+    nsh = NSH.read_text(encoding="utf-8")
+    provision = nsh[
+        nsh.index("!macro wails.provisionOpenXYOS") : nsh.index(
+            "!macro wails.requireOpenXYOSLayout"
+        )
+    ]
+    require = nsh[nsh.index("!macro wails.requireOpenXYOSLayout") :]
+    assert "Expand-Archive" not in nsh
+    assert "nsExec::ExecToLog" in provision and "tar.exe" in provision
+    assert "extract-openxyos.cmd" in provision
+    assert "tar.exe" in provision
+    assert r"$INSTDIR\openxyos-runtime.zip" in provision
+    assert "nsExec::ExecToLog" in provision
+    assert "Pop $0" in provision
+    assert r"$INSTDIR\openxyos\node\node.exe" in require
+    assert r"$INSTDIR\openxyos\openxyos\dist\index.html" in require
+    assert "Abort" in require
+    assert "SetErrorLevel 67" in require
+    assert "OPENXYOS_EXTRACT_FAIL" in require
+    assert "LangString OPENXYOS_EXTRACT_FAIL ${LANG_SIMPCHINESE}" in nsi
+    assert "未能解压完整的 openXYOS" in nsi
+    assert "openxyos-runtime.zip missing" in nsh
+    assert "!error" in nsh
 
 
 def test_desktop_readme_documents_uninstall_keep_vs_remove() -> None:
@@ -171,3 +200,15 @@ def test_desktop_readme_documents_uninstall_keep_vs_remove() -> None:
     assert "运行 FreeOS" in text
     assert "%LOCALAPPDATA%\\FreeOS\\openxyos" in text
     assert "127.0.0.1:3780" in text
+    assert "tar.exe" in text
+    assert "README-only" in text
+    assert "folder picker" in text
+
+
+def test_organization_source_download_uses_native_folder_picker() -> None:
+    page = ORG_PAGE.read_text(encoding="utf-8")
+    assert "window.prompt" not in page
+    assert "pickDesktopFolder" in page
+    assert "canPickDesktopFolder" in page
+    assert "resolveOpenxyosSourceDest" in page
+    assert "browseSourceDest" in page

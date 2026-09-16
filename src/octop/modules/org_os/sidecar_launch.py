@@ -148,7 +148,11 @@ def _bundle_looks_complete(path: Path) -> bool:
     node = path / "node" / "node.exe"
     posix = path / "node" / "bin" / "node"
     app = path / "openxyos"
-    return (node.is_file() or posix.is_file()) and (app / "backend" / "server.ts").is_file()
+    return (
+        (node.is_file() or posix.is_file())
+        and (app / "backend" / "server.ts").is_file()
+        and (app / "dist" / "index.html").is_file()
+    )
 
 
 def find_sidecar_runtime() -> SidecarRuntime | None:

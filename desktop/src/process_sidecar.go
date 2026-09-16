@@ -83,7 +83,13 @@ func openxyosUserWorkDir() string {
 	return filepath.Join(productHome(), "openxyos")
 }
 
-func openxyosInstallDir() string {
+// installerRootOverride is a test seam for a fake $INSTDIR (Program Files).
+var installerRootOverride string
+
+func installerRoot() string {
+	if installerRootOverride != "" {
+		return installerRootOverride
+	}
 	exe, err := os.Executable()
 	if err != nil {
 		return ""
@@ -92,7 +98,23 @@ func openxyosInstallDir() string {
 	if resolved, err := filepath.EvalSymlinks(dir); err == nil {
 		dir = resolved
 	}
-	return filepath.Join(dir, "openxyos")
+	return dir
+}
+
+func openxyosInstallDir() string {
+	root := installerRoot()
+	if root == "" {
+		return ""
+	}
+	return filepath.Join(root, "openxyos")
+}
+
+func openxyosStagedRuntimeDir() string {
+	root := installerRoot()
+	if root == "" {
+		return ""
+	}
+	return filepath.Join(root, "openxyos-runtime")
 }
 
 func sidecarSearchDirs(portableRoot string) []string {
@@ -114,6 +136,7 @@ func sidecarSearchDirs(portableRoot string) []string {
 	add(openxyosUserWorkDir())
 	add(filepath.Join(productHome(), "openxyos"))
 	add(openxyosInstallDir())
+	add(openxyosStagedRuntimeDir())
 	if portableRoot != "" {
 		add(orgSidecarDir(portableRoot))
 	}
@@ -322,6 +345,9 @@ func openxyosSourceDirs(portableRoot string) []string {
 	var out []string
 	if install := openxyosInstallDir(); install != "" {
 		out = append(out, install)
+	}
+	if staged := openxyosStagedRuntimeDir(); staged != "" {
+		out = append(out, staged)
 	}
 	if portableRoot != "" {
 		out = append(out, orgSidecarDir(portableRoot))

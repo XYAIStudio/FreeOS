@@ -34,6 +34,17 @@
     !define WAILS_INSTALL_SCOPE "machine"
 !endif
 
+# Prebuilt FE+BE zip must exist when makensis runs (CI: stage:openxyos-runtime).
+# A README-only $INSTDIR\openxyos is not a shippable installer.
+!ifndef OPENXYOS_RUNTIME_ZIP
+    !define OPENXYOS_RUNTIME_ZIP "..\openxyos-runtime.zip"
+!endif
+!if /FileExists "${OPENXYOS_RUNTIME_ZIP}"
+    !define OPENXYOS_RUNTIME_ZIP_PRESENT
+!else
+    !error "openxyos-runtime.zip missing at desktop/src/build/windows/openxyos-runtime.zip; run stage:openxyos-runtime before makensis"
+!endif
+
 !ifndef REQUEST_EXECUTION_LEVEL
     !if "${WAILS_INSTALL_SCOPE}" == "user"
         !define REQUEST_EXECUTION_LEVEL "user"
@@ -126,41 +137,85 @@ RequestExecutionLevel "${REQUEST_EXECUTION_LEVEL}"
 # Ship the prebuilt openXYOS FE+BE next to FreeOS.exe and expand it so the
 # finish log is not just FreeOS.exe + shortcuts. First unelevated start also
 # copies this tree into %LOCALAPPDATA%\FreeOS\openxyos (Program Files is read-only).
+#
+# Do NOT call PowerShell to unzip with NSIS ''$INSTDIR'' quoting: "Program
+# Files" splits the command, extract silently fails, and $INSTDIR\openxyos is
+# left README-only. Write a .cmd (paths expanded at install time) and use
+# Windows 10+ tar.exe, which accepts quoted paths with spaces.
 !macro wails.provisionOpenXYOS
     SetDetailsPrint both
     DetailPrint "$(OPENXYOS_WORKDIR)"
     CreateDirectory "$INSTDIR\openxyos"
+    CreateDirectory "$INSTDIR\openxyos-runtime"
     CreateDirectory "$LOCALAPPDATA\FreeOS\openxyos"
+    DetailPrint "$(OPENXYOS_COPY_ZIP)"
+    File "/oname=openxyos-runtime.zip" "${OPENXYOS_RUNTIME_ZIP}"
+    DetailPrint "$(OPENXYOS_EXTRACT)"
+    InitPluginsDir
+    FileOpen $0 "$PLUGINSDIR\extract-openxyos.cmd" w
+    FileWrite $0 `@echo off$\r$\n`
+    FileWrite $0 `set "TAR=$SYSDIR\tar.exe"$\r$\n`
+    FileWrite $0 `if not exist "$INSTDIR\openxyos-runtime.zip" exit /b 2$\r$\n`
+    FileWrite $0 `if not exist "%TAR%" exit /b 5$\r$\n`
+    FileWrite $0 `if not exist "$INSTDIR\openxyos-runtime" mkdir "$INSTDIR\openxyos-runtime"$\r$\n`
+    FileWrite $0 `if not exist "$INSTDIR\openxyos" mkdir "$INSTDIR\openxyos"$\r$\n`
+    FileWrite $0 `"%TAR%" -xf "$INSTDIR\openxyos-runtime.zip" -C "$INSTDIR\openxyos-runtime"$\r$\n`
+    FileWrite $0 `if errorlevel 1 exit /b 3$\r$\n`
+    FileWrite $0 `"%TAR%" -xf "$INSTDIR\openxyos-runtime.zip" -C "$INSTDIR\openxyos"$\r$\n`
+    FileWrite $0 `if errorlevel 1 exit /b 4$\r$\n`
+    FileClose $0
+    nsExec::ExecToLog '"$PLUGINSDIR\extract-openxyos.cmd"'
+    Pop $0
+    DetailPrint "$(OPENXYOS_EXTRACT_CODE)$0"
+    !insertmacro wails.requireOpenXYOSLayout
     FileOpen $0 "$INSTDIR\openxyos\README.txt" w
     FileWrite $0 "FreeOS local openXYOS environment$\r$\n"
     FileWrite $0 "Install tree: $INSTDIR\openxyos$\r$\n"
+    FileWrite $0 "Staged tree: $INSTDIR\openxyos-runtime$\r$\n"
     FileWrite $0 "Work dir: $LOCALAPPDATA\FreeOS\openxyos$\r$\n"
     FileWrite $0 "Also: %USERPROFILE%\.freeos\openxyos$\r$\n"
     FileWrite $0 "URL: http://127.0.0.1:3780$\r$\n"
     FileClose $0
-    !if /FileExists "..\openxyos-runtime.zip"
-        DetailPrint "$(OPENXYOS_COPY_ZIP)"
-        File "/oname=openxyos-runtime.zip" "..\openxyos-runtime.zip"
-        DetailPrint "$(OPENXYOS_EXTRACT)"
-        nsExec::ExecToLog 'powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "Expand-Archive -LiteralPath ''$INSTDIR\openxyos-runtime.zip'' -DestinationPath ''$INSTDIR\openxyos'' -Force"'
-        IfFileExists "$INSTDIR\openxyos\openxyos\dist\index.html" openxyosFeOk openxyosFeMissing
-        openxyosFeOk:
-            DetailPrint "$(OPENXYOS_FE_OK)"
-            Goto openxyosFeDone
-        openxyosFeMissing:
-            DetailPrint "$(OPENXYOS_FE_MISSING)"
-        openxyosFeDone:
-        IfFileExists "$INSTDIR\openxyos\node\node.exe" openxyosNodeOk openxyosNodeMissing
-        openxyosNodeOk:
-            DetailPrint "$(OPENXYOS_NODE_OK)"
-            Goto openxyosNodeDone
-        openxyosNodeMissing:
-            DetailPrint "$(OPENXYOS_NODE_MISSING)"
-        openxyosNodeDone:
-    !else
-        DetailPrint "$(OPENXYOS_ZIP_MISSING)"
-    !endif
     SetDetailsPrint listonly
+!macroend
+
+# Live workdir is $INSTDIR\openxyos (node + openxyos\dist, or flattened dist).
+# openxyos-runtime is the fully expanded zip (heals first-run if live is stub).
+# Missing node.exe or dist\index.html aborts setup — never ship README-only.
+!macro wails.requireOpenXYOSLayout
+    IfFileExists "$INSTDIR\openxyos\node\node.exe" 0 openxyosTryStaged
+    IfFileExists "$INSTDIR\openxyos\openxyos\dist\index.html" openxyosLiveOk openxyosTryFlat
+    openxyosTryFlat:
+    IfFileExists "$INSTDIR\openxyos\dist\index.html" openxyosLiveOk openxyosTryStaged
+    openxyosLiveOk:
+        DetailPrint "$(OPENXYOS_FE_OK)"
+        DetailPrint "$(OPENXYOS_NODE_OK)"
+        Goto openxyosLayoutDone
+    openxyosTryStaged:
+    IfFileExists "$INSTDIR\openxyos-runtime\node\node.exe" 0 openxyosLayoutFail
+    IfFileExists "$INSTDIR\openxyos-runtime\openxyos\dist\index.html" 0 openxyosTryStagedFlat
+        Goto openxyosCopyStaged
+    openxyosTryStagedFlat:
+    IfFileExists "$INSTDIR\openxyos-runtime\dist\index.html" 0 openxyosLayoutFail
+    openxyosCopyStaged:
+        DetailPrint "$(OPENXYOS_STAGED_OK)"
+        nsExec::ExecToLog '"$SYSDIR\cmd.exe" /C xcopy /E /I /Y "$INSTDIR\openxyos-runtime\*" "$INSTDIR\openxyos\"'
+        Pop $0
+        IfFileExists "$INSTDIR\openxyos\node\node.exe" 0 openxyosLayoutFail
+        IfFileExists "$INSTDIR\openxyos\openxyos\dist\index.html" openxyosLiveOk openxyosTryFlatAfterCopy
+        openxyosTryFlatAfterCopy:
+        IfFileExists "$INSTDIR\openxyos\dist\index.html" openxyosLiveOk openxyosLayoutFail
+    openxyosLayoutFail:
+        DetailPrint "$(OPENXYOS_EXTRACT_FAIL)"
+        IfSilent openxyosSilentFail openxyosLoudFail
+        openxyosSilentFail:
+            SetErrorLevel 67
+            Abort
+        openxyosLoudFail:
+            MessageBox MB_OK|MB_ICONSTOP "$(OPENXYOS_EXTRACT_FAIL)"
+            SetErrorLevel 67
+            Abort
+    openxyosLayoutDone:
 !macroend
 
 !macro wails.writeUninstaller

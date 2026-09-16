@@ -117,6 +117,19 @@ def test_ensure_sidecar_skips_source_tree_script(
     assert spawned == []
 
 
+def test_bundle_rejects_readme_only_workdir(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    work = tmp_path / "openxyos-home"
+    work.mkdir()
+    (work / "README.txt").write_text("stub", encoding="utf-8")
+    monkeypatch.setenv("FREEOS_OPENXYOS_HOME", str(work))
+    monkeypatch.setenv("LOCALAPPDATA", str(tmp_path / "local"))
+    monkeypatch.delenv("OCTOP_GREEN_PACKAGES", raising=False)
+    monkeypatch.setenv("FREEOS_HOME", str(tmp_path / "unused-home"))
+    assert find_sidecar_runtime() is None
+
+
 def test_sidecar_bundle_dir_prefers_openxyos_home(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

@@ -25,7 +25,12 @@ import {
 } from "../../api/modules/orgModule";
 import { formatServerIsoDateTime } from "../../utils/formatMessageTime";
 import { useServerTimezone } from "../../hooks/useServerTimezone";
+import {
+  canPickDesktopFolder,
+  pickDesktopFolder,
+} from "../../utils/desktopFolder";
 import { message } from "../../utils/antdMessage";
+import { resolveOpenxyosSourceDest } from "./pickSourceDest";
 import styles from "./Organization.module.less";
 
 type ActionKey = "assemble" | "pack" | "loop" | "sidecar" | "produce" | null;
@@ -51,6 +56,7 @@ export default function OrganizationPage() {
   );
   const [sourceDest, setSourceDest] = useState("");
   const [downloading, setDownloading] = useState(false);
+  const [pickingFolder, setPickingFolder] = useState(false);
   const [produceName, setProduceName] = useState("");
   const [produceIma, setProduceIma] = useState("");
   const [landed, setLanded] = useState<Record<string, unknown> | null>(null);
@@ -203,12 +209,7 @@ export default function OrganizationPage() {
     }
   };
 
-  const downloadSource = async () => {
-    const dest = sourceDest.trim();
-    if (!dest) {
-      message.error(t("organization.downloadSourceDest"));
-      return;
-    }
+  const saveSourceTo = async (dest: string) => {
     setDownloading(true);
     try {
       const result = await orgModuleApi.downloadSource(dest);
@@ -224,6 +225,51 @@ export default function OrganizationPage() {
     } finally {
       setDownloading(false);
     }
+  };
+
+  const browseSourceDest = async () => {
+    setPickingFolder(true);
+    try {
+      const path = await pickDesktopFolder();
+      if (path) {
+        setSourceDest(path);
+      } else if (!canPickDesktopFolder()) {
+        message.info(t("organization.pickFolderFailed"));
+      }
+    } catch (err) {
+      message.error(
+        err instanceof Error ? err.message : t("organization.pickFolderFailed"),
+      );
+    } finally {
+      setPickingFolder(false);
+    }
+  };
+
+  const downloadSource = async () => {
+    setPickingFolder(true);
+    let dest: string | null = null;
+    try {
+      dest = await resolveOpenxyosSourceDest({
+        canPickNative: canPickDesktopFolder(),
+        pickNative: pickDesktopFolder,
+        typedDest: sourceDest,
+      });
+    } catch (err) {
+      message.error(
+        err instanceof Error ? err.message : t("organization.pickFolderFailed"),
+      );
+      setPickingFolder(false);
+      return;
+    }
+    setPickingFolder(false);
+    if (!dest) {
+      if (!canPickDesktopFolder()) {
+        message.error(t("organization.downloadSourceDest"));
+      }
+      return;
+    }
+    setSourceDest(dest);
+    await saveSourceTo(dest);
   };
 
   const assemble = () =>
@@ -331,34 +377,8 @@ export default function OrganizationPage() {
           {(sidecarUp || overview?.enabled) && (
             <Button
               icon={<Package size={14} />}
-              onClick={() => {
-                const dest = window.prompt(
-                  t("organization.downloadSourceDest"),
-                );
-                if (dest) {
-                  setSourceDest(dest);
-                  void (async () => {
-                    setDownloading(true);
-                    try {
-                      const result = await orgModuleApi.downloadSource(dest);
-                      message.success(
-                        t("organization.downloadSourceDone", {
-                          path: result.path,
-                        }),
-                      );
-                    } catch (err) {
-                      message.error(
-                        err instanceof Error
-                          ? err.message
-                          : t("organization.downloadSourceFailed"),
-                      );
-                    } finally {
-                      setDownloading(false);
-                    }
-                  })();
-                }
-              }}
-              loading={downloading}
+              onClick={() => void downloadSource()}
+              loading={downloading || pickingFolder}
             >
               {t("organization.downloadSource")}
             </Button>
@@ -741,15 +761,23 @@ export default function OrganizationPage() {
                   {t("organization.downloadSourceHint")}
                 </p>
                 <Space wrap style={{ marginTop: 12 }}>
-                  <Input
-                    value={sourceDest}
-                    onChange={(event) => setSourceDest(event.target.value)}
-                    placeholder={t("organization.downloadSourceDest")}
-                    style={{ minWidth: 260 }}
-                  />
+                  <Space.Compact style={{ minWidth: 320 }}>
+                    <Input
+                      value={sourceDest}
+                      onChange={(event) => setSourceDest(event.target.value)}
+                      placeholder={t("organization.downloadSourceDest")}
+                      readOnly={canPickDesktopFolder()}
+                    />
+                    <Button
+                      loading={pickingFolder}
+                      onClick={() => void browseSourceDest()}
+                    >
+                      {t("organization.browseDest")}
+                    </Button>
+                  </Space.Compact>
                   <Button
                     type="primary"
-                    loading={downloading}
+                    loading={downloading || pickingFolder}
                     onClick={() => void downloadSource()}
                   >
                     {t("organization.downloadSource")}
