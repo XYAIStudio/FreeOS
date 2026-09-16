@@ -47,6 +47,11 @@ import type { SlashMenuItem } from "../hooks/useSlashMentionInput";
 import { SHORTCUT_ICON_TONE_CLASS } from "../utils/slashShortcutStyles";
 import { isSttAvailable } from "../../../hooks/useVoiceInput";
 import { resolveTurnModelOverride } from "../utils/chatMessages";
+import { expertMentionToken } from "../utils/expertMention";
+import { useAgent } from "../../../context/AgentContext";
+import { message } from "../../../utils/antdMessage";
+import { openGroupChat } from "../../../utils/openGroupChat";
+import { uniqueMemberIds } from "../../../utils/groupChats";
 import {
   mentionedExpertIds,
   mentionedSubagentSlugs,
@@ -109,6 +114,7 @@ interface ChatInputActionsRowProps {
   availableSkills?: SkillSpec[];
   onInsertSkillCommand?: (slug: string) => void;
   availableExperts?: ChatAgentOption[];
+  hostAgent?: ChatAgentOption | null;
   onInsertExpertMention?: (agent: ChatAgentOption) => void;
   availableSubagents?: AgentSubagentSummary[];
   onInsertSubagentMention?: (subagent: AgentSubagentSummary) => void;
@@ -159,6 +165,7 @@ export default function ChatInputActionsRow({
   availableSkills,
   onInsertSkillCommand,
   availableExperts,
+  hostAgent,
   onInsertExpertMention,
   availableSubagents,
   onInsertSubagentMention,
@@ -174,6 +181,8 @@ export default function ChatInputActionsRow({
 }: ChatInputActionsRowProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { setActiveAgent } = useAgent();
+  const [groupStarting, setGroupStarting] = useState(false);
   const actionsRowRef = useRef<HTMLDivElement | null>(null);
   const [isCompact, setIsCompact] = useState(false);
   const [skillPickerOpen, setSkillPickerOpen] = useState(false);
@@ -272,6 +281,53 @@ export default function ChatInputActionsRow({
     onInsertExpertMention?.(agent);
     setExpertPickerOpen(false);
     closeCompactPicker();
+  };
+
+  const handleEnterGroupChat = async (members: ChatAgentOption[]) => {
+    const memberIds = uniqueMemberIds([
+      hostAgent?.agent_id,
+      ...members.map((item) => item.agent_id),
+    ]);
+    const known = new Map<string, string>();
+    if (hostAgent) known.set(hostAgent.agent_id, hostAgent.name);
+    for (const item of availableExperts ?? []) {
+      known.set(item.agent_id, item.name);
+    }
+    for (const item of members) {
+      known.set(item.agent_id, item.name);
+    }
+    const memberNames = memberIds.map((id) => known.get(id) ?? id);
+    if (memberIds.length < 2) {
+      message.error(t("projects.groupMembersRequired"));
+      return;
+    }
+    setGroupStarting(true);
+    try {
+      const { record, created } = await openGroupChat({
+        memberIds,
+        memberNames,
+      });
+      const prefill = memberNames
+        .map((name) => expertMentionToken(name))
+        .join(" ");
+      message.success(
+        created
+          ? t("projects.groupCreated")
+          : t("chat.expertPickerGroupOpened"),
+      );
+      setExpertPickerOpen(false);
+      closeCompactPicker();
+      setActiveAgent(record.hostAgentId);
+      navigate(`/chat/${record.hostAgentId}/${record.threadId}`, {
+        state: { prefillInput: `${prefill} ` },
+      });
+    } catch (err) {
+      message.error(
+        err instanceof Error ? err.message : t("projects.groupCreateFailed"),
+      );
+    } finally {
+      setGroupStarting(false);
+    }
   };
 
   const handleSubagentSelect = (subagent: AgentSubagentSummary) => {
@@ -680,6 +736,9 @@ export default function ChatInputActionsRow({
             selectedAgentIds={mentionedExperts}
             onSelect={handleExpertSelect}
             onNavigateAway={closeCompactPicker}
+            hostAgent={hostAgent}
+            onEnterGroupChat={(members) => void handleEnterGroupChat(members)}
+            groupStarting={groupStarting}
           />
         );
       case "subagent":
@@ -993,6 +1052,11 @@ export default function ChatInputActionsRow({
                 selectedAgentIds={mentionedExperts}
                 onSelect={handleExpertSelect}
                 onNavigateAway={() => setExpertPickerOpen(false)}
+                hostAgent={hostAgent}
+                onEnterGroupChat={(members) =>
+                  void handleEnterGroupChat(members)
+                }
+                groupStarting={groupStarting}
               />
             }
           >

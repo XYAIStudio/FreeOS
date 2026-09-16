@@ -409,6 +409,69 @@
   }
 }
 
+.expertPickerRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 4px 12px 4px 10px;
+  box-sizing: border-box;
+}
+
+.expertPickerSelect {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  flex: 1;
+  padding: 4px 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+}
+
+.expertPickerGroupBar {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  border-top: 1px solid var(--fn-border-secondary, rgba(0, 0, 0, 0.06));
+}
+
+.expertPickerGroupHint {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--fn-text-tertiary);
+}
+
+.expertPickerGroupBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  margin: 0;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 10px;
+  background: var(--fn-color-brand, #1677ff);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    filter: brightness(1.05);
+  }
+
+  &:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+}
+
 .expertPickerItemText {
   min-width: 0;
   flex: 1;

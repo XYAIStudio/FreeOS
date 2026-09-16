@@ -1,0 +1,45 @@
+.zone {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tab {
+  flex: 1 1 7rem;
+  min-height: 40px;
+  margin: 0;
+  border: 1px solid var(--fn-border-secondary, rgba(0, 0, 0, 0.08));
+  border-radius: 10px;
+  background: var(--fn-fill-tertiary, rgba(0, 0, 0, 0.04));
+  color: var(--fn-text-secondary);
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 22px;
+  cursor: pointer;
+  padding: 8px 12px;
+}
+
+.tab:hover {
+  color: var(--fn-text-primary);
+  background: var(--fn-bg-hover, rgba(0, 0, 0, 0.06));
+}
+
+.tabActive {
+  background: var(--fn-bg-elevated, #fff);
+  border-color: var(--fn-color-brand, #1677ff);
+  color: var(--fn-text-primary);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}

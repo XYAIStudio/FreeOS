@@ -1,4 +1,11 @@
-import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import {
+  lazy,
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import {
   Button,
   Checkbox,
@@ -7,7 +14,6 @@ import {
   Input,
   List,
   Modal,
-  Segmented,
   Space,
   Tag,
 } from "antd";
@@ -24,7 +30,10 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import PageShell from "../../layouts/PageShell";
 import PageLoading from "../../components/PageLoading";
 import { projectsApi, type Project } from "../../api/modules/projects";
-import { octopThreadsApi, type OctopThread } from "../../api/modules/octopThreads";
+import {
+  octopThreadsApi,
+  type OctopThread,
+} from "../../api/modules/octopThreads";
 import { useAgent, selectEnabledExperts } from "../../context/AgentContext";
 import { onSessionEvent } from "../Chat/hooks/chatStore";
 import { expertMentionToken } from "../Chat/utils/expertMention";
@@ -32,13 +41,10 @@ import {
   canPickDesktopFolder,
   pickDesktopFolder,
 } from "../../utils/desktopFolder";
-import {
-  groupChatTitle,
-  loadGroupChats,
-  saveGroupChat,
-  type GroupChatRecord,
-} from "../../utils/groupChats";
+import { loadGroupChats, type GroupChatRecord } from "../../utils/groupChats";
+import { openGroupChat } from "../../utils/openGroupChat";
 import { message } from "../../utils/antdMessage";
+import styles from "./index.module.less";
 
 const CronJobsPage = lazy(() => import("../Control/CronJobs"));
 
@@ -62,14 +68,18 @@ export default function ProjectsPage() {
   const [threads, setThreads] = useState<
     Array<OctopThread & { agentId: string; agentName: string }>
   >([]);
-  const [groups, setGroups] = useState<GroupChatRecord[]>(() => loadGroupChats());
+  const [groups, setGroups] = useState<GroupChatRecord[]>(() =>
+    loadGroupChats(),
+  );
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [groupOpen, setGroupOpen] = useState(false);
   const [pickingFolder, setPickingFolder] = useState(false);
   const [form] = Form.useForm<{ name: string; work_dir?: string }>();
   const [groupForm] = Form.useForm<{ title?: string; members: string[] }>();
-  const view = (searchParams.get("view") || "conversations") as WorkspaceView;
+  const rawView = searchParams.get("view");
+  const view: WorkspaceView =
+    rawView === "projects" || rawView === "tasks" ? rawView : "conversations";
   const enabledExperts = useMemo(
     () => selectEnabledExperts(agents, activeAgentId, { pinActive: false }),
     [agents, activeAgentId],
@@ -141,19 +151,22 @@ export default function ProjectsPage() {
   }, [loadThreads]);
 
   useEffect(() => {
-    if (searchParams.get("new") === "1") {
-      setOpen(true);
-      const next = new URLSearchParams(searchParams);
-      next.delete("new");
-      setSearchParams(next, { replace: true });
-    }
     if (searchParams.get("group") === "1") {
       setGroupOpen(true);
       const next = new URLSearchParams(searchParams);
       next.delete("group");
+      if (next.get("view") === "tasks" || next.get("view") === "projects") {
+        next.delete("view");
+      }
       setSearchParams(next, { replace: true });
     }
-  }, [searchParams, setSearchParams]);
+    if (searchParams.get("new") !== "1") return;
+    if (view === "tasks") return;
+    setOpen(true);
+    const next = new URLSearchParams(searchParams);
+    next.delete("new");
+    setSearchParams(next, { replace: true });
+  }, [searchParams, setSearchParams, view]);
 
   const conversations = useMemo<LiveConversation[]>(() => {
     const groupByThread = new Map(groups.map((item) => [item.threadId, item]));
@@ -250,30 +263,26 @@ export default function ProjectsPage() {
       message.error(t("projects.groupMembersRequired"));
       return;
     }
-    const hostId = members[0];
     const named = members
       .map((id) => enabledExperts.find((agent) => agent.agent_id === id)?.name)
       .filter((name): name is string => Boolean(name));
     try {
-      const created = await octopThreadsApi.create(hostId);
-      const title = groupChatTitle(values.title, named);
-      await octopThreadsApi.rename(hostId, created.thread_id, title);
-      const record: GroupChatRecord = {
-        id: created.thread_id,
-        threadId: created.thread_id,
-        hostAgentId: hostId,
+      const { record, created } = await openGroupChat({
         memberIds: members,
-        title,
-        createdAt: Date.now(),
-        lastActive: Date.now(),
-      };
-      setGroups(saveGroupChat(record));
+        memberNames: named,
+        title: values.title,
+      });
+      setGroups(loadGroupChats());
       const prefill = named.map((name) => expertMentionToken(name)).join(" ");
-      message.success(t("projects.groupCreated"));
+      message.success(
+        created
+          ? t("projects.groupCreated")
+          : t("chat.expertPickerGroupOpened"),
+      );
       setGroupOpen(false);
       groupForm.resetFields();
-      setActiveAgent(hostId);
-      navigate(`/chat/${hostId}/${created.thread_id}`, {
+      setActiveAgent(record.hostAgentId);
+      navigate(`/chat/${record.hostAgentId}/${record.threadId}`, {
         state: { prefillInput: `${prefill} ` },
       });
     } catch (err) {
@@ -283,55 +292,77 @@ export default function ProjectsPage() {
     }
   };
 
-  const actionBar = (
-    <Space wrap>
-      <Button
-        icon={<MessageSquarePlus size={14} />}
-        onClick={startNewConversation}
-      >
-        {t("nav.newConversation")}
-      </Button>
-      <Button
-        icon={<ListPlus size={14} />}
-        onClick={() => navigate("/projects?view=tasks&new=1")}
-      >
-        {t("nav.newTask")}
-      </Button>
-      <Button
-        icon={<FolderPlus size={14} />}
-        onClick={() => setOpen(true)}
-      >
-        {t("nav.newProject")}
-      </Button>
-      <Button
-        type="primary"
-        icon={<Users size={14} />}
-        onClick={() => setGroupOpen(true)}
-      >
-        {t("nav.newGroup")}
-      </Button>
-    </Space>
-  );
+  const startNewTask = () => {
+    const params = new URLSearchParams(searchParams);
+    params.set("view", "tasks");
+    params.set("new", "1");
+    setSearchParams(params);
+  };
+
+  const zoneTabs: { value: WorkspaceView; label: string }[] = [
+    { value: "conversations", label: t("projects.tabConversations") },
+    { value: "tasks", label: t("projects.tabTasks") },
+    { value: "projects", label: t("projects.tabProjects") },
+  ];
 
   return (
-    <PageShell
-      title={t("nav.workspace")}
-      subtitle={t("projects.subtitle")}
-      actions={
-        <Space direction="vertical" align="end" size={8}>
-          {actionBar}
-          <Segmented
-            value={view}
-            onChange={(value) => setView(String(value) as WorkspaceView)}
-            options={[
-              { value: "conversations", label: t("projects.tabConversations") },
-              { value: "projects", label: t("projects.tabProjects") },
-              { value: "tasks", label: t("projects.tabTasks") },
-            ]}
-          />
-        </Space>
-      }
-    >
+    <PageShell title={t("nav.workspace")} subtitle={t("projects.subtitle")}>
+      <div className={styles.zone}>
+        <div className={styles.tabs} role="tablist">
+          {zoneTabs.map((tab) => (
+            <button
+              key={tab.value}
+              type="button"
+              role="tab"
+              aria-selected={view === tab.value}
+              className={`${styles.tab} ${
+                view === tab.value ? styles.tabActive : ""
+              }`}
+              onClick={() => setView(tab.value)}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+        <div className={styles.actions}>
+          {view === "conversations" ? (
+            <>
+              <Button
+                icon={<MessageSquarePlus size={14} />}
+                onClick={startNewConversation}
+              >
+                {t("nav.newConversation")}
+              </Button>
+              <Button
+                type="primary"
+                icon={<Users size={14} />}
+                onClick={() => setGroupOpen(true)}
+              >
+                {t("nav.newGroup")}
+              </Button>
+            </>
+          ) : null}
+          {view === "tasks" ? (
+            <Button
+              type="primary"
+              icon={<ListPlus size={14} />}
+              onClick={startNewTask}
+            >
+              {t("nav.newTask")}
+            </Button>
+          ) : null}
+          {view === "projects" ? (
+            <Button
+              type="primary"
+              icon={<FolderPlus size={14} />}
+              onClick={() => setOpen(true)}
+            >
+              {t("nav.newProject")}
+            </Button>
+          ) : null}
+        </div>
+      </div>
+
       {view === "tasks" ? (
         <Suspense fallback={<PageLoading />}>
           <CronJobsPage />
@@ -394,11 +425,7 @@ export default function ProjectsPage() {
           renderItem={(item) => (
             <List.Item
               actions={[
-                <Button
-                  key="chat"
-                  type="link"
-                  onClick={startNewConversation}
-                >
+                <Button key="chat" type="link" onClick={startNewConversation}>
                   {t("nav.newConversation")}
                 </Button>,
                 <Button

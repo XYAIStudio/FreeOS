@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
   GROUP_CHATS_KEY,
+  findGroupChatByMembers,
   groupChatTitle,
   loadGroupChats,
   saveGroupChat,
+  uniqueMemberIds,
   type GroupChatRecord,
 } from "./groupChats";
 
@@ -39,5 +41,13 @@ describe("groupChats", () => {
   it("builds a default title from member names", () => {
     expect(groupChatTitle("", ["分析师", "研究员"])).toBe("分析师、研究员");
     expect(groupChatTitle(" 产品 ", ["A"])).toBe("产品");
+  });
+
+  it("dedupes member ids and finds an existing group by set", () => {
+    expect(uniqueMemberIds(["a1", null, "a2", "a1", ""])).toEqual(["a1", "a2"]);
+    const storage = memoryStorage();
+    saveGroupChat(sample, storage);
+    expect(findGroupChatByMembers(["a2", "a1"], storage)?.id).toBe("g1");
+    expect(findGroupChatByMembers(["a1"], storage)).toBeUndefined();
   });
 });
