@@ -21,7 +21,7 @@ const defaultSidecarPort = 3780
 
 func hostLaunchEnv(root string, port int) map[string]string {
 	home := productHome()
-	return map[string]string{
+	env := map[string]string{
 		"FREEOS_HOME":             home,
 		"OCTOP_HOME":              home,
 		"OCTOP_GREEN_PACKAGES":    filepath.Join(root, "packages"),
@@ -35,6 +35,10 @@ func hostLaunchEnv(root string, port int) map[string]string {
 		"OCTOP_DESKTOP":           "1",
 		"FREEOS_DESKTOP":          "1",
 	}
+	if bundle := resolveSidecarDir(root); bundle != "" {
+		env["FREEOS_OPENXYOS_HOME"] = bundle
+	}
+	return env
 }
 
 func sidecarURL() string {

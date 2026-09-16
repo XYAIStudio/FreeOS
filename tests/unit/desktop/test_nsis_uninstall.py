@@ -135,6 +135,27 @@ def test_packaged_windows_entry_is_freeos_exe() -> None:
     assert "addsitedir" in launch or "site.addsitedir" in launch
 
 
+def test_nsis_provisions_openxyos_runtime() -> None:
+    nsi = NSI.read_text(encoding="utf-8-sig")
+    nsh = NSH.read_text(encoding="utf-8")
+    assert "!insertmacro wails.provisionOpenXYOS" in nsh
+    assert 'File "/oname=openxyos-runtime.zip"' in nsh
+    assert r"$INSTDIR\openxyos" in nsh
+    assert r"$LOCALAPPDATA\FreeOS\openxyos" in nsh
+    assert "Expand-Archive" in nsh
+    assert "http://127.0.0.1:3780" in nsh
+    assert "LangString OPENXYOS_WORKDIR ${LANG_SIMPCHINESE}" in nsi
+    assert "创建 openXYOS 工作目录" in nsi
+    assert "openXYOS 运行包" in nsi
+    task = (REPO / "desktop" / "src" / "build" / "windows" / "Taskfile.yml").read_text(
+        encoding="utf-8"
+    )
+    assert "stage:openxyos-runtime" in task
+    assert "stage_openxyos_runtime.py" in task
+    package = (REPO / "desktop" / "portable" / "package.sh").read_text(encoding="utf-8")
+    assert "openXYOS frontend missing" in package
+
+
 def test_desktop_readme_documents_uninstall_keep_vs_remove() -> None:
     text = DESKTOP_README.read_text(encoding="utf-8")
     assert "## Windows uninstall" in text
@@ -148,3 +169,5 @@ def test_desktop_readme_documents_uninstall_keep_vs_remove() -> None:
     assert "Confirm" in text
     assert "## Windows install finish" in text
     assert "运行 FreeOS" in text
+    assert "%LOCALAPPDATA%\\FreeOS\\openxyos" in text
+    assert "127.0.0.1:3780" in text

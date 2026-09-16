@@ -7,6 +7,7 @@ const (
 	copyStatusCheckingRuntime  = "status.checking_runtime"
 	copyStatusStartingService  = "status.starting_service"
 	copyStatusStartingOrg      = "status.starting_org"
+	copyStatusProvisioningOrg  = "status.provisioning_org"
 	copyStatusReady            = "status.ready"
 	copyStatusUsingRuntime     = "status.using_runtime"
 	copyStatusBackupDatabase   = "status.backup_database"
@@ -35,6 +36,7 @@ var desktopCopy = map[Locale]map[string]string{
 		copyStatusCheckingRuntime:  "Checking the runtime…",
 		copyStatusStartingService:  "Starting the FreeOS service…",
 		copyStatusStartingOrg:      "Starting the organization console…",
+		copyStatusProvisioningOrg:  "Preparing the local openXYOS environment…",
 		copyStatusReady:            "FreeOS is ready",
 		copyStatusUsingRuntime:     "Using the existing runtime…",
 		copyStatusBackupDatabase:   "Desktop update %s found. Backing up the database…",
@@ -61,6 +63,7 @@ var desktopCopy = map[Locale]map[string]string{
 		copyStatusCheckingRuntime:  "正在检查运行环境…",
 		copyStatusStartingService:  "正在启动 FreeOS 服务…",
 		copyStatusStartingOrg:      "正在启动组织控制台…",
+		copyStatusProvisioningOrg:  "正在准备本机 openXYOS 环境…",
 		copyStatusReady:            "FreeOS 已就绪",
 		copyStatusUsingRuntime:     "正在使用已有运行环境…",
 		copyStatusBackupDatabase:   "发现客户端新版 %s，正在备份数据库…",

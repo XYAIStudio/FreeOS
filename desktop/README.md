@@ -22,6 +22,10 @@ Same precedence as the FreeOS CLI/server:
 
 - Green runtime extract → `{home}/portable/`
 - Organization sidecar data → `{home}/org-os/`
+- Local openXYOS workdir (FE+BE) → `%LOCALAPPDATA%\FreeOS\openxyos` on Windows,
+  else `{home}/openxyos`. The NSIS installer also expands a prebuilt
+  `openxyos-runtime.zip` into `$INSTDIR\openxyos`. First unelevated start copies
+  that tree into the workdir and starts `http://127.0.0.1:3780`.
 - Shell prefs → `{home}/desktop-settings.json`
 
 ## Windows install finish
@@ -32,6 +36,16 @@ closes (working directory is the install folder). The launch uses the
 unelevated explorer token so the first run does not stamp `%USERPROFILE%\.freeos`
 as High integrity. Uncheck to skip. Chinese installer strings are compiled
 with `makensis -INPUTCHARSET UTF8` from a UTF-8 BOM `project.nsi`.
+
+The install log is no longer only `FreeOS.exe` + shortcuts. A healthy package
+also copies `openxyos-runtime.zip` (prebuilt Node + openXYOS frontend/backend)
+and extracts it to `$INSTDIR\openxyos`. The durable workdir is
+`%LOCALAPPDATA%\FreeOS\openxyos` (and `{home}/openxyos`). Program Files is
+read-only, so first start — not the elevated installer — writes the user
+workdir. Organization then embeds `http://127.0.0.1:3780` without a manual
+「启动边车」 click.
+
+Override the workdir with `FREEOS_OPENXYOS_HOME`.
 
 ## Windows uninstall
 
@@ -72,9 +86,13 @@ would treat that tree as program files (unless it is named `User Data` /
 On first open the shell:
 
 1. Extracts the bundled portable runtime (Python host + Node + openXYOS).
-2. Starts the openXYOS sidecar on `http://127.0.0.1:3780` when `org-sidecar/` is present.
-3. Starts the FreeOS host with `FREEOS_HOME` and `FREEOS_ORG_ENABLE=1`.
-4. Opens the desktop window on the host UI with a local guest session (no
+2. Provisions the openXYOS workdir (`%LOCALAPPDATA%\FreeOS\openxyos` or
+   `{home}/openxyos`) from `$INSTDIR\openxyos` or `portable/org-sidecar`.
+3. Starts the openXYOS sidecar on `http://127.0.0.1:3780` and waits until
+   `/api/health/livez` responds (first launch allows extra time).
+4. Starts the FreeOS host with `FREEOS_HOME`, `FREEOS_ORG_ENABLE=1`, and
+   `FREEOS_OPENXYOS_HOME`.
+5. Opens the desktop window on the host UI with a local guest session (no
    login wall). Chat and **Organization** are both available — no separate
    Node install. Register or sign in later when a save needs an account.
 

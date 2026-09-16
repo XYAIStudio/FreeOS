@@ -7,6 +7,8 @@ import (
 	"syscall"
 )
 
+func hideConsole(cmd *exec.Cmd) {}
+
 func configureProcGroup(cmd *exec.Cmd) {
 	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 }

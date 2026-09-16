@@ -49,6 +49,9 @@ func TestSidecarLaunchEnvPointsAtHomeDatabase(t *testing.T) {
 
 func TestSidecarReadyRequiresFrontendBuild(t *testing.T) {
 	root := t.TempDir()
+	t.Setenv("FREEOS_HOME", root)
+	t.Setenv("FREEOS_OPENXYOS_HOME", filepath.Join(root, "missing-openxyos"))
+	t.Setenv("LOCALAPPDATA", filepath.Join(root, "local"))
 	if sidecarReady(root) {
 		t.Fatal("empty tree should not be ready")
 	}
@@ -77,6 +80,65 @@ func TestSidecarReadyRequiresFrontendBuild(t *testing.T) {
 	}
 	if !sidecarReady(root) {
 		t.Fatal("bundled node + server + frontend should be ready")
+	}
+}
+
+func TestResolveSidecarDirUsesWorkdir(t *testing.T) {
+	root := t.TempDir()
+	work := filepath.Join(root, "openxyos")
+	t.Setenv("FREEOS_HOME", root)
+	t.Setenv("FREEOS_OPENXYOS_HOME", work)
+	t.Setenv("LOCALAPPDATA", filepath.Join(root, "local"))
+	writeSidecarBundle(t, work)
+	if got := resolveSidecarDir(filepath.Join(root, "portable")); got != work {
+		t.Fatalf("resolveSidecarDir=%q want %q", got, work)
+	}
+}
+
+func TestProvisionOpenXYOSCopiesFromPortable(t *testing.T) {
+	root := t.TempDir()
+	t.Setenv("FREEOS_HOME", root)
+	work := filepath.Join(root, "workdir")
+	t.Setenv("FREEOS_OPENXYOS_HOME", work)
+	t.Setenv("LOCALAPPDATA", filepath.Join(root, "local"))
+	portable := filepath.Join(root, "portable")
+	writeSidecarBundle(t, orgSidecarDir(portable))
+	got, err := provisionOpenXYOS(portable, LocaleEN, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got != work {
+		t.Fatalf("provision dest=%q want %q", got, work)
+	}
+	if !sidecarBundleReady(work) {
+		t.Fatal("workdir should contain FE+BE")
+	}
+	if _, err := os.Stat(filepath.Join(work, "README.txt")); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func writeSidecarBundle(t *testing.T, bundle string) {
+	t.Helper()
+	node := sidecarNodeAt(bundle)
+	if err := os.MkdirAll(filepath.Dir(node), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(node, []byte("node"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	app := sidecarAppAt(bundle)
+	if err := os.MkdirAll(filepath.Join(app, "backend"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(app, "backend", "server.ts"), []byte(""), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Join(app, "dist"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(app, "dist", "index.html"), []byte("<html></html>"), 0o644); err != nil {
+		t.Fatal(err)
 	}
 }
 

@@ -243,6 +243,27 @@ assemble_one() {
 
   echo "[package] ${plat}: bundling openXYOS sidecar" >&2
   bash "${REPO_ROOT}/desktop/portable/bundle-org-sidecar.sh" "$plat" "$staging"
+  if [[ "${SKIP_ORG_SIDECAR:-0}" != "1" ]]; then
+    if [[ ! -f "${staging}/org-sidecar/openxyos/dist/index.html" ]]; then
+      echo "[package] ERROR: openXYOS frontend missing under ${staging}/org-sidecar/openxyos/dist" >&2
+      exit 1
+    fi
+    if [[ "$plat" == windows-* && ! -f "${staging}/org-sidecar/node/node.exe" ]]; then
+      echo "[package] ERROR: bundled Node missing under ${staging}/org-sidecar/node" >&2
+      exit 1
+    fi
+    if [[ "$plat" != windows-* && ! -x "${staging}/org-sidecar/node/bin/node" ]]; then
+      echo "[package] ERROR: bundled Node missing under ${staging}/org-sidecar/node/bin" >&2
+      exit 1
+    fi
+    echo "[package] ${plat}: writing openxyos-runtime zip" >&2
+    python3 "${REPO_ROOT}/desktop/src/build/stage_openxyos_runtime.py" \
+      "${staging}/org-sidecar" \
+      "${GREEN_RELEASE}/openxyos-runtime-${plat}-$(octop_version).zip" \
+      || python "${REPO_ROOT}/desktop/src/build/stage_openxyos_runtime.py" \
+        "${staging}/org-sidecar" \
+        "${GREEN_RELEASE}/openxyos-runtime-${plat}-$(octop_version).zip"
+  fi
 
   # Windows: pywin32 DLLs must be findable next to python.exe (or on PATH).
   # --target installs leave them under packages/pywin32_system32 only.

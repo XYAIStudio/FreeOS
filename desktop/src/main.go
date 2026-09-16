@@ -189,6 +189,9 @@ func (a *App) boot() {
 		return
 	}
 	root := portableDir()
+	if _, perr := provisionOpenXYOS(root, locale, a.setStatus); perr != nil {
+		log.Printf("openXYOS provision: %v", perr)
+	}
 	port := chooseHostPort(s.Port)
 	if port != s.Port {
 		log.Printf("port %d is occupied; starting FreeOS host on %d", s.Port, port)
@@ -203,8 +206,6 @@ func (a *App) boot() {
 		if serr != nil {
 			logStartupError("organization sidecar", serr)
 		}
-		// Sidecar health is non-blocking: Node/tsx cold start must not hold
-		// the splash. Dashboard Organization polls until livez is up.
 	} else {
 		log.Printf("organization sidecar not bundled under %s", orgSidecarDir(root))
 	}
@@ -228,6 +229,17 @@ func (a *App) boot() {
 		a.setStatus(err.Error())
 		showFatalError("FreeOS", formatFatalStartup(locale, err))
 		return
+	}
+	if sidecarReady(root) {
+		wait := 20 * time.Second
+		if firstLaunch {
+			wait = 45 * time.Second
+		}
+		if err := waitSidecarLive(wait); err != nil {
+			log.Printf("organization sidecar not live yet: %v", err)
+		} else {
+			log.Printf("organization sidecar live at %s", sidecarURL())
+		}
 	}
 	a.showDashboard(base)
 }
@@ -430,6 +442,9 @@ func main() {
 	})
 	app.Event.On("desktop:close", func(_ *application.CustomEvent) {
 		api.hideToTray()
+	})
+	app.Event.On("desktop:select-folder", func(_ *application.CustomEvent) {
+		go api.emitPickedFolder()
 	})
 	tray := app.SystemTray.New()
 	applyTrayIcon(tray)

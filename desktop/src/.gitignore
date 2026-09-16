@@ -8,4 +8,6 @@ build/windows/icon.ico
 build/windows/info.generated.json
 build/windows/wails.exe.generated.manifest
 build/windows/nsis/MicrosoftEdgeWebview2Setup.exe
+build/windows/openxyos-runtime.zip
+build/windows/openxyos-README.txt
 build/linux/icon.png

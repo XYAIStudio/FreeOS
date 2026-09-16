@@ -5,6 +5,8 @@ import {
   isGroupedNavKey,
 } from "./sidebarNav";
 import type { OctopUser } from "../api/modules/auth";
+import en from "../locales/en.json";
+import zh from "../locales/zh.json";
 
 const adminUser = {
   id: 1,
@@ -54,5 +56,10 @@ describe("sidebarNav", () => {
     expect(keys).toContain("projects");
     expect(keys).toContain("chat");
     expect(keys).toContain("experts");
+  });
+
+  it("labels organization without the OS suffix", () => {
+    expect(zh.nav.organization).toBe("组织");
+    expect(en.nav.organization).toBe("Organization");
   });
 });
