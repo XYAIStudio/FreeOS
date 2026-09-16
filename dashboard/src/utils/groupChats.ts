@@ -59,6 +59,35 @@ export function groupChatTitle(
   return memberNames.slice(0, 4).join("、");
 }
 
+export function uniqueMemberIds(
+  ids: Array<string | null | undefined>,
+): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const id of ids) {
+    if (!id || seen.has(id)) continue;
+    seen.add(id);
+    out.push(id);
+  }
+  return out;
+}
+
+export function sameMemberSet(left: string[], right: string[]): boolean {
+  if (left.length !== right.length) return false;
+  const set = new Set(left);
+  return right.every((id) => set.has(id));
+}
+
+export function findGroupChatByMembers(
+  memberIds: string[],
+  storage: Pick<Storage, "getItem"> = window.localStorage,
+): GroupChatRecord | undefined {
+  const wanted = uniqueMemberIds(memberIds);
+  return loadGroupChats(storage).find((item) =>
+    sameMemberSet(item.memberIds, wanted),
+  );
+}
+
 function isGroupChatRecord(value: unknown): value is GroupChatRecord {
   if (!value || typeof value !== "object") return false;
   const row = value as GroupChatRecord;

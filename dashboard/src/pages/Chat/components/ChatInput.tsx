@@ -825,6 +825,11 @@ const ChatInput = forwardRef<ChatInputHandle, ChatInputProps>(
             availableExperts={availableExperts.filter(
               (a) => a.agent_id !== agentId,
             )}
+            hostAgent={
+              availableAgents.find((agent) => agent.agent_id === agentId) ??
+              availableExperts.find((agent) => agent.agent_id === agentId) ??
+              null
+            }
             onInsertExpertMention={insertExpertMention}
             availableSubagents={availableSubagents}
             onInsertSubagentMention={insertSubagentMention}

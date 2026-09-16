@@ -6,15 +6,7 @@ import AvatarDropdown from "../components/AvatarDropdown";
 import BrandMark from "../components/BrandMark";
 import AppVersionBadge from "../components/AppVersionBadge";
 import CurrentVersionBadge from "../components/CurrentVersionBadge";
-import {
-  ArrowRightLeft,
-  X,
-  ChevronDown,
-  MessageSquarePlus,
-  FolderPlus,
-  ListPlus,
-  Users,
-} from "lucide-react";
+import { ArrowRightLeft, X, ChevronDown } from "lucide-react";
 import { useLayoutMode } from "../context/LayoutModeContext";
 import { useUserRole } from "../hooks/useUserRole";
 import { useCurrentUser, useSetCurrentUser } from "../hooks/useCurrentUser";
@@ -558,47 +550,6 @@ export default function Sidebar({
         : section.items,
     );
 
-  const composeActions = (
-    <div className={styles.composeRow}>
-      <button
-        type="button"
-        className={styles.composeBtn}
-        onClick={() => handleNavigate("/chat")}
-        title={t("nav.newConversation")}
-      >
-        <MessageSquarePlus size={14} strokeWidth={1.8} />
-        {!isRailCollapsed && <span>{t("nav.newConversation")}</span>}
-      </button>
-      <button
-        type="button"
-        className={styles.composeBtn}
-        onClick={() => handleNavigate("/tasks?new=1")}
-        title={t("nav.newTask")}
-      >
-        <ListPlus size={14} strokeWidth={1.8} />
-        {!isRailCollapsed && <span>{t("nav.newTask")}</span>}
-      </button>
-      <button
-        type="button"
-        className={styles.composeBtn}
-        onClick={() => handleNavigate("/projects?new=1")}
-        title={t("nav.newProject")}
-      >
-        <FolderPlus size={14} strokeWidth={1.8} />
-        {!isRailCollapsed && <span>{t("nav.newProject")}</span>}
-      </button>
-      <button
-        type="button"
-        className={styles.composeBtn}
-        onClick={() => handleNavigate("/projects?group=1")}
-        title={t("nav.newGroup")}
-      >
-        <Users size={14} strokeWidth={1.8} />
-        {!isRailCollapsed && <span>{t("nav.newGroup")}</span>}
-      </button>
-    </div>
-  );
-
   const paneToggle = (
     <SidebarMinimalPaneToggle
       minimalPane={minimalPane}
@@ -620,7 +571,6 @@ export default function Sidebar({
     </div>
   ) : (
     <>
-      {composeActions}
       <NavList
         selectedKey={selectedKey}
         onNavigate={handleNavigate}

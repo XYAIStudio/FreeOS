@@ -12,6 +12,7 @@ interface SearchablePickerPanelProps<T> {
   emptyMessage: string;
   width?: PickerPanelWidth;
   renderItem: (item: T) => ReactNode;
+  listFooter?: ReactNode;
   footerIcon: ReactNode;
   footerLabel: string;
   onFooterClick: () => void;
@@ -24,6 +25,7 @@ export default function SearchablePickerPanel<T>({
   emptyMessage,
   width = "wide",
   renderItem,
+  listFooter,
   footerIcon,
   footerLabel,
   onFooterClick,
@@ -57,6 +59,7 @@ export default function SearchablePickerPanel<T>({
         )}
       </div>
 
+      {listFooter}
       <button type="button" className={styles.footer} onClick={onFooterClick}>
         {footerIcon}
         <span>{footerLabel}</span>

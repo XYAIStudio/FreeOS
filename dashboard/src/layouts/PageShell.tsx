@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Segmented, Typography } from "antd";
+import { Typography } from "antd";
 import AgentSelector from "../components/AgentSelector";
 import { useIsMobile } from "../hooks/useIsMobile";
 import {
@@ -31,7 +31,7 @@ interface PageShellProps {
   actions?: React.ReactNode;
   /**
    * Path tabs shared by Workbench / Personalization:
-   * desktop → title-row actions; mobile → full-width bar above content.
+   * desktop → title-row actions (wraps); mobile → full-width bar above content.
    */
   pathTabs?: PathTabsConfig;
   /** Render agent picker below the title row, outside the scrollable content card. */
@@ -41,32 +41,37 @@ interface PageShellProps {
   children: React.ReactNode;
 }
 
-function PathTabsSegmented({
+function PathTabsBar({
   pathTabs,
-  isMobile,
+  compact,
 }: {
   pathTabs: PathTabsConfig;
-  isMobile: boolean;
+  compact: boolean;
 }) {
   return (
-    <Segmented
-      size={isMobile ? "small" : "middle"}
-      value={pathTabs.value}
-      block={isMobile}
-      className={isMobile ? styles.pathTabsMobileSegmented : undefined}
-      onChange={pathTabs.onChange}
-      options={pathTabs.options.map((opt) => ({
-        value: opt.value,
-        label: isMobile ? (
-          opt.label
-        ) : (
-          <span className={styles.pathTabLabel}>
-            {opt.icon}
-            {opt.label}
-          </span>
-        ),
-      }))}
-    />
+    <div
+      className={`${styles.pathTabs} ${compact ? styles.pathTabsCompact : ""}`}
+      role="tablist"
+    >
+      {pathTabs.options.map((opt) => {
+        const active = opt.value === pathTabs.value;
+        return (
+          <button
+            key={opt.value}
+            type="button"
+            role="tab"
+            aria-selected={active}
+            className={`${styles.pathTab} ${
+              active ? styles.pathTabActive : ""
+            }`}
+            onClick={() => pathTabs.onChange(opt.value)}
+          >
+            {compact ? null : opt.icon}
+            <span className={styles.pathTabText}>{opt.label}</span>
+          </button>
+        );
+      })}
+    </div>
   );
 }
 
@@ -81,7 +86,7 @@ function PathTabsSegmented({
  *  - Content: colorBgContainer background, 24px padding, 8px radius
  *  - Only the content area scrolls internally
  *  - `actions` slot: right-aligned in the title row
- *  - `pathTabs`: desktop in title row; mobile full-width bar in content
+ *  - `pathTabs`: desktop in title row (flex-wrap); mobile full-width wrapping bar
  *
  * Tabbed helpers: `PageShell.FillTabs` (Ant Tabs) and `PageShell.Tabbed`
  * (custom tab bar) pin the tab chrome and scroll only the body on desktop.
@@ -105,7 +110,7 @@ function PageShell({
   const titleActions =
     !isMobile && pathTabs ? (
       <>
-        <PathTabsSegmented pathTabs={pathTabs} isMobile={false} />
+        <PathTabsBar pathTabs={pathTabs} compact={false} />
         {actions}
       </>
     ) : (
@@ -124,42 +129,27 @@ function PageShell({
         overflow: "hidden",
       }}
     >
-      {/* Title row — fixed, never scrolls */}
+      {/* Title row — wraps so a long tab strip cannot squeeze CJK titles. */}
       <div
+        className={styles.titleRow}
         style={{
-          display: "flex",
-          alignItems: "flex-start",
-          justifyContent: "space-between",
-          gap: 12,
-          flexShrink: 0,
           marginBottom: agentScoped ? 12 : 24,
           paddingRight: titleRowEndPadding(outerPad),
         }}
       >
-        <div>
-          <Title
-            level={4}
-            style={{
-              margin: 0,
-              lineHeight: "28px",
-              fontSize: 20,
-              fontWeight: 600,
-            }}
-          >
+        <div className={styles.titleCopy}>
+          <Title level={4} className={styles.titleText}>
             {title}
           </Title>
           {subtitle && (
-            <Text
-              type="secondary"
-              style={{ fontSize: 13, marginTop: 4, display: "block" }}
-            >
+            <Text type="secondary" className={styles.subtitleText}>
               {subtitle}
             </Text>
           )}
         </div>
-        {titleActions && (
-          <div style={{ flexShrink: 0, paddingTop: 2 }}>{titleActions}</div>
-        )}
+        {titleActions ? (
+          <div className={styles.titleActions}>{titleActions}</div>
+        ) : null}
       </div>
 
       {agentScoped && (
@@ -190,7 +180,7 @@ function PageShell({
       >
         {isMobile && pathTabs && (
           <div className={styles.pathTabsMobile}>
-            <PathTabsSegmented pathTabs={pathTabs} isMobile />
+            <PathTabsBar pathTabs={pathTabs} compact />
           </div>
         )}
         {children}

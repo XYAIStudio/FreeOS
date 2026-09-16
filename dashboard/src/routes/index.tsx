@@ -27,6 +27,16 @@ function RedirectPreserveSearch({ to }: { to: string }) {
   return <Navigate to={`${to}${location.search}${location.hash}`} replace />;
 }
 
+function TasksToProjects() {
+  const location = useLocation();
+  const params = new URLSearchParams(location.search);
+  params.set("view", "tasks");
+  const qs = params.toString();
+  return (
+    <Navigate to={`/projects${qs ? `?${qs}` : ""}${location.hash}`} replace />
+  );
+}
+
 function SystemSettingsToPersonalization() {
   const location = useLocation();
   const tab =
@@ -188,7 +198,7 @@ export const routeConfigs: RouteConfig[] = [
   { path: "/experts", element: <ExpertsPage /> },
   { path: "/organization", element: <OrganizationPage /> },
   { path: "/projects", element: <ProjectsPage /> },
-  { path: "/tasks", element: <Navigate to="/projects?view=tasks" replace /> },
+  { path: "/tasks", element: <TasksToProjects /> },
   {
     path: "/connectors",
     element: <RedirectPreserveSearch to="/personalization/connectors" />,
