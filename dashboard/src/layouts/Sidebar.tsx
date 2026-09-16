@@ -31,6 +31,7 @@ import {
   type NavItem,
   type NavSection,
 } from "./sidebarNav";
+import { CONVERSATION_LIST_PATH } from "./conversationHome";
 import styles from "./Sidebar.module.less";
 import { typeSize } from "../utils/mobileTypeScale";
 import { DESKTOP_DRAG_REGION_CLASS } from "../utils/desktopChrome";
@@ -467,13 +468,6 @@ export default function Sidebar({
   }, [isMinimal, selectMinimalPane]);
 
   const handleNavigate = (path: string) => {
-    // When navigating to /chat, preserve the current chatId in the URL so the
-    // Chat component is not remounted (key stays the same) and the user stays
-    // on their most recent conversation instead of seeing a blank welcome screen.
-    if (path === "/chat" && window.location.pathname.startsWith("/chat/")) {
-      if (isMobile) onToggle();
-      return;
-    }
     navigate(path);
     if (isMobile) onToggle();
   };
@@ -486,7 +480,7 @@ export default function Sidebar({
     window.dispatchEvent(new Event(EXPAND_CHAT_RAIL_EVENT));
     setChatSidebarOpen(true);
     if (!window.location.pathname.startsWith("/chat")) {
-      navigate("/chat");
+      navigate(CONVERSATION_LIST_PATH);
     }
     if (isMobile) onToggle();
   }, [

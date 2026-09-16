@@ -2,6 +2,8 @@ import { lazy } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { SYSTEM_SETTINGS_TO_PERSONALIZATION } from "../pages/Agent/Personalization/tabs";
 import { isSystemSettingsNavPath } from "../pages/SystemSettings/tabs";
+import ChatIndexRedirect from "../layouts/ChatIndexRedirect";
+import { resolveWorkspaceNavKey } from "../layouts/conversationHome";
 
 // Lazy-loaded pages — Common
 const ExpertsPage = lazy(() => import("../pages/Experts"));
@@ -175,9 +177,10 @@ export function isPersonalizationPath(pathname: string): boolean {
   );
 }
 
-export function resolveSelectedKey(pathname: string): string {
+export function resolveSelectedKey(pathname: string, search = ""): string {
+  const workspaceKey = resolveWorkspaceNavKey(pathname, search);
+  if (workspaceKey) return workspaceKey;
   if (pathToKey[pathname]) return pathToKey[pathname];
-  if (pathname.startsWith("/chat/")) return "chat";
   if (pathname.startsWith("/personalization/")) return "personalization";
   if (pathname === "/models" || pathname.startsWith("/models/"))
     return "models";
@@ -189,8 +192,8 @@ export function resolveSelectedKey(pathname: string): string {
 }
 
 export const routeConfigs: RouteConfig[] = [
-  // Chat (handled via ChatWithKey wrapper in MainLayout)
-  { path: "/chat", element: null, useWrapper: true },
+  // Chat canvas; bare /chat deep-links to the shared workspace 对话 list
+  { path: "/chat", element: <ChatIndexRedirect /> },
   { path: "/chat/:agentId", element: null, useWrapper: true },
   { path: "/chat/:agentId/:threadId", element: null, useWrapper: true },
 
@@ -366,11 +369,11 @@ export const routeConfigs: RouteConfig[] = [
     path: "/plugins",
     element: <Navigate to="/personalization/host-plugins" replace />,
   },
-  { path: "/sessions", element: <Navigate to="/chat" replace /> },
+  { path: "/sessions", element: <Navigate to="/projects" replace /> },
   { path: "/cron-jobs", element: <Navigate to="/tasks" replace /> },
 
   // Misc
   { path: "/pwa-debug", element: <PwaDebugPage /> },
-  { path: "/", element: <Navigate to="/chat" replace /> },
+  { path: "/", element: <Navigate to="/projects" replace /> },
   { path: "*", element: <NotFoundPage /> },
 ];

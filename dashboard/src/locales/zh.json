@@ -107,7 +107,12 @@
     "catalogEnabled": "已显示",
     "catalogDisabled": "已隐藏",
     "catalogToggleHint": "关闭后，该模块会从右侧 openXYOS 预览的侧栏消失。",
-    "autoStartingSidecar": "正在自动启动 openXYOS 边车…"
+    "autoStartingSidecar": "正在自动启动 openXYOS 边车…",
+    "glossary": "员工：已经编入某个部门。同事：同一组织里一起干活的人（群聊里这样叫）。专家 / 智能助手：还没编入部门的帮手，在「专家」页管理。",
+    "receiptTitle": "刚才的结果",
+    "assembleReceipt": "已导入 {{count}} 名员工（已入编部门）。群聊里请称他们为同事，不要叫专家。",
+    "assembleNext": "下一步：打开「对话」建群，把同事拉进来。还没入编的帮手在「专家」页。",
+    "packReceipt": "已打包并尝试推送到 openXYOS。下面是落地说明。"
   },
   "systemSettings": {
     "subtitle": "工作台、远程桌面与主机管理集中在这里。"
@@ -130,8 +135,8 @@
     "createGroup": "建群",
     "groupTitle": "群聊名称",
     "groupTitlePlaceholder": "可选，例如「产品周会」",
-    "groupMembers": "选择专家",
-    "groupMembersRequired": "请至少选择两位专家",
+    "groupMembers": "选择同事或智能助手",
+    "groupMembersRequired": "请至少选择两位（同事或智能助手）",
     "groupCreated": "群聊已创建",
     "groupCreateFailed": "无法创建群聊",
     "kindDirect": "单聊",
@@ -828,7 +833,7 @@
     }
   },
   "experts": {
-    "subtitle": "基于已配置的场景模板,一键创建预置身份/灵魂/心跳的智能体。每个专家自带 system prompt,新建后再为它绑定 provider 并启动即可。",
+    "subtitle": "专家（也叫智能助手）是还没编入部门的帮手。已入编的叫员工，在「组织」；同一组织里一起聊时叫同事。",
     "loadFailed": "加载专家失败",
     "loadDetailFailed": "加载详情失败",
     "share": {
@@ -1378,14 +1383,14 @@
     "skillPicker": "选择技能",
     "skillPickerSearch": "搜索技能",
     "skillPickerEmpty": "暂无可用技能",
-    "expertPicker": "选择专家",
-    "expertPickerSearch": "搜索专家或智能体",
-    "expertPickerEmpty": "暂无其他专家",
+    "expertPicker": "选择同事或智能助手",
+    "expertPickerSearch": "搜索同事或智能助手",
+    "expertPickerEmpty": "还没有可一起聊的人。到「专家」添加智能助手，或到「组织」导入员工后，群聊里称他们为同事。",
     "expertPickerManage": "管理专家",
     "expertPickerCheck": "选择 {{name}} 加入群聊",
-    "expertPickerGroupHint": "勾选多位专家或智能体，随时进入群聊",
+    "expertPickerGroupHint": "勾选同事或智能助手，进入群聊后可以 @ 他们",
     "expertPickerEnterGroupCount": "进入群聊（{{count}}）",
-    "expertPickerGroupOpened": "已进入群聊",
+    "expertPickerGroupOpened": "已进入群聊，输入 @ 可点名同事或智能助手",
     "subagentPicker": "选择子智能体",
     "subagentPickerSearch": "搜索子智能体",
     "subagentPickerEmpty": "暂无已安装的子智能体",
@@ -3241,7 +3246,10 @@
     "onnxNotReady": "未就绪",
     "onnxCacheDir": "缓存目录：{{dir}}",
     "onnxLocalCached": "已缓存模型",
-    "onnxQuickDownload": "从目录快速下载…"
+    "onnxQuickDownload": "从目录快速下载…",
+    "useInChat": "去对话切换",
+    "localInstallRegistered": "已安装 {{name}} 并登记到模型列表。打开「对话」即可切换。",
+    "localInstallNeedProvider": "模型已下载。请先在本页启用 Ollama 提供商，再到对话里切换。"
   },
   "advancedSettings": {
     "description": "管理运行配置和环境变量等高级选项。",
@@ -5538,7 +5546,7 @@
   "pageShell": {
     "experts": {
       "title": "专家",
-      "subtitle": "创建与管理你的 AI 专家，也可从模板库挑选场景一键新建。"
+      "subtitle": "专家 / 智能助手：还没编入部门。员工在「组织」；群聊里对同一组织的人请称同事。"
     },
     "tasks": {
       "title": "自动化",

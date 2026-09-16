@@ -35,6 +35,11 @@ import styles from "./Organization.module.less";
 
 type ActionKey = "assemble" | "pack" | "loop" | "sidecar" | "produce" | null;
 
+type LastReceipt = {
+  kind: "assemble" | "pack" | "loop";
+  lines: string[];
+};
+
 function metric(value: number | undefined): string {
   return typeof value === "number" ? String(value) : "—";
 }
@@ -49,6 +54,7 @@ export default function OrganizationPage() {
   const [busy, setBusy] = useState<ActionKey>(null);
   const [loopProof, setLoopProof] = useState<OrgLoopProof | null>(null);
   const [lastActionNotes, setLastActionNotes] = useState<string[]>([]);
+  const [lastReceipt, setLastReceipt] = useState<LastReceipt | null>(null);
   const [previewFullscreen, setPreviewFullscreen] = useState(false);
   const [previewPending, setPreviewPending] = useState(false);
   const [moduleToggles, setModuleToggles] = useState<Record<string, boolean>>(
@@ -272,10 +278,24 @@ export default function OrganizationPage() {
     await saveSourceTo(dest);
   };
 
+  const flagLabel = (value: boolean | undefined) =>
+    value ? t("organization.yes") : t("organization.no");
+
   const assemble = () =>
     runAction("assemble", async () => {
       const result: OrgAssembleResult = await orgModuleApi.assemble();
+      const names = result.spawned
+        .map((row) => row.name || row.slug)
+        .filter(Boolean);
       setLastActionNotes(result.notes);
+      setLastReceipt({
+        kind: "assemble",
+        lines: [
+          t("organization.assembleReceipt", { count: result.spawned.length }),
+          ...names.slice(0, 6),
+          t("organization.assembleNext"),
+        ],
+      });
       message.success(
         t("organization.assembleDone", { count: result.spawned.length }),
       );
@@ -297,13 +317,18 @@ export default function OrganizationPage() {
     runAction("pack", async () => {
       const result: OrgPackResult = await orgModuleApi.pack();
       if (result.applied.landed) setLanded(result.applied.landed);
+      const remote = result.applied.remote_applied
+        ? t("organization.packRemoteYes")
+        : t("organization.packRemoteNo");
       setLastActionNotes([
         ...result.pack.notes,
         ...result.applied.notes,
-        result.applied.remote_applied
-          ? t("organization.packRemoteYes")
-          : t("organization.packRemoteNo"),
+        remote,
       ]);
+      setLastReceipt({
+        kind: "pack",
+        lines: [t("organization.packReceipt"), remote],
+      });
       message.success(t("organization.packDone"));
     });
 
@@ -313,13 +338,19 @@ export default function OrganizationPage() {
       setLoopProof(proof);
       if (proof.landed) setLanded(proof.landed);
       setLastActionNotes(proof.notes);
+      setLastReceipt({
+        kind: "loop",
+        lines: [
+          proof.ok ? t("organization.loopOk") : t("organization.loopPartial"),
+          `${t("organization.timelineRemote")}: ${flagLabel(
+            Boolean(proof.remote_applied),
+          )}`,
+        ],
+      });
       message.success(
         proof.ok ? t("organization.loopOk") : t("organization.loopPartial"),
       );
     });
-
-  const flagLabel = (value: boolean | undefined) =>
-    value ? t("organization.yes") : t("organization.no");
 
   const progressLabel =
     busy === "assemble"
@@ -393,6 +424,7 @@ export default function OrganizationPage() {
         <section className={styles.hero}>
           <p className={styles.heroTitle}>{t("organization.heroTitle")}</p>
           <p className={styles.heroStory}>{t("organization.heroStory")}</p>
+          <p className={styles.heroStory}>{t("organization.glossary")}</p>
           <div className={styles.heroMeta}>
             <span className={styles.chip}>
               {overview?.enabled ? t("organization.on") : t("organization.off")}
@@ -656,6 +688,19 @@ export default function OrganizationPage() {
                 </Button>
               </div>
             </section>
+
+            {lastReceipt ? (
+              <section className={styles.timeline}>
+                <p className={styles.timelineTitle}>
+                  {t("organization.receiptTitle")}
+                </p>
+                <ol className={styles.timelineList}>
+                  {lastReceipt.lines.map((line) => (
+                    <li key={line}>{line}</li>
+                  ))}
+                </ol>
+              </section>
+            ) : null}
 
             <section className={styles.timeline}>
               <p className={styles.timelineTitle}>

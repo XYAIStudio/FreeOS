@@ -39,7 +39,7 @@ describe("sidebarNav", () => {
     ]);
   });
 
-  it("hides models and knowledge when the user lacks those permissions", () => {
+  it("hides models and knowledge when a non-desktop user lacks those permissions", () => {
     const guest = {
       id: 2,
       username: "guest",
@@ -58,8 +58,41 @@ describe("sidebarNav", () => {
     expect(keys).toContain("experts");
   });
 
+  it("shows models and knowledge for the first-run desktop guest", () => {
+    const desktopGuest = {
+      id: 3,
+      username: "local",
+      role: "user",
+      permissions: [],
+      is_local: true,
+    } as OctopUser;
+    const items = buildNavSections(desktopGuest).flatMap((s) => s.items);
+    const keys = items.map((i) => i.key);
+    expect(keys).toContain("models");
+    expect(keys).toContain("knowledge-bases");
+    expect(items.find((i) => i.key === "chat")?.path).toBe("/projects");
+    expect(items.find((i) => i.key === "projects")?.path).toBe(
+      "/projects?view=projects",
+    );
+  });
+
   it("labels organization without the OS suffix", () => {
     expect(zh.nav.organization).toBe("组织");
     expect(en.nav.organization).toBe("Organization");
+  });
+
+  it("locks the employee / colleague / expert glossary", () => {
+    expect(zh.organization.glossary).toContain("员工：已经编入某个部门");
+    expect(zh.organization.glossary).toContain("同事：同一组织");
+    expect(zh.organization.glossary).toContain("专家 / 智能助手");
+    expect(zh.organization.assembleBody).toContain("员工");
+    expect(zh.organization.assembleBody).toContain("同事");
+    expect(zh.organization.assembleBody).not.toContain("出现在专家列表");
+    expect(zh.organization.produceTitle).toContain("专家");
+    expect(zh.chat.expertPicker).toContain("同事或智能助手");
+    expect(zh.projects.groupMembers).toContain("同事或智能助手");
+    expect(en.organization.glossary).toContain("Employees: already assigned");
+    expect(en.organization.glossary).toContain("Colleagues: peers");
+    expect(en.chat.expertPicker).toContain("colleagues or smart helpers");
   });
 });
