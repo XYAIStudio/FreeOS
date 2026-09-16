@@ -160,6 +160,47 @@ def test_nsis_provisions_openxyos_runtime() -> None:
     assert "openXYOS frontend missing" in package
 
 
+def _nsis_filewrite_argc(line: str) -> int:
+    """Count FileWrite arguments the way makensis splits them (space/comma)."""
+    rest = line.strip()
+    prefix = "FileWrite"
+    if not rest.startswith(prefix):
+        return 0
+    rest = rest[len(prefix) :].lstrip()
+    args: list[str] = []
+    i = 0
+    while i < len(rest):
+        ch = rest[i]
+        if ch in " \t,":
+            i += 1
+            continue
+        if ch in "\"'`":
+            j = i + 1
+            while j < len(rest) and rest[j] != ch:
+                j += 1
+            args.append(rest[i : j + 1])
+            i = j + 1
+            continue
+        j = i
+        while j < len(rest) and rest[j] not in " \t,":
+            j += 1
+        args.append(rest[i:j])
+        i = j
+    return len(args)
+
+
+def test_nsis_filewrite_is_exactly_two_args() -> None:
+    """A backtick next to '(' closes the string; $\\r$\\n becomes a third arg."""
+    nsh = NSH.read_text(encoding="utf-8")
+    for lineno, raw in enumerate(nsh.splitlines(), start=1):
+        stripped = raw.strip()
+        if not stripped.startswith("FileWrite"):
+            continue
+        argc = _nsis_filewrite_argc(stripped)
+        assert argc == 2, f"wails_tools.nsh:{lineno}: FileWrite argc={argc}: {stripped}"
+        assert "(`$" not in stripped and ")`$" not in stripped, stripped
+
+
 def test_nsis_extracts_runtime_with_quoted_paths_and_aborts_if_incomplete() -> None:
     """Program Files spaces must not yield a README-only $INSTDIR\\openxyos."""
     nsi = NSI.read_text(encoding="utf-8-sig")

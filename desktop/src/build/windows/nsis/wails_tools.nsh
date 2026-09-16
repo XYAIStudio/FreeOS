@@ -182,9 +182,9 @@ RequestExecutionLevel "${REQUEST_EXECUTION_LEVEL}"
     FileWrite $0 `if errorlevel 1 exit /b 4$\r$\n`
     FileWrite $0 `"%TAR%" -xf "%ZIP%" -C "$INSTDIR\openxyos"$\r$\n`
     FileWrite $0 `if errorlevel 1 exit /b 8$\r$\n`
-    FileWrite $0 `if not exist "%LIVE%\node\node.exe" (`$\r$\n`
-    FileWrite $0 `  if exist "$INSTDIR\openxyos-runtime\node\node.exe" xcopy /E /I /Y "$INSTDIR\openxyos-runtime\*" "%LIVE%\" >nul`$\r$\n`
-    FileWrite $0 `)`$\r$\n`
+    FileWrite $0 `if exist "%LIVE%\node\node.exe" goto liveNodeOk$\r$\n`
+    FileWrite $0 `if exist "$INSTDIR\openxyos-runtime\node\node.exe" xcopy /E /I /Y "$INSTDIR\openxyos-runtime\*" "%LIVE%\" >nul$\r$\n`
+    FileWrite $0 `liveNodeOk:$\r$\n`
     FileWrite $0 `if not exist "%LIVE%\node\node.exe" exit /b 6$\r$\n`
     FileWrite $0 `if not exist "%LIVE%\openxyos\dist\index.html" if not exist "%LIVE%\dist\index.html" exit /b 7$\r$\n`
     FileWrite $0 `if defined USERNAME icacls "$R6\FreeOS" /grant "%USERNAME%:(OI)(CI)M" /T /C /Q >nul 2>&1$\r$\n`
@@ -283,9 +283,9 @@ RequestExecutionLevel "${REQUEST_EXECUTION_LEVEL}"
     FileWrite $0 `$$env:ALLOW_PUBLIC_REGISTRATION = 'false'$\r$\n`
     FileWrite $0 `$$env:JWT_SECRET = '0123456789abcdef0123456789abcdef'$\r$\n`
     FileWrite $0 `$$env:COOKIE_SECRET = 'fedcba9876543210fedcba9876543210'$\r$\n`
-    FileWrite $0 `$$env:CORS_ORIGIN = 'http://127.0.0.1:8088,http://localhost:8088,http://127.0.0.1:18900,http://localhost:18900'$\r$\n`
+    FileWrite $0 `$$env:CORS_ORIGIN = 'http://127.0.0.1:8088'$\r$\n`
     FileWrite $0 `$$compiled = Join-Path $$app 'backend-dist\server.js'$\r$\n`
-    FileWrite $0 `if (Test-Path -LiteralPath $$compiled) { $$argv = @('backend-dist/server.js') } else { $$argv = @('--import', 'tsx', 'backend/server.ts') }$\r$\n`
+    FileWrite $0 `if (Test-Path -LiteralPath $$compiled) { $$argv = @('backend-dist/server.js') } else { $$argv = @('--import'; 'tsx'; 'backend/server.ts') }$\r$\n`
     FileWrite $0 `$$p = Start-Process -FilePath $$node -ArgumentList $$argv -WorkingDirectory $$app -WindowStyle Hidden -PassThru$\r$\n`
     FileWrite $0 `$$ok = $$false$\r$\n`
     FileWrite $0 `for ($$i = 0; $$i -lt 60; $$i++) { Start-Sleep -Seconds 1; if (Test-Livez) { $$ok = $$true; break } }$\r$\n`
