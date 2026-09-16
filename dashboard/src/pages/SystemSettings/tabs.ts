@@ -18,14 +18,6 @@ export type SystemSettingsTab = (typeof SYSTEM_SETTINGS_TABS)[number];
 
 export const SYSTEM_SETTINGS_TAB_SET = new Set<string>(SYSTEM_SETTINGS_TABS);
 
-/** Fullscreen tools stay on their existing routes; other tabs live under the hub. */
-export const SYSTEM_SETTINGS_EXTERNAL_PATH: Partial<
-  Record<SystemSettingsTab, string>
-> = {
-  workbench: "/workbench",
-  "remote-desktop": "/remote-desktop",
-};
-
 export const SYSTEM_SETTINGS_LABEL_KEY: Record<SystemSettingsTab, string> = {
   workbench: "nav.workbench",
   "remote-desktop": "nav.remoteDesktop",
@@ -40,7 +32,7 @@ export const SYSTEM_SETTINGS_LABEL_KEY: Record<SystemSettingsTab, string> = {
 };
 
 export function systemSettingsPath(tab: SystemSettingsTab): string {
-  return SYSTEM_SETTINGS_EXTERNAL_PATH[tab] ?? `/system-settings/${tab}`;
+  return `/system-settings/${tab}`;
 }
 
 export function isSystemSettingsNavPath(pathname: string): boolean {

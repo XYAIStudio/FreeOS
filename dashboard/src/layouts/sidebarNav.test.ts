@@ -14,68 +14,45 @@ const adminUser = {
 } as OctopUser;
 
 describe("sidebarNav", () => {
-  it("marks catalog keys as grouped", () => {
-    for (const key of SIDEBAR_GROUPED_NAV_KEYS) {
-      expect(isGroupedNavKey(key)).toBe(true);
-    }
-    expect(isGroupedNavKey("chat")).toBe(false);
-    expect(isGroupedNavKey("experts")).toBe(false);
+  it("has no Capabilities / System Settings sidebar groups", () => {
+    expect(SIDEBAR_GROUPED_NAV_KEYS).toEqual([]);
     expect(isGroupedNavKey("system-settings")).toBe(false);
-    expect(isGroupedNavKey("workbench")).toBe(false);
+    expect(isGroupedNavKey("personalization")).toBe(false);
   });
 
-  it("places grouped keys only under sections with groupKey", () => {
+  it("is a single user-job primary list", () => {
     const sections = buildNavSections(adminUser, { mobileEnabled: true });
-    const flatKeys = new Set(
-      sections
-        .filter((s) => !s.groupKey)
-        .flatMap((s) => s.items.map((i) => i.key)),
-    );
-    const groupedKeys = new Set(
-      sections
-        .filter((s) => s.groupKey)
-        .flatMap((s) => s.items.map((i) => i.key)),
-    );
-    for (const key of groupedKeys) {
-      expect(isGroupedNavKey(key)).toBe(true);
-      expect(flatKeys.has(key)).toBe(false);
-    }
-    for (const key of flatKeys) {
-      expect(isGroupedNavKey(key)).toBe(false);
-    }
-  });
-
-  it("renames settings to capabilities and folds control/admin into system-settings", () => {
-    const sections = buildNavSections(adminUser, { mobileEnabled: true });
-    expect(sections.map((s) => s.groupKey)).toEqual([
-      undefined,
-      "nav.capabilities",
-    ]);
-    const primary = sections[0].items.map((i) => i.key);
-    expect(primary).toContain("system-settings");
-    expect(primary).not.toContain("workbench");
-    expect(primary).not.toContain("admin-users");
-    const grouped = sections[1].items.map((i) => i.key);
-    expect(grouped).toEqual([
-      "personalization",
-      "channels",
-      "connectors",
-      "skill-packages",
+    expect(sections).toHaveLength(1);
+    expect(sections[0].groupKey).toBeUndefined();
+    expect(sections[0].placement).toBe("primary");
+    expect(sections[0].items.map((i) => i.key)).toEqual([
+      "chat",
+      "experts",
+      "models",
       "knowledge-bases",
+      "organization",
+      "personalization",
+      "projects",
+      "token-usage",
     ]);
   });
 
-  it("hides system-settings when the user has no control or admin modules", () => {
+  it("hides models and knowledge when the user lacks those permissions", () => {
     const guest = {
       id: 2,
       username: "guest",
       role: "user",
       permissions: [],
     } as OctopUser;
-    const sections = buildNavSections(guest);
-    const keys = sections.flatMap((s) => s.items.map((i) => i.key));
+    const keys = buildNavSections(guest).flatMap((s) =>
+      s.items.map((i) => i.key),
+    );
+    expect(keys).not.toContain("models");
+    expect(keys).not.toContain("knowledge-bases");
     expect(keys).not.toContain("system-settings");
-    expect(keys).not.toContain("workbench");
     expect(keys).toContain("personalization");
+    expect(keys).toContain("projects");
+    expect(keys).toContain("chat");
+    expect(keys).toContain("experts");
   });
 });

@@ -127,6 +127,10 @@ def catalog_keys() -> list[str]:
     return [item["key"] for item in OPENXYOS_MODULES]
 
 
+def is_locked(key: str) -> bool:
+    return any(item["key"] == key and item["locked"] for item in OPENXYOS_MODULES)
+
+
 def default_openxyos_catalog_path() -> Path:
     """Vendored catalog file, or empty path if the subtree is absent."""
     here = Path(__file__).resolve()

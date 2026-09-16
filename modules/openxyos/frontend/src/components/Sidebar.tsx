@@ -58,11 +58,26 @@ export default function Sidebar({ collapsed, mobileOpen, onToggle, onMobileClose
   const location = useLocation();
   const { user, logout } = useAuthStore();
   const modules = useModuleSettingsStore(state => state.modules);
+  const applyOverrides = useModuleSettingsStore(state => state.applyOverrides);
 
   const isAdmin = user?.role === "super_admin" || user?.role === "admin";
   const isSuperAdmin = user?.role === "super_admin";
 
   const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const raw = params.get("freeos_disabled") || "";
+    if (raw) applyOverrides(raw.split(",").map((item) => item.trim()));
+    const onMessage = (event: MessageEvent) => {
+      const data = event.data as { type?: string; disabled?: string[] } | null;
+      if (data?.type === "freeos:module-toggles" && Array.isArray(data.disabled)) {
+        applyOverrides(data.disabled);
+      }
+    };
+    window.addEventListener("message", onMessage);
+    return () => window.removeEventListener("message", onMessage);
+  }, [applyOverrides]);
 
   // Detect mobile for responsive sidebar
   useEffect(() => {

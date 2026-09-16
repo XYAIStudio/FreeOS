@@ -5,6 +5,17 @@
   min-height: 0;
 }
 
+.topNav {
+  flex-shrink: 0;
+  padding: 0 0 12px;
+  overflow-x: auto;
+
+  :global(.ant-segmented) {
+    max-width: 100%;
+    flex-wrap: wrap;
+  }
+}
+
 .body {
   display: flex;
   flex: 1;
@@ -13,14 +24,7 @@
 }
 
 .nav {
-  flex-shrink: 0;
-  width: 188px;
-  padding: 8px 8px 16px;
-  border-right: 1px solid var(--fn-border-primary);
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+  display: none;
 }
 
 .navItem {

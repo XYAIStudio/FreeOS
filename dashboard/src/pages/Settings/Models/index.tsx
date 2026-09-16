@@ -40,6 +40,7 @@ import styles from "./index.module.less";
 import { MediaGenerationSettingsPanel } from "../MediaGeneration";
 import { VoiceSettingsPanel } from "../Voice";
 import { SearchSettingsPanel } from "../SearchConfig";
+import { LocalHardwarePanel } from "./components/LocalHardwarePanel";
 
 type ModelCategory = "chat" | "generation" | "voice" | "search";
 
@@ -274,6 +275,8 @@ export default function ModelsPage() {
           />
 
           <Divider style={{ margin: "24px 0" }} />
+
+          {showLocalTab ? <LocalHardwarePanel /> : null}
 
           {showPresetSection && (
             <>

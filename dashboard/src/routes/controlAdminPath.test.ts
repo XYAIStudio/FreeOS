@@ -67,6 +67,7 @@ describe("pathPermissionKeys", () => {
     expect(pathPermissionKeys("/chat")).toBeNull();
     expect(pathPermissionKeys("/experts")).toBeNull();
     expect(pathPermissionKeys("/organization")).toBeNull();
+    expect(pathPermissionKeys("/projects")).toBeNull();
     expect(pathPermissionKeys("/tasks")).toBeNull();
     expect(pathPermissionKeys("/token-usage")).toBeNull();
     expect(pathPermissionKeys("/personalization/skills")).toBeNull();
@@ -128,13 +129,15 @@ describe("unknown dashboard paths", () => {
     expect(resolveSelectedKey("/does-not-exist")).toBe("");
   });
 
-  it("highlights system-settings for former control and admin URLs", () => {
-    expect(resolveSelectedKey("/system-settings/users")).toBe(
-      "system-settings",
+  it("highlights personalization for former control and admin URLs", () => {
+    expect(resolveSelectedKey("/system-settings/users")).toBe("personalization");
+    expect(resolveSelectedKey("/admin/users")).toBe("personalization");
+    expect(resolveSelectedKey("/workbench/terminal")).toBe("personalization");
+    expect(resolveSelectedKey("/acp")).toBe("personalization");
+    expect(resolveSelectedKey("/models")).toBe("models");
+    expect(resolveSelectedKey("/personalization/connectors")).toBe(
+      "personalization",
     );
-    expect(resolveSelectedKey("/admin/users")).toBe("system-settings");
-    expect(resolveSelectedKey("/workbench/terminal")).toBe("system-settings");
-    expect(resolveSelectedKey("/acp")).toBe("system-settings");
   });
 
   it("are caught by the not-found route", () => {

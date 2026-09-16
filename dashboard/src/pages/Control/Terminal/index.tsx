@@ -168,9 +168,12 @@ const TerminalTab = memo(function TerminalTab({
       onStateChange: (state) => {
         onConnStateChange(sessionId, state);
       },
-      onExit: (code) => {
+      onExit: (code, message) => {
+        const reason = message?.trim() ? ` ${message.trim()}` : "";
         termRefStable.current.current?.write(
-          `\r\n\x1b[90m[${t("terminal.processExited")} (${code})]\x1b[0m\r\n`,
+          `\r\n\x1b[90m[${t(
+            "terminal.processExited",
+          )} (${code})]${reason}\x1b[0m\r\n`,
         );
       },
     };

@@ -60,6 +60,16 @@ class SidecarRuntime:
     def frontend(self) -> Path:
         return self.app / "dist" / "index.html"
 
+    @property
+    def compiled_server(self) -> Path:
+        for candidate in (
+            self.app / "backend-dist" / "server.js",
+            self.app / "dist-server" / "server.js",
+        ):
+            if candidate.is_file():
+                return candidate
+        return self.app / "backend-dist" / "server.js"
+
 
 def portable_root() -> Path | None:
     green = (os.environ.get("OCTOP_GREEN_PACKAGES") or "").strip()
@@ -140,8 +150,16 @@ def sidecar_start_command() -> str:
     return "bash scripts/run-org-sidecar.sh"
 
 
+def sidecar_node_argv(runtime: SidecarRuntime) -> list[str]:
+    compiled = runtime.compiled_server
+    if compiled.is_file():
+        rel = str(compiled.relative_to(runtime.app))
+        return [str(runtime.node), rel]
+    return [str(runtime.node), "--import", "tsx", "backend/server.ts"]
+
+
 def sidecar_node_command(runtime: SidecarRuntime) -> str:
-    return f"{runtime.node} --import tsx backend/server.ts"
+    return " ".join(sidecar_node_argv(runtime))
 
 
 def _load_or_create_secrets(data_dir: Path) -> tuple[str, str]:
@@ -215,7 +233,7 @@ def sidecar_log_path(home: Path | None = None) -> Path:
 def launch_sidecar_argv(runtime: SidecarRuntime | None, launcher: Path | None) -> list[str]:
     """Argv used to spawn the sidecar. Prefer bundled Node over .bat/.sh."""
     if runtime is not None:
-        return [str(runtime.node), "--import", "tsx", "backend/server.ts"]
+        return sidecar_node_argv(runtime)
     if launcher is None:
         return []
     if sys.platform == "win32" and launcher.suffix.lower() in {".bat", ".cmd"}:
@@ -275,7 +293,7 @@ def _wait_reachable(service: OrgModuleService, wait: float) -> Any:
     return last
 
 
-def start_sidecar(service: OrgModuleService, *, wait: float = 25.0) -> SidecarStartResult:
+def start_sidecar(service: OrgModuleService, *, wait: float = 8.0) -> SidecarStartResult:
     health = service.probe_sidecar()
     command = sidecar_start_command()
     runtime = find_sidecar_runtime()
@@ -298,10 +316,7 @@ def start_sidecar(service: OrgModuleService, *, wait: float = 25.0) -> SidecarSt
             reachable=False,
             url=health.url,
             command=command,
-            detail=(
-                "no bundled sidecar runtime; install the desktop package "
-                "or run scripts/run-org-sidecar.sh from a source tree"
-            ),
+            detail="no bundled sidecar runtime",
             launcher=launcher_label,
         )
     try:
@@ -340,7 +355,7 @@ def start_sidecar(service: OrgModuleService, *, wait: float = 25.0) -> SidecarSt
     )
 
 
-def ensure_sidecar(service: OrgModuleService, *, wait: float = 20.0) -> SidecarStartResult:
+def ensure_sidecar(service: OrgModuleService, *, wait: float = 8.0) -> SidecarStartResult:
     """Keep the bundled sidecar up on desktop / first launch.
 
     Only auto-starts when the portable ``org-sidecar`` runtime is present.

@@ -942,3 +942,176 @@ async def reindex_base(
         raise _map_knowledge_error(
             exc, locale=resolve_request_locale(request), server=server
         ) from exc
+
+
+class MountBody(BaseModel):
+    source_path: str = Field(default="", description="Local directory to mount read-only")
+    distill_path: str = Field(
+        default="",
+        description="Optional folder for parse copies; must be outside the source tree",
+    )
+    kind: str = Field(default="local", pattern="^(local|cloud)$")
+    cloud_url: str = Field(
+        default="", description="Cloud knowledge URL (e.g. ima). No local parse."
+    )
+    cloud_provider: str = Field(default="", description="Cloud corpus provider id, e.g. ima")
+
+
+class DistillBody(BaseModel):
+    distill_path: str = Field(
+        min_length=1,
+        description="New folder for read-only copies of parseable files",
+    )
+
+
+def _mount_home(server: OctopServer) -> Any:
+    paths = getattr(server, "paths", None)
+    return paths.root if paths is not None else None
+
+
+@router.get("/{kb_id}/mount", summary="Read-only local directory mount for a knowledge base")
+async def get_kb_mount(
+    kb_id: str,
+    request: Request,
+    server: OctopServer = Depends(get_server),
+    user: User = Depends(current_user),
+) -> dict[str, Any]:
+    from octop.infra.knowledge.local_mount import load_mounts, scan_mount
+
+    try:
+        _knowledge_service(server).get_readable_base(
+            kb_id, actor_user_id=user.id, is_admin=_is_admin(user)
+        )
+        mount = load_mounts(_mount_home(server)).get(kb_id)
+        if mount is None:
+            return {"mounted": False, "readonly": True, "entries": []}
+        if mount.kind == "cloud":
+            return {**mount.to_dict(), "mounted": True, "entries": []}
+        entries = [
+            {"path": item.path, "name": item.name, "is_dir": item.is_dir, "size": item.size}
+            for item in scan_mount(mount.source_path)
+        ]
+        return {**mount.to_dict(), "mounted": True, "entries": entries}
+    except Exception as exc:
+        raise _map_knowledge_error(
+            exc, locale=resolve_request_locale(request), server=server
+        ) from exc
+
+
+@router.put("/{kb_id}/mount", summary="Mount a local directory (source stays read-only)")
+async def put_kb_mount(
+    kb_id: str,
+    body: MountBody,
+    request: Request,
+    server: OctopServer = Depends(get_server),
+    user: User = Depends(require_permission("knowledge_bases")),
+) -> dict[str, Any]:
+    from octop.infra.knowledge.local_mount import KnowledgeMount, save_mount, scan_mount
+
+    try:
+        _knowledge_service(server).get_writable_base(
+            kb_id, actor_user_id=user.id, is_admin=_is_admin(user)
+        )
+        stored = save_mount(
+            KnowledgeMount(
+                kb_id=kb_id,
+                source_path=body.source_path,
+                distill_path=body.distill_path,
+                kind=body.kind,
+                cloud_url=body.cloud_url,
+                cloud_provider=body.cloud_provider,
+            ),
+            _mount_home(server),
+        )
+        if stored.kind == "cloud":
+            return {**stored.to_dict(), "mounted": True, "entries": []}
+        entries = [
+            {"path": item.path, "name": item.name, "is_dir": item.is_dir, "size": item.size}
+            for item in scan_mount(stored.source_path)
+        ]
+        return {**stored.to_dict(), "mounted": True, "entries": entries}
+    except Exception as exc:
+        raise _map_knowledge_error(
+            exc, locale=resolve_request_locale(request), server=server
+        ) from exc
+
+
+@router.delete("/{kb_id}/mount", summary="Unmount the local directory (does not delete files)")
+async def delete_kb_mount(
+    kb_id: str,
+    request: Request,
+    server: OctopServer = Depends(get_server),
+    user: User = Depends(require_permission("knowledge_bases")),
+) -> dict[str, bool]:
+    from octop.infra.knowledge.local_mount import clear_mount
+
+    try:
+        _knowledge_service(server).get_writable_base(
+            kb_id, actor_user_id=user.id, is_admin=_is_admin(user)
+        )
+        clear_mount(kb_id, _mount_home(server))
+        return {"ok": True}
+    except Exception as exc:
+        raise _map_knowledge_error(
+            exc, locale=resolve_request_locale(request), server=server
+        ) from exc
+
+
+@router.post(
+    "/{kb_id}/mount/distill",
+    summary="Copy parseable files to a new folder (never writes the source tree)",
+)
+async def distill_kb_mount(
+    kb_id: str,
+    body: DistillBody,
+    request: Request,
+    server: OctopServer = Depends(get_server),
+    user: User = Depends(require_permission("knowledge_bases")),
+) -> dict[str, Any]:
+    from octop.infra.knowledge.local_mount import (
+        KnowledgeMount,
+        distill_readonly,
+        load_mounts,
+        save_mount,
+    )
+
+    try:
+        _knowledge_service(server).get_writable_base(
+            kb_id, actor_user_id=user.id, is_admin=_is_admin(user)
+        )
+        mount = load_mounts(_mount_home(server)).get(kb_id)
+        if mount is None:
+            raise ValueError("mount a local directory first")
+        if mount.kind == "cloud":
+            from octop.infra.knowledge.local_mount import attach_cloud_pointer
+
+            result = attach_cloud_pointer(
+                mount.cloud_url,
+                body.distill_path,
+                provider=mount.cloud_provider or "ima",
+            )
+            save_mount(
+                KnowledgeMount(
+                    kb_id=kb_id,
+                    distill_path=body.distill_path,
+                    kind="cloud",
+                    cloud_url=mount.cloud_url,
+                    cloud_provider=mount.cloud_provider,
+                ),
+                _mount_home(server),
+            )
+            return result
+        result = distill_readonly(mount.source_path, body.distill_path)
+        save_mount(
+            KnowledgeMount(
+                kb_id=kb_id,
+                source_path=mount.source_path,
+                distill_path=body.distill_path,
+            ),
+            _mount_home(server),
+        )
+        return result
+    except Exception as exc:
+        raise _map_knowledge_error(
+            exc, locale=resolve_request_locale(request), server=server
+        ) from exc

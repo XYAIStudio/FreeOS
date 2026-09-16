@@ -27,10 +27,19 @@ export function textHasExpertMention(text: string, name: string): boolean {
   return expertMentionPattern(name).test(text);
 }
 
+export const EVERYONE_MENTION_NAMES = ["所有人", "everyone"] as const;
+
+export function textHasEveryoneMention(text: string): boolean {
+  return EVERYONE_MENTION_NAMES.some((name) => textHasExpertMention(text, name));
+}
+
 export function mentionedExpertIds(
   text: string,
   experts: Array<{ agent_id: string; name: string }>,
 ): string[] {
+  if (textHasEveryoneMention(text)) {
+    return experts.map((expert) => expert.agent_id);
+  }
   return experts
     .filter((expert) => textHasExpertMention(text, expert.name))
     .map((expert) => expert.agent_id);

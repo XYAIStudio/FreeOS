@@ -15,6 +15,7 @@ interface ModuleSettingsState {
   loading: boolean;
   error: string | null;
   load: (tenantId?: number) => Promise<void>;
+  applyOverrides: (disabled: string[]) => void;
   reset: () => void;
 }
 
@@ -36,6 +37,14 @@ export const useModuleSettingsStore = create<ModuleSettingsState>((set) => ({
     } catch (error) {
       set({ loading: false, error: error instanceof Error ? error.message : "模块配置加载失败" });
     }
+  },
+  applyOverrides: (disabled) => {
+    const off = new Set(disabled.filter(Boolean));
+    const modules = { ...DEFAULT_MODULE_STATE };
+    for (const key of Object.keys(modules) as TenantModuleKey[]) {
+      if (off.has(key)) modules[key] = false;
+    }
+    set({ modules });
   },
   reset: () => set({ modules: { ...DEFAULT_MODULE_STATE }, tenantId: null, loading: false, error: null }),
 }));

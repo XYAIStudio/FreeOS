@@ -117,6 +117,8 @@ import {
   isEditableKnowledgeDocument,
   isKnowledgeMarkdownDocument,
 } from "../../utils/knowledgeDocPreview";
+import { CloudMountPanel } from "./CloudMountPanel";
+import { LocalMountPanel } from "./LocalMountPanel";
 import TextDocumentEditorModal, {
   type TextDocumentFormat,
 } from "./TextDocumentEditorModal";
@@ -2162,6 +2164,8 @@ export default function KnowledgeBasesPage() {
                       {selected.description ||
                         t("knowledgeBases.noDescription")}
                     </Typography.Paragraph>
+                    <LocalMountPanel kbId={selected.id} />
+                    <CloudMountPanel kbId={selected.id} />
                     <div className={styles.detailMeta}>
                       <CopyableResourceId
                         inline

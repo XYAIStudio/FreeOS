@@ -707,5 +707,29 @@
       "UnauthorizedOperation": "当前腾讯云账号没有该语音接口的访问权限。",
       "RequestLimitExceeded": "腾讯云请求过于频繁，请稍后再试。"
     }
+  },
+  "org": {
+    "notes": {
+      "generated_skills": "已从 openXYOS 目录生成 {count} 个模块技能",
+      "compiled_blueprint": "已编译蓝图 {name} → {slug}",
+      "compiled_workspace": "已编译蓝图 → {path}",
+      "spawned_agent": "已生成 FreeOS 智能体 {agent_id}",
+      "imported_live": "已从在线边车导入 openXYOS 目录与策略",
+      "sidecar_offline_compile": "边车离线；正在编译捆绑的 openXYOS 蓝图示例",
+      "wrote_policies": "已写入导入的治理策略（默认关闭；引擎会加载）",
+      "local_mirror": "本地镜像是可靠记录。HTTP 写入只是尽力而为。",
+      "nothing_auto_enabled": "控制面不会自动启用任何模块。",
+      "hero": "FreeOS 负责干活，openXYOS 负责组织与治理。",
+      "planes": "数据面：员工 / 技能 / MCP / 任务。控制面：蓝图 / 模块 / 治理。",
+      "sidecar_offline": "openXYOS 边车离线 — 启动后才能同步蓝图与审批。",
+      "mirror_only": "未设置 OPENXYOS_BASE_URL；仅写入本地镜像。"
+    },
+    "sidecar": {
+      "already": "边车已可达",
+      "started_pending": "已启动但尚未可达；请查看 logs/org-sidecar.log",
+      "missing_frontend": "已启动但缺少前端构建（dist/index.html）；边车可能仍在起来，请查看 logs/org-sidecar.log",
+      "ok": "正常",
+      "no_runtime": "未找到捆绑的边车运行时"
+    }
   }
 }

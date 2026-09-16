@@ -314,4 +314,69 @@ export const knowledgeBasesApi = {
         body: JSON.stringify({ new_name: newName }),
       },
     ),
+
+  getMount: (id: string) =>
+    request<{
+      mounted: boolean;
+      readonly?: boolean;
+      kind?: "local" | "cloud";
+      source_path?: string;
+      distill_path?: string;
+      cloud_url?: string;
+      cloud_provider?: string;
+      entries: Array<{
+        path: string;
+        name: string;
+        is_dir: boolean;
+        size: number;
+      }>;
+    }>(`/knowledge-bases/${id}/mount`),
+
+  setMount: (
+    id: string,
+    source_path: string,
+    distill_path?: string,
+    extra?: {
+      kind?: "local" | "cloud";
+      cloud_url?: string;
+      cloud_provider?: string;
+    },
+  ) =>
+    request<{
+      mounted: boolean;
+      source_path: string;
+      distill_path: string;
+      entries: Array<{
+        path: string;
+        name: string;
+        is_dir: boolean;
+        size: number;
+      }>;
+    }>(`/knowledge-bases/${id}/mount`, {
+      method: "PUT",
+      body: JSON.stringify({
+        source_path,
+        distill_path: distill_path || "",
+        kind: extra?.kind || "local",
+        cloud_url: extra?.cloud_url || "",
+        cloud_provider: extra?.cloud_provider || "",
+      }),
+    }),
+
+  clearMount: (id: string) =>
+    request<{ ok: boolean }>(`/knowledge-bases/${id}/mount`, {
+      method: "DELETE",
+    }),
+
+  distillMount: (id: string, distill_path: string) =>
+    request<{
+      source_path: string;
+      distill_path: string;
+      copied: number;
+      skipped: number;
+      readonly_source: boolean;
+    }>(`/knowledge-bases/${id}/mount/distill`, {
+      method: "POST",
+      body: JSON.stringify({ distill_path }),
+    }),
 };

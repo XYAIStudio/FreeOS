@@ -6,7 +6,14 @@ import AvatarDropdown from "../components/AvatarDropdown";
 import BrandMark from "../components/BrandMark";
 import AppVersionBadge from "../components/AppVersionBadge";
 import CurrentVersionBadge from "../components/CurrentVersionBadge";
-import { ArrowRightLeft, X, ChevronDown } from "lucide-react";
+import {
+  ArrowRightLeft,
+  X,
+  ChevronDown,
+  MessageSquarePlus,
+  FolderPlus,
+  ListPlus,
+} from "lucide-react";
 import { useLayoutMode } from "../context/LayoutModeContext";
 import { useUserRole } from "../hooks/useUserRole";
 import { useCurrentUser, useSetCurrentUser } from "../hooks/useCurrentUser";
@@ -254,8 +261,8 @@ function NavList({
   isMobile?: boolean;
   isGroupCollapsed: (groupKey: string) => boolean;
   toggleGroup: (groupKey: string) => void;
-  /** all = classic; primary = top flat entries; grouped = capabilities */
-  sectionFilter?: "all" | "primary" | "grouped";
+  /** all = classic; primary = top flat entries; grouped/footer = capabilities */
+  sectionFilter?: "all" | "primary" | "grouped" | "footer";
   hideGroupHeaderKeys?: ReadonlySet<string>;
 }) {
   const { t } = useTranslation();
@@ -265,8 +272,11 @@ function NavList({
   const { mobileEnabled } = useServerCapabilities();
   const navSections = buildNavSections(user, { mobileEnabled }).filter(
     (section) => {
-      if (sectionFilter === "primary") return !section.groupKey;
-      if (sectionFilter === "grouped") return Boolean(section.groupKey);
+      const placement = section.placement ?? "primary";
+      if (sectionFilter === "primary")
+        return placement === "primary" && !section.groupKey;
+      if (sectionFilter === "grouped" || sectionFilter === "footer")
+        return placement === "footer" || Boolean(section.groupKey);
       return true;
     },
   );
@@ -304,18 +314,40 @@ function NavList({
             <div key={sectionKey} className={styles.navGroup}>
               <div className={styles.navGroupItems}>
                 {visibleItems.map((item) => (
-                  <NavItemButton
-                    key={item.key}
-                    item={item}
-                    active={selectedKey === item.key}
-                    isMobile={isMobile}
-                    onNavigate={onNavigate}
-                    onExpandChatRail={onExpandChatRail}
-                    showChatRailExpand={showChatRailExpand}
-                    role={role}
-                    hasUpdate={hasUpdate}
-                    t={t}
-                  />
+                  <div key={item.key}>
+                    <NavItemButton
+                      item={item}
+                      active={
+                        selectedKey === item.key ||
+                        Boolean(
+                          item.children?.some((c) => c.key === selectedKey),
+                        )
+                      }
+                      isMobile={isMobile}
+                      onNavigate={onNavigate}
+                      onExpandChatRail={onExpandChatRail}
+                      showChatRailExpand={showChatRailExpand}
+                      role={role}
+                      hasUpdate={hasUpdate}
+                      t={t}
+                    />
+                    {item.children?.map((child) => (
+                      <div
+                        key={child.key}
+                        style={{ paddingLeft: isMobile ? 12 : 18 }}
+                      >
+                        <NavItemButton
+                          item={child}
+                          active={selectedKey === child.key}
+                          isMobile={isMobile}
+                          onNavigate={onNavigate}
+                          role={role}
+                          hasUpdate={hasUpdate}
+                          t={t}
+                        />
+                      </div>
+                    ))}
+                  </div>
                 ))}
               </div>
             </div>
@@ -346,18 +378,40 @@ function NavList({
             {!groupCollapsed && (
               <div className={styles.navGroupItems}>
                 {visibleItems.map((item) => (
-                  <NavItemButton
-                    key={item.key}
-                    item={item}
-                    active={selectedKey === item.key}
-                    isMobile={isMobile}
-                    onNavigate={onNavigate}
-                    onExpandChatRail={onExpandChatRail}
-                    showChatRailExpand={showChatRailExpand}
-                    role={role}
-                    hasUpdate={hasUpdate}
-                    t={t}
-                  />
+                  <div key={item.key}>
+                    <NavItemButton
+                      item={item}
+                      active={
+                        selectedKey === item.key ||
+                        Boolean(
+                          item.children?.some((c) => c.key === selectedKey),
+                        )
+                      }
+                      isMobile={isMobile}
+                      onNavigate={onNavigate}
+                      onExpandChatRail={onExpandChatRail}
+                      showChatRailExpand={showChatRailExpand}
+                      role={role}
+                      hasUpdate={hasUpdate}
+                      t={t}
+                    />
+                    {item.children?.map((child) => (
+                      <div
+                        key={child.key}
+                        style={{ paddingLeft: isMobile ? 12 : 18 }}
+                      >
+                        <NavItemButton
+                          item={child}
+                          active={selectedKey === child.key}
+                          isMobile={isMobile}
+                          onNavigate={onNavigate}
+                          role={role}
+                          hasUpdate={hasUpdate}
+                          t={t}
+                        />
+                      </div>
+                    ))}
+                  </div>
                 ))}
               </div>
             )}
@@ -487,14 +541,53 @@ export default function Sidebar({
   );
 
   const primaryItems =
-    navSections.find((section) => !section.groupKey)?.items ?? [];
+    navSections
+      .filter(
+        (section) =>
+          (section.placement ?? "primary") === "primary" && !section.groupKey,
+      )
+      .flatMap((section) => section.items) ?? [];
   const groupedItems = navSections
-    .filter((section) => section.groupKey)
+    .filter(
+      (section) => section.placement === "footer" || Boolean(section.groupKey),
+    )
     .flatMap((section) =>
       section.groupKey && isGroupCollapsed(section.groupKey)
         ? []
         : section.items,
     );
+
+  const composeActions = (
+    <div className={styles.composeRow}>
+      <button
+        type="button"
+        className={styles.composeBtn}
+        onClick={() => handleNavigate("/chat")}
+        title={t("nav.newConversation")}
+      >
+        <MessageSquarePlus size={14} strokeWidth={1.8} />
+        {!isRailCollapsed && <span>{t("nav.newConversation")}</span>}
+      </button>
+      <button
+        type="button"
+        className={styles.composeBtn}
+        onClick={() => handleNavigate("/tasks?new=1")}
+        title={t("nav.newTask")}
+      >
+        <ListPlus size={14} strokeWidth={1.8} />
+        {!isRailCollapsed && <span>{t("nav.newTask")}</span>}
+      </button>
+      <button
+        type="button"
+        className={styles.composeBtn}
+        onClick={() => handleNavigate("/projects?new=1")}
+        title={t("nav.newProject")}
+      >
+        <FolderPlus size={14} strokeWidth={1.8} />
+        {!isRailCollapsed && <span>{t("nav.newProject")}</span>}
+      </button>
+    </div>
+  );
 
   const paneToggle = (
     <SidebarMinimalPaneToggle
@@ -507,12 +600,7 @@ export default function Sidebar({
   const classicNavBody = isRailCollapsed ? (
     <div style={{ padding: "8px 0" }}>
       <SidebarCollapsedIconNav
-        items={navSections.flatMap((section) => {
-          if (section.groupKey && isGroupCollapsed(section.groupKey)) {
-            return [];
-          }
-          return section.items;
-        })}
+        items={primaryItems}
         selectedKey={selectedKey}
         onNavigate={handleNavigate}
         role={role}
@@ -521,14 +609,38 @@ export default function Sidebar({
       />
     </div>
   ) : (
+    <>
+      {composeActions}
+      <NavList
+        selectedKey={selectedKey}
+        onNavigate={handleNavigate}
+        onExpandChatRail={handleExpandChatRail}
+        showChatRailExpand={showChatRailExpand}
+        isMobile={isMobile}
+        isGroupCollapsed={isGroupCollapsed}
+        toggleGroup={toggleGroup}
+        sectionFilter="primary"
+      />
+    </>
+  );
+
+  const footerNav = isRailCollapsed ? (
+    <SidebarCollapsedIconNav
+      items={groupedItems}
+      selectedKey={selectedKey}
+      onNavigate={handleNavigate}
+      role={role}
+      hasUpdate={hasUpdate}
+      t={t}
+    />
+  ) : (
     <NavList
       selectedKey={selectedKey}
       onNavigate={handleNavigate}
-      onExpandChatRail={handleExpandChatRail}
-      showChatRailExpand={showChatRailExpand}
       isMobile={isMobile}
       isGroupCollapsed={isGroupCollapsed}
       toggleGroup={toggleGroup}
+      sectionFilter="footer"
     />
   );
 
@@ -685,6 +797,7 @@ export default function Sidebar({
             paddingBottom: "calc(8px + env(safe-area-inset-bottom, 0px))",
           }}
         >
+          {!isMinimal ? footerNav : null}
           {userFooter}
         </div>
       </div>
@@ -738,6 +851,7 @@ export default function Sidebar({
         {navScrollBody}
       </div>
 
+      {!isMinimal ? footerNav : null}
       {userFooter}
     </div>
   );

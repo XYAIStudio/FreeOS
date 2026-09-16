@@ -1,5 +1,6 @@
 import { useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
+import { Segmented } from "antd";
 import { Monitor, Smartphone } from "lucide-react";
 import PageShell from "../../../layouts/PageShell";
 import { usePathTabs } from "../../../hooks/usePathTabs";
@@ -22,7 +23,11 @@ const TAB_ICONS = {
   phone: Smartphone,
 } as const;
 
-export default function RemoteDesktopPage() {
+export default function RemoteDesktopPage({
+  embedded = false,
+}: {
+  embedded?: boolean;
+}) {
   const { t } = useTranslation();
   const user = useCurrentUser();
   const { mobileEnabled } = useServerCapabilities();
@@ -71,6 +76,45 @@ export default function RemoteDesktopPage() {
     `remoteDesktopHub.tabs.${activeTab}`,
   )}`;
 
+  const panels = (
+    <div className={styles.panels}>
+      {isMounted("desktop") && (
+        <div
+          className={styles.panel}
+          style={{ display: activeTab === "desktop" ? "flex" : "none" }}
+          aria-hidden={activeTab !== "desktop"}
+        >
+          <DesktopPanel embedded isVisible={desktopVisible} />
+        </div>
+      )}
+      {isMounted("phone") && (
+        <div
+          className={styles.panel}
+          style={{ display: activeTab === "phone" ? "flex" : "none" }}
+          aria-hidden={activeTab !== "phone"}
+        >
+          <RemoteAndroidPage embedded isVisible={phoneVisible} />
+        </div>
+      )}
+    </div>
+  );
+
+  if (embedded) {
+    return (
+      <div className={styles.embedded}>
+        <div className={styles.embeddedTabs}>
+          <Segmented
+            size="small"
+            value={pathTabs.value}
+            onChange={(value) => pathTabs.onChange(String(value))}
+            options={pathTabs.options}
+          />
+        </div>
+        {panels}
+      </div>
+    );
+  }
+
   return (
     <PageShell
       title={pageTitle}
@@ -78,26 +122,7 @@ export default function RemoteDesktopPage() {
       fill
       pathTabs={pathTabs}
     >
-      <div className={styles.panels}>
-        {isMounted("desktop") && (
-          <div
-            className={styles.panel}
-            style={{ display: activeTab === "desktop" ? "flex" : "none" }}
-            aria-hidden={activeTab !== "desktop"}
-          >
-            <DesktopPanel embedded isVisible={desktopVisible} />
-          </div>
-        )}
-        {isMounted("phone") && (
-          <div
-            className={styles.panel}
-            style={{ display: activeTab === "phone" ? "flex" : "none" }}
-            aria-hidden={activeTab !== "phone"}
-          >
-            <RemoteAndroidPage embedded isVisible={phoneVisible} />
-          </div>
-        )}
-      </div>
+      {panels}
     </PageShell>
   );
 }

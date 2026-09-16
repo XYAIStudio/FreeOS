@@ -39,6 +39,7 @@ import { useTranslation } from "react-i18next";
 import PageShell from "../../../layouts/PageShell";
 import { useIsMobile } from "../../../hooks/useIsMobile";
 import { UsageStats, type UsageStatItem } from "./UsageStats";
+import { splitLocalCloudTokens } from "../../../utils/localModelUsage";
 import { useUserRole } from "../../../hooks/useUserRole";
 import { request, requestBlob } from "../../../api/request";
 import { useAgent } from "../../../context/AgentContext";
@@ -581,18 +582,38 @@ function SummaryView({
   const expertPie = useMemo(() => toPieData(byExpert), [byExpert]);
   const modelPie = useMemo(() => toPieData(byModel), [byModel]);
   const dayBars = useMemo(() => [...byDay].reverse().slice(-14), [byDay]);
+  const localCloud = useMemo(() => splitLocalCloudTokens(byModel), [byModel]);
+  const localCloudData = useMemo(
+    () => [
+      { name: t("tokenUsage.localTokens"), value: localCloud.local },
+      { name: t("tokenUsage.cloudTokens"), value: localCloud.cloud },
+    ],
+    [localCloud.cloud, localCloud.local, t],
+  );
 
   return (
     <div className={styles.summaryBody}>
       <UsageStats
-        items={usageStatItems(totals, t)}
+        items={[
+          ...usageStatItems(totals, t),
+          {
+            key: "local",
+            label: t("tokenUsage.localTokens"),
+            value: formatNumber(localCloud.local),
+          },
+          {
+            key: "cloud",
+            label: t("tokenUsage.cloudTokens"),
+            value: formatNumber(localCloud.cloud),
+          },
+        ]}
         overflowEnabled={!isMobile}
       />
 
       <div
         className={styles.pieGrid}
         style={{
-          gridTemplateColumns: isMobile ? "1fr" : "repeat(3, minmax(0, 1fr))",
+          gridTemplateColumns: isMobile ? "1fr" : "repeat(2, minmax(0, 1fr))",
         }}
       >
         <DonutCard
@@ -612,6 +633,11 @@ function SummaryView({
         <DonutCard
           title={t("tokenUsage.modelBreakdown")}
           data={modelPie}
+          emptyText={t("tokenUsage.noRecordsInRange")}
+        />
+        <DonutCard
+          title={t("tokenUsage.localVsCloud")}
+          data={localCloudData}
           emptyText={t("tokenUsage.noRecordsInRange")}
         />
       </div>

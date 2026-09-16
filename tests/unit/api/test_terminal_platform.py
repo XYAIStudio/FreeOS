@@ -21,11 +21,11 @@ def test_terminal_supported_on_posix() -> None:
     assert reason == ""
 
 
-def test_terminal_unsupported_on_windows() -> None:
+def test_terminal_supported_on_windows() -> None:
     with patch("octop.api.routers.terminal.os.name", "nt"):
         supported, reason = terminal_supported()
-    assert supported is False
-    assert "Windows" in reason
+    assert supported is True
+    assert reason == ""
 
 
 def test_zsh_web_zdotdir_sources_user_rc_and_clears_prompt_markers() -> None:
