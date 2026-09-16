@@ -80,6 +80,8 @@ def test_uninstall_removes_shortcuts_and_program_cache() -> None:
     assert 'Delete "$DESKTOP\\${INFO_PRODUCTNAME}.lnk"' in uninstall
     assert 'Delete "$SMSTARTUP\\${INFO_PRODUCTNAME}.lnk"' in uninstall
     assert r'RMDir /r "$AppData\${PRODUCT_EXECUTABLE}"' in uninstall
+    assert r'RMDir /r "$R6\${INFO_PRODUCTNAME}"' in uninstall
+    assert "!insertmacro wails.userLocalAppData" in uninstall
     assert "!insertmacro wails.deleteUninstaller" in uninstall
 
 
@@ -143,7 +145,8 @@ def test_nsis_provisions_openxyos_runtime() -> None:
     assert 'File "/oname=openxyos-runtime.zip"' in nsh
     assert r"$INSTDIR\openxyos" in nsh
     assert r"$INSTDIR\openxyos-runtime" in nsh
-    assert r"$LOCALAPPDATA\FreeOS\openxyos" in nsh
+    assert r"$R6\FreeOS\openxyos" in nsh
+    assert "ReadEnvStr $R6 LOCALAPPDATA" in nsh
     assert "http://127.0.0.1:3780" in nsh
     assert "LangString OPENXYOS_WORKDIR ${LANG_SIMPCHINESE}" in nsi
     assert "创建 openXYOS 工作目录" in nsi
@@ -155,6 +158,47 @@ def test_nsis_provisions_openxyos_runtime() -> None:
     assert "stage_openxyos_runtime.py" in task
     package = (REPO / "desktop" / "portable" / "package.sh").read_text(encoding="utf-8")
     assert "openXYOS frontend missing" in package
+
+
+def _nsis_filewrite_argc(line: str) -> int:
+    """Count FileWrite arguments the way makensis splits them (space/comma)."""
+    rest = line.strip()
+    prefix = "FileWrite"
+    if not rest.startswith(prefix):
+        return 0
+    rest = rest[len(prefix) :].lstrip()
+    args: list[str] = []
+    i = 0
+    while i < len(rest):
+        ch = rest[i]
+        if ch in " \t,":
+            i += 1
+            continue
+        if ch in "\"'`":
+            j = i + 1
+            while j < len(rest) and rest[j] != ch:
+                j += 1
+            args.append(rest[i : j + 1])
+            i = j + 1
+            continue
+        j = i
+        while j < len(rest) and rest[j] not in " \t,":
+            j += 1
+        args.append(rest[i:j])
+        i = j
+    return len(args)
+
+
+def test_nsis_filewrite_is_exactly_two_args() -> None:
+    """A backtick next to '(' closes the string; $\\r$\\n becomes a third arg."""
+    nsh = NSH.read_text(encoding="utf-8")
+    for lineno, raw in enumerate(nsh.splitlines(), start=1):
+        stripped = raw.strip()
+        if not stripped.startswith("FileWrite"):
+            continue
+        argc = _nsis_filewrite_argc(stripped)
+        assert argc == 2, f"wails_tools.nsh:{lineno}: FileWrite argc={argc}: {stripped}"
+        assert "(`$" not in stripped and ")`$" not in stripped, stripped
 
 
 def test_nsis_extracts_runtime_with_quoted_paths_and_aborts_if_incomplete() -> None:
@@ -174,15 +218,23 @@ def test_nsis_extracts_runtime_with_quoted_paths_and_aborts_if_incomplete() -> N
     assert r"$INSTDIR\openxyos-runtime.zip" in provision
     assert "nsExec::ExecToLog" in provision
     assert "Pop $0" in provision
-    assert r"$INSTDIR\openxyos\node\node.exe" in require
-    assert r"$INSTDIR\openxyos\openxyos\dist\index.html" in require
+    assert r"$R6\FreeOS\openxyos\node\node.exe" in require
+    assert r"$R6\FreeOS\openxyos\openxyos\dist\index.html" in require
     assert "Abort" in require
     assert "SetErrorLevel 67" in require
     assert "OPENXYOS_EXTRACT_FAIL" in require
     assert "LangString OPENXYOS_EXTRACT_FAIL ${LANG_SIMPCHINESE}" in nsi
-    assert "未能解压完整的 openXYOS" in nsi
+    assert "未能把完整的 openXYOS" in nsi
     assert "openxyos-runtime.zip missing" in nsh
     assert "!error" in nsh
+    assert "probe-openxyos.ps1" in nsh
+    assert "/api/health/livez" in nsh
+    assert "SetErrorLevel 68" in nsh
+    assert "LangString OPENXYOS_PROBE_FAIL ${LANG_SIMPCHINESE}" in nsi
+    assert ".install-ready" in nsh
+    workflow = (REPO / ".github" / "workflows" / "octop-desktop.yml").read_text(encoding="utf-8")
+    assert "org-sidecar/openxyos/dist/index.html" in workflow
+    assert "org-sidecar/openxyos/backend/server.ts" in workflow
 
 
 def test_desktop_readme_documents_uninstall_keep_vs_remove() -> None:
@@ -203,6 +255,7 @@ def test_desktop_readme_documents_uninstall_keep_vs_remove() -> None:
     assert "tar.exe" in text
     assert "README-only" in text
     assert "folder picker" in text
+    assert "install-time" in text.lower() or "during Setup" in text or "安装期" in text
 
 
 def test_organization_source_download_uses_native_folder_picker() -> None:

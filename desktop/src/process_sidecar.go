@@ -297,7 +297,9 @@ func startOrgSidecar(root string, dashboardPort int) (*exec.Cmd, error) {
 func provisionOpenXYOS(portableRoot string, locale Locale, status func(string)) (string, error) {
 	dest := openxyosUserWorkDir()
 	if sidecarBundleReady(dest) {
-		_ = writeOpenXYOSReadme(dest)
+		// Windows NSIS writes this tree during Setup. First launch must
+		// not copy or unpack when the install-time live root is complete.
+		log.Printf("openXYOS workdir already complete at %s", dest)
 		return dest, nil
 	}
 	if status != nil {
