@@ -56,7 +56,6 @@ export default function OrganizationPage() {
   const [lastActionNotes, setLastActionNotes] = useState<string[]>([]);
   const [lastReceipt, setLastReceipt] = useState<LastReceipt | null>(null);
   const [previewFullscreen, setPreviewFullscreen] = useState(false);
-  const [previewPending, setPreviewPending] = useState(false);
   const [moduleToggles, setModuleToggles] = useState<Record<string, boolean>>(
     {},
   );
@@ -177,7 +176,6 @@ export default function OrganizationPage() {
 
   const startSidecar = () =>
     runAction("sidecar", async () => {
-      setPreviewPending(true);
       try {
         const result = await orgModuleApi.startSidecar();
         setLastActionNotes([result.detail, result.command].filter(Boolean));
@@ -189,8 +187,6 @@ export default function OrganizationPage() {
         }
       } catch {
         // FreeOS still embeds the local URL; no user-facing start CTA.
-      } finally {
-        setPreviewPending(false);
       }
     });
 
