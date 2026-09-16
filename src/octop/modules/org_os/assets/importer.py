@@ -97,7 +97,7 @@ def import_openxyos_assets(
             if record is not None:
                 spawned = spawn_colleague_agent(home, record)
                 result.agents.append(spawned.agent_id)
-                result.notes.append(f"spawned FreeOS agent {spawned.agent_id}")
+                result.notes.append(f"spawned FreeOS assistant {spawned.agent_id}")
 
     if from_sidecar:
         client = OpenXyosControlClient(sidecar_url, home=home)
@@ -144,7 +144,7 @@ def import_openxyos_assets(
                     if record is not None:
                         spawned = spawn_colleague_agent(home, record)
                         result.agents.append(spawned.agent_id)
-                        result.notes.append(f"spawned FreeOS agent {spawned.agent_id}")
+                        result.notes.append(f"spawned FreeOS assistant {spawned.agent_id}")
             for item in exported.get("skills") or []:
                 if not isinstance(item, dict):
                     continue

@@ -2,9 +2,9 @@
 
 FreeOS **grows its own AI workforce**. The loop is the product:
 
-1. **Produce** runtime assets on FreeOS (the data plane): AI employees, skills, plugins, MCP connectors.
-2. **Assemble** those assets into openXYOS (the control plane) so org modules get stronger.
-3. **Feed back** openXYOS org structure, blueprints, governance, the module catalog, and the talent market into FreeOS to spawn or upgrade more agents and skills.
+1. **Produce** runtime assets on FreeOS (the data plane): experts / assistants not yet in a department, skills, plugins, MCP connectors.
+2. **Assemble** those assets into openXYOS (the control plane) as department employees so org modules get stronger.
+3. **Feed back** openXYOS org structure, blueprints, governance, the module catalog, and the talent market into FreeOS as colleagues — same-organization peers you can chat with.
 4. **Repeat.** Each cycle adds colleagues and capabilities that are usable in FreeOS chat and governed.
 
 openXYOS does **not** replace FreeOS chat. FreeOS still runs the agents. Governance **blocks** high-risk tools until a human approves.

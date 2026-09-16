@@ -222,6 +222,23 @@ def test_produce_from_corpus_spawns_colleague(tmp_path: Path) -> None:
     assert result["spawned"]["agent_id"]
 
 
+def test_produce_from_corpus_ignores_outside_distill_path(tmp_path: Path) -> None:
+    from octop.modules.org_os.empower import produce_from_corpus
+
+    outside = tmp_path.parent / "outside-corpus"
+    service = OrgModuleService(config_path=tmp_path / "config.json", home=tmp_path)
+    result = produce_from_corpus(
+        service,
+        name="Safe Analyst",
+        distill_path=str(outside / ".." / "etc"),
+        kb_id="../etc",
+    )
+    dest = Path(result["distill_path"])
+    assert dest == (tmp_path / "org-corpus" / "default").resolve()
+    assert dest.is_relative_to(tmp_path.resolve())
+    assert not outside.exists()
+
+
 def test_governance_enable_persists(tmp_path: Path) -> None:
     config = tmp_path / "config.json"
     service = OrgModuleService(config_path=config, home=tmp_path)

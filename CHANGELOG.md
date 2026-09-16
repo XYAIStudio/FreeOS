@@ -9,7 +9,8 @@
 ### 新增
 
 - 组织页双向互生长：FreeOS 资产经 `/api/freeos/ingest`（共享写入令牌，无需边车登录墙）落到 openXYOS 员工/人才/插件/技能表；控制面导出再装配回 FreeOS。循环在边车健康时不再把「已推送到控制面」写成 false。
-- 组织页可从本地语料或 ima / 云知识库指针一键生产同事；本地模型一键下载后会注册到 Ollama 供应商。
+- 组织页可从本地语料或 ima / 云知识库指针一键生产尚未入部门的专家 / 智能助手；本地模型一键下载后会注册到 Ollama 供应商。
+- 组织页用语对齐：员工=已入部门；同事=同一组织的同伴；专家 / 智能助手=尚未入部门。导入把部门员工登记为同事；导出把专家写入控制面员工。
 
 ### 变更
 
@@ -17,7 +18,7 @@
 - 边车启动会写入并传递 `FREEOS_INGEST_TOKEN`；Python 启动器同时识别 `%LOCALAPPDATA%\FreeOS\openxyos`、`$INSTDIR\openxyos` 与 portable `org-sidecar`。
 - Windows 安装包写入预构建 openXYOS 运行包（`$INSTDIR\openxyos` + `openxyos-runtime.zip`），首次启动再落到 `%LOCALAPPDATA%\FreeOS\openxyos` / `~/.freeos/openxyos`，自动拉起 `http://127.0.0.1:3780`，组织页不必再点「启动边车」。
 - 项目创建用系统文件夹选择器（Wails 原生对话框，任意盘符）；项目/任务/对话区默认展示实时对话列表，并提供建群/群聊入口。
-- Organization OS 首页双循环：FreeOS 数据面与 openXYOS 控制面的实时状态、一键装配员工 / 打包回流 / 运行 org loop，以及边车离线时的启动恢复。
+- Organization OS 首页双循环：FreeOS 数据面与 openXYOS 控制面的实时状态、一键导入部门员工为同事 / 打包专家为员工 / 运行 org loop，以及边车离线时的启动恢复。
 - FreeOS 官网源码：`website/`（Vite + React 静态站，正式域名 https://freeos.cnxy.tech）。视觉与章节节奏对齐 XYAI Labs（天蓝→亮光、毛玻璃、01/02/…、底座 / 系统 / 生态），文案仍是 FreeOS 产品自己的话；圆形标志 + XYAI 机器人六姿态，无 Octop 红或章鱼形象。构建产物可整包上传到 `/www/wwwroot/freeos.cnxy.tech`。
 
 ### 变更
