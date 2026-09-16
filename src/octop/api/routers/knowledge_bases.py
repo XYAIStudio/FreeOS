@@ -747,7 +747,7 @@ async def upload_document(
         from octop.infra.utils.win_utf8 import repair_utf8_mojibake
 
         filename = repair_utf8_mojibake(upload.filename or "")
-        relative = repair_utf8_mojibake(path or filename)
+        relative = path if isinstance(path, str) else None
         document = _knowledge_service(server).upload_document(
             kb_id,
             actor_user_id=user.id,
@@ -755,7 +755,7 @@ async def upload_document(
             content_type=upload.content_type or "",
             content=content,
             is_admin=_is_admin(user),
-            path=relative,
+            path=repair_utf8_mojibake(relative or filename),
         )
         assert server.services is not None
         enqueue_index_document(server.services, kb_id, document.id)

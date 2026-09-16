@@ -20,11 +20,12 @@ def _request() -> Request:
 
 
 def _services(**extra: object) -> SimpleNamespace:
-    return SimpleNamespace(
-        settings_repo=SimpleNamespace(get=lambda _key: None, set=lambda *_: None),
-        provider_repo=SimpleNamespace(list_all=lambda: []),
-        **extra,
-    )
+    payload: dict[str, object] = {
+        "settings_repo": SimpleNamespace(get=lambda _key: None, set=lambda *_: None),
+        "provider_repo": SimpleNamespace(list_all=lambda: []),
+    }
+    payload.update(extra)
+    return SimpleNamespace(**payload)
 
 
 @dataclass

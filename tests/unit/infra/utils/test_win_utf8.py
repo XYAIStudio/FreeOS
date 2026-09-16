@@ -2,7 +2,7 @@ from octop.infra.utils.win_utf8 import repair_utf8_mojibake
 
 
 def test_repair_utf8_mojibake_restores_chinese_filename() -> None:
-    garbled = "项目结构.png".encode("utf-8").decode("cp1252")
+    garbled = "项目结构.png".encode().decode("cp1252")
     assert garbled != "项目结构.png"
     assert repair_utf8_mojibake(garbled) == "项目结构.png"
 

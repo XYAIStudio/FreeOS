@@ -90,7 +90,7 @@ def test_save_mount_repairs_cp1252_mojibake_path(tmp_path: Path) -> None:
     source = tmp_path / "项目"
     source.mkdir()
     (source / "说明.md").write_text("ok", encoding="utf-8")
-    garbled = str(source).encode("utf-8").decode("cp1252")
+    garbled = str(source).encode().decode("cp1252")
     assert garbled != str(source)
     stored = save_mount(
         KnowledgeMount(kb_id="kb-zh", source_path=garbled, distill_path=""),

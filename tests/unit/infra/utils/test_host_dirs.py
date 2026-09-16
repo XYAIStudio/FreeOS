@@ -58,7 +58,7 @@ def test_list_host_subdirs_keeps_unicode_names(tmp_path: Path) -> None:
 def test_normalize_host_path_repairs_cp1252_mojibake(tmp_path: Path) -> None:
     real = tmp_path / "项目"
     real.mkdir()
-    garbled = str(real).encode("utf-8").decode("cp1252")
+    garbled = str(real).encode().decode("cp1252")
     assert normalize_host_path(garbled) == real.resolve()
 
 

@@ -31,9 +31,7 @@ _NOT_ALLOWED_MSG = "path not allowed"
 
 def host_path_text(path: Path) -> str:
     """Serialize a host path for API/UI (POSIX separators, even on Windows)."""
-    return repair_utf8_mojibake(
-        Path(os.path.realpath(os.path.expanduser(str(path)))).as_posix()
-    )
+    return repair_utf8_mojibake(Path(os.path.realpath(os.path.expanduser(str(path)))).as_posix())
 
 
 def host_home_dir() -> Path:
