@@ -54,6 +54,7 @@ export interface OrgOverview {
   sidecar_reachable: boolean;
   sidecar_url: string;
   start_available: boolean;
+  install_ready: boolean;
   start_command: string;
   home: string;
   last_sync: string | null;

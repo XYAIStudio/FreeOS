@@ -724,6 +724,7 @@
       "hero": "FreeOS 负责干活，openXYOS 负责组织与治理。",
       "planes": "数据面：同事 / 专家 / 技能 / MCP / 任务。控制面：部门员工 / 蓝图 / 模块 / 治理。",
       "sidecar_offline": "openXYOS 边车离线 — 启动后才能同步蓝图与审批。",
+      "sidecar_reconnecting": "openXYOS 边车离线 — 正在自动连接安装期本机控制台。",
       "mirror_only": "未设置 OPENXYOS_BASE_URL；仅写入本地镜像。",
       "local_mirror_short": "本地镜像是可靠记录。",
       "imported_export": "已导入在线控制面导出",

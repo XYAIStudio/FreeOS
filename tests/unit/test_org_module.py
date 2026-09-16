@@ -185,6 +185,7 @@ def test_overview_reports_real_empty_counts(tmp_path: Path) -> None:
     assert payload["freeos"]["mcp"] == 1
     assert payload["freeos"]["tasks"] == 3
     assert payload["sidecar_reachable"] is False
+    assert payload["install_ready"] is False
     assert payload["last_loop"] is None
     assert any("FreeOS does the work" in note for note in payload["notes"])
 

@@ -3,6 +3,8 @@ package main
 import (
 	"archive/zip"
 	"io"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
@@ -274,6 +276,39 @@ func zipDir(src, dest string) error {
 		return err
 	}
 	return w.Close()
+}
+
+func TestSidecarLiveReadsHealthURL(t *testing.T) {
+	t.Helper()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/api/health/livez" {
+			t.Fatalf("path %s", r.URL.Path)
+		}
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("ok"))
+	}))
+	t.Cleanup(srv.Close)
+	sidecarHealthURLOverride = srv.URL + "/api/health/livez"
+	t.Cleanup(func() { sidecarHealthURLOverride = "" })
+	if !sidecarLive() {
+		t.Fatal("healthy livez should count as live")
+	}
+}
+
+func TestStartOrgSidecarSkipsWhenLive(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	t.Cleanup(srv.Close)
+	sidecarHealthURLOverride = srv.URL + "/api/health/livez"
+	t.Cleanup(func() { sidecarHealthURLOverride = "" })
+	cmd, err := startOrgSidecar(t.TempDir(), 8088)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cmd != nil {
+		t.Fatal("already-live sidecar must not spawn a second node")
+	}
 }
 
 func TestSidecarNodeArgsPrefersCompiledServer(t *testing.T) {

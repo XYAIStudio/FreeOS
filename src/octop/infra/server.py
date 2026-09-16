@@ -600,7 +600,7 @@ class OctopServer:
         from octop.modules.org_os.sidecar_launch import ensure_sidecar
 
         service = org_module_from_paths(self.paths)
-        result = ensure_sidecar(service, wait=8.0)
+        result = ensure_sidecar(service)
         logger.info(
             "organization sidecar ensure started=%s already=%s reachable=%s detail=%s",
             result.started,

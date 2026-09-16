@@ -47,6 +47,7 @@ class DualLoopOverview:
     sidecar_reachable: bool
     sidecar_url: str
     start_available: bool
+    install_ready: bool
     start_command: str
     home: str
     last_sync: str | None
@@ -61,6 +62,7 @@ class DualLoopOverview:
             "sidecar_reachable": self.sidecar_reachable,
             "sidecar_url": self.sidecar_url,
             "start_available": self.start_available,
+            "install_ready": self.install_ready,
             "start_command": self.start_command,
             "home": self.home,
             "last_sync": self.last_sync,
@@ -80,6 +82,7 @@ def build_overview(
     cron_jobs: int = 0,
     skill_packages: int = 0,
     start_available: bool = False,
+    install_ready: bool = False,
 ) -> DualLoopOverview:
     status = service.status()
     tid = service.tenant_id() or "default"
@@ -121,12 +124,18 @@ def build_overview(
         "Data plane: colleagues / experts / skills / MCP / tasks. Control plane: department employees / blueprints / modules / governance.",
     ]
     if not status.sidecar.reachable:
-        notes.append("openXYOS sidecar is offline — start it to sync blueprints and approvals.")
+        if install_ready:
+            notes.append(
+                "openXYOS sidecar is offline — reconnecting the install-time local console."
+            )
+        else:
+            notes.append("openXYOS sidecar is offline — start it to sync blueprints and approvals.")
     return DualLoopOverview(
         enabled=status.enabled,
         sidecar_reachable=status.sidecar.reachable,
         sidecar_url=status.sidecar.url,
         start_available=start_available,
+        install_ready=install_ready,
         start_command=status.start_command,
         home=status.home,
         last_sync=last_sync,

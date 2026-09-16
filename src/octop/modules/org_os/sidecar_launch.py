@@ -197,6 +197,46 @@ def find_sidecar_launcher() -> Path | None:
     return None
 
 
+def sidecar_candidate_roots() -> list[Path]:
+    """Live / install / portable roots that may carry ``.install-ready``."""
+    roots: list[Path] = []
+    seen: set[Path] = set()
+
+    def add(path: Path | None) -> None:
+        if path is None:
+            return
+        try:
+            clean = path.expanduser()
+        except OSError:
+            return
+        if clean in seen:
+            return
+        seen.add(clean)
+        roots.append(clean)
+
+    add(_explicit_openxyos_home())
+    add(_localappdata_openxyos())
+    base = (os.environ.get("LOCALAPPDATA") or "").strip()
+    if base:
+        add(Path(base) / "FreeOS" / "openxyos")
+    add(_install_openxyos())
+    add(PathLayout.from_env().root / "openxyos")
+    root = portable_root()
+    if root is not None:
+        add(root / "org-sidecar")
+    return roots
+
+
+def sidecar_install_ready() -> bool:
+    """True when Setup wrote ``.install-ready`` on a live openXYOS tree."""
+    for root in sidecar_candidate_roots():
+        if (root / ".install-ready").is_file():
+            return True
+        if (root / "org-sidecar" / ".install-ready").is_file():
+            return True
+    return False
+
+
 def sidecar_can_start() -> bool:
     return find_sidecar_runtime() is not None or find_sidecar_launcher() is not None
 
@@ -393,13 +433,15 @@ def start_sidecar(service: OrgModuleService, *, wait: float = 20.0) -> SidecarSt
     )
 
 
-def ensure_sidecar(service: OrgModuleService, *, wait: float = 20.0) -> SidecarStartResult:
+def ensure_sidecar(service: OrgModuleService, *, wait: float | None = None) -> SidecarStartResult:
     """Keep the bundled sidecar up on desktop / first launch.
 
     Only auto-starts when the portable ``org-sidecar`` runtime is present.
     A source-tree ``scripts/run-org-sidecar.sh`` is left for an explicit
     Start click so host boot never runs ``npm start`` in tests or unpackaged trees.
     """
+    if wait is None:
+        wait = 20.0 if sidecar_install_ready() else 8.0
     health = service.probe_sidecar()
     command = sidecar_start_command()
     if health.reachable:

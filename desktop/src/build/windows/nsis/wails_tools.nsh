@@ -206,10 +206,13 @@ RequestExecutionLevel "${REQUEST_EXECUTION_LEVEL}"
     FileWrite $0 "This folder is a backup. FreeOS starts the live tree.$\r$\n"
     FileWrite $0 "URL: http://127.0.0.1:3780$\r$\n"
     FileClose $0
+    !insertmacro wails.writeOpenXYOSAutostart
+    Call PersistOpenXYOS
     !insertmacro wails.probeOpenXYOS
     FileOpen $0 "$R6\FreeOS\openxyos\.install-ready" w
     FileWrite $0 "live=$R6\FreeOS\openxyos$\r$\n"
     FileWrite $0 "url=http://127.0.0.1:3780/api/health/livez$\r$\n"
+    FileWrite $0 "autostart=hkcu-run:FreeOS-openXYOS$\r$\n"
     FileClose $0
     SetDetailsPrint listonly
 !macroend
@@ -260,40 +263,75 @@ RequestExecutionLevel "${REQUEST_EXECUTION_LEVEL}"
     openxyosLayoutDone:
 !macroend
 
-# Start the install-time live tree long enough for /api/health/livez, then
-# stop it. The probe uses a throwaway sqlite under $PLUGINSDIR so Setup
-# does not stamp ~/.freeos as High integrity. Paths are expanded into a
-# .ps1 (no NSIS $INSTDIR on a -Command line).
-!macro wails.probeOpenXYOS
-    DetailPrint "$(OPENXYOS_PROBE)"
-    FileOpen $0 "$PLUGINSDIR\probe-openxyos.ps1" w
+# User-level start helper for the live LocalAppData tree. The elevated
+# installer must not spawn Node itself: that would stamp ~/.freeos as High
+# integrity and #29 then taskkill'd the probe, leaving Organization offline.
+# PersistOpenXYOS (project.nsi) registers HKCU Run and launches this script
+# via IShellDispatch2 (medium IL). Probe only waits for livez — no kill.
+!macro wails.writeOpenXYOSAutostart
+    DetailPrint "$(OPENXYOS_AUTOSTART)"
+    FileOpen $0 "$R6\FreeOS\openxyos\start-sidecar.cmd" w
+    FileWrite $0 `@echo off$\r$\n`
+    FileWrite $0 `setlocal EnableExtensions$\r$\n`
+    FileWrite $0 `powershell.exe -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File "%~dp0start-sidecar.ps1"$\r$\n`
+    FileClose $0
+    FileOpen $0 "$R6\FreeOS\openxyos\start-sidecar.ps1" w
     FileWrite $0 `$$ErrorActionPreference = 'Continue'$\r$\n`
-    FileWrite $0 `$$node = '$R6\FreeOS\openxyos\node\node.exe'$\r$\n`
-    FileWrite $0 `$$app = '$R6\FreeOS\openxyos\openxyos'$\r$\n`
-    FileWrite $0 `if (-not (Test-Path -LiteralPath $$app)) { $$app = '$R6\FreeOS\openxyos' }$\r$\n`
+    FileWrite $0 `$$live = Split-Path -Parent $$MyInvocation.MyCommand.Path$\r$\n`
+    FileWrite $0 `$$node = Join-Path $$live 'node\node.exe'$\r$\n`
+    FileWrite $0 `$$app = Join-Path $$live 'openxyos'$\r$\n`
+    FileWrite $0 `if (-not (Test-Path -LiteralPath (Join-Path $$app 'dist\index.html'))) { if (Test-Path -LiteralPath (Join-Path $$live 'dist\index.html')) { $$app = $$live } }$\r$\n`
     FileWrite $0 `$$livez = 'http://127.0.0.1:3780/api/health/livez'$\r$\n`
     FileWrite $0 `function Test-Livez { try { $$r = Invoke-WebRequest -UseBasicParsing -TimeoutSec 2 -Uri $$livez; return ($$r.StatusCode -lt 500) } catch { return $$false } }$\r$\n`
     FileWrite $0 `if (Test-Livez) { exit 0 }$\r$\n`
+    FileWrite $0 `if (-not (Test-Path -LiteralPath $$node)) { exit 6 }$\r$\n`
+    FileWrite $0 `$$home = $$env:FREEOS_HOME$\r$\n`
+    FileWrite $0 `if (-not $$home) { $$home = Join-Path $$env:USERPROFILE '.freeos' }$\r$\n`
+    FileWrite $0 `$$data = Join-Path $$home 'org-os'$\r$\n`
+    FileWrite $0 `New-Item -ItemType Directory -Force -Path $$data | Out-Null$\r$\n`
+    FileWrite $0 `$$secretFile = Join-Path $$data 'sidecar.env'$\r$\n`
+    FileWrite $0 `$$jwt = ''$\r$\n`
+    FileWrite $0 `$$cookie = ''$\r$\n`
+    FileWrite $0 `$$ingest = ''$\r$\n`
+    FileWrite $0 `if (Test-Path -LiteralPath $$secretFile) { foreach ($$line in Get-Content -LiteralPath $$secretFile) { if ($$line -match '^JWT_SECRET=(.+)$$') { $$jwt = $$Matches[1] }; if ($$line -match '^COOKIE_SECRET=(.+)$$') { $$cookie = $$Matches[1] }; if ($$line -match '^FREEOS_INGEST_TOKEN=(.+)$$') { $$ingest = $$Matches[1] } } }$\r$\n`
+    FileWrite $0 `if (-not $$jwt) { $$jwt = [guid]::NewGuid().ToString('N') + [guid]::NewGuid().ToString('N') }$\r$\n`
+    FileWrite $0 `if (-not $$cookie) { $$cookie = [guid]::NewGuid().ToString('N') + [guid]::NewGuid().ToString('N') }$\r$\n`
+    FileWrite $0 `if (-not $$ingest) { $$ingest = [guid]::NewGuid().ToString('N') + [guid]::NewGuid().ToString('N') }$\r$\n`
+    FileWrite $0 `"JWT_SECRET=$$jwt" | Set-Content -LiteralPath $$secretFile -Encoding ASCII$\r$\n`
+    FileWrite $0 `"COOKIE_SECRET=$$cookie" | Add-Content -LiteralPath $$secretFile -Encoding ASCII$\r$\n`
+    FileWrite $0 `"FREEOS_INGEST_TOKEN=$$ingest" | Add-Content -LiteralPath $$secretFile -Encoding ASCII$\r$\n`
     FileWrite $0 `$$env:NODE_ENV = 'production'$\r$\n`
     FileWrite $0 `$$env:PORT = '3780'$\r$\n`
     FileWrite $0 `$$env:DB_DIALECT = 'sqlite'$\r$\n`
-    FileWrite $0 `$$env:DATABASE_PATH = '$PLUGINSDIR\openxyos-probe.db'$\r$\n`
+    FileWrite $0 `$$env:DATABASE_PATH = Join-Path $$data 'xiongyuan.db'$\r$\n`
     FileWrite $0 `$$env:AIR_GAP_MODE = 'true'$\r$\n`
     FileWrite $0 `$$env:SEED_DEMO_DATA = 'false'$\r$\n`
     FileWrite $0 `$$env:ALLOW_PUBLIC_REGISTRATION = 'false'$\r$\n`
-    FileWrite $0 `$$env:JWT_SECRET = '0123456789abcdef0123456789abcdef'$\r$\n`
-    FileWrite $0 `$$env:COOKIE_SECRET = 'fedcba9876543210fedcba9876543210'$\r$\n`
-    FileWrite $0 `$$env:CORS_ORIGIN = 'http://127.0.0.1:8088'$\r$\n`
+    FileWrite $0 `$$env:JWT_SECRET = $$jwt$\r$\n`
+    FileWrite $0 `$$env:COOKIE_SECRET = $$cookie$\r$\n`
+    FileWrite $0 `$$env:FREEOS_INGEST_TOKEN = $$ingest$\r$\n`
+    FileWrite $0 `$$env:CORS_ORIGIN = 'http://127.0.0.1:8088,http://localhost:8088,http://127.0.0.1:18900,http://localhost:18900'$\r$\n`
+    FileWrite $0 `$$env:FREEOS_HOME = $$home$\r$\n`
+    FileWrite $0 `$$env:OCTOP_HOME = $$home$\r$\n`
+    FileWrite $0 `$$env:FREEOS_ORG_SIDECAR_PORT = '3780'$\r$\n`
     FileWrite $0 `$$compiled = Join-Path $$app 'backend-dist\server.js'$\r$\n`
     FileWrite $0 `if (Test-Path -LiteralPath $$compiled) { $$argv = @('backend-dist/server.js') } else { $$argv = @('--import'; 'tsx'; 'backend/server.ts') }$\r$\n`
-    FileWrite $0 `$$p = Start-Process -FilePath $$node -ArgumentList $$argv -WorkingDirectory $$app -WindowStyle Hidden -PassThru$\r$\n`
-    FileWrite $0 `$$ok = $$false$\r$\n`
-    FileWrite $0 `for ($$i = 0; $$i -lt 60; $$i++) { Start-Sleep -Seconds 1; if (Test-Livez) { $$ok = $$true; break } }$\r$\n`
-    FileWrite $0 `if ($$p -and -not $$p.HasExited) { & "$$env:SystemRoot\System32\taskkill.exe" /F /T /PID $$p.Id | Out-Null }$\r$\n`
-    FileWrite $0 `if ($$ok) { exit 0 }$\r$\n`
+    FileWrite $0 `Start-Process -FilePath $$node -ArgumentList $$argv -WorkingDirectory $$app -WindowStyle Hidden$\r$\n`
+    FileWrite $0 `exit 0$\r$\n`
+    FileClose $0
+!macroend
+
+# Wait for the user-level sidecar PersistOpenXYOS launched. Do not spawn
+# Node as admin and do not kill the probe process — that was the #29 gap.
+!macro wails.probeOpenXYOS
+    DetailPrint "$(OPENXYOS_PROBE)"
+    FileOpen $0 "$PLUGINSDIR\wait-openxyos.ps1" w
+    FileWrite $0 `$$livez = 'http://127.0.0.1:3780/api/health/livez'$\r$\n`
+    FileWrite $0 `function Test-Livez { try { $$r = Invoke-WebRequest -UseBasicParsing -TimeoutSec 2 -Uri $$livez; return ($$r.StatusCode -lt 500) } catch { return $$false } }$\r$\n`
+    FileWrite $0 `for ($$i = 0; $$i -lt 60; $$i++) { if (Test-Livez) { exit 0 }; Start-Sleep -Seconds 1 }$\r$\n`
     FileWrite $0 `exit 12$\r$\n`
     FileClose $0
-    nsExec::ExecToLog '"$SYSDIR\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -File "$PLUGINSDIR\probe-openxyos.ps1"'
+    nsExec::ExecToLog '"$SYSDIR\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -File "$PLUGINSDIR\wait-openxyos.ps1"'
     Pop $0
     DetailPrint "$(OPENXYOS_EXTRACT_CODE)$0"
     IntCmp $0 0 openxyosProbeOk openxyosProbeFail openxyosProbeFail
@@ -437,7 +475,7 @@ RequestExecutionLevel "${REQUEST_EXECUTION_LEVEL}"
 # (python + launch.py run), and org-sidecar node. $R7 is "1" when any match.
 !macro wails.detectFreeOSProcesses
     StrCpy $R7 "0"
-    nsExec::Exec 'powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "$$ErrorActionPreference=''SilentlyContinue''; $$n = @(Get-CimInstance Win32_Process | Where-Object { ($$_.Name -eq ''${PRODUCT_EXECUTABLE}'') -or ($$_.ExecutablePath -like ''$INSTDIR*'') -or ($$_.CommandLine -like ''*\portable\*launch.py* run*'') -or ($$_.ExecutablePath -like ''*\org-sidecar\*'') }).Count; if ($$n -gt 0) { exit 11 } else { exit 0 }"'
+    nsExec::Exec 'powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "$$ErrorActionPreference=''SilentlyContinue''; $$n = @(Get-CimInstance Win32_Process | Where-Object { ($$_.Name -eq ''${PRODUCT_EXECUTABLE}'') -or ($$_.ExecutablePath -like ''$INSTDIR*'') -or ($$_.CommandLine -like ''*\portable\*launch.py* run*'') -or ($$_.ExecutablePath -like ''*\org-sidecar\*'') -or ($$_.ExecutablePath -like ''*\FreeOS\openxyos\*'') }).Count; if ($$n -gt 0) { exit 11 } else { exit 0 }"'
     Pop $0
     ${If} $0 == 11
         StrCpy $R7 "1"
@@ -469,7 +507,7 @@ RequestExecutionLevel "${REQUEST_EXECUTION_LEVEL}"
     DetailPrint "Stopping FreeOS processes..."
     nsExec::ExecToLog 'taskkill /T /IM "${PRODUCT_EXECUTABLE}"'
     Pop $0
-    nsExec::ExecToLog 'powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "$$ErrorActionPreference=''SilentlyContinue''; $$sel = { ($$_.Name -eq ''${PRODUCT_EXECUTABLE}'') -or ($$_.ExecutablePath -like ''$INSTDIR*'') -or ($$_.CommandLine -like ''*\portable\*launch.py* run*'') -or ($$_.ExecutablePath -like ''*\org-sidecar\*'') }; Get-CimInstance Win32_Process | Where-Object $$sel | ForEach-Object { try { $$p = Get-Process -Id $$_.ProcessId; [void]$$p.CloseMainWindow() } catch {} }; Start-Sleep -Seconds 2; Get-CimInstance Win32_Process | Where-Object $$sel | ForEach-Object { Stop-Process -Id $$_.ProcessId -Force }"'
+    nsExec::ExecToLog 'powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "$$ErrorActionPreference=''SilentlyContinue''; $$sel = { ($$_.Name -eq ''${PRODUCT_EXECUTABLE}'') -or ($$_.ExecutablePath -like ''$INSTDIR*'') -or ($$_.CommandLine -like ''*\portable\*launch.py* run*'') -or ($$_.ExecutablePath -like ''*\org-sidecar\*'') -or ($$_.ExecutablePath -like ''*\FreeOS\openxyos\*'') }; Get-CimInstance Win32_Process | Where-Object $$sel | ForEach-Object { try { $$p = Get-Process -Id $$_.ProcessId; [void]$$p.CloseMainWindow() } catch {} }; Start-Sleep -Seconds 2; Get-CimInstance Win32_Process | Where-Object $$sel | ForEach-Object { Stop-Process -Id $$_.ProcessId -Force }"'
     Pop $0
     nsExec::ExecToLog 'taskkill /F /T /IM "${PRODUCT_EXECUTABLE}"'
     Pop $0

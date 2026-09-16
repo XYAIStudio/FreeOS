@@ -43,11 +43,12 @@ func pickFolderNative() (string, error) {
 	}
 }
 
-func pickFolderWindows() (string, error) {
-	// FolderBrowserDialog with MyComputer so every drive letter is reachable.
-	// SelectedPath is a .NET Unicode string; emit UTF-8 as Base64 so the
-	// hidden-window PowerShell console code page cannot mojibake CJK.
-	script := strings.Join(
+// folderPickerWindowsScript prints the selected path as UTF-8 base64.
+// PowerShell's default stdout is the OEM/ACP code page (GBK on zh-CN
+// Windows). Interpreting those bytes as UTF-8 garbles Chinese folder names.
+func folderPickerWindowsScript() string {
+	return strings.Join(
+
 		[]string{
 			"Add-Type -AssemblyName System.Windows.Forms",
 			"[void][System.Windows.Forms.Application]::EnableVisualStyles()",
@@ -61,13 +62,16 @@ func pickFolderWindows() (string, error) {
 		},
 		"; ",
 	)
+}
+
+func pickFolderWindows() (string, error) {
 	cmd := exec.Command(
 		"powershell.exe",
 		"-NoProfile",
 		"-STA",
 		"-ExecutionPolicy", "Bypass",
 		"-Command",
-		script,
+		folderPickerWindowsScript(),
 	)
 	hideConsole(cmd)
 	out, err := cmd.Output()

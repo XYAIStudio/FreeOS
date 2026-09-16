@@ -37,6 +37,7 @@ function cp1252Byte(code: number): number | null {
 /**
  * Repair UTF-8 text that a Windows bridge exposed as Latin-1 / CP1252.
  * Example: ``é¡¹ç®ç»æ.png`` → ``项目结构.png``.
+
  */
 export function repairUtf8Mojibake(text: string): string {
   if (!text) return text;

@@ -156,9 +156,28 @@ func resolveSidecarDir(portableRoot string) string {
 	return ""
 }
 
+// sidecarHealthURLOverride is a test seam for sidecarLive / waitSidecarLive.
+var sidecarHealthURLOverride string
+
+func sidecarHealthCheckURL() string {
+	if sidecarHealthURLOverride != "" {
+		return sidecarHealthURLOverride
+	}
+	return sidecarURL() + "/api/health/livez"
+}
+
+func sidecarLive() bool {
+	resp, err := http.Get(sidecarHealthCheckURL())
+	if err != nil {
+		return false
+	}
+	resp.Body.Close()
+	return resp.StatusCode < 500
+}
+
 func waitSidecarLive(timeout time.Duration) error {
 	deadline := time.Now().Add(timeout)
-	url := sidecarURL() + "/api/health/livez"
+	url := sidecarHealthCheckURL()
 	var last error
 	for time.Now().Before(deadline) {
 		resp, err := http.Get(url)
@@ -264,6 +283,10 @@ func sidecarLaunchEnv(home string, dashboardPort int) (map[string]string, error)
 }
 
 func startOrgSidecar(root string, dashboardPort int) (*exec.Cmd, error) {
+	if sidecarLive() {
+		log.Printf("organization sidecar already live at %s", sidecarURL())
+		return nil, nil
+	}
 	bundle := resolveSidecarDir(root)
 	if bundle == "" {
 		return nil, nil

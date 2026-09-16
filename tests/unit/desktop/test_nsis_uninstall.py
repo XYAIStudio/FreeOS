@@ -227,11 +227,14 @@ def test_nsis_extracts_runtime_with_quoted_paths_and_aborts_if_incomplete() -> N
     assert "未能把完整的 openXYOS" in nsi
     assert "openxyos-runtime.zip missing" in nsh
     assert "!error" in nsh
-    assert "probe-openxyos.ps1" in nsh
+    assert "wait-openxyos.ps1" in nsh
+    assert "probe-openxyos.ps1" not in nsh
     assert "/api/health/livez" in nsh
     assert "SetErrorLevel 68" in nsh
     assert "LangString OPENXYOS_PROBE_FAIL ${LANG_SIMPCHINESE}" in nsi
     assert ".install-ready" in nsh
+    assert "start-sidecar.ps1" in nsh
+    assert "FreeOS-openXYOS" in nsi
     workflow = (REPO / ".github" / "workflows" / "octop-desktop.yml").read_text(encoding="utf-8")
     assert "org-sidecar/openxyos/dist/index.html" in workflow
     assert "org-sidecar/openxyos/backend/server.ts" in workflow
@@ -258,6 +261,36 @@ def test_desktop_readme_documents_uninstall_keep_vs_remove() -> None:
     assert "install-time" in text.lower() or "during Setup" in text or "安装期" in text
 
 
+def test_nsis_leaves_user_level_sidecar_running() -> None:
+    """#29 probed then taskkill'd Node; Organization still asked to 启动边车."""
+    nsi = NSI.read_text(encoding="utf-8-sig")
+    nsh = NSH.read_text(encoding="utf-8")
+    autostart = nsh[
+        nsh.index("!macro wails.writeOpenXYOSAutostart") : nsh.index("!macro wails.probeOpenXYOS")
+    ]
+    probe = nsh[
+        nsh.index("!macro wails.probeOpenXYOS") : nsh.index("!macro wails.writeUninstaller")
+    ]
+    persist = nsi[nsi.index("Function PersistOpenXYOS") : nsi.index("Function LaunchFreeOS")]
+    assert "start-sidecar.ps1" in autostart
+    assert "start-sidecar.cmd" in autostart
+    assert "taskkill.exe" not in autostart
+    assert "taskkill.exe" not in probe
+    assert "Start-Process" not in probe
+    assert "wait-openxyos.ps1" in probe
+    assert "Call PersistOpenXYOS" in nsh
+    assert "FreeOS-openXYOS" in persist
+    assert "A4C6892C-3BA9-11d2-9DEA-00C04FB16162" in persist
+    assert r"*\FreeOS\openxyos\*" in nsh
+    uninstall = _uninstall_section(nsi)
+    assert (
+        'DeleteRegValue HKCU "Software\\Microsoft\\Windows\\CurrentVersion\\Run" "FreeOS-openXYOS"'
+        in uninstall
+    )
+    assert "LangString OPENXYOS_AUTOSTART ${LANG_SIMPCHINESE}" in nsi
+    assert "无需「启动边车」" in nsi or "开机自启" in nsi
+
+
 def test_organization_source_download_uses_native_folder_picker() -> None:
     page = ORG_PAGE.read_text(encoding="utf-8")
     assert "window.prompt" not in page
@@ -265,6 +298,12 @@ def test_organization_source_download_uses_native_folder_picker() -> None:
     assert "canPickDesktopFolder" in page
     assert "resolveOpenxyosSourceDest" in page
     assert "browseSourceDest" in page
+    assert "sidecarRecoverPhase" in page
+    assert "install_ready" in page
+    assert "silent: true" in page
+    zh = (REPO / "dashboard" / "src" / "locales" / "zh.json").read_text(encoding="utf-8")
+    assert '"startSidecarAction": "重试启动"' in zh
+    assert "正在自动连接安装期本机 openXYOS" in zh
 
 
 def test_windows_folder_picker_emits_utf8_base64() -> None:

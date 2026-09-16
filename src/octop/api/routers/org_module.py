@@ -25,6 +25,7 @@ from octop.modules.org_os.proxy import identity_headers, proxy_request
 from octop.modules.org_os.service import OrgModuleService, org_module_from_paths
 from octop.modules.org_os.sidecar_launch import (
     sidecar_can_start,
+    sidecar_install_ready,
     sidecar_start_command,
     start_sidecar,
 )
@@ -106,6 +107,7 @@ async def org_module_overview(
         cron_jobs=counts["cron_jobs"],
         skill_packages=counts["skill_packages"],
         start_available=sidecar_can_start(),
+        install_ready=sidecar_install_ready(),
     )
     payload = snapshot.to_dict()
     payload["start_command"] = sidecar_start_command()
