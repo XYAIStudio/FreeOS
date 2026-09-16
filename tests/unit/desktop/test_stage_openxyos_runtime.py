@@ -36,3 +36,21 @@ def test_stage_openxyos_runtime_from_sidecar_dir(tmp_path: Path) -> None:
     assert "openxyos/dist/index.html" in names
     assert "node/node.exe" in names
     assert "openxyos/backend/server.ts" in names
+    stage_mod.verify_runtime_zip(dest)
+    assert stage_mod.layout_ready(src)
+
+
+def test_readme_only_layout_cannot_ship(tmp_path: Path) -> None:
+    stub = tmp_path / "openxyos"
+    stub.mkdir()
+    (stub / "README.txt").write_text("FreeOS local openXYOS environment\n", encoding="utf-8")
+    assert stage_mod.layout_ready(stub) is False
+    empty_zip = tmp_path / "openxyos-runtime.zip"
+    with zipfile.ZipFile(empty_zip, "w") as zf:
+        zf.writestr("README.txt", "stub")
+    try:
+        stage_mod.verify_runtime_zip(empty_zip)
+    except SystemExit as exc:
+        assert "incomplete" in str(exc)
+    else:
+        raise AssertionError("README-only zip must not verify")

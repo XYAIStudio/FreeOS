@@ -1,6 +1,8 @@
 package main
 
 import (
+	"archive/zip"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -140,6 +142,113 @@ func writeSidecarBundle(t *testing.T, bundle string) {
 	if err := os.WriteFile(filepath.Join(app, "dist", "index.html"), []byte("<html></html>"), 0o644); err != nil {
 		t.Fatal(err)
 	}
+}
+
+func TestSidecarBundleReadyRejectsReadmeOnly(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "README.txt"), []byte("stub"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if sidecarBundleReady(dir) {
+		t.Fatal("README-only tree must not be treated as a runtime")
+	}
+}
+
+func TestProvisionOpenXYOSHealsFromStagedRuntime(t *testing.T) {
+	root := t.TempDir()
+	t.Setenv("FREEOS_HOME", root)
+	work := filepath.Join(root, "workdir")
+	t.Setenv("FREEOS_OPENXYOS_HOME", work)
+	t.Setenv("LOCALAPPDATA", filepath.Join(root, "local"))
+	inst := filepath.Join(root, "Program Files", "FreeOS")
+	installerRootOverride = inst
+	t.Cleanup(func() { installerRootOverride = "" })
+	live := filepath.Join(inst, "openxyos")
+	if err := os.MkdirAll(live, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(live, "README.txt"), []byte("stub"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	writeSidecarBundle(t, filepath.Join(inst, "openxyos-runtime"))
+	got, err := provisionOpenXYOS(filepath.Join(root, "portable"), LocaleEN, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got != work {
+		t.Fatalf("provision dest=%q want %q", got, work)
+	}
+	if !sidecarBundleReady(work) {
+		t.Fatal("workdir should be copied from openxyos-runtime, not README-only openxyos")
+	}
+	if _, err := os.Stat(filepath.Join(work, "openxyos", "dist", "index.html")); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestUnzipSidecarZipLaysOutBundle(t *testing.T) {
+	root := t.TempDir()
+	bundle := filepath.Join(root, "bundle")
+	writeSidecarBundle(t, bundle)
+	zipPath := filepath.Join(root, "openxyos-runtime.zip")
+	if err := zipDir(bundle, zipPath); err != nil {
+		t.Fatal(err)
+	}
+	dest := filepath.Join(root, "Program Files", "FreeOS", "openxyos")
+	if err := unzipSidecarZip(zipPath, dest); err != nil {
+		t.Fatal(err)
+	}
+	if !sidecarBundleReady(dest) {
+		t.Fatal("extracted zip should be a complete sidecar")
+	}
+}
+
+func zipDir(src, dest string) error {
+	f, err := os.Create(dest)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	w := zip.NewWriter(f)
+	err = filepath.Walk(src, func(path string, info os.FileInfo, walkErr error) error {
+		if walkErr != nil {
+			return walkErr
+		}
+		rel, err := filepath.Rel(src, path)
+		if err != nil {
+			return err
+		}
+		if rel == "." {
+			return nil
+		}
+		name := filepath.ToSlash(rel)
+		if info.IsDir() {
+			_, err := w.Create(name + "/")
+			return err
+		}
+		hdr, err := zip.FileInfoHeader(info)
+		if err != nil {
+			return err
+		}
+		hdr.Name = name
+		hdr.Method = zip.Deflate
+		out, err := w.CreateHeader(hdr)
+		if err != nil {
+			return err
+		}
+		in, err := os.Open(path)
+		if err != nil {
+			return err
+		}
+		_, copyErr := io.Copy(out, in)
+		in.Close()
+		return copyErr
+	})
+	if err != nil {
+		w.Close()
+		return err
+	}
+	return w.Close()
 }
 
 func TestSidecarNodeArgsPrefersCompiledServer(t *testing.T) {

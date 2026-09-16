@@ -23,8 +23,9 @@ Same precedence as the FreeOS CLI/server:
 - Green runtime extract → `{home}/portable/`
 - Organization sidecar data → `{home}/org-os/`
 - Local openXYOS workdir (FE+BE) → `%LOCALAPPDATA%\FreeOS\openxyos` on Windows,
-  else `{home}/openxyos`. The NSIS installer also expands a prebuilt
-  `openxyos-runtime.zip` into `$INSTDIR\openxyos`. First unelevated start copies
+  else `{home}/openxyos`. The NSIS installer expands a prebuilt
+  `openxyos-runtime.zip` into `$INSTDIR\openxyos` and `$INSTDIR\openxyos-runtime`
+  (install fails if `node` or `dist` is missing). First unelevated start copies
   that tree into the workdir and starts `http://127.0.0.1:3780`.
 - Shell prefs → `{home}/desktop-settings.json`
 
@@ -39,11 +40,17 @@ with `makensis -INPUTCHARSET UTF8` from a UTF-8 BOM `project.nsi`.
 
 The install log is no longer only `FreeOS.exe` + shortcuts. A healthy package
 also copies `openxyos-runtime.zip` (prebuilt Node + openXYOS frontend/backend)
-and extracts it to `$INSTDIR\openxyos`. The durable workdir is
-`%LOCALAPPDATA%\FreeOS\openxyos` (and `{home}/openxyos`). Program Files is
-read-only, so first start — not the elevated installer — writes the user
-workdir. Organization then embeds `http://127.0.0.1:3780` without a manual
-「启动边车」 click.
+and extracts it with Windows `tar.exe` (quoted paths, so `Program Files`
+works) into **both** `$INSTDIR\openxyos` and `$INSTDIR\openxyos-runtime`.
+Setup **aborts** if `node\node.exe` or `dist\index.html` is missing after
+extract — a README-only `$INSTDIR\openxyos` is not a successful install.
+The durable workdir is `%LOCALAPPDATA%\FreeOS\openxyos` (and `{home}/openxyos`).
+Program Files is read-only, so first start — not the elevated installer —
+copies the complete tree into the user workdir (and will heal from
+`openxyos-runtime` if `openxyos` was left as a stub). Organization then
+embeds `http://127.0.0.1:3780` without a manual 「启动边车」 click.
+Downloading the latest openXYOS source uses the same native folder picker
+as the project workdir (any drive), not a typed path only.
 
 Override the workdir with `FREEOS_OPENXYOS_HOME`.
 

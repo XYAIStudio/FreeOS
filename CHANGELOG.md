@@ -33,6 +33,7 @@
 
 ### 修复
 
+- Windows 安装把预构建 openXYOS 运行包用 `tar.exe` 解到 `$INSTDIR\openxyos` 与 `$INSTDIR\openxyos-runtime`（带空格的 `Program Files` 也能解全）。缺少 `node\node.exe` 或 `dist\index.html` 时安装失败，不再留下只有 README 的工作目录。首次启动会从完整树复制到 `%LOCALAPPDATA%\FreeOS\openxyos` 并自动拉起边车。组织页「下载最新 openXYOS 源码」走系统文件夹选择器（任意盘符），不再只用手输路径。
 - 桌面 / 本地会话不再被 `setup_required` 短路：`GET /setup/status` 之后仍可调用 `POST /auth/local-session`，不会误跳进服务端密码向导。
 - 组织页「启动边车」会拉起捆绑的 Node + openXYOS（Windows 用 `node.exe` / `cmd /c`，不再直接 Popen `.bat`），并在右侧预览区嵌入控制台（支持全屏）。openXYOS 在 FreeOS 桌面环境下关闭 `X-Frame-Options`，避免 iframe 空白。安装 / 桌面启动时宿主与 Wails 都会确保边车常开（需 `dist/index.html` 已打包）。
 - Windows 打开时不再因 WebView2 `Navigate`/`SetURL` 在 Chromium 未就绪时触发 Go panic。主窗口等 WebView 点火后再跳转；`SetURL` 失败会重试并显示 FreeOS 提示，而不是原始堆栈。设置窗口延后创建，避免两个 WebView2 同时初始化同一用户目录。用户数据目录必须可写，并设置 `WEBVIEW2_USER_DATA_FOLDER`。
