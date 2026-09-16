@@ -184,10 +184,12 @@ RequestExecutionLevel "${REQUEST_EXECUTION_LEVEL}"
     FileWrite $0 `if errorlevel 1 exit /b 8$\r$\n`
     FileWrite $0 `if exist "%LIVE%\node\node.exe" goto liveNodeOk$\r$\n`
     FileWrite $0 `if exist "$INSTDIR\openxyos-runtime\node\node.exe" xcopy /E /I /Y "$INSTDIR\openxyos-runtime\*" "%LIVE%\" >nul$\r$\n`
-    FileWrite $0 `liveNodeOk:$\r$\n`
+    # cmd.exe labels require a leading colon. "liveNodeOk:" is not a goto target.
+    FileWrite $0 `:liveNodeOk$\r$\n`
     FileWrite $0 `if not exist "%LIVE%\node\node.exe" exit /b 6$\r$\n`
     FileWrite $0 `if not exist "%LIVE%\openxyos\dist\index.html" if not exist "%LIVE%\dist\index.html" exit /b 7$\r$\n`
     FileWrite $0 `if defined USERNAME icacls "$R6\FreeOS" /grant "%USERNAME%:(OI)(CI)M" /T /C /Q >nul 2>&1$\r$\n`
+    FileWrite $0 `exit /b 0$\r$\n`
     FileClose $0
     nsExec::ExecToLog '"$PLUGINSDIR\extract-openxyos.cmd"'
     Pop $0
@@ -323,30 +325,29 @@ RequestExecutionLevel "${REQUEST_EXECUTION_LEVEL}"
 
 # Wait for the user-level sidecar PersistOpenXYOS launched. Do not spawn
 # Node as admin and do not kill the probe process — that was the #29 gap.
+# livez timeout is a warning only: node + dist already passed
+# requireOpenXYOSLayout, and HKCU Run / the LIMITED task stay registered.
 !macro wails.probeOpenXYOS
     DetailPrint "$(OPENXYOS_PROBE)"
     FileOpen $0 "$PLUGINSDIR\wait-openxyos.ps1" w
     FileWrite $0 `$$livez = 'http://127.0.0.1:3780/api/health/livez'$\r$\n`
     FileWrite $0 `function Test-Livez { try { $$r = Invoke-WebRequest -UseBasicParsing -TimeoutSec 2 -Uri $$livez; return ($$r.StatusCode -lt 500) } catch { return $$false } }$\r$\n`
-    FileWrite $0 `for ($$i = 0; $$i -lt 60; $$i++) { if (Test-Livez) { exit 0 }; Start-Sleep -Seconds 1 }$\r$\n`
+    FileWrite $0 `for ($$i = 0; $$i -lt 90; $$i++) { if (Test-Livez) { exit 0 }; if ($$i -eq 30) { schtasks.exe /Run /TN "FreeOS-openXYOS" | Out-Null }; Start-Sleep -Seconds 1 }$\r$\n`
     FileWrite $0 `exit 12$\r$\n`
     FileClose $0
     nsExec::ExecToLog '"$SYSDIR\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -File "$PLUGINSDIR\wait-openxyos.ps1"'
     Pop $0
     DetailPrint "$(OPENXYOS_EXTRACT_CODE)$0"
-    IntCmp $0 0 openxyosProbeOk openxyosProbeFail openxyosProbeFail
-    openxyosProbeFail:
-        DetailPrint "$(OPENXYOS_PROBE_FAIL)"
-        IfSilent openxyosProbeSilent openxyosProbeLoud
-        openxyosProbeSilent:
-            SetErrorLevel 68
-            Abort
-        openxyosProbeLoud:
-            MessageBox MB_OK|MB_ICONSTOP "$(OPENXYOS_PROBE_FAIL)"
-            SetErrorLevel 68
-            Abort
+    IntCmp $0 0 openxyosProbeOk openxyosProbeWarn openxyosProbeWarn
+    openxyosProbeWarn:
+        DetailPrint "$(OPENXYOS_PROBE_WARN)"
+        IfSilent openxyosProbeDone openxyosProbeNote
+        openxyosProbeNote:
+            MessageBox MB_OK|MB_ICONINFORMATION "$(OPENXYOS_PROBE_WARN)"
+            Goto openxyosProbeDone
     openxyosProbeOk:
         DetailPrint "$(OPENXYOS_PROBE_OK)"
+    openxyosProbeDone:
 !macroend
 
 !macro wails.writeUninstaller
