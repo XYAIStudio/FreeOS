@@ -210,12 +210,14 @@ RequestExecutionLevel "${REQUEST_EXECUTION_LEVEL}"
     FileClose $0
     !insertmacro wails.writeOpenXYOSAutostart
     Call PersistOpenXYOS
-    !insertmacro wails.probeOpenXYOS
+    # Stamp after layout + autostart, before livez wait. Probe must not Abort
+    # when node/dist exist; keep this write reachable on a slow sidecar.
     FileOpen $0 "$R6\FreeOS\openxyos\.install-ready" w
     FileWrite $0 "live=$R6\FreeOS\openxyos$\r$\n"
     FileWrite $0 "url=http://127.0.0.1:3780/api/health/livez$\r$\n"
     FileWrite $0 "autostart=hkcu-run:FreeOS-openXYOS$\r$\n"
     FileClose $0
+    !insertmacro wails.probeOpenXYOS
     SetDetailsPrint listonly
 !macroend
 

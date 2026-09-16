@@ -232,7 +232,12 @@ def test_nsis_extracts_runtime_with_quoted_paths_and_aborts_if_incomplete() -> N
     assert "/api/health/livez" in nsh
     assert "LangString OPENXYOS_PROBE_WARN ${LANG_SIMPCHINESE}" in nsi
     assert "安装将继续" in nsi
-    assert ".install-ready" in nsh
+    assert ".install-ready" in provision
+    assert provision.index(".install-ready") < provision.index("!insertmacro wails.probeOpenXYOS")
+    assert provision.index("!insertmacro wails.requireOpenXYOSLayout") < provision.index(
+        ".install-ready"
+    )
+    assert provision.index("Call PersistOpenXYOS") < provision.index(".install-ready")
     assert "start-sidecar.ps1" in nsh
     assert "FreeOS-openXYOS" in nsi
     workflow = (REPO / ".github" / "workflows" / "octop-desktop.yml").read_text(encoding="utf-8")
