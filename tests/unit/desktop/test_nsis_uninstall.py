@@ -293,6 +293,8 @@ def test_nsis_waits_for_unelevated_provisioner_and_aborts_on_failure() -> None:
     assert "Abort" in wait
     assert "SetErrorLevel 67" in wait
     assert "SetErrorLevel 68" in wait
+    assert "${TrimNewLines}" not in nsi
+    assert "oxProvTrim" in wait
     assert "OPENXYOS_PROBE_WARN" not in wait
     assert "安装将继续" not in nsi
     assert r"*\FreeOS\openxyos\*" in nsh

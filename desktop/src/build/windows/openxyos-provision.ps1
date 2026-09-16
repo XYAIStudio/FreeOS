@@ -69,7 +69,7 @@ function Write-ExitMarker {
             if ($dir -and -not (Test-Path -LiteralPath $dir)) {
                 New-Item -ItemType Directory -Force -Path $dir | Out-Null
             }
-            Set-Content -LiteralPath $path -Value $text -Encoding ASCII
+            [System.IO.File]::WriteAllText($path, $text)
         } catch {
         }
     }

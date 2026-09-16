@@ -211,7 +211,17 @@ Function WaitOpenXYOSProvision
         FileRead $0 $1
         FileClose $0
     oxProvGotCode:
-        ${TrimNewLines} $1 $1
+        ; FileRead keeps CR/LF. FileFunc TrimNewLines is not a command unless
+        ; the define is installed; strip trailing whitespace here instead.
+        oxProvTrim:
+            StrCpy $2 $1 1 -1
+            StrCmp $2 $\r oxProvStrip 0
+            StrCmp $2 $\n oxProvStrip 0
+            StrCmp $2 " " oxProvStrip oxProvTrimDone
+            oxProvStrip:
+                StrCpy $1 $1 -1
+                Goto oxProvTrim
+        oxProvTrimDone:
         DetailPrint "$(OPENXYOS_PROVISION_CODE)$1"
         IntCmp $1 0 oxProvOk oxProvFailCode oxProvFailCode
     oxProvFailCode:
