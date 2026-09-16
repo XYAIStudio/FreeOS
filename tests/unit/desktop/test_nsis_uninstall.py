@@ -314,4 +314,3 @@ def test_windows_folder_picker_emits_utf8_base64() -> None:
     process = (REPO / "desktop" / "src" / "process.go").read_text(encoding="utf-8")
     assert "PYTHONUTF8" in process
     assert "utf-8" in process
-
