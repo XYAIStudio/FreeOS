@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
+from urllib.parse import urlparse
 
 REPO = Path(__file__).resolve().parents[3]
 NSIS = REPO / "desktop" / "src" / "build" / "windows" / "nsis"
@@ -50,6 +52,44 @@ def test_provisioner_starts_medium_integrity_and_requires_livez() -> None:
     assert "Test-IsElevated" in start
     assert "refusing High-IL Node" in start
     assert "Start-Process -FilePath $node" in start
+    assert "UseShellExecute = $false" in start
+    assert "EnvironmentVariables" in start
+    assert "RedirectStandardError" in start
+    assert "NoNewWindow" in start
+    assert "UseNewEnvironment" not in start
+    assert "start.log" in start
+    assert "WaitForExit" in start
+    assert "$env:CORS_ORIGIN" in start
+    assert "Write-StartLogExcerpt" in text
+    assert "Test-OpenXYOSNodeAlive" in text
+    assert "Test-OpenXYOSPortListen" in text
+    assert "exit 10" in text
+
+
+def test_start_sidecar_cors_origin_is_parseorigins_safe() -> None:
+    """openXYOS parseOrigins requires explicit http(s) origins, no '*'."""
+    text = START_PS1.read_text(encoding="utf-8")
+    match = re.search(r"\$env:CORS_ORIGIN\s*=\s*'([^']+)'", text)
+    assert match, "start-sidecar.ps1 must set $env:CORS_ORIGIN"
+    origins = [part.strip() for part in match.group(1).split(",") if part.strip()]
+    assert origins
+    assert "*" not in origins
+    for origin in origins:
+        parsed = urlparse(origin)
+        assert parsed.scheme in {"http", "https"}, origin
+        assert parsed.netloc, origin
+
+
+def test_provisioner_fail_fast_when_node_dies() -> None:
+    text = PROVISION_PS1.read_text(encoding="utf-8")
+    assert "start.log excerpt" in text
+    assert "Node is not running and 3780 is not listening" in text
+    # Dead Node during livez wait is exit 10, not a 90s exit 12.
+    dead = text.index("Node is not running and 3780 is not listening")
+    exit10 = text.index("exit 10", dead)
+    exit12 = text.index("exit 12")
+    assert exit10 < exit12
+    assert "LivezTimeoutSec" in text
 
 
 def test_provisioner_writes_marker_only_when_healthy() -> None:

@@ -88,5 +88,112 @@ if (Test-Path -LiteralPath $compiled) {
 } else {
     $argv = @('--import', 'tsx', 'backend/server.ts')
 }
-Start-Process -FilePath $node -ArgumentList $argv -WorkingDirectory $app -WindowStyle Hidden
+
+# PS 5.1 Start-Process defaults to UseShellExecute=$true and does NOT pass
+# $env:CORS_ORIGIN / NODE_ENV into Node. Production parseOrigins then throws
+# and Node exits immediately (nothing listens on 3780).
+# Launch with ProcessStartInfo.UseShellExecute = $false and copy env onto
+# EnvironmentVariables. Start-Process -FilePath $node with Redirect*/-NoNewWindow
+# is the file-log path (those switches also force UseShellExecute=$false).
+$startLog = Join-Path $live 'start.log'
+$startOut = Join-Path $live 'start.out.log'
+$startErr = Join-Path $live 'start.err.log'
+$pidFile = Join-Path $live 'start.pid'
+@(
+    '{0} launching node={1}' -f (Get-Date -Format o), $node
+    "cwd=$app"
+    "argv=$($argv -join ' ')"
+    "NODE_ENV=$($env:NODE_ENV)"
+    "PORT=$($env:PORT)"
+    "CORS_ORIGIN=$($env:CORS_ORIGIN)"
+    "DB_DIALECT=$($env:DB_DIALECT)"
+    "AIR_GAP_MODE=$($env:AIR_GAP_MODE)"
+) | Set-Content -LiteralPath $startLog -Encoding UTF8
+foreach ($old in @($startOut, $startErr)) {
+    if (Test-Path -LiteralPath $old) {
+        Remove-Item -LiteralPath $old -Force -ErrorAction SilentlyContinue
+    }
+}
+
+$psi = New-Object System.Diagnostics.ProcessStartInfo
+$psi.UseShellExecute = $false
+$psi.CreateNoWindow = $true
+$psi.FileName = $node
+$psi.WorkingDirectory = $app
+$quoted = foreach ($a in $argv) {
+    if ($a -match '[\s"]') { '"{0}"' -f ($a -replace '"', '\"') } else { $a }
+}
+$psi.Arguments = [string]::Join(' ', $quoted)
+$psi.RedirectStandardOutput = $true
+$psi.RedirectStandardError = $true
+foreach ($name in @(
+        'NODE_ENV', 'PORT', 'DB_DIALECT', 'DATABASE_PATH', 'AIR_GAP_MODE',
+        'SEED_DEMO_DATA', 'ALLOW_PUBLIC_REGISTRATION', 'JWT_SECRET', 'COOKIE_SECRET',
+        'FREEOS_INGEST_TOKEN', 'CORS_ORIGIN', 'FREEOS_HOME', 'OCTOP_HOME',
+        'FREEOS_ORG_SIDECAR_PORT'
+    )) {
+    $val = [Environment]::GetEnvironmentVariable($name, 'Process')
+    if ($null -ne $val -and $val -ne '') {
+        $psi.EnvironmentVariables[$name] = $val
+    }
+}
+
+function Merge-NodeLogs {
+    foreach ($f in @($startOut, $startErr)) {
+        if (Test-Path -LiteralPath $f) {
+            Add-Content -LiteralPath $startLog -Value ('--- {0} ---' -f (Split-Path -Leaf $f)) -Encoding UTF8
+            Get-Content -LiteralPath $f -ErrorAction SilentlyContinue |
+                Add-Content -LiteralPath $startLog -Encoding UTF8
+        }
+    }
+}
+
+# Redirect* + -NoNewWindow => UseShellExecute=$false, so $env:* is inherited.
+# File redirects keep stdout/stderr after this helper exits.
+$proc = $null
+$usedPsi = $false
+try {
+    $proc = Start-Process -FilePath $node -ArgumentList $argv -WorkingDirectory $app `
+        -NoNewWindow `
+        -RedirectStandardOutput $startOut `
+        -RedirectStandardError $startErr `
+        -PassThru
+} catch {
+    Add-Content -LiteralPath $startLog -Value "Start-Process failed: $($_.Exception.Message)" -Encoding UTF8
+}
+
+if (-not $proc) {
+    try {
+        $proc = [System.Diagnostics.Process]::Start($psi)
+        $usedPsi = $true
+    } catch {
+        Add-Content -LiteralPath $startLog -Value "ProcessStartInfo start failed: $($_.Exception.Message)" -Encoding UTF8
+        exit 10
+    }
+}
+
+if (-not $proc) {
+    Add-Content -LiteralPath $startLog -Value 'Node process was not created' -Encoding UTF8
+    exit 10
+}
+
+$proc.Id | Set-Content -LiteralPath $pidFile -Encoding ASCII
+
+# Fast crash (missing CORS_ORIGIN, module, etc.) must not look like a 90s livez timeout.
+if ($proc.WaitForExit(5000)) {
+    Merge-NodeLogs
+    if ($usedPsi) {
+        try {
+            $tailOut = $proc.StandardOutput.ReadToEnd()
+            $tailErr = $proc.StandardError.ReadToEnd()
+            if ($tailOut) { Add-Content -LiteralPath $startLog -Value $tailOut -Encoding UTF8 }
+            if ($tailErr) { Add-Content -LiteralPath $startLog -Value $tailErr -Encoding UTF8 }
+        } catch {
+        }
+    }
+    Add-Content -LiteralPath $startLog -Value "node exited $($proc.ExitCode) (fail-fast)" -Encoding UTF8
+    exit 10
+}
+Merge-NodeLogs
+Add-Content -LiteralPath $startLog -Value "node still running pid=$($proc.Id)" -Encoding UTF8
 exit 0

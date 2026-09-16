@@ -10,7 +10,7 @@
 #   5  tar.exe missing
 #   6  node\node.exe missing after extract/heal
 #   7  dist\index.html missing after extract/heal
-#  10  could not start FE/BE (unelevated launch failed)
+#  10  could not start FE/BE, or Node died before livez (see start.log)
 #  12  livez timeout after start (+ one automatic start retry)
 #  13  livez ok but .install-ready could not be written
 
@@ -99,10 +99,78 @@ function Test-OpenXYOSLivez {
     }
 }
 
+function Get-StartLogExcerpt {
+    $paths = @(
+        (Join-Path $LiveDir 'start.log'),
+        (Join-Path $LiveDir 'start.err.log'),
+        (Join-Path $LiveDir 'start.out.log')
+    )
+    $lines = New-Object System.Collections.Generic.List[string]
+    foreach ($p in $paths) {
+        if (Test-Path -LiteralPath $p) {
+            Get-Content -LiteralPath $p -Tail 40 -ErrorAction SilentlyContinue | ForEach-Object {
+                $lines.Add($_)
+            }
+        }
+    }
+    if ($lines.Count -eq 0) { return '' }
+    return ($lines | Select-Object -Last 40) -join "`n"
+}
+
+function Write-StartLogExcerpt {
+    $excerpt = Get-StartLogExcerpt
+    if (-not $excerpt) {
+        Write-ProvLog 'start.log empty or missing (Node produced no stdout/stderr)'
+        return
+    }
+    Write-ProvLog '--- start.log excerpt ---'
+    foreach ($line in ($excerpt -split "`n")) {
+        Write-ProvLog $line
+    }
+    Write-ProvLog '--- end start.log ---'
+}
+
+function Test-OpenXYOSPortListen {
+    try {
+        $client = New-Object System.Net.Sockets.TcpClient
+        $iar = $client.BeginConnect('127.0.0.1', 3780, $null, $null)
+        $ok = $iar.AsyncWaitHandle.WaitOne(300, $false)
+        if (-not $ok) {
+            $client.Close()
+            return $false
+        }
+        $client.EndConnect($iar)
+        $client.Close()
+        return $true
+    } catch {
+        return $false
+    }
+}
+
+function Test-OpenXYOSNodeAlive {
+    $pidFile = Join-Path $LiveDir 'start.pid'
+    if (Test-Path -LiteralPath $pidFile) {
+        $raw = (Get-Content -LiteralPath $pidFile -Raw -ErrorAction SilentlyContinue)
+        $nid = 0
+        if ($null -ne $raw -and [int]::TryParse($raw.Trim(), [ref]$nid) -and $nid -gt 0) {
+            $p = Get-Process -Id $nid -ErrorAction SilentlyContinue
+            if ($p -and -not $p.HasExited) { return $true }
+        }
+    }
+    $nodes = Get-Process -Name node -ErrorAction SilentlyContinue
+    if ($nodes) { return $true }
+    return $false
+}
+
 function Wait-OpenXYOSLivez {
     param([int]$Seconds)
     for ($i = 0; $i -lt $Seconds; $i++) {
         if (Test-OpenXYOSLivez) { return $true }
+        if ($i -ge 8 -and -not (Test-OpenXYOSLivez) -and -not (Test-OpenXYOSPortListen) -and -not (Test-OpenXYOSNodeAlive)) {
+            Write-ProvLog 'Node is not running and 3780 is not listening during livez wait'
+            Write-StartLogExcerpt
+            exit 10
+        }
         Start-Sleep -Seconds 1
     }
     return $false
@@ -273,6 +341,7 @@ if (Test-OpenXYOSLivez) {
 
 if (-not (Start-OpenXYOSUnelevated $LiveDir)) {
     Write-ProvLog 'failed to launch FE/BE at medium integrity'
+    Write-StartLogExcerpt
     exit 10
 }
 
@@ -284,6 +353,7 @@ if (Wait-OpenXYOSLivez $LivezTimeoutSec) {
 Write-ProvLog "livez not ready after ${LivezTimeoutSec}s; re-invoking start once"
 if (-not (Start-OpenXYOSUnelevated $LiveDir)) {
     Write-ProvLog 'retry start failed'
+    Write-StartLogExcerpt
     exit 10
 }
 if (Wait-OpenXYOSLivez $RetryTimeoutSec) {
@@ -291,5 +361,6 @@ if (Wait-OpenXYOSLivez $RetryTimeoutSec) {
     exit 13
 }
 
-Write-ProvLog 'livez timeout after start retry — see this log (not assumed to be port 3780 in use)'
+Write-ProvLog 'livez timeout after start retry — see this log and start.log (not assumed to be port 3780 in use)'
+Write-StartLogExcerpt
 exit 12

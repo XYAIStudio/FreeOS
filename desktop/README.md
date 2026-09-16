@@ -27,8 +27,11 @@ Same precedence as the FreeOS CLI/server:
   shipped **provisioner subprocess** (`provision-openxyos.ps1`) that expands
   `openxyos-runtime.zip` with `tar.exe` into that live workdir (and keeps
   `$INSTDIR\openxyos` / `$INSTDIR\openxyos-runtime` as backups), starts FE/BE
-  at medium integrity, and writes `.install-ready` only after
-  `http://127.0.0.1:3780/api/health/livez` is healthy. A failed subprocess is
+  at medium integrity (Node inherits `CORS_ORIGIN` / `NODE_ENV`; stdout/stderr
+  go to `start.log`), and writes `.install-ready` only after
+  `http://127.0.0.1:3780/api/health/livez` is healthy. If Node dies before
+  livez, the provisioner exits 10 with a `start.log` excerpt instead of
+  waiting out a livez timeout. A failed subprocess is
   a failed install step (retry the provisioner). There is no Windows logon
   autostart: when FreeOS starts later, it brings local openXYOS up with it.
   Organization embeds `http://127.0.0.1:3780` directly.
