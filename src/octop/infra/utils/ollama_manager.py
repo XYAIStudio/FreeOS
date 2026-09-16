@@ -5,6 +5,7 @@ import logging
 import os
 import platform
 import subprocess
+import tempfile
 import time
 from datetime import datetime
 from pathlib import Path
@@ -236,6 +237,73 @@ def start_ollama_service() -> None:
     _ensure_ollama_server()
 
 
+def resolve_weight_file(weight_path: str) -> Path:
+    """Return an existing weight file path, or raise ``OSError``."""
+    raw = (weight_path or "").strip()
+    if not raw:
+        raise OSError("Weight file path is required.")
+    source = Path(raw).expanduser()
+    try:
+        source = source.resolve()
+    except OSError as exc:
+        raise OSError(f"Weight file not found: {weight_path}") from exc
+    try:
+        if not source.is_file():
+            raise OSError(f"Weight file not found: {weight_path}")
+    except OSError as exc:
+        if "not found" in str(exc).lower():
+            raise
+        raise OSError(f"Cannot read weight file {weight_path}: {exc}") from exc
+    return source
+
+
+def modelfile_from_instruction(weight: Path) -> str:
+    """Build a Modelfile ``FROM`` line that works on Windows absolute paths.
+
+    Unquoted ``FROM C:\\Users\\...\\file.gguf`` breaks Ollama's parser (backslashes
+    and spaces). Use a quoted POSIX path, or a same-directory relative name.
+    """
+    posix = weight.as_posix()
+    return f'FROM "{posix}"\n'
+
+
+def _iter_ollama_list_models(raw: Any) -> list[dict[str, Any]]:
+    """Normalize ``ollama.list()`` payloads (dict or pydantic ``ListResponse``)."""
+    if raw is None:
+        return []
+    models = getattr(raw, "models", None)
+    if models is None and isinstance(raw, dict):
+        models = raw.get("models")
+    if not models:
+        return []
+    out: list[dict[str, Any]] = []
+    for item in models:
+        if isinstance(item, dict):
+            out.append(item)
+            continue
+        dumped: dict[str, Any] = {}
+        dump = getattr(item, "model_dump", None)
+        if callable(dump):
+            try:
+                maybe = dump()
+            except Exception:
+                maybe = None
+            if isinstance(maybe, dict):
+                dumped = maybe
+        name = dumped.get("model") or dumped.get("name") or getattr(item, "model", None)
+        if name is None:
+            name = getattr(item, "name", "")
+        out.append(
+            {
+                "model": name or "",
+                "size": dumped.get("size", getattr(item, "size", 0)) or 0,
+                "digest": dumped.get("digest", getattr(item, "digest", None)),
+                "modified_at": dumped.get("modified_at", getattr(item, "modified_at", None)),
+            }
+        )
+    return out
+
+
 def create_from_weight(name: str, weight_path: str) -> None:
     """Import a local GGUF/GGML file into Ollama via ``ollama create``."""
     binary = find_ollama_binary()
@@ -245,10 +313,7 @@ def create_from_weight(name: str, weight_path: str) -> None:
             "before registering a local weight file."
         )
     _ensure_ollama_server()
-    source = Path(weight_path)
-    if not source.is_file():
-        raise OSError(f"Weight file not found: {weight_path}")
-    import tempfile
+    source = resolve_weight_file(weight_path)
 
     with tempfile.NamedTemporaryFile(
         mode="w",
@@ -256,21 +321,27 @@ def create_from_weight(name: str, weight_path: str) -> None:
         suffix=".Modelfile",
         delete=False,
     ) as handle:
-        handle.write(f"FROM {source}\n")
+        handle.write(modelfile_from_instruction(source))
         modelfile = handle.name
     run_kwargs: dict[str, Any] = {
         "check": False,
         "capture_output": True,
         "text": True,
+        "encoding": "utf-8",
+        "errors": "replace",
         "timeout": 600,
+        "cwd": str(source.parent),
     }
     if os.name == "nt":
         run_kwargs["creationflags"] = int(getattr(subprocess, "CREATE_NO_WINDOW", 0))
     try:
-        completed = subprocess.run(
-            [binary, "create", name, "-f", modelfile],
-            **run_kwargs,
-        )
+        try:
+            completed = subprocess.run(
+                [binary, "create", name, "-f", modelfile],
+                **run_kwargs,
+            )
+        except (OSError, subprocess.SubprocessError, UnicodeError, TimeoutError) as exc:
+            raise OSError(str(exc).strip() or "ollama create failed") from exc
     finally:
         with contextlib.suppress(OSError):
             os.unlink(modelfile)
@@ -319,12 +390,14 @@ class OllamaModelManager:
     def list_models() -> list[OllamaModelInfo]:
         """Return the current model list from ``ollama.list()``."""
         ollama = _ensure_ollama()
-        raw = ollama.list()
         models: list[OllamaModelInfo] = []
-        for m in raw.get("models", []):
+        for m in _iter_ollama_list_models(ollama.list()):
+            name = str(m.get("model") or m.get("name") or "")
+            if not name:
+                continue
             models.append(
                 OllamaModelInfo(
-                    name=m.get("model", ""),
+                    name=name,
                     size=m.get("size", 0) or 0,
                     digest=m.get("digest"),
                     modified_at=m.get("modified_at"),
