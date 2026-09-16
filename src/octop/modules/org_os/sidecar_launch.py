@@ -228,7 +228,7 @@ def sidecar_candidate_roots() -> list[Path]:
 
 
 def sidecar_install_ready() -> bool:
-    """True when Setup wrote ``.install-ready`` on a live openXYOS tree."""
+    """True when the install-time provisioner wrote ``.install-ready`` after livez."""
     for root in sidecar_candidate_roots():
         if (root / ".install-ready").is_file():
             return True

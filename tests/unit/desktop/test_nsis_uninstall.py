@@ -141,16 +141,15 @@ def test_packaged_windows_entry_is_freeos_exe() -> None:
 def test_nsis_provisions_openxyos_runtime() -> None:
     nsi = NSI.read_text(encoding="utf-8-sig")
     nsh = NSH.read_text(encoding="utf-8")
-    assert "!insertmacro wails.provisionOpenXYOS" in nsh
+    assert "!insertmacro wails.shipOpenXYOSPayload" in nsh
+    assert "!insertmacro wails.provisionOpenXYOS" in nsi
     assert 'File "/oname=openxyos-runtime.zip"' in nsh
-    assert r"$INSTDIR\openxyos" in nsh
-    assert r"$INSTDIR\openxyos-runtime" in nsh
-    assert r"$R6\FreeOS\openxyos" in nsh
+    assert 'File "/oname=openxyos-provision.ps1"' in nsh
+    assert 'File "/oname=start-sidecar.ps1"' in nsh
     assert "ReadEnvStr $R6 LOCALAPPDATA" in nsh
-    assert "http://127.0.0.1:3780" in nsh
-    assert "LangString OPENXYOS_WORKDIR ${LANG_SIMPCHINESE}" in nsi
-    assert "创建 openXYOS 工作目录" in nsi
-    assert "openXYOS 运行包" in nsi
+    assert "LangString OPENXYOS_PROVISION ${LANG_SIMPCHINESE}" in nsi
+    assert "独立的 openXYOS 预配置进程" in nsi
+    assert "openXYOS 密封运行包" in nsi
     task = (REPO / "desktop" / "src" / "build" / "windows" / "Taskfile.yml").read_text(
         encoding="utf-8"
     )
@@ -201,45 +200,39 @@ def test_nsis_filewrite_is_exactly_two_args() -> None:
         assert "(`$" not in stripped and ")`$" not in stripped, stripped
 
 
-def test_nsis_extracts_runtime_with_quoted_paths_and_aborts_if_incomplete() -> None:
-    """Program Files spaces must not yield a README-only $INSTDIR\\openxyos."""
+def test_nsis_ships_sealed_zip_and_independent_provisioner() -> None:
+    """NSIS copies payload + provisioner; it does not invent extract/start glue."""
     nsi = NSI.read_text(encoding="utf-8-sig")
     nsh = NSH.read_text(encoding="utf-8")
-    provision = nsh[
-        nsh.index("!macro wails.provisionOpenXYOS") : nsh.index(
-            "!macro wails.requireOpenXYOSLayout"
-        )
+    ship = nsh[
+        nsh.index("!macro wails.shipOpenXYOSPayload") : nsh.index("!macro wails.provisionOpenXYOS")
     ]
-    require = nsh[nsh.index("!macro wails.requireOpenXYOSLayout") :]
+    launch = nsh[
+        nsh.index("!macro wails.provisionOpenXYOS") : nsh.index("!macro wails.writeUninstaller")
+    ]
+    install = nsi[nsi.index("Section\n") : nsi.index('Section "uninstall"')]
     assert "Expand-Archive" not in nsh
-    assert "nsExec::ExecToLog" in provision and "tar.exe" in provision
-    assert "extract-openxyos.cmd" in provision
-    assert "tar.exe" in provision
-    assert r"$INSTDIR\openxyos-runtime.zip" in provision
-    assert "nsExec::ExecToLog" in provision
-    assert "Pop $0" in provision
-    assert r"$R6\FreeOS\openxyos\node\node.exe" in require
-    assert r"$R6\FreeOS\openxyos\openxyos\dist\index.html" in require
-    assert "Abort" in require
-    assert "SetErrorLevel 67" in require
-    assert "OPENXYOS_EXTRACT_FAIL" in require
-    assert "LangString OPENXYOS_EXTRACT_FAIL ${LANG_SIMPCHINESE}" in nsi
-    assert "未能把完整的 openXYOS" in nsi
+    assert "extract-openxyos.cmd" not in nsh
+    assert "wait-openxyos.ps1" not in nsh
+    assert "probe-openxyos.ps1" not in nsh
+    assert "!macro wails.requireOpenXYOSLayout" not in nsh
+    assert "!macro wails.writeOpenXYOSAutostart" not in nsh
+    assert "!macro wails.probeOpenXYOS" not in nsh
+    assert "FileWrite" not in ship
+    assert "FileWrite" not in launch
+    assert 'File "/oname=openxyos-runtime.zip"' in ship
+    assert 'File "/oname=openxyos-provision.ps1"' in ship
+    assert "Call LaunchOpenXYOSProvision" in launch
+    assert "Call WaitOpenXYOSProvision" in launch
+    assert install.index("!insertmacro wails.writeUninstaller") < install.index(
+        "!insertmacro wails.provisionOpenXYOS"
+    )
     assert "openxyos-runtime.zip missing" in nsh
     assert "!error" in nsh
-    assert "wait-openxyos.ps1" in nsh
-    assert "probe-openxyos.ps1" not in nsh
-    assert "/api/health/livez" in nsh
-    assert "LangString OPENXYOS_PROBE_WARN ${LANG_SIMPCHINESE}" in nsi
-    assert "安装将继续" in nsi
-    assert ".install-ready" in provision
-    assert provision.index(".install-ready") < provision.index("!insertmacro wails.probeOpenXYOS")
-    assert provision.index("!insertmacro wails.requireOpenXYOSLayout") < provision.index(
-        ".install-ready"
-    )
-    assert provision.index("Call PersistOpenXYOS") < provision.index(".install-ready")
-    assert "start-sidecar.ps1" in nsh
-    assert "FreeOS-openXYOS" in nsi
+    assert "LangString OPENXYOS_PROVISION_FAIL ${LANG_SIMPCHINESE}" in nsi
+    assert "独立预配置进程" in nsi
+    assert "安装将继续" not in nsi
+    assert "OPENXYOS_PROBE_WARN" not in nsi
     workflow = (REPO / ".github" / "workflows" / "octop-desktop.yml").read_text(encoding="utf-8")
     assert "org-sidecar/openxyos/dist/index.html" in workflow
     assert "org-sidecar/openxyos/backend/server.ts" in workflow
@@ -266,62 +259,42 @@ def test_desktop_readme_documents_uninstall_keep_vs_remove() -> None:
     assert "install-time" in text.lower() or "during Setup" in text or "安装期" in text
 
 
-def _filewrite_payloads(block: str) -> list[str]:
-    payloads: list[str] = []
-    for raw in block.splitlines():
-        stripped = raw.strip()
-        if not stripped.startswith("FileWrite"):
-            continue
-        start = stripped.find("`")
-        end = stripped.rfind("`")
-        if start != -1 and end > start:
-            payloads.append(stripped[start + 1 : end].replace("$\\r$\\n", "\n"))
-    return payloads
-
-
-def test_nsis_extract_cmd_uses_colon_prefixed_batch_labels() -> None:
-    """cmd.exe goto targets must be ':label'; 'label:' is not found."""
+def test_nsis_no_longer_embeds_cmd_goto_labels() -> None:
+    """The liveNodeOk FileWrite/goto class must not return."""
     nsh = NSH.read_text(encoding="utf-8")
-    provision = nsh[
-        nsh.index("!macro wails.provisionOpenXYOS") : nsh.index(
-            "!macro wails.requireOpenXYOSLayout"
-        )
-    ]
-    script = "".join(_filewrite_payloads(provision))
-    assert "goto liveNodeOk" in script
-    assert ":liveNodeOk" in script
-    assert "exit /b 0" in script
-    assert "FileWrite $0 `liveNodeOk:" not in nsh
-    for line in script.splitlines():
-        token = line.strip()
-        if token.endswith(":") and " " not in token and not token.startswith(":"):
-            raise AssertionError(f"cmd label missing leading colon: {token!r}")
+    nsi = NSI.read_text(encoding="utf-8-sig")
+    for blob in (nsh, nsi):
+        assert "goto liveNodeOk" not in blob
+        assert "liveNodeOk:" not in blob
+        assert ":liveNodeOk" not in blob
+        assert "extract-openxyos.cmd" not in blob
+    for lineno, raw in enumerate(nsh.splitlines(), start=1):
+        if not raw.strip().startswith("FileWrite"):
+            continue
+        payload = raw
+        if "goto " in payload.lower():
+            raise AssertionError(f"wails_tools.nsh:{lineno}: FileWrite still embeds goto: {raw}")
 
 
-def test_nsis_leaves_user_level_sidecar_running() -> None:
-    """#29 probed then taskkill'd Node; Organization still asked to 启动边车."""
+def test_nsis_waits_for_unelevated_provisioner_and_aborts_on_failure() -> None:
+    """Provisioner exit 0 + .install-ready is required; livez miss is not a warning."""
     nsi = NSI.read_text(encoding="utf-8-sig")
     nsh = NSH.read_text(encoding="utf-8")
-    autostart = nsh[
-        nsh.index("!macro wails.writeOpenXYOSAutostart") : nsh.index("!macro wails.probeOpenXYOS")
+    launch = nsi[
+        nsi.index("Function LaunchOpenXYOSProvision") : nsi.index("Function WaitOpenXYOSProvision")
     ]
-    probe = nsh[
-        nsh.index("!macro wails.probeOpenXYOS") : nsh.index("!macro wails.writeUninstaller")
-    ]
-    persist = nsi[nsi.index("Function PersistOpenXYOS") : nsi.index("Function LaunchFreeOS")]
-    assert "start-sidecar.ps1" in autostart
-    assert "start-sidecar.cmd" in autostart
-    assert "taskkill.exe" not in autostart
-    assert "taskkill.exe" not in probe
-    assert "Start-Process" not in probe
-    assert "Abort" not in probe
-    assert "SetErrorLevel 68" not in probe
-    assert "wait-openxyos.ps1" in probe
-    assert "OPENXYOS_PROBE_WARN" in probe
-    assert "schtasks.exe /Run" in probe
-    assert "Call PersistOpenXYOS" in nsh
-    assert "FreeOS-openXYOS" in persist
-    assert "A4C6892C-3BA9-11d2-9DEA-00C04FB16162" in persist
+    wait = nsi[nsi.index("Function WaitOpenXYOSProvision") : nsi.index("Function LaunchFreeOS")]
+    assert "openxyos-provision.ps1" in launch
+    assert "A4C6892C-3BA9-11d2-9DEA-00C04FB16162" in launch
+    assert "taskkill.exe" not in launch
+    assert "taskkill.exe" not in wait
+    assert ".provision-exit" in wait
+    assert ".install-ready" in wait
+    assert "Abort" in wait
+    assert "SetErrorLevel 67" in wait
+    assert "SetErrorLevel 68" in wait
+    assert "OPENXYOS_PROBE_WARN" not in wait
+    assert "安装将继续" not in nsi
     assert r"*\FreeOS\openxyos\*" in nsh
     uninstall = _uninstall_section(nsi)
     assert (
