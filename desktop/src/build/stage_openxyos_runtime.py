@@ -13,7 +13,6 @@ import sys
 import zipfile
 from pathlib import Path
 
-
 REQUIRED = (
     Path("node"),
     Path("openxyos") / "backend" / "server.ts",
