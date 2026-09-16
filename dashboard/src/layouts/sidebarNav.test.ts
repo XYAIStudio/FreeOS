@@ -80,4 +80,19 @@ describe("sidebarNav", () => {
     expect(zh.nav.organization).toBe("组织");
     expect(en.nav.organization).toBe("Organization");
   });
+
+  it("locks the employee / colleague / expert glossary", () => {
+    expect(zh.organization.glossary).toContain("员工：已经编入某个部门");
+    expect(zh.organization.glossary).toContain("同事：同一组织");
+    expect(zh.organization.glossary).toContain("专家 / 智能助手");
+    expect(zh.organization.assembleBody).toContain("员工");
+    expect(zh.organization.assembleBody).toContain("同事");
+    expect(zh.organization.assembleBody).not.toContain("出现在专家列表");
+    expect(zh.organization.produceTitle).toContain("专家");
+    expect(zh.chat.expertPicker).toContain("同事或智能助手");
+    expect(zh.projects.groupMembers).toContain("同事或智能助手");
+    expect(en.organization.glossary).toContain("Employees: already assigned");
+    expect(en.organization.glossary).toContain("Colleagues: peers");
+    expect(en.chat.expertPicker).toContain("colleagues or smart helpers");
+  });
 });
