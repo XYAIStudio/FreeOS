@@ -1,9 +1,11 @@
 package main
 
 import (
+	"archive/zip"
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -20,15 +22,23 @@ func orgSidecarDir(root string) string {
 }
 
 func sidecarNodeExe(root string) string {
-	base := filepath.Join(orgSidecarDir(root), "node")
+	return sidecarNodeAt(orgSidecarDir(root))
+}
+
+func sidecarAppDir(root string) string {
+	return sidecarAppAt(orgSidecarDir(root))
+}
+
+func sidecarNodeAt(bundle string) string {
+	base := filepath.Join(bundle, "node")
 	if runtime.GOOS == "windows" {
 		return filepath.Join(base, "node.exe")
 	}
 	return filepath.Join(base, "bin", "node")
 }
 
-func sidecarAppDir(root string) string {
-	return filepath.Join(orgSidecarDir(root), "openxyos")
+func sidecarAppAt(bundle string) string {
+	return filepath.Join(bundle, "openxyos")
 }
 
 func sidecarNodeArgs(app string) []string {
@@ -39,11 +49,14 @@ func sidecarNodeArgs(app string) []string {
 	return []string{"--import", "tsx", "backend/server.ts"}
 }
 
-func sidecarReady(root string) bool {
-	if _, err := os.Stat(sidecarNodeExe(root)); err != nil {
+func sidecarBundleReady(bundle string) bool {
+	if strings.TrimSpace(bundle) == "" {
 		return false
 	}
-	app := sidecarAppDir(root)
+	if _, err := os.Stat(sidecarNodeAt(bundle)); err != nil {
+		return false
+	}
+	app := sidecarAppAt(bundle)
 	if _, err := os.Stat(filepath.Join(app, "backend", "server.ts")); err != nil {
 		return false
 	}
@@ -52,6 +65,72 @@ func sidecarReady(root string) bool {
 		return false
 	}
 	return true
+}
+
+func sidecarReady(root string) bool {
+	return resolveSidecarDir(root) != ""
+}
+
+func openxyosUserWorkDir() string {
+	if v := strings.TrimSpace(os.Getenv("FREEOS_OPENXYOS_HOME")); v != "" {
+		return v
+	}
+	if runtime.GOOS == "windows" {
+		if base := strings.TrimSpace(os.Getenv("LOCALAPPDATA")); base != "" {
+			return filepath.Join(base, "FreeOS", "openxyos")
+		}
+	}
+	return filepath.Join(productHome(), "openxyos")
+}
+
+func openxyosInstallDir() string {
+	exe, err := os.Executable()
+	if err != nil {
+		return ""
+	}
+	dir := filepath.Dir(exe)
+	if resolved, err := filepath.EvalSymlinks(dir); err == nil {
+		dir = resolved
+	}
+	return filepath.Join(dir, "openxyos")
+}
+
+func sidecarSearchDirs(portableRoot string) []string {
+	seen := map[string]bool{}
+	var out []string
+	add := func(p string) {
+		p = strings.TrimSpace(p)
+		if p == "" {
+			return
+		}
+		clean := filepath.Clean(p)
+		if seen[clean] {
+			return
+		}
+		seen[clean] = true
+		out = append(out, clean)
+	}
+	add(os.Getenv("FREEOS_OPENXYOS_HOME"))
+	add(openxyosUserWorkDir())
+	add(filepath.Join(productHome(), "openxyos"))
+	add(openxyosInstallDir())
+	if portableRoot != "" {
+		add(orgSidecarDir(portableRoot))
+	}
+	return out
+}
+
+func resolveSidecarDir(portableRoot string) string {
+	for _, dir := range sidecarSearchDirs(portableRoot) {
+		if sidecarBundleReady(dir) {
+			return dir
+		}
+		nested := filepath.Join(dir, "org-sidecar")
+		if sidecarBundleReady(nested) {
+			return nested
+		}
+	}
+	return ""
 }
 
 func waitSidecarLive(timeout time.Duration) error {
@@ -156,7 +235,8 @@ func sidecarLaunchEnv(home string, dashboardPort int) (map[string]string, error)
 }
 
 func startOrgSidecar(root string, dashboardPort int) (*exec.Cmd, error) {
-	if !sidecarReady(root) {
+	bundle := resolveSidecarDir(root)
+	if bundle == "" {
 		return nil, nil
 	}
 	home := productHome()
@@ -164,8 +244,9 @@ func startOrgSidecar(root string, dashboardPort int) (*exec.Cmd, error) {
 	if err != nil {
 		return nil, err
 	}
-	app := sidecarAppDir(root)
-	node := sidecarNodeExe(root)
+	env["FREEOS_OPENXYOS_HOME"] = bundle
+	app := sidecarAppAt(bundle)
+	node := sidecarNodeAt(bundle)
 	cmd := exec.Command(node, sidecarNodeArgs(app)...)
 	cmd.Dir = app
 	mustEnv(cmd, env)
@@ -182,4 +263,225 @@ func startOrgSidecar(root string, dashboardPort int) (*exec.Cmd, error) {
 		return nil, err
 	}
 	return cmd, nil
+}
+
+func provisionOpenXYOS(portableRoot string, locale Locale, status func(string)) (string, error) {
+	dest := openxyosUserWorkDir()
+	if sidecarBundleReady(dest) {
+		_ = writeOpenXYOSReadme(dest)
+		return dest, nil
+	}
+	if status != nil {
+		status(desktopText(locale, copyStatusProvisioningOrg))
+	}
+	if err := os.MkdirAll(dest, 0o755); err != nil {
+		return "", err
+	}
+	for _, source := range openxyosSourceDirs(portableRoot) {
+		if !sidecarBundleReady(source) {
+			continue
+		}
+		if filepath.Clean(source) == filepath.Clean(dest) {
+			_ = writeOpenXYOSReadme(dest)
+			return dest, nil
+		}
+		if err := copyTree(source, dest); err != nil {
+			log.Printf("copy openXYOS from %s: %v", source, err)
+			continue
+		}
+		if sidecarBundleReady(dest) {
+			_ = writeOpenXYOSReadme(dest)
+			log.Printf("openXYOS workdir ready at %s", dest)
+			return dest, nil
+		}
+	}
+	if zipPath := openxyosRuntimeZip(); zipPath != "" {
+		if err := unzipSidecarZip(zipPath, dest); err != nil {
+			log.Printf("extract openxyos-runtime.zip: %v", err)
+		} else if sidecarBundleReady(dest) {
+			_ = writeOpenXYOSReadme(dest)
+			log.Printf("openXYOS workdir extracted to %s", dest)
+			return dest, nil
+		}
+	}
+	if bundle := resolveSidecarDir(portableRoot); bundle != "" {
+		_ = writeOpenXYOSReadme(bundle)
+		return bundle, nil
+	}
+	_ = writeOpenXYOSReadme(dest)
+	return dest, fmt.Errorf("openXYOS runtime missing (expected node + FE + BE)")
+}
+
+func openxyosSourceDirs(portableRoot string) []string {
+	var out []string
+	if install := openxyosInstallDir(); install != "" {
+		out = append(out, install)
+	}
+	if portableRoot != "" {
+		out = append(out, orgSidecarDir(portableRoot))
+	}
+	return out
+}
+
+func openxyosRuntimeZip() string {
+	exe, err := os.Executable()
+	if err != nil {
+		return ""
+	}
+	dir := filepath.Dir(exe)
+	for _, name := range []string{"openxyos-runtime.zip", "openXYOS-runtime.zip"} {
+		path := filepath.Join(dir, name)
+		if _, err := os.Stat(path); err == nil {
+			return path
+		}
+	}
+	return ""
+}
+
+func writeOpenXYOSReadme(dir string) error {
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return err
+	}
+	body := strings.Join([]string{
+		"FreeOS local openXYOS environment",
+		"",
+		"This folder is the local organization console (frontend + backend).",
+		"FreeOS starts it automatically at http://127.0.0.1:3780",
+		"Data/SQLite lives under {FREEOS_HOME}/org-os/ (usually ~/.freeos/org-os).",
+		"",
+		"Windows workdir: %LOCALAPPDATA%\\FreeOS\\openxyos",
+		"Profile workdir: %USERPROFILE%\\.freeos\\openxyos",
+		"Installer copy:  <install dir>\\openxyos",
+		"",
+	}, "\n")
+	return os.WriteFile(filepath.Join(dir, "README.txt"), []byte(body), 0o644)
+}
+
+func copyTree(src, dest string) error {
+	src = filepath.Clean(src)
+	dest = filepath.Clean(dest)
+	return filepath.Walk(src, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		rel, err := filepath.Rel(src, path)
+		if err != nil {
+			return err
+		}
+		target := filepath.Join(dest, rel)
+		if info.IsDir() {
+			return os.MkdirAll(target, 0o755)
+		}
+		if info.Mode()&os.ModeSymlink != 0 {
+			link, err := os.Readlink(path)
+			if err != nil {
+				return err
+			}
+			_ = os.Remove(target)
+			return os.Symlink(link, target)
+		}
+		return copyFile(path, target, info.Mode())
+	})
+}
+
+func copyFile(src, dest string, mode os.FileMode) error {
+	if err := os.MkdirAll(filepath.Dir(dest), 0o755); err != nil {
+		return err
+	}
+	in, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer in.Close()
+	out, err := os.OpenFile(dest, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, mode)
+	if err != nil {
+		return err
+	}
+	_, copyErr := io.Copy(out, in)
+	closeErr := out.Close()
+	if copyErr != nil {
+		return copyErr
+	}
+	return closeErr
+}
+
+func unzipSidecarZip(zipPath, dest string) error {
+	reader, err := zip.OpenReader(zipPath)
+	if err != nil {
+		return err
+	}
+	defer reader.Close()
+	if err := os.MkdirAll(dest, 0o755); err != nil {
+		return err
+	}
+	prefix := sidecarZipPrefix(reader.File)
+	for _, file := range reader.File {
+		name := filepath.ToSlash(strings.ReplaceAll(file.Name, "\\", "/"))
+		rel := name
+		if prefix != "" {
+			if name == prefix || name == prefix+"/" {
+				continue
+			}
+			if !strings.HasPrefix(name, prefix+"/") {
+				continue
+			}
+			rel = strings.TrimPrefix(name, prefix+"/")
+		}
+		if rel == "" {
+			continue
+		}
+		target := filepath.Join(dest, filepath.FromSlash(rel))
+		cleanDest := filepath.Clean(dest) + string(os.PathSeparator)
+		if !strings.HasPrefix(target, cleanDest) && target != filepath.Clean(dest) {
+			return fmt.Errorf("illegal zip path %s", name)
+		}
+		if file.FileInfo().IsDir() {
+			if err := os.MkdirAll(target, 0o755); err != nil {
+				return err
+			}
+			continue
+		}
+		if err := os.MkdirAll(filepath.Dir(target), 0o755); err != nil {
+			return err
+		}
+		rc, err := file.Open()
+		if err != nil {
+			return err
+		}
+		out, err := os.OpenFile(target, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, file.Mode())
+		if err != nil {
+			rc.Close()
+			return err
+		}
+		_, err = io.Copy(out, rc)
+		out.Close()
+		rc.Close()
+		if err != nil {
+			return err
+		}
+	}
+	if sidecarBundleReady(filepath.Join(dest, "org-sidecar")) && !sidecarBundleReady(dest) {
+		return copyTree(filepath.Join(dest, "org-sidecar"), dest)
+	}
+	return nil
+}
+
+func sidecarZipPrefix(files []*zip.File) string {
+	var top string
+	for _, file := range files {
+		name := filepath.ToSlash(strings.ReplaceAll(file.Name, "\\", "/"))
+		if name == "" {
+			continue
+		}
+		first := strings.SplitN(name, "/", 2)[0]
+		if first == "node" || first == "openxyos" || first == "start-sidecar.bat" || first == "start-sidecar.sh" {
+			return ""
+		}
+		if top == "" {
+			top = first
+		} else if first != top {
+			return ""
+		}
+	}
+	return top
 }

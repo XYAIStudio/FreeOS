@@ -116,6 +116,20 @@ def test_ensure_sidecar_skips_source_tree_script(
     assert spawned == []
 
 
+def test_sidecar_bundle_dir_prefers_openxyos_home(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    work = tmp_path / "openxyos-home"
+    _write_runtime(work)
+    bundle = work / "org-sidecar"
+    monkeypatch.setenv("FREEOS_OPENXYOS_HOME", str(bundle))
+    monkeypatch.delenv("OCTOP_GREEN_PACKAGES", raising=False)
+    monkeypatch.setenv("FREEOS_HOME", str(tmp_path / "unused-home"))
+    found = find_sidecar_runtime()
+    assert found is not None
+    assert found.root == bundle
+
+
 def test_sidecar_launch_env_writes_secrets(tmp_path: Path) -> None:
     env = sidecar_launch_env(tmp_path, dashboard_port=8099)
     assert env["DATABASE_PATH"] == str(tmp_path / "org-os" / "xiongyuan.db")

@@ -71,6 +71,22 @@ class SidecarRuntime:
         return self.app / "backend-dist" / "server.js"
 
 
+def _explicit_openxyos_home() -> Path | None:
+    raw = (os.environ.get("FREEOS_OPENXYOS_HOME") or "").strip()
+    if not raw:
+        return None
+    path = Path(raw).expanduser()
+    return path if path.is_dir() else None
+
+
+def _localappdata_openxyos() -> Path | None:
+    base = (os.environ.get("LOCALAPPDATA") or "").strip()
+    if not base:
+        return None
+    path = Path(base) / "FreeOS" / "openxyos"
+    return path if path.is_dir() else None
+
+
 def portable_root() -> Path | None:
     green = (os.environ.get("OCTOP_GREEN_PACKAGES") or "").strip()
     if green:
@@ -85,11 +101,32 @@ def portable_root() -> Path | None:
 
 
 def sidecar_bundle_dir() -> Path | None:
+    for candidate in (
+        _explicit_openxyos_home(),
+        _localappdata_openxyos(),
+        PathLayout.from_env().root / "openxyos",
+    ):
+        if candidate is None:
+            continue
+        if _bundle_looks_complete(candidate):
+            return candidate
+        nested = candidate / "org-sidecar"
+        if _bundle_looks_complete(nested):
+            return nested
     root = portable_root()
     if root is None:
         return None
     bundled = root / "org-sidecar"
     return bundled if bundled.is_dir() else None
+
+
+def _bundle_looks_complete(path: Path) -> bool:
+    if not path.is_dir():
+        return False
+    node = path / "node" / "node.exe"
+    posix = path / "node" / "bin" / "node"
+    app = path / "openxyos"
+    return (node.is_file() or posix.is_file()) and (app / "backend" / "server.ts").is_file()
 
 
 def find_sidecar_runtime() -> SidecarRuntime | None:

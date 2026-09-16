@@ -13,6 +13,7 @@ import {
   MessageSquarePlus,
   FolderPlus,
   ListPlus,
+  Users,
 } from "lucide-react";
 import { useLayoutMode } from "../context/LayoutModeContext";
 import { useUserRole } from "../hooks/useUserRole";
@@ -585,6 +586,15 @@ export default function Sidebar({
       >
         <FolderPlus size={14} strokeWidth={1.8} />
         {!isRailCollapsed && <span>{t("nav.newProject")}</span>}
+      </button>
+      <button
+        type="button"
+        className={styles.composeBtn}
+        onClick={() => handleNavigate("/projects?group=1")}
+        title={t("nav.newGroup")}
+      >
+        <Users size={14} strokeWidth={1.8} />
+        {!isRailCollapsed && <span>{t("nav.newGroup")}</span>}
       </button>
     </div>
   );

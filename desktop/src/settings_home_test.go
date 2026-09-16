@@ -67,6 +67,9 @@ func TestWithDesktopQueryMarksSpa(t *testing.T) {
 
 func TestSidecarReadyRequiresNodeAndServer(t *testing.T) {
 	root := t.TempDir()
+	t.Setenv("FREEOS_HOME", root)
+	t.Setenv("FREEOS_OPENXYOS_HOME", filepath.Join(root, "missing"))
+	t.Setenv("LOCALAPPDATA", filepath.Join(root, "local"))
 	if sidecarReady(root) {
 		t.Fatal("empty tree should not look ready")
 	}

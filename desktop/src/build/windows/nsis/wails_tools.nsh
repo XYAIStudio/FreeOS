@@ -120,6 +120,47 @@ RequestExecutionLevel "${REQUEST_EXECUTION_LEVEL}"
             File "/oname=${PRODUCT_EXECUTABLE}" "${ARG_WAILS_ARM64_BINARY}"
         ${EndIf}
     !endif
+    !insertmacro wails.provisionOpenXYOS
+!macroend
+
+# Ship the prebuilt openXYOS FE+BE next to FreeOS.exe and expand it so the
+# finish log is not just FreeOS.exe + shortcuts. First unelevated start also
+# copies this tree into %LOCALAPPDATA%\FreeOS\openxyos (Program Files is read-only).
+!macro wails.provisionOpenXYOS
+    SetDetailsPrint both
+    DetailPrint "$(OPENXYOS_WORKDIR)"
+    CreateDirectory "$INSTDIR\openxyos"
+    CreateDirectory "$LOCALAPPDATA\FreeOS\openxyos"
+    FileOpen $0 "$INSTDIR\openxyos\README.txt" w
+    FileWrite $0 "FreeOS local openXYOS environment$\r$\n"
+    FileWrite $0 "Install tree: $INSTDIR\openxyos$\r$\n"
+    FileWrite $0 "Work dir: $LOCALAPPDATA\FreeOS\openxyos$\r$\n"
+    FileWrite $0 "Also: %USERPROFILE%\.freeos\openxyos$\r$\n"
+    FileWrite $0 "URL: http://127.0.0.1:3780$\r$\n"
+    FileClose $0
+    !if /FileExists "..\openxyos-runtime.zip"
+        DetailPrint "$(OPENXYOS_COPY_ZIP)"
+        File "/oname=openxyos-runtime.zip" "..\openxyos-runtime.zip"
+        DetailPrint "$(OPENXYOS_EXTRACT)"
+        nsExec::ExecToLog 'powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "Expand-Archive -LiteralPath ''$INSTDIR\openxyos-runtime.zip'' -DestinationPath ''$INSTDIR\openxyos'' -Force"'
+        IfFileExists "$INSTDIR\openxyos\openxyos\dist\index.html" openxyosFeOk openxyosFeMissing
+        openxyosFeOk:
+            DetailPrint "$(OPENXYOS_FE_OK)"
+            Goto openxyosFeDone
+        openxyosFeMissing:
+            DetailPrint "$(OPENXYOS_FE_MISSING)"
+        openxyosFeDone:
+        IfFileExists "$INSTDIR\openxyos\node\node.exe" openxyosNodeOk openxyosNodeMissing
+        openxyosNodeOk:
+            DetailPrint "$(OPENXYOS_NODE_OK)"
+            Goto openxyosNodeDone
+        openxyosNodeMissing:
+            DetailPrint "$(OPENXYOS_NODE_MISSING)"
+        openxyosNodeDone:
+    !else
+        DetailPrint "$(OPENXYOS_ZIP_MISSING)"
+    !endif
+    SetDetailsPrint listonly
 !macroend
 
 !macro wails.writeUninstaller

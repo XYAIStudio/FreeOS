@@ -40,6 +40,20 @@ tasks:
     vars:
           PORTABLE_ZIP: '{{.PORTABLE_ZIP | default (printf "../portable/release/FreeOS-portable-windows-%s-%s.zip" (.ARCH | default ARCH) (.VERSION | default "dev"))}}'
 
+  stage:openxyos-runtime:
+    summary: Extract org-sidecar from the portable zip for the NSIS payload
+    cmds:
+      - cmd: >-
+          python "{{.ROOT_DIR}}/build/stage_openxyos_runtime.py" "{{.PORTABLE_ZIP}}"
+          "{{.ROOT_DIR}}/build/windows/openxyos-runtime.zip"
+        platforms: [windows]
+      - cmd: >-
+          python3 "{{.ROOT_DIR}}/build/stage_openxyos_runtime.py" "{{.PORTABLE_ZIP}}"
+          "{{.ROOT_DIR}}/build/windows/openxyos-runtime.zip"
+        platforms: [linux, darwin]
+    vars:
+      PORTABLE_ZIP: '{{.PORTABLE_ZIP | default (printf "../portable/release/FreeOS-portable-windows-%s-%s.zip" (.ARCH | default ARCH) (.VERSION | default "dev"))}}'
+
   package:
     summary: Packages an NSIS installer with the portable runtime embedded
     cmds:
@@ -47,6 +61,11 @@ tasks:
         vars:
           ARCH: "{{.ARCH}}"
           PORTABLE_ZIP: "{{.PORTABLE_ZIP}}"
+      - task: stage:openxyos-runtime
+        vars:
+          ARCH: "{{.ARCH}}"
+          PORTABLE_ZIP: "{{.PORTABLE_ZIP}}"
+          VERSION: "{{.VERSION}}"
       - task: build
         vars:
           PRODUCTION: "true"

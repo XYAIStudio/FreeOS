@@ -8,10 +8,15 @@
 
 ### 新增
 
+- Windows 安装包写入预构建 openXYOS 运行包（`$INSTDIR\openxyos` + `openxyos-runtime.zip`），首次启动再落到 `%LOCALAPPDATA%\FreeOS\openxyos` / `~/.freeos/openxyos`，自动拉起 `http://127.0.0.1:3780`，组织页不必再点「启动边车」。
+- 项目创建用系统文件夹选择器（Wails 原生对话框，任意盘符）；项目/任务/对话区默认展示实时对话列表，并提供建群/群聊入口。
 - Organization OS 首页双循环：FreeOS 数据面与 openXYOS 控制面的实时状态、一键装配员工 / 打包回流 / 运行 org loop，以及边车离线时的启动恢复。
 - FreeOS 官网源码：`website/`（Vite + React 静态站，正式域名 https://freeos.cnxy.tech）。视觉与章节节奏对齐 XYAI Labs（天蓝→亮光、毛玻璃、01/02/…、底座 / 系统 / 生态），文案仍是 FreeOS 产品自己的话；圆形标志 + XYAI 机器人六姿态，无 Octop 红或章鱼形象。构建产物可整包上传到 `/www/wwwroot/freeos.cnxy.tech`。
 
 ### 变更
+
+- 侧栏「组织 OS」更名为「组织」（英文 Organization）。
+
 
 - 桌面端（`OCTOP_DESKTOP` / `FREEOS_DESKTOP`）首次打开不再经过验证启动密码、选择数据库、创建管理员三步：自动绑定本地 SQLite 并使用已有 guest / local-session。首屏只保留配置 LLM API Key，可「跳过，进入工作台」，之后仍可在设置里配模型。自托管服务端向导不变。
 - 侧栏「设置」分组改名为「能力」/ Capabilities。原「控制」与「管理」子模块并入顶层「系统设置」/ System Settings（页内分节；工作台 / 远程桌面仍走全屏路由）。旧 `/admin/*`、`/acp`、`/agent-config` 地址会重定向。
