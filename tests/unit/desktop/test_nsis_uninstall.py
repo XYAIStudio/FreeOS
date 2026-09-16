@@ -147,7 +147,7 @@ def test_nsis_provisions_openxyos_runtime() -> None:
     assert r"$INSTDIR\openxyos-runtime" in nsh
     assert r"$R6\FreeOS\openxyos" in nsh
     assert "ReadEnvStr $R6 LOCALAPPDATA" in nsh
-    assert "http://127.0.0.1:3780" in nsh
+    assert "http://127.0.0.1:3780" in nsi
     assert "LangString OPENXYOS_WORKDIR ${LANG_SIMPCHINESE}" in nsi
     assert "创建 openXYOS 工作目录" in nsi
     assert "openXYOS 运行包" in nsi
@@ -201,45 +201,38 @@ def test_nsis_filewrite_is_exactly_two_args() -> None:
         assert "(`$" not in stripped and ")`$" not in stripped, stripped
 
 
-def test_nsis_extracts_runtime_with_quoted_paths_and_aborts_if_incomplete() -> None:
-    """Program Files spaces must not yield a README-only $INSTDIR\\openxyos."""
+def test_nsis_runs_openxyos_provisioner_subprocess() -> None:
+    """Parent copies a real provisioner and nsExecs it; livez failure aborts."""
     nsi = NSI.read_text(encoding="utf-8-sig")
     nsh = NSH.read_text(encoding="utf-8")
     provision = nsh[
-        nsh.index("!macro wails.provisionOpenXYOS") : nsh.index(
-            "!macro wails.requireOpenXYOSLayout"
-        )
+        nsh.index("!macro wails.provisionOpenXYOS") : nsh.index("!macro wails.openxyosFailDetail")
     ]
-    require = nsh[nsh.index("!macro wails.requireOpenXYOSLayout") :]
     assert "Expand-Archive" not in nsh
-    assert "nsExec::ExecToLog" in provision and "tar.exe" in provision
-    assert "extract-openxyos.cmd" in provision
-    assert "tar.exe" in provision
+    assert "extract-openxyos.cmd" not in nsh
+    assert "wait-openxyos.ps1" not in nsh
+    assert "FileWrite" not in provision
+    assert 'File "provision-openxyos.ps1"' in provision
+    assert 'File "provision-openxyos.cmd"' in provision
+    assert 'File "start-sidecar.ps1"' in provision
+    assert "nsExec::ExecToLog $R4" in provision
     assert r"$INSTDIR\openxyos-runtime.zip" in provision
-    assert "nsExec::ExecToLog" in provision
+    assert r"$R6\FreeOS\openxyos" in provision
     assert "Pop $0" in provision
-    assert r"$R6\FreeOS\openxyos\node\node.exe" in require
-    assert r"$R6\FreeOS\openxyos\openxyos\dist\index.html" in require
-    assert "Abort" in require
-    assert "SetErrorLevel 67" in require
-    assert "OPENXYOS_EXTRACT_FAIL" in require
-    assert "LangString OPENXYOS_EXTRACT_FAIL ${LANG_SIMPCHINESE}" in nsi
-    assert "未能把完整的 openXYOS" in nsi
+    assert "Abort" in provision
+    assert ".install-ready" in provision
+    assert "OPENXYOS_FAIL_START" in nsh
+    assert "OPENXYOS_FAIL_LIVEZ" in nsh
+    assert "LangString OPENXYOS_PROVISION ${LANG_SIMPCHINESE}" in nsi
+    assert "子进程" in nsi
+    assert "OPENXYOS_PROBE_WARN" not in nsi
+    assert "安装将继续" not in nsi
+    assert "开机自启" not in nsi
+    assert "PersistOpenXYOS" not in nsi
+    assert "PersistOpenXYOS" not in nsh
+    assert "Call PersistOpenXYOS" not in nsh
     assert "openxyos-runtime.zip missing" in nsh
     assert "!error" in nsh
-    assert "wait-openxyos.ps1" in nsh
-    assert "probe-openxyos.ps1" not in nsh
-    assert "/api/health/livez" in nsh
-    assert "LangString OPENXYOS_PROBE_WARN ${LANG_SIMPCHINESE}" in nsi
-    assert "安装将继续" in nsi
-    assert ".install-ready" in provision
-    assert provision.index(".install-ready") < provision.index("!insertmacro wails.probeOpenXYOS")
-    assert provision.index("!insertmacro wails.requireOpenXYOSLayout") < provision.index(
-        ".install-ready"
-    )
-    assert provision.index("Call PersistOpenXYOS") < provision.index(".install-ready")
-    assert "start-sidecar.ps1" in nsh
-    assert "FreeOS-openXYOS" in nsi
     workflow = (REPO / ".github" / "workflows" / "octop-desktop.yml").read_text(encoding="utf-8")
     assert "org-sidecar/openxyos/dist/index.html" in workflow
     assert "org-sidecar/openxyos/backend/server.ts" in workflow
@@ -279,72 +272,58 @@ def _filewrite_payloads(block: str) -> list[str]:
     return payloads
 
 
-def test_nsis_extract_cmd_uses_colon_prefixed_batch_labels() -> None:
-    """cmd.exe goto targets must be ':label'; 'label:' is not found."""
+def test_nsis_does_not_filewrite_goto_cmd_labels() -> None:
+    """Provisioner is a shipped file; NSIS must not generate goto-label .cmd."""
     nsh = NSH.read_text(encoding="utf-8")
+    nsis_dir = NSH.parent
     provision = nsh[
-        nsh.index("!macro wails.provisionOpenXYOS") : nsh.index(
-            "!macro wails.requireOpenXYOSLayout"
-        )
+        nsh.index("!macro wails.provisionOpenXYOS") : nsh.index("!macro wails.openxyosFailDetail")
     ]
-    script = "".join(_filewrite_payloads(provision))
-    assert "goto liveNodeOk" in script
-    assert ":liveNodeOk" in script
-    assert "exit /b 0" in script
-    assert "FileWrite $0 `liveNodeOk:" not in nsh
-    for line in script.splitlines():
-        token = line.strip()
-        if token.endswith(":") and " " not in token and not token.startswith(":"):
-            raise AssertionError(f"cmd label missing leading colon: {token!r}")
+    assert not _filewrite_payloads(provision)
+    assert "goto liveNodeOk" not in provision
+    assert "extract-openxyos.cmd" not in provision
+    for name in ("provision-openxyos.cmd", "start-sidecar.cmd"):
+        cmd = (nsis_dir / name).read_text(encoding="utf-8")
+        assert not any(line.strip().lower().startswith("goto ") for line in cmd.splitlines())
+        for line in cmd.splitlines():
+            token = line.strip()
+            if token.endswith(":") and " " not in token and not token.startswith(":"):
+                raise AssertionError(f"{name}: cmd label missing leading colon: {token!r}")
 
 
-def test_nsis_leaves_user_level_sidecar_running() -> None:
-    """#29 probed then taskkill'd Node; Organization still asked to 启动边车."""
+def test_nsis_does_not_register_openxyos_logon_autostart() -> None:
     nsi = NSI.read_text(encoding="utf-8-sig")
     nsh = NSH.read_text(encoding="utf-8")
-    autostart = nsh[
-        nsh.index("!macro wails.writeOpenXYOSAutostart") : nsh.index("!macro wails.probeOpenXYOS")
+    provision = nsh[
+        nsh.index("!macro wails.provisionOpenXYOS") : nsh.index("!macro wails.writeUninstaller")
     ]
-    probe = nsh[
-        nsh.index("!macro wails.probeOpenXYOS") : nsh.index("!macro wails.writeUninstaller")
-    ]
-    persist = nsi[nsi.index("Function PersistOpenXYOS") : nsi.index("Function LaunchFreeOS")]
-    assert "start-sidecar.ps1" in autostart
-    assert "start-sidecar.cmd" in autostart
-    assert "taskkill.exe" not in autostart
-    assert "taskkill.exe" not in probe
-    assert "Start-Process" not in probe
-    assert "Abort" not in probe
-    assert "SetErrorLevel 68" not in probe
-    assert "wait-openxyos.ps1" in probe
-    assert "OPENXYOS_PROBE_WARN" in probe
-    assert "schtasks.exe /Run" in probe
-    assert "Call PersistOpenXYOS" in nsh
-    assert "FreeOS-openXYOS" in persist
-    assert "A4C6892C-3BA9-11d2-9DEA-00C04FB16162" in persist
-    assert r"*\FreeOS\openxyos\*" in nsh
+    assert "WriteRegStr HKCU" not in provision
+    assert "schtasks.exe /Create" not in provision
+    assert "schtasks.exe /Run" not in nsh
+    assert "Function PersistOpenXYOS" not in nsi
+    assert "开机自启" not in nsi
     uninstall = _uninstall_section(nsi)
     assert (
         'DeleteRegValue HKCU "Software\\Microsoft\\Windows\\CurrentVersion\\Run" "FreeOS-openXYOS"'
         in uninstall
     )
-    assert "LangString OPENXYOS_AUTOSTART ${LANG_SIMPCHINESE}" in nsi
-    assert "无需「启动边车」" in nsi or "开机自启" in nsi
 
 
-def test_organization_source_download_uses_native_folder_picker() -> None:
+def test_organization_embeds_local_openxyos_url() -> None:
     page = ORG_PAGE.read_text(encoding="utf-8")
+    zh = (REPO / "dashboard" / "src" / "locales" / "zh.json").read_text(encoding="utf-8")
     assert "window.prompt" not in page
     assert "pickDesktopFolder" in page
     assert "canPickDesktopFolder" in page
     assert "resolveOpenxyosSourceDest" in page
     assert "browseSourceDest" in page
-    assert "sidecarRecoverPhase" in page
-    assert "install_ready" in page
-    assert "silent: true" in page
-    zh = (REPO / "dashboard" / "src" / "locales" / "zh.json").read_text(encoding="utf-8")
-    assert '"startSidecarAction": "重试启动"' in zh
-    assert "正在自动连接安装期本机 openXYOS" in zh
+    assert "http://127.0.0.1:3780" in page
+    assert "<iframe" in page
+    assert "onClick={() => void startSidecar()}" not in page
+    org = zh[zh.index('"organization"') : zh.index('"systemSettings"')]
+    assert "启动边车" not in org
+    assert "重试启动" not in org
+    assert "正在打开本机 openXYOS" in org
 
 
 def test_windows_folder_picker_emits_utf8_base64() -> None:

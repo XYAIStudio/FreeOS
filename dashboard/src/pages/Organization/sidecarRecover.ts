@@ -1,5 +1,6 @@
-export type SidecarRecoverPhase = "hidden" | "starting" | "recover";
+export type SidecarRecoverPhase = "hidden" | "opening";
 
+/** Organization always embeds the local URL; there is no start-CTA recover path. */
 export function sidecarRecoverPhase(input: {
   sidecarUp: boolean;
   installReady: boolean;
@@ -8,8 +9,5 @@ export function sidecarRecoverPhase(input: {
   autoStartFailed: boolean;
 }): SidecarRecoverPhase {
   if (input.sidecarUp) return "hidden";
-  if (input.autoStarting) return "starting";
-  if (input.autoStartFailed) return "recover";
-  if (input.installReady || input.startAvailable) return "starting";
-  return "recover";
+  return "opening";
 }

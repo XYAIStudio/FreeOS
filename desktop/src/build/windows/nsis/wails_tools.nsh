@@ -145,15 +145,11 @@ RequestExecutionLevel "${REQUEST_EXECUTION_LEVEL}"
     ${EndIf}
 !macroend
 
-# Ship the prebuilt openXYOS FE+BE and expand it during Setup into the
-# writable live root (%LOCALAPPDATA%\FreeOS\openxyos). Program Files is
-# read-only for a later unelevated FreeOS.exe, so the admin installer
-# writes LocalAppData now — first app start must not copy/unpack.
-#
-# $INSTDIR\openxyos and $INSTDIR\openxyos-runtime stay as sealed backups
-# (heal other Windows users / portable). Do NOT unzip via PowerShell with
-# NSIS ''$INSTDIR'' quoting: "Program Files" splits the command.
-# Write a .cmd (paths expanded at install time) and use Windows 10+ tar.exe.
+# After the FreeOS shell files are copied, run the shipped openXYOS
+# provisioner as a child process (nsExec). The parent waits for exit 0.
+# The child extracts with tar.exe, starts FE/BE at medium IL, waits for
+# livez, and writes .install-ready only when healthy. Do not FileWrite
+# goto-label .cmd scripts here. Do not register logon autostart.
 !macro wails.provisionOpenXYOS
     !insertmacro wails.userLocalAppData
     SetDetailsPrint both
@@ -163,193 +159,80 @@ RequestExecutionLevel "${REQUEST_EXECUTION_LEVEL}"
     CreateDirectory "$R6\FreeOS\openxyos"
     DetailPrint "$(OPENXYOS_COPY_ZIP)"
     File "/oname=openxyos-runtime.zip" "${OPENXYOS_RUNTIME_ZIP}"
-    DetailPrint "$(OPENXYOS_EXTRACT)"
-    InitPluginsDir
-    FileOpen $0 "$PLUGINSDIR\extract-openxyos.cmd" w
-    FileWrite $0 `@echo off$\r$\n`
-    FileWrite $0 `setlocal EnableExtensions$\r$\n`
-    FileWrite $0 `set "TAR=$SYSDIR\tar.exe"$\r$\n`
-    FileWrite $0 `set "LIVE=$R6\FreeOS\openxyos"$\r$\n`
-    FileWrite $0 `set "ZIP=$INSTDIR\openxyos-runtime.zip"$\r$\n`
-    FileWrite $0 `if not exist "%ZIP%" exit /b 2$\r$\n`
-    FileWrite $0 `if not exist "%TAR%" exit /b 5$\r$\n`
-    FileWrite $0 `if not exist "%LIVE%" mkdir "%LIVE%"$\r$\n`
-    FileWrite $0 `if not exist "$INSTDIR\openxyos-runtime" mkdir "$INSTDIR\openxyos-runtime"$\r$\n`
-    FileWrite $0 `if not exist "$INSTDIR\openxyos" mkdir "$INSTDIR\openxyos"$\r$\n`
-    FileWrite $0 `"%TAR%" -xf "%ZIP%" -C "%LIVE%"$\r$\n`
-    FileWrite $0 `if errorlevel 1 exit /b 3$\r$\n`
-    FileWrite $0 `"%TAR%" -xf "%ZIP%" -C "$INSTDIR\openxyos-runtime"$\r$\n`
-    FileWrite $0 `if errorlevel 1 exit /b 4$\r$\n`
-    FileWrite $0 `"%TAR%" -xf "%ZIP%" -C "$INSTDIR\openxyos"$\r$\n`
-    FileWrite $0 `if errorlevel 1 exit /b 8$\r$\n`
-    FileWrite $0 `if exist "%LIVE%\node\node.exe" goto liveNodeOk$\r$\n`
-    FileWrite $0 `if exist "$INSTDIR\openxyos-runtime\node\node.exe" xcopy /E /I /Y "$INSTDIR\openxyos-runtime\*" "%LIVE%\" >nul$\r$\n`
-    # cmd.exe labels require a leading colon. "liveNodeOk:" is not a goto target.
-    FileWrite $0 `:liveNodeOk$\r$\n`
-    FileWrite $0 `if not exist "%LIVE%\node\node.exe" exit /b 6$\r$\n`
-    FileWrite $0 `if not exist "%LIVE%\openxyos\dist\index.html" if not exist "%LIVE%\dist\index.html" exit /b 7$\r$\n`
-    FileWrite $0 `if defined USERNAME icacls "$R6\FreeOS" /grant "%USERNAME%:(OI)(CI)M" /T /C /Q >nul 2>&1$\r$\n`
-    FileWrite $0 `exit /b 0$\r$\n`
-    FileClose $0
-    nsExec::ExecToLog '"$PLUGINSDIR\extract-openxyos.cmd"'
+    File "provision-openxyos.ps1"
+    File "provision-openxyos.cmd"
+    File "start-sidecar.ps1"
+    File "start-sidecar.cmd"
+    DetailPrint "$(OPENXYOS_PROVISION)"
+    StrCpy $R4 '"$INSTDIR\provision-openxyos.cmd" -ZipPath "$INSTDIR\openxyos-runtime.zip" -InstallDir "$INSTDIR" -LiveDir "$R6\FreeOS\openxyos"'
+    nsExec::ExecToLog $R4
     Pop $0
-    DetailPrint "$(OPENXYOS_EXTRACT_CODE)$0"
-    !insertmacro wails.requireOpenXYOSLayout
-    FileOpen $0 "$R6\FreeOS\openxyos\README.txt" w
-    FileWrite $0 "FreeOS local openXYOS environment$\r$\n"
-    FileWrite $0 "Live workdir (writable): $R6\FreeOS\openxyos$\r$\n"
-    FileWrite $0 "Install backup: $INSTDIR\openxyos$\r$\n"
-    FileWrite $0 "Sealed backup: $INSTDIR\openxyos-runtime$\r$\n"
-    FileWrite $0 "URL: http://127.0.0.1:3780$\r$\n"
-    FileClose $0
-    FileOpen $0 "$INSTDIR\openxyos\README.txt" w
-    FileWrite $0 "FreeOS local openXYOS environment$\r$\n"
-    FileWrite $0 "Live workdir: $R6\FreeOS\openxyos$\r$\n"
-    FileWrite $0 "This folder is a backup. FreeOS starts the live tree.$\r$\n"
-    FileWrite $0 "URL: http://127.0.0.1:3780$\r$\n"
-    FileClose $0
-    !insertmacro wails.writeOpenXYOSAutostart
-    Call PersistOpenXYOS
-    # Stamp after layout + autostart, before livez wait. Probe must not Abort
-    # when node/dist exist; keep this write reachable on a slow sidecar.
-    FileOpen $0 "$R6\FreeOS\openxyos\.install-ready" w
-    FileWrite $0 "live=$R6\FreeOS\openxyos$\r$\n"
-    FileWrite $0 "url=http://127.0.0.1:3780/api/health/livez$\r$\n"
-    FileWrite $0 "autostart=hkcu-run:FreeOS-openXYOS$\r$\n"
-    FileClose $0
-    !insertmacro wails.probeOpenXYOS
+    DetailPrint "$(OPENXYOS_PROVISION_CODE)$0"
+    ${If} $0 == 12
+        DetailPrint "$(OPENXYOS_PROVISION_RETRY)"
+        nsExec::ExecToLog $R4
+        Pop $0
+        DetailPrint "$(OPENXYOS_PROVISION_CODE)$0"
+    ${EndIf}
+    ${If} $0 == 0
+        IfFileExists "$R6\FreeOS\openxyos\.install-ready" 0 openxyosMissingMarker
+        DetailPrint "$(OPENXYOS_PROVISION_OK)"
+        Goto openxyosProvisionDone
+        openxyosMissingMarker:
+        StrCpy $0 13
+    ${EndIf}
+    !insertmacro wails.openxyosFailDetail
+    DetailPrint $R9
+    IfSilent openxyosProvisionSilent openxyosProvisionAsk
+    openxyosProvisionSilent:
+        SetErrorLevel $0
+        Abort
+    openxyosProvisionAsk:
+    MessageBox MB_RETRYCANCEL|MB_ICONSTOP "$(OPENXYOS_PROVISION_FAIL)$\r$\n$\r$\n$R9$\r$\n$\r$\n$(OPENXYOS_FAIL_CODE)$0$\r$\n$(OPENXYOS_FAIL_LOG)" IDRETRY openxyosProvisionRetry
+    SetErrorLevel $0
+    Abort
+    openxyosProvisionRetry:
+    DetailPrint "$(OPENXYOS_PROVISION_RETRY)"
+    nsExec::ExecToLog $R4
+    Pop $0
+    DetailPrint "$(OPENXYOS_PROVISION_CODE)$0"
+    ${If} $0 == 0
+        IfFileExists "$R6\FreeOS\openxyos\.install-ready" openxyosProvisionDone 0
+        StrCpy $0 13
+    ${EndIf}
+    !insertmacro wails.openxyosFailDetail
+    DetailPrint $R9
+    IfSilent openxyosProvisionSilent2 openxyosProvisionFinal
+    openxyosProvisionSilent2:
+        SetErrorLevel $0
+        Abort
+    openxyosProvisionFinal:
+    MessageBox MB_OK|MB_ICONSTOP "$(OPENXYOS_PROVISION_FAIL)$\r$\n$\r$\n$R9$\r$\n$\r$\n$(OPENXYOS_FAIL_CODE)$0$\r$\n$(OPENXYOS_FAIL_LOG)"
+    SetErrorLevel $0
+    Abort
+    openxyosProvisionDone:
     SetDetailsPrint listonly
 !macroend
 
-# Live root is %LOCALAPPDATA%\FreeOS\openxyos ($R6). Missing node.exe or
-# dist\index.html aborts setup — never finish with a README-only tree.
-!macro wails.requireOpenXYOSLayout
-    IfFileExists "$R6\FreeOS\openxyos\node\node.exe" 0 openxyosTryStaged
-    IfFileExists "$R6\FreeOS\openxyos\openxyos\dist\index.html" openxyosLiveOk openxyosTryFlat
-    openxyosTryFlat:
-    IfFileExists "$R6\FreeOS\openxyos\dist\index.html" openxyosLiveOk openxyosTryStaged
-    openxyosLiveOk:
-        DetailPrint "$(OPENXYOS_FE_OK)"
-        DetailPrint "$(OPENXYOS_NODE_OK)"
-        Goto openxyosLayoutDone
-    openxyosTryStaged:
-    IfFileExists "$INSTDIR\openxyos-runtime\node\node.exe" 0 openxyosTryInstHeal
-    IfFileExists "$INSTDIR\openxyos-runtime\openxyos\dist\index.html" 0 openxyosTryStagedFlat
-        Goto openxyosCopyStaged
-    openxyosTryStagedFlat:
-    IfFileExists "$INSTDIR\openxyos-runtime\dist\index.html" 0 openxyosTryInstHeal
-    openxyosCopyStaged:
-        DetailPrint "$(OPENXYOS_STAGED_OK)"
-        nsExec::ExecToLog '"$SYSDIR\cmd.exe" /C xcopy /E /I /Y "$INSTDIR\openxyos-runtime\*" "$R6\FreeOS\openxyos\"'
-        Pop $0
-        IfFileExists "$R6\FreeOS\openxyos\node\node.exe" 0 openxyosTryInstHeal
-        IfFileExists "$R6\FreeOS\openxyos\openxyos\dist\index.html" openxyosLiveOk openxyosTryFlatAfterCopy
-        openxyosTryFlatAfterCopy:
-        IfFileExists "$R6\FreeOS\openxyos\dist\index.html" openxyosLiveOk openxyosTryInstHeal
-    openxyosTryInstHeal:
-    IfFileExists "$INSTDIR\openxyos\node\node.exe" 0 openxyosLayoutFail
-        nsExec::ExecToLog '"$SYSDIR\cmd.exe" /C xcopy /E /I /Y "$INSTDIR\openxyos\*" "$R6\FreeOS\openxyos\"'
-        Pop $0
-        IfFileExists "$R6\FreeOS\openxyos\node\node.exe" 0 openxyosLayoutFail
-        IfFileExists "$R6\FreeOS\openxyos\openxyos\dist\index.html" openxyosLiveOk openxyosTryFlatAfterInst
-        openxyosTryFlatAfterInst:
-        IfFileExists "$R6\FreeOS\openxyos\dist\index.html" openxyosLiveOk openxyosLayoutFail
-    openxyosLayoutFail:
-        DetailPrint "$(OPENXYOS_EXTRACT_FAIL)"
-        IfSilent openxyosSilentFail openxyosLoudFail
-        openxyosSilentFail:
-            SetErrorLevel 67
-            Abort
-        openxyosLoudFail:
-            MessageBox MB_OK|MB_ICONSTOP "$(OPENXYOS_EXTRACT_FAIL)"
-            SetErrorLevel 67
-            Abort
-    openxyosLayoutDone:
-!macroend
-
-# User-level start helper for the live LocalAppData tree. The elevated
-# installer must not spawn Node itself: that would stamp ~/.freeos as High
-# integrity and #29 then taskkill'd the probe, leaving Organization offline.
-# PersistOpenXYOS (project.nsi) registers HKCU Run and launches this script
-# via IShellDispatch2 (medium IL). Probe only waits for livez — no kill.
-!macro wails.writeOpenXYOSAutostart
-    DetailPrint "$(OPENXYOS_AUTOSTART)"
-    FileOpen $0 "$R6\FreeOS\openxyos\start-sidecar.cmd" w
-    FileWrite $0 `@echo off$\r$\n`
-    FileWrite $0 `setlocal EnableExtensions$\r$\n`
-    FileWrite $0 `powershell.exe -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File "%~dp0start-sidecar.ps1"$\r$\n`
-    FileClose $0
-    FileOpen $0 "$R6\FreeOS\openxyos\start-sidecar.ps1" w
-    FileWrite $0 `$$ErrorActionPreference = 'Continue'$\r$\n`
-    FileWrite $0 `$$live = Split-Path -Parent $$MyInvocation.MyCommand.Path$\r$\n`
-    FileWrite $0 `$$node = Join-Path $$live 'node\node.exe'$\r$\n`
-    FileWrite $0 `$$app = Join-Path $$live 'openxyos'$\r$\n`
-    FileWrite $0 `if (-not (Test-Path -LiteralPath (Join-Path $$app 'dist\index.html'))) { if (Test-Path -LiteralPath (Join-Path $$live 'dist\index.html')) { $$app = $$live } }$\r$\n`
-    FileWrite $0 `$$livez = 'http://127.0.0.1:3780/api/health/livez'$\r$\n`
-    FileWrite $0 `function Test-Livez { try { $$r = Invoke-WebRequest -UseBasicParsing -TimeoutSec 2 -Uri $$livez; return ($$r.StatusCode -lt 500) } catch { return $$false } }$\r$\n`
-    FileWrite $0 `if (Test-Livez) { exit 0 }$\r$\n`
-    FileWrite $0 `if (-not (Test-Path -LiteralPath $$node)) { exit 6 }$\r$\n`
-    FileWrite $0 `$$home = $$env:FREEOS_HOME$\r$\n`
-    FileWrite $0 `if (-not $$home) { $$home = Join-Path $$env:USERPROFILE '.freeos' }$\r$\n`
-    FileWrite $0 `$$data = Join-Path $$home 'org-os'$\r$\n`
-    FileWrite $0 `New-Item -ItemType Directory -Force -Path $$data | Out-Null$\r$\n`
-    FileWrite $0 `$$secretFile = Join-Path $$data 'sidecar.env'$\r$\n`
-    FileWrite $0 `$$jwt = ''$\r$\n`
-    FileWrite $0 `$$cookie = ''$\r$\n`
-    FileWrite $0 `$$ingest = ''$\r$\n`
-    FileWrite $0 `if (Test-Path -LiteralPath $$secretFile) { foreach ($$line in Get-Content -LiteralPath $$secretFile) { if ($$line -match '^JWT_SECRET=(.+)$$') { $$jwt = $$Matches[1] }; if ($$line -match '^COOKIE_SECRET=(.+)$$') { $$cookie = $$Matches[1] }; if ($$line -match '^FREEOS_INGEST_TOKEN=(.+)$$') { $$ingest = $$Matches[1] } } }$\r$\n`
-    FileWrite $0 `if (-not $$jwt) { $$jwt = [guid]::NewGuid().ToString('N') + [guid]::NewGuid().ToString('N') }$\r$\n`
-    FileWrite $0 `if (-not $$cookie) { $$cookie = [guid]::NewGuid().ToString('N') + [guid]::NewGuid().ToString('N') }$\r$\n`
-    FileWrite $0 `if (-not $$ingest) { $$ingest = [guid]::NewGuid().ToString('N') + [guid]::NewGuid().ToString('N') }$\r$\n`
-    FileWrite $0 `"JWT_SECRET=$$jwt" | Set-Content -LiteralPath $$secretFile -Encoding ASCII$\r$\n`
-    FileWrite $0 `"COOKIE_SECRET=$$cookie" | Add-Content -LiteralPath $$secretFile -Encoding ASCII$\r$\n`
-    FileWrite $0 `"FREEOS_INGEST_TOKEN=$$ingest" | Add-Content -LiteralPath $$secretFile -Encoding ASCII$\r$\n`
-    FileWrite $0 `$$env:NODE_ENV = 'production'$\r$\n`
-    FileWrite $0 `$$env:PORT = '3780'$\r$\n`
-    FileWrite $0 `$$env:DB_DIALECT = 'sqlite'$\r$\n`
-    FileWrite $0 `$$env:DATABASE_PATH = Join-Path $$data 'xiongyuan.db'$\r$\n`
-    FileWrite $0 `$$env:AIR_GAP_MODE = 'true'$\r$\n`
-    FileWrite $0 `$$env:SEED_DEMO_DATA = 'false'$\r$\n`
-    FileWrite $0 `$$env:ALLOW_PUBLIC_REGISTRATION = 'false'$\r$\n`
-    FileWrite $0 `$$env:JWT_SECRET = $$jwt$\r$\n`
-    FileWrite $0 `$$env:COOKIE_SECRET = $$cookie$\r$\n`
-    FileWrite $0 `$$env:FREEOS_INGEST_TOKEN = $$ingest$\r$\n`
-    FileWrite $0 `$$env:CORS_ORIGIN = 'http://127.0.0.1:8088,http://localhost:8088,http://127.0.0.1:18900,http://localhost:18900'$\r$\n`
-    FileWrite $0 `$$env:FREEOS_HOME = $$home$\r$\n`
-    FileWrite $0 `$$env:OCTOP_HOME = $$home$\r$\n`
-    FileWrite $0 `$$env:FREEOS_ORG_SIDECAR_PORT = '3780'$\r$\n`
-    FileWrite $0 `$$compiled = Join-Path $$app 'backend-dist\server.js'$\r$\n`
-    FileWrite $0 `if (Test-Path -LiteralPath $$compiled) { $$argv = @('backend-dist/server.js') } else { $$argv = @('--import'; 'tsx'; 'backend/server.ts') }$\r$\n`
-    FileWrite $0 `Start-Process -FilePath $$node -ArgumentList $$argv -WorkingDirectory $$app -WindowStyle Hidden$\r$\n`
-    FileWrite $0 `exit 0$\r$\n`
-    FileClose $0
-!macroend
-
-# Wait for the user-level sidecar PersistOpenXYOS launched. Do not spawn
-# Node as admin and do not kill the probe process — that was the #29 gap.
-# livez timeout is a warning only: node + dist already passed
-# requireOpenXYOSLayout, and HKCU Run / the LIMITED task stay registered.
-!macro wails.probeOpenXYOS
-    DetailPrint "$(OPENXYOS_PROBE)"
-    FileOpen $0 "$PLUGINSDIR\wait-openxyos.ps1" w
-    FileWrite $0 `$$livez = 'http://127.0.0.1:3780/api/health/livez'$\r$\n`
-    FileWrite $0 `function Test-Livez { try { $$r = Invoke-WebRequest -UseBasicParsing -TimeoutSec 2 -Uri $$livez; return ($$r.StatusCode -lt 500) } catch { return $$false } }$\r$\n`
-    FileWrite $0 `for ($$i = 0; $$i -lt 90; $$i++) { if (Test-Livez) { exit 0 }; if ($$i -eq 30) { schtasks.exe /Run /TN "FreeOS-openXYOS" | Out-Null }; Start-Sleep -Seconds 1 }$\r$\n`
-    FileWrite $0 `exit 12$\r$\n`
-    FileClose $0
-    nsExec::ExecToLog '"$SYSDIR\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -File "$PLUGINSDIR\wait-openxyos.ps1"'
-    Pop $0
-    DetailPrint "$(OPENXYOS_EXTRACT_CODE)$0"
-    IntCmp $0 0 openxyosProbeOk openxyosProbeWarn openxyosProbeWarn
-    openxyosProbeWarn:
-        DetailPrint "$(OPENXYOS_PROBE_WARN)"
-        IfSilent openxyosProbeDone openxyosProbeNote
-        openxyosProbeNote:
-            MessageBox MB_OK|MB_ICONINFORMATION "$(OPENXYOS_PROBE_WARN)"
-            Goto openxyosProbeDone
-    openxyosProbeOk:
-        DetailPrint "$(OPENXYOS_PROBE_OK)"
-    openxyosProbeDone:
+!macro wails.openxyosFailDetail
+    StrCpy $R9 "$(OPENXYOS_FAIL_UNKNOWN)"
+    ${If} $0 == 2
+        StrCpy $R9 "$(OPENXYOS_FAIL_ZIP)"
+    ${ElseIf} $0 == 3
+        StrCpy $R9 "$(OPENXYOS_FAIL_EXTRACT)"
+    ${ElseIf} $0 == 5
+        StrCpy $R9 "$(OPENXYOS_FAIL_TAR)"
+    ${ElseIf} $0 == 6
+        StrCpy $R9 "$(OPENXYOS_FAIL_NODE)"
+    ${ElseIf} $0 == 7
+        StrCpy $R9 "$(OPENXYOS_FAIL_FE)"
+    ${ElseIf} $0 == 10
+        StrCpy $R9 "$(OPENXYOS_FAIL_START)"
+    ${ElseIf} $0 == 12
+        StrCpy $R9 "$(OPENXYOS_FAIL_LIVEZ)"
+    ${ElseIf} $0 == 13
+        StrCpy $R9 "$(OPENXYOS_FAIL_MARKER)"
+    ${EndIf}
 !macroend
 
 !macro wails.writeUninstaller
