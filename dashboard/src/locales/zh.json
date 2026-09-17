@@ -1413,6 +1413,7 @@
       "reviewNeedSession": "先选一段对话，才能查看审查记录。",
       "tasksEmpty": "当前没有后台任务",
       "tasksEmptyHint": "定时任务和正在运行的工作会显示在这里。",
+      "tasksLoadFailed": "加载任务失败",
       "tasksOpenPage": "管理定时任务",
       "taskOn": "已启用",
       "taskOff": "已停用",
