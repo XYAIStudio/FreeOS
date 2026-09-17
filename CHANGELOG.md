@@ -8,6 +8,8 @@
 
 ### 修复
 
+- Windows 安装期 `start-sidecar.ps1` 不再把数据目录写到只读自动变量 `$home` / `$HOME`（赋值抛 `SessionStateUnauthorizedAccessException`，`$ErrorActionPreference = Continue` 时脚本继续跑，SQLite 会落到 `%USERPROFILE%\\org-os\\xiongyuan.db`）。改为 `$freeosHome`（默认 `%USERPROFILE%\\.freeos`）。
+- 预构建 `openxyos-runtime.zip` 现在带上 `backend-dist/migrations/*.sql`。编译后的 `server.js` 用 `__dirname/migrations` 做 `initDatabase()`，缺文件会 ENOENT（`013_audit_bundle.sql`）并让 livez 永远起不来。安装期预配也会把已有 live 目录里的 `backend/migrations` 补到 `backend-dist/migrations`。
 - Windows 安装期 `start-sidecar.ps1` 不再用 PowerShell 5.1 默认的 `UseShellExecute=true` 拉起 Node（那样不会继承 `$env:CORS_ORIGIN`，生产环境 `parseOrigins` 立刻抛错，进程退出，3780 无监听，预配空等 90s 后才以退出码 12 失败）。改为 `UseShellExecute=false` 并显式写入 `ProcessStartInfo.EnvironmentVariables`，把 Node stdout/stderr 记入 `%LOCALAPPDATA%\\FreeOS\\openxyos\\start.log`；进程在 livez 前退出则预配以退出码 10 失败并附上日志摘录。
 - Windows 安装把 openXYOS 预配改成 **Setup 子进程**（随包装的 `provision-openxyos.ps1`，NSIS `nsExec` 等待退出码）。子进程用 `tar.exe` 解压到 `%LOCALAPPDATA%\\FreeOS\\openxyos`、整理嵌套/扁平布局、以中完整性启动 FE/BE、通过 `livez` 后才写 `.install-ready`。失败按真实原因提示（解压 / Node / 启动 / 健康检查），不再默认归咎 3780 端口，也不再软跳过 livez。不注册 HKCU Run / 登录计划任务；之后由 FreeOS 启动时带上本机 openXYOS。组织页直接嵌入 `http://127.0.0.1:3780`，不再出现「启动边车」。
 - 安装期不再在 livez 探测后 `taskkill` 边车：Setup 把 `start-sidecar.ps1` 写到 `%LOCALAPPDATA%\\FreeOS\\openxyos`，用当前用户（IShellDispatch2 / HKCU Run / 登录计划任务）常驻拉起 FE+BE，确认 `http://127.0.0.1:3780/api/health/livez` 后保持运行。组织页在 `.install-ready` 时自动嵌入本机 openXYOS，不再把「启动边车」当主按钮；仅自动启动失败才显示「重试启动」和中文原因。

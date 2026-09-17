@@ -156,6 +156,13 @@ PY
       npx --yes esbuild backend/server.ts --bundle --platform=node --packages=external \
         --outfile=backend-dist/server.js || echo "[org-sidecar] esbuild compile skipped" >&2
     fi
+    # server.js reads SQL via path.join(__dirname, "migrations/…") — that is
+    # backend-dist/migrations after esbuild, not backend/migrations.
+    if [[ -f backend-dist/server.js && -d backend/migrations ]]; then
+      echo "[org-sidecar] copy backend/migrations → backend-dist/migrations" >&2
+      mkdir -p backend-dist/migrations
+      cp -a backend/migrations/. backend-dist/migrations/
+    fi
   )
   if [[ ! -f "${work}/dist/index.html" ]]; then
     echo "[org-sidecar] vite build did not produce dist/index.html" >&2
@@ -274,6 +281,12 @@ copy_openxyos_runtime() {
   # tsx resolve + package scripts; lockfile optional.
   if [[ -f "${work}/package-lock.json" ]]; then
     cp -a "${work}/package-lock.json" "${dest}/package-lock.json"
+  fi
+  # Heal: compiled server must see SQL next to server.js even if the
+  # build-tree copy above was skipped (cached backend-dist, etc.).
+  if [[ -f "${dest}/backend-dist/server.js" && -d "${dest}/backend/migrations" ]]; then
+    mkdir -p "${dest}/backend-dist/migrations"
+    cp -a "${dest}/backend/migrations/." "${dest}/backend-dist/migrations/"
   fi
 }
 

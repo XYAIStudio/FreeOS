@@ -33,6 +33,8 @@ def test_provisioner_normalizes_nested_and_flat_layout() -> None:
     assert "dist\\index.html" in text
     assert "node\\node.exe" in text
     assert "Repair-OpenXYOSLayout" in text
+    assert "Repair-OpenXYOSMigrations" in text
+    assert "013_audit_bundle.sql" in text
     assert "Find-OpenXYOSBundleRoot" in text
     assert "org-sidecar" in text
 
@@ -64,6 +66,17 @@ def test_provisioner_starts_medium_integrity_and_requires_livez() -> None:
     assert "Test-OpenXYOSNodeAlive" in text
     assert "Test-OpenXYOSPortListen" in text
     assert "exit 10" in text
+
+
+def test_start_sidecar_does_not_assign_automatic_home() -> None:
+    """Windows PowerShell $HOME / $home is read-only; assigning it is a no-op."""
+    text = START_PS1.read_text(encoding="utf-8")
+    assert "$freeosHome" in text
+    assert "$env:FREEOS_HOME = $freeosHome" in text
+    assert "$env:OCTOP_HOME = $freeosHome" in text
+    assert "Join-Path $freeosHome 'org-os'" in text
+    assert not re.search(r"(?i)\$home\s*=", text)
+    assert not re.search(r"(?i)\$pid\s*=", text)
 
 
 def test_start_sidecar_cors_origin_is_parseorigins_safe() -> None:
