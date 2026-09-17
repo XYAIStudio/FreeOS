@@ -1,14 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Button, Input, Space, Switch, Tag } from "antd";
+import { Button, Drawer, Input, Space, Switch, Tag } from "antd";
 import {
   ArrowDownUp,
   Building2,
   ExternalLink,
-  Maximize2,
-  Minimize2,
   Package,
   Play,
-  RefreshCw,
+  Settings2,
   Shield,
   Users,
   Workflow,
@@ -34,6 +32,7 @@ import { resolveOpenxyosSourceDest } from "./pickSourceDest";
 import styles from "./Organization.module.less";
 
 type ActionKey = "assemble" | "pack" | "loop" | "sidecar" | "produce" | null;
+type DrawerKey = "module" | "manage" | null;
 
 type LastReceipt = {
   kind: "assemble" | "pack" | "loop";
@@ -55,7 +54,7 @@ export default function OrganizationPage() {
   const [loopProof, setLoopProof] = useState<OrgLoopProof | null>(null);
   const [lastActionNotes, setLastActionNotes] = useState<string[]>([]);
   const [lastReceipt, setLastReceipt] = useState<LastReceipt | null>(null);
-  const [previewFullscreen, setPreviewFullscreen] = useState(false);
+  const [drawer, setDrawer] = useState<DrawerKey>(null);
   const [moduleToggles, setModuleToggles] = useState<Record<string, boolean>>(
     {},
   );
@@ -109,15 +108,6 @@ export default function OrganizationPage() {
     }, 4000);
     return () => window.clearInterval(id);
   }, [applyOverview, overview?.sidecar_reachable]);
-
-  useEffect(() => {
-    if (!previewFullscreen) return;
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setPreviewFullscreen(false);
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [previewFullscreen]);
 
   const sidecarUp = Boolean(overview?.sidecar_reachable);
   const firstRun = useMemo(() => {
@@ -403,32 +393,13 @@ export default function OrganizationPage() {
   }, [showFrame, pushTogglesToPreview]);
 
   return (
-    <PageShell
-      title={t("organization.title")}
-      subtitle={t("organization.subtitle")}
-      actions={
-        <Space wrap>
-          {(sidecarUp || overview?.enabled) && (
-            <Button
-              icon={<Package size={14} />}
-              onClick={() => void downloadSource()}
-              loading={downloading || pickingFolder}
-            >
-              {t("organization.downloadSource")}
-            </Button>
-          )}
-          <Button icon={<RefreshCw size={14} />} onClick={() => void load()}>
-            {t("common.refresh")}
-          </Button>
-        </Space>
-      }
-    >
+    <PageShell title={t("organization.title")} fill>
       <div className={styles.page}>
-        <section className={styles.hero}>
-          <p className={styles.heroTitle}>{t("organization.heroTitle")}</p>
-          <p className={styles.heroStory}>{t("organization.heroStory")}</p>
-          <p className={styles.heroStory}>{t("organization.glossary")}</p>
-          <div className={styles.heroMeta}>
+        <section className={styles.statusBar}>
+          <div className={styles.statusMeta}>
+            <p className={styles.statusTitle}>
+              {t("organization.statusBarTitle")}
+            </p>
             <span className={styles.chip}>
               {overview?.enabled ? t("organization.on") : t("organization.off")}
             </span>
@@ -441,428 +412,429 @@ export default function OrganizationPage() {
               {t("organization.lastSync")}: {lastSync}
             </span>
           </div>
+          <div className={styles.statusActions}>
+            <Button
+              type="default"
+              onClick={() => setDrawer("module")}
+              data-testid="org-enable-module"
+            >
+              {t("organization.enableModule")}
+            </Button>
+            <Button
+              type="default"
+              icon={<Settings2 size={14} />}
+              onClick={() => setDrawer("manage")}
+              data-testid="org-manage-os"
+            >
+              {t("organization.manageOs")}
+            </Button>
+            {showFrame && (
+              <Button
+                type="link"
+                href={previewUrl}
+                target="_blank"
+                rel="noreferrer"
+                icon={<ExternalLink size={14} />}
+                style={{ color: "#fff" }}
+              >
+                {t("organization.openSidecar")}
+              </Button>
+            )}
+          </div>
         </section>
 
-        <div className={styles.workspace}>
-          <div className={styles.column}>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 12,
-                flexWrap: "wrap",
-              }}
-            >
-              <Building2 size={18} />
-              <span>{t("organization.toggleLabel")}</span>
-              <Switch
-                checked={Boolean(overview?.enabled)}
-                loading={saving || loading}
-                onChange={(checked) => void toggle(checked)}
-              />
+        <div className={styles.embedPane}>
+          {!sidecarUp && (
+            <div className={styles.previewOffline}>
+              {t("organization.previewOffline")}
             </div>
+          )}
+          <iframe
+            key={sidecarUp ? "open" : "opening"}
+            ref={iframeRef}
+            title={t("organization.previewTitle")}
+            src={previewUrl}
+            className={styles.embed}
+            allow="clipboard-read; clipboard-write"
+            onLoad={pushTogglesToPreview}
+          />
+        </div>
+      </div>
 
-            {firstRun && (
-              <section className={styles.empty}>
-                <p className={styles.emptyTitle}>
-                  {t("organization.emptyTitle")}
-                </p>
-                <p>{t("organization.emptyBody")}</p>
-              </section>
-            )}
+      <Drawer
+        title={t("organization.moduleDrawerTitle")}
+        open={drawer === "module"}
+        onClose={() => setDrawer(null)}
+        width={480}
+        destroyOnHidden
+      >
+        <div className={styles.drawerBody}>
+          <div className={styles.moduleToggle}>
+            <Building2 size={18} />
+            <span>{t("organization.toggleLabel")}</span>
+            <Switch
+              checked={Boolean(overview?.enabled)}
+              loading={saving || loading}
+              onChange={(checked) => void toggle(checked)}
+            />
+          </div>
+          <p className={styles.catalogDesc}>{t("organization.glossary")}</p>
+          <section>
+            <p className={styles.timelineTitle}>
+              {t("organization.catalogTitle")}
+            </p>
+            <p className={styles.catalogDesc} style={{ marginBottom: 12 }}>
+              {t("organization.catalogToggleHint")}
+            </p>
+            <div className={styles.catalog}>
+              {catalog.map((row) => (
+                <article key={row.key} className={styles.catalogItem}>
+                  <p className={styles.catalogName}>
+                    {isZh ? row.label_zh : row.label}{" "}
+                    <Tag>
+                      {row.locked
+                        ? t("organization.locked")
+                        : moduleToggles[row.key] === false
+                        ? t("organization.catalogDisabled")
+                        : t("organization.catalogEnabled")}
+                    </Tag>
+                  </p>
+                  <p className={styles.catalogDesc}>
+                    {isZh ? row.description_zh : row.description}
+                  </p>
+                  {!row.locked && (
+                    <Switch
+                      size="small"
+                      checked={moduleToggles[row.key] !== false}
+                      onChange={(checked) =>
+                        void toggleModule(row.key, checked)
+                      }
+                    />
+                  )}
+                </article>
+              ))}
+            </div>
+          </section>
+        </div>
+      </Drawer>
 
-            <section className={styles.dual}>
-              <article className={styles.plane}>
-                <div className={styles.planeHead}>
-                  <div>
-                    <p className={styles.planeLabel}>
-                      {t("organization.dataPlane")}
-                    </p>
-                    <h2 className={styles.planeTitle}>FreeOS</h2>
-                  </div>
-                  <Users size={22} />
-                </div>
-                <div className={styles.metrics}>
-                  <div className={styles.metric}>
-                    <span className={styles.metricValue}>
-                      {metric(overview?.freeos.employees)}
-                    </span>
-                    <span className={styles.metricLabel}>
-                      {t("organization.metricEmployees")}
-                    </span>
-                  </div>
-                  <div className={styles.metric}>
-                    <span className={styles.metricValue}>
-                      {metric(overview?.freeos.org_skills)}
-                    </span>
-                    <span className={styles.metricLabel}>
-                      {t("organization.metricSkills")}
-                    </span>
-                  </div>
-                  <div className={styles.metric}>
-                    <span className={styles.metricValue}>
-                      {metric(overview?.freeos.mcp)}
-                    </span>
-                    <span className={styles.metricLabel}>
-                      {t("organization.metricMcp")}
-                    </span>
-                  </div>
-                  <div className={styles.metric}>
-                    <span className={styles.metricValue}>
-                      {metric(overview?.freeos.tasks)}
-                    </span>
-                    <span className={styles.metricLabel}>
-                      {t("organization.metricTasks")}
-                    </span>
-                  </div>
-                </div>
-              </article>
+      <Drawer
+        title={t("organization.manageDrawerTitle")}
+        open={drawer === "manage"}
+        onClose={() => setDrawer(null)}
+        width={720}
+        destroyOnHidden
+      >
+        <div className={styles.drawerBody}>
+          <p className={styles.heroStory}>{t("organization.heroStory")}</p>
+          <p className={styles.heroStory}>{t("organization.glossary")}</p>
 
-              <div className={styles.flow} aria-hidden="true">
-                <div className={styles.flowArrow}>
-                  <ArrowDownUp size={16} />
-                  {t("organization.flowUp")}
+          {firstRun && (
+            <section className={styles.empty}>
+              <p className={styles.emptyTitle}>
+                {t("organization.emptyTitle")}
+              </p>
+              <p>{t("organization.emptyBody")}</p>
+            </section>
+          )}
+
+          <section className={styles.dual}>
+            <article className={styles.plane}>
+              <div className={styles.planeHead}>
+                <div>
+                  <p className={styles.planeLabel}>
+                    {t("organization.dataPlane")}
+                  </p>
+                  <h2 className={styles.planeTitle}>FreeOS</h2>
                 </div>
-                <div className={styles.orbit}>
-                  <div className={styles.orbitCore} />
+                <Users size={22} />
+              </div>
+              <div className={styles.metrics}>
+                <div className={styles.metric}>
+                  <span className={styles.metricValue}>
+                    {metric(overview?.freeos.employees)}
+                  </span>
+                  <span className={styles.metricLabel}>
+                    {t("organization.metricEmployees")}
+                  </span>
                 </div>
-                <div className={styles.flowArrow}>
-                  {t("organization.flowDown")}
-                  <Workflow size={16} />
+                <div className={styles.metric}>
+                  <span className={styles.metricValue}>
+                    {metric(overview?.freeos.org_skills)}
+                  </span>
+                  <span className={styles.metricLabel}>
+                    {t("organization.metricSkills")}
+                  </span>
+                </div>
+                <div className={styles.metric}>
+                  <span className={styles.metricValue}>
+                    {metric(overview?.freeos.mcp)}
+                  </span>
+                  <span className={styles.metricLabel}>
+                    {t("organization.metricMcp")}
+                  </span>
+                </div>
+                <div className={styles.metric}>
+                  <span className={styles.metricValue}>
+                    {metric(overview?.freeos.tasks)}
+                  </span>
+                  <span className={styles.metricLabel}>
+                    {t("organization.metricTasks")}
+                  </span>
                 </div>
               </div>
+            </article>
 
-              <article className={styles.plane}>
-                <div className={styles.planeHead}>
-                  <div>
-                    <p className={styles.planeLabel}>
-                      {t("organization.controlPlane")}
-                    </p>
-                    <h2 className={styles.planeTitle}>openXYOS</h2>
-                  </div>
-                  <Shield size={22} />
+            <div className={styles.flow} aria-hidden="true">
+              <div className={styles.flowArrow}>
+                <ArrowDownUp size={16} />
+                {t("organization.flowUp")}
+              </div>
+              <div className={styles.orbit}>
+                <div className={styles.orbitCore} />
+              </div>
+              <div className={styles.flowArrow}>
+                {t("organization.flowDown")}
+                <Workflow size={16} />
+              </div>
+            </div>
+
+            <article className={styles.plane}>
+              <div className={styles.planeHead}>
+                <div>
+                  <p className={styles.planeLabel}>
+                    {t("organization.controlPlane")}
+                  </p>
+                  <h2 className={styles.planeTitle}>openXYOS</h2>
                 </div>
-                <div className={styles.metrics}>
-                  <div className={styles.metric}>
-                    <span className={styles.metricValue}>
-                      {metric(overview?.openxyos.modules)}
-                    </span>
-                    <span className={styles.metricLabel}>
-                      {t("organization.metricModules")}
-                    </span>
-                  </div>
-                  <div className={styles.metric}>
-                    <span className={styles.metricValue}>
-                      {overview?.openxyos.governance
-                        ? t("organization.on")
-                        : t("organization.off")}
-                    </span>
-                    <span className={styles.metricLabel}>
-                      {t("organization.metricGovernance")}
-                    </span>
-                  </div>
-                  <div className={styles.metric}>
-                    <span className={styles.metricValue}>
-                      {sidecarUp
-                        ? t("organization.sidecarUp")
-                        : t("organization.sidecarOpening")}
-                    </span>
-                    <span className={styles.metricLabel}>
-                      {t("organization.metricHealth")}
-                    </span>
-                  </div>
-                  <div className={styles.metric}>
-                    <span className={styles.metricValue}>
-                      {overview?.openxyos.tenant_id || "—"}
-                    </span>
-                    <span className={styles.metricLabel}>
-                      {t("organization.metricTenant")}
-                    </span>
-                  </div>
+                <Shield size={22} />
+              </div>
+              <div className={styles.metrics}>
+                <div className={styles.metric}>
+                  <span className={styles.metricValue}>
+                    {metric(overview?.openxyos.modules)}
+                  </span>
+                  <span className={styles.metricLabel}>
+                    {t("organization.metricModules")}
+                  </span>
                 </div>
-              </article>
+                <div className={styles.metric}>
+                  <span className={styles.metricValue}>
+                    {overview?.openxyos.governance
+                      ? t("organization.on")
+                      : t("organization.off")}
+                  </span>
+                  <span className={styles.metricLabel}>
+                    {t("organization.metricGovernance")}
+                  </span>
+                </div>
+                <div className={styles.metric}>
+                  <span className={styles.metricValue}>
+                    {sidecarUp
+                      ? t("organization.sidecarUp")
+                      : t("organization.sidecarOpening")}
+                  </span>
+                  <span className={styles.metricLabel}>
+                    {t("organization.metricHealth")}
+                  </span>
+                </div>
+                <div className={styles.metric}>
+                  <span className={styles.metricValue}>
+                    {overview?.openxyos.tenant_id || "—"}
+                  </span>
+                  <span className={styles.metricLabel}>
+                    {t("organization.metricTenant")}
+                  </span>
+                </div>
+              </div>
+            </article>
+          </section>
+
+          {progressLabel && (
+            <section className={styles.recover}>
+              <p className={styles.recoverTitle}>{progressLabel}</p>
             </section>
+          )}
 
-            {progressLabel && (
-              <section className={styles.recover}>
-                <p className={styles.recoverTitle}>{progressLabel}</p>
-              </section>
-            )}
-
-            <section className={styles.actions}>
-              <button
-                type="button"
-                className={styles.action}
+          <section className={styles.actions}>
+            <div className={styles.action}>
+              <Users size={18} />
+              <p className={styles.actionTitle}>
+                {t("organization.assembleTitle")}
+              </p>
+              <p className={styles.actionBody}>
+                {t("organization.assembleBody")}
+              </p>
+              <Button
+                type="primary"
+                loading={busy === "assemble"}
                 disabled={busy !== null}
                 onClick={() => void assemble()}
               >
-                <Users size={18} />
-                <p className={styles.actionTitle}>
-                  {t("organization.assembleTitle")}
-                </p>
-                <p className={styles.actionBody}>
-                  {t("organization.assembleBody")}
-                </p>
-                <Button type="primary" loading={busy === "assemble"}>
-                  {t("organization.assembleAction")}
-                </Button>
-              </button>
-              <button
-                type="button"
-                className={styles.action}
+                {t("organization.assembleAction")}
+              </Button>
+            </div>
+            <div className={styles.action}>
+              <Package size={18} />
+              <p className={styles.actionTitle}>
+                {t("organization.packTitle")}
+              </p>
+              <p className={styles.actionBody}>{t("organization.packBody")}</p>
+              <Button
+                loading={busy === "pack"}
                 disabled={busy !== null}
                 onClick={() => void packBack()}
               >
-                <Package size={18} />
-                <p className={styles.actionTitle}>
-                  {t("organization.packTitle")}
-                </p>
-                <p className={styles.actionBody}>
-                  {t("organization.packBody")}
-                </p>
-                <Button loading={busy === "pack"}>
-                  {t("organization.packAction")}
-                </Button>
-              </button>
-              <button
-                type="button"
-                className={styles.action}
+                {t("organization.packAction")}
+              </Button>
+            </div>
+            <div className={styles.action}>
+              <Play size={18} />
+              <p className={styles.actionTitle}>
+                {t("organization.loopTitle")}
+              </p>
+              <p className={styles.actionBody}>{t("organization.loopBody")}</p>
+              <Button
+                loading={busy === "loop"}
                 disabled={busy !== null}
                 onClick={() => void runLoop()}
               >
-                <Play size={18} />
-                <p className={styles.actionTitle}>
-                  {t("organization.loopTitle")}
-                </p>
-                <p className={styles.actionBody}>
-                  {t("organization.loopBody")}
-                </p>
-                <Button loading={busy === "loop"}>
-                  {t("organization.loopAction")}
-                </Button>
-              </button>
-              <div className={styles.action}>
-                <Users size={18} />
-                <p className={styles.actionTitle}>
-                  {t("organization.produceTitle")}
-                </p>
-                <p className={styles.actionBody}>
-                  {t("organization.produceBody")}
-                </p>
-                <Input
-                  value={produceName}
-                  onChange={(event) => setProduceName(event.target.value)}
-                  placeholder={t("organization.produceName")}
-                />
-                <Input
-                  value={produceIma}
-                  onChange={(event) => setProduceIma(event.target.value)}
-                  placeholder={t("organization.produceIma")}
-                />
-                <Button
-                  loading={busy === "produce"}
-                  disabled={busy !== null}
-                  onClick={() => void produce()}
-                >
-                  {t("organization.produceAction")}
-                </Button>
-              </div>
-            </section>
+                {t("organization.loopAction")}
+              </Button>
+            </div>
+            <div className={styles.action}>
+              <Users size={18} />
+              <p className={styles.actionTitle}>
+                {t("organization.produceTitle")}
+              </p>
+              <p className={styles.actionBody}>
+                {t("organization.produceBody")}
+              </p>
+              <Input
+                value={produceName}
+                onChange={(event) => setProduceName(event.target.value)}
+                placeholder={t("organization.produceName")}
+              />
+              <Input
+                value={produceIma}
+                onChange={(event) => setProduceIma(event.target.value)}
+                placeholder={t("organization.produceIma")}
+              />
+              <Button
+                loading={busy === "produce"}
+                disabled={busy !== null}
+                onClick={() => void produce()}
+              >
+                {t("organization.produceAction")}
+              </Button>
+            </div>
+          </section>
 
-            {lastReceipt ? (
-              <section className={styles.timeline}>
-                <p className={styles.timelineTitle}>
-                  {t("organization.receiptTitle")}
-                </p>
-                <ol className={styles.timelineList}>
-                  {lastReceipt.lines.map((line) => (
-                    <li key={line}>{line}</li>
-                  ))}
-                </ol>
-              </section>
-            ) : null}
-
+          {lastReceipt ? (
             <section className={styles.timeline}>
               <p className={styles.timelineTitle}>
-                {t("organization.timelineTitle")}
+                {t("organization.receiptTitle")}
               </p>
-              {lastLoop ? (
-                <ol className={styles.timelineList}>
-                  <li>
-                    {t("organization.timelineOk")}: {flagLabel(lastLoop.ok)}
-                  </li>
-                  {lastLoop.employees?.length ? (
-                    <li>
-                      {t("organization.timelineEmployees")}:{" "}
-                      {lastLoop.employees.join(", ")}
-                    </li>
-                  ) : null}
-                  {lastLoop.skills?.length ? (
-                    <li>
-                      {t("organization.timelineSkills")}:{" "}
-                      {lastLoop.skills.length}
-                    </li>
-                  ) : null}
-                  <li>
-                    {t("organization.timelineRemote")}:{" "}
-                    {flagLabel(Boolean(lastLoop.remote_applied))}
-                  </li>
-                  <li>
-                    {t("organization.timelineGovernance")}:{" "}
-                    {flagLabel(Boolean(lastLoop.governance_blocked))}
-                  </li>
-                  {(lastLoop.notes ?? []).slice(0, 6).map((note) => (
-                    <li key={note}>{note}</li>
-                  ))}
-                </ol>
-              ) : (
-                <p>{t("organization.timelineEmpty")}</p>
-              )}
-              {lastActionNotes.length > 0 && (
-                <ol className={styles.timelineList} style={{ marginTop: 12 }}>
-                  {lastActionNotes.slice(0, 8).map((note) => (
-                    <li key={note}>{note}</li>
-                  ))}
-                </ol>
-              )}
-            </section>
-
-            <section className={styles.timeline}>
-              <p className={styles.timelineTitle}>
-                {t("organization.landedTitle")}
-              </p>
-              {landed ? (
-                <pre className={styles.catalogDesc}>
-                  {JSON.stringify(landed, null, 2)}
-                </pre>
-              ) : (
-                <p>{t("organization.landedEmpty")}</p>
-              )}
-            </section>
-
-            <section className={styles.timeline}>
-              <p className={styles.timelineTitle}>
-                {t("organization.catalogTitle")}
-              </p>
-              <p className={styles.catalogDesc} style={{ marginBottom: 12 }}>
-                {t("organization.catalogToggleHint")}
-              </p>
-              <div className={styles.catalog}>
-                {catalog.map((row) => (
-                  <article key={row.key} className={styles.catalogItem}>
-                    <p className={styles.catalogName}>
-                      {isZh ? row.label_zh : row.label}{" "}
-                      <Tag>
-                        {row.locked
-                          ? t("organization.locked")
-                          : moduleToggles[row.key] === false
-                          ? t("organization.catalogDisabled")
-                          : t("organization.catalogEnabled")}
-                      </Tag>
-                    </p>
-                    <p className={styles.catalogDesc}>
-                      {isZh ? row.description_zh : row.description}
-                    </p>
-                    {!row.locked && (
-                      <Switch
-                        size="small"
-                        checked={moduleToggles[row.key] !== false}
-                        onChange={(checked) =>
-                          void toggleModule(row.key, checked)
-                        }
-                      />
-                    )}
-                  </article>
+              <ol className={styles.timelineList}>
+                {lastReceipt.lines.map((line) => (
+                  <li key={line}>{line}</li>
                 ))}
-              </div>
+              </ol>
             </section>
+          ) : null}
 
-            {(sidecarUp || overview?.enabled) && (
-              <section className={styles.timeline}>
-                <p className={styles.timelineTitle}>
-                  {t("organization.downloadSource")}
-                </p>
-                <p className={styles.catalogDesc}>
-                  {t("organization.downloadSourceHint")}
-                </p>
-                <Space wrap style={{ marginTop: 12 }}>
-                  <Space.Compact style={{ minWidth: 320 }}>
-                    <Input
-                      value={sourceDest}
-                      onChange={(event) => setSourceDest(event.target.value)}
-                      placeholder={t("organization.downloadSourceDest")}
-                      readOnly={canPickDesktopFolder()}
-                    />
-                    <Button
-                      loading={pickingFolder}
-                      onClick={() => void browseSourceDest()}
-                    >
-                      {t("organization.browseDest")}
-                    </Button>
-                  </Space.Compact>
-                  <Button
-                    type="primary"
-                    loading={downloading || pickingFolder}
-                    onClick={() => void downloadSource()}
-                  >
-                    {t("organization.downloadSource")}
-                  </Button>
-                </Space>
-              </section>
+          <section className={styles.timeline}>
+            <p className={styles.timelineTitle}>
+              {t("organization.timelineTitle")}
+            </p>
+            {lastLoop ? (
+              <ol className={styles.timelineList}>
+                <li>
+                  {t("organization.timelineOk")}: {flagLabel(lastLoop.ok)}
+                </li>
+                {lastLoop.employees?.length ? (
+                  <li>
+                    {t("organization.timelineEmployees")}:{" "}
+                    {lastLoop.employees.join(", ")}
+                  </li>
+                ) : null}
+                {lastLoop.skills?.length ? (
+                  <li>
+                    {t("organization.timelineSkills")}: {lastLoop.skills.length}
+                  </li>
+                ) : null}
+                <li>
+                  {t("organization.timelineRemote")}:{" "}
+                  {flagLabel(Boolean(lastLoop.remote_applied))}
+                </li>
+                <li>
+                  {t("organization.timelineGovernance")}:{" "}
+                  {flagLabel(Boolean(lastLoop.governance_blocked))}
+                </li>
+                {(lastLoop.notes ?? []).slice(0, 6).map((note) => (
+                  <li key={note}>{note}</li>
+                ))}
+              </ol>
+            ) : (
+              <p>{t("organization.timelineEmpty")}</p>
             )}
-          </div>
+            {lastActionNotes.length > 0 && (
+              <ol className={styles.timelineList} style={{ marginTop: 12 }}>
+                {lastActionNotes.slice(0, 8).map((note) => (
+                  <li key={note}>{note}</li>
+                ))}
+              </ol>
+            )}
+          </section>
 
-          <aside
-            className={`${styles.preview} ${
-              previewFullscreen ? styles.previewFullscreen : ""
-            }`}
-          >
-            <div className={styles.previewHeader}>
-              <p className={styles.previewTitle}>
-                {t("organization.previewTitle")}
+          <section className={styles.timeline}>
+            <p className={styles.timelineTitle}>
+              {t("organization.landedTitle")}
+            </p>
+            {landed ? (
+              <pre className={styles.catalogDesc}>
+                {JSON.stringify(landed, null, 2)}
+              </pre>
+            ) : (
+              <p>{t("organization.landedEmpty")}</p>
+            )}
+          </section>
+
+          {(sidecarUp || overview?.enabled) && (
+            <section className={styles.timeline}>
+              <p className={styles.timelineTitle}>
+                {t("organization.downloadSource")}
               </p>
-              <Space>
-                {showFrame && (
+              <p className={styles.catalogDesc}>
+                {t("organization.downloadSourceHint")}
+              </p>
+              <Space wrap style={{ marginTop: 12 }}>
+                <Space.Compact style={{ minWidth: 320 }}>
+                  <Input
+                    value={sourceDest}
+                    onChange={(event) => setSourceDest(event.target.value)}
+                    placeholder={t("organization.downloadSourceDest")}
+                    readOnly={canPickDesktopFolder()}
+                  />
                   <Button
-                    type="link"
-                    href={previewUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    icon={<ExternalLink size={14} />}
+                    loading={pickingFolder}
+                    onClick={() => void browseSourceDest()}
                   >
-                    {t("organization.openSidecar")}
+                    {t("organization.browseDest")}
                   </Button>
-                )}
+                </Space.Compact>
                 <Button
-                  icon={
-                    previewFullscreen ? (
-                      <Minimize2 size={14} />
-                    ) : (
-                      <Maximize2 size={14} />
-                    )
-                  }
-                  onClick={() => setPreviewFullscreen((on) => !on)}
+                  type="primary"
+                  loading={downloading || pickingFolder}
+                  onClick={() => void downloadSource()}
                 >
-                  {previewFullscreen
-                    ? t("organization.exitFullscreen")
-                    : t("organization.fullscreen")}
+                  {t("organization.downloadSource")}
                 </Button>
               </Space>
-            </div>
-            <div className={styles.previewBody}>
-              <iframe
-                key={sidecarUp ? "open" : "opening"}
-                ref={iframeRef}
-                title={t("organization.previewTitle")}
-                src={previewUrl}
-                className={styles.embed}
-                allow="clipboard-read; clipboard-write"
-                onLoad={pushTogglesToPreview}
-              />
-            </div>
-          </aside>
+            </section>
+          )}
         </div>
-      </div>
+      </Drawer>
     </PageShell>
   );
 }

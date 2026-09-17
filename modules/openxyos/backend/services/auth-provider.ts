@@ -104,8 +104,11 @@ export class LTSProvider implements AuthProvider {
       return { success: false, error: "租户已停用", code: "TENANT_SUSPENDED" };
     }
 
-    // 更新最后登录时间
-    dbRun("UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = ?", [row.id]);
+    try {
+      dbRun("UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = ?", [row.id]);
+    } catch (err) {
+      console.warn("[auth] last_login update skipped:", err instanceof Error ? err.message : err);
+    }
 
     const user: TokenClaims = {
       id: row.id,

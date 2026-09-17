@@ -79,6 +79,12 @@ describe("sidebarNav", () => {
   it("labels organization without the OS suffix", () => {
     expect(zh.nav.organization).toBe("组织");
     expect(en.nav.organization).toBe("Organization");
+    expect(zh.organization.enableModule).toBe("启用组织模块");
+    expect(zh.organization.manageOs).toBe("组织OS管理");
+    expect(en.organization.enableModule).toBe("Enable organization module");
+    expect(en.organization.manageOs).toBe("Organization OS");
+    expect(zh.chat.modelPickerManage).toBe("模型管理");
+    expect(en.chat.modelPickerManage).toBe("Model management");
   });
 
   it("locks the employee / colleague / expert glossary", () => {

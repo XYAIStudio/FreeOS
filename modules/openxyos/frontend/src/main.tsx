@@ -6,6 +6,10 @@ import App from "./OpenApp";
 import { LocaleProvider } from "./i18n";
 import "./index.css";
 
+if (typeof window !== "undefined" && window.self !== window.top) {
+  document.documentElement.classList.add("ox-embedded");
+}
+
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, staleTime: 10000 } },
 });

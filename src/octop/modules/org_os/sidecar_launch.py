@@ -277,9 +277,16 @@ def sidecar_launch_env(home: Path, *, dashboard_port: int | None = None) -> dict
     origin = (
         f"http://127.0.0.1:{dashboard_port},http://localhost:{dashboard_port},"
         "http://127.0.0.1:18900,http://localhost:18900,"
-        "http://127.0.0.1:8088,http://localhost:8088"
+        "http://127.0.0.1:8088,http://localhost:8088,"
+        f"http://127.0.0.1:{port},http://localhost:{port},http://[::1]:{port}"
     )
     env = os.environ.copy()
+    configured = (env.get("CORS_ORIGIN") or "").strip()
+    cors_origin = (
+        ",".join(item for item in f"{configured},{origin}".split(",") if item.strip())
+        if configured
+        else origin
+    )
     env.update(
         {
             "NODE_ENV": "production",
@@ -292,7 +299,7 @@ def sidecar_launch_env(home: Path, *, dashboard_port: int | None = None) -> dict
             "JWT_SECRET": jwt,
             "COOKIE_SECRET": cookie,
             INGEST_TOKEN_KEY: ingest,
-            "CORS_ORIGIN": env.get("CORS_ORIGIN") or origin,
+            "CORS_ORIGIN": cors_origin,
             "FREEOS_HOME": str(home),
             "OCTOP_HOME": str(home),
             "FREEOS_ORG_SIDECAR_PORT": port,

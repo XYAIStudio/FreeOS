@@ -52,6 +52,11 @@ import { seedDatabase } from "./seed";
 import { authenticate } from "./middleware";
 import { setupWebSocket } from "./services/websocket";
 import { globalErrorHandler } from "./utils/error-handler";
+import {
+  isAllowedCorsOrigin,
+  mergeCorsOrigins,
+  parseOriginList,
+} from "./utils/cors-origins";
 
 async function main() {
   const app = express();
@@ -83,16 +88,17 @@ async function main() {
     });
   }
 
-  // CORS — 白名单 + WebView 兼容
-  const allowedOrigins = process.env.CORS_ORIGIN
-    ? process.env.CORS_ORIGIN.split(",").map(s => s.trim())
-    : [
-        "http://localhost:5173", "http://localhost:5174", "http://localhost:3000",
-        "http://127.0.0.1:5173", "http://127.0.0.1:5174", "http://127.0.0.1:3000",
-        "https://os.cnxy.tech", "https://www.os.cnxy.tech",
-      ];
-  // 开发模式：允许鸿蒙 WebView local 访问
-  const isDev = !process.env.NODE_ENV || process.env.NODE_ENV !== "production";
+  // CORS — 白名单 + 本机 sidecar 自源（iframe 登录）+ WebView 兼容
+  const defaultOrigins = [
+    "http://localhost:5173", "http://localhost:5174", "http://localhost:3000",
+    "http://127.0.0.1:5173", "http://127.0.0.1:5174", "http://127.0.0.1:3000",
+    "https://os.cnxy.tech", "https://www.os.cnxy.tech",
+  ];
+  const configuredOrigins = parseOriginList(process.env.CORS_ORIGIN);
+  const allowedOrigins = mergeCorsOrigins(
+    configuredOrigins.length ? configuredOrigins : defaultOrigins,
+    PORT,
+  );
   app.use((req, res, next) => {
     const origin = req.headers.origin;
     // WebView 从 resource:// rawfile 加载时 origin 为空/null，本地开发放行
@@ -106,10 +112,10 @@ async function main() {
     }
     cors({
       origin: (o, cb) => {
-        if (!o || allowedOrigins.includes(o)) {
+        if (isAllowedCorsOrigin(o, allowedOrigins, req.headers.host)) {
           cb(null, true);
         } else {
-          cb(new Error("CORS blocked"));
+          cb(null, false);
         }
       },
       credentials: true,

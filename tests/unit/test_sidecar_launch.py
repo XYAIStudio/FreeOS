@@ -178,8 +178,19 @@ def test_sidecar_launch_env_writes_secrets(tmp_path: Path) -> None:
     env = sidecar_launch_env(tmp_path, dashboard_port=8099)
     assert env["DATABASE_PATH"] == str(tmp_path / "org-os" / "xiongyuan.db")
     assert "http://127.0.0.1:8099" in env["CORS_ORIGIN"]
+    assert "http://127.0.0.1:3780" in env["CORS_ORIGIN"]
+    assert "http://localhost:3780" in env["CORS_ORIGIN"]
     secrets = (tmp_path / "org-os" / "sidecar.env").read_text(encoding="utf-8")
     assert "JWT_SECRET=" in secrets
     assert "COOKIE_SECRET=" in secrets
     assert "FREEOS_INGEST_TOKEN=" in secrets
     assert env["FREEOS_INGEST_TOKEN"]
+
+
+def test_sidecar_launch_env_merges_existing_cors(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("CORS_ORIGIN", "http://127.0.0.1:9000")
+    env = sidecar_launch_env(tmp_path, dashboard_port=8099)
+    assert "http://127.0.0.1:9000" in env["CORS_ORIGIN"]
+    assert "http://127.0.0.1:3780" in env["CORS_ORIGIN"]

@@ -223,9 +223,7 @@ export default function ChatInputActionsRow({
     return () => observer.disconnect();
   }, [isMobile]);
 
-  const showModelPicker = Boolean(
-    availableModels && availableModels.length > 0 && onModelChange,
-  );
+  const showModelPicker = Boolean(onModelChange);
   const effectiveModelRef = selectedModel || defaultModel || "";
   const selectedModelInfo = availableModels?.find(
     (model) => modelOptionValue(model) === effectiveModelRef,
@@ -533,11 +531,11 @@ export default function ChatInputActionsRow({
             onClick={() => {
               closeCompactPicker();
               setModelPickerOpen(false);
-              navigate("/admin/models");
+              navigate("/models");
             }}
           >
             <Cpu size={15} aria-hidden />
-            <span>{t("chat.modelPickerManage")}</span>
+            <span>{t("chat.modelPickerManage", "模型管理")}</span>
           </button>
         </div>
       )}

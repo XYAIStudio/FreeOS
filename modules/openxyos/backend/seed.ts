@@ -13,6 +13,55 @@ function seedAdminEmail(): string {
   return process.env.SEED_ADMIN_EMAIL?.trim() || "admin@example.com";
 }
 
+const LOCAL_BOOTSTRAP_PASSWORD = "openxyos-demo-2026";
+
+function localBootstrapPassword(name: "SEED_ADMIN_PASSWORD" | "SEED_DEMO_PASSWORD"): string {
+  const value = process.env[name]?.trim();
+  if (value && value.length >= 12) return value;
+  return LOCAL_BOOTSTRAP_PASSWORD;
+}
+
+/** First-run local accounts when demo seed is off (FreeOS desktop sidecar). */
+export function ensureLocalBootstrap(): void {
+  dbRun(
+    "INSERT OR IGNORE INTO tenants (id, name, slug, status, plan) VALUES (1, ?, ?, 'active', 'community')",
+    ["openXYOS", "openxyos"],
+  );
+  dbRun(
+    "INSERT OR IGNORE INTO tenants (id, name, slug, status, plan) VALUES (2, ?, ?, 'active', 'community')",
+    ["openXYOS 本地租户", "openxyos-local"],
+  );
+  dbRun(
+    "UPDATE tenants SET status = 'active' WHERE id IN (1, 2) AND status NOT IN ('active', 'trial')",
+  );
+
+  const demoHash = bcrypt.hashSync(localBootstrapPassword("SEED_DEMO_PASSWORD"), 10);
+  const adminHash = bcrypt.hashSync(localBootstrapPassword("SEED_ADMIN_PASSWORD"), 10);
+  const adminEmail = seedAdminEmail();
+
+  if (!dbGet("SELECT id FROM users WHERE email = ?", ["demo@demo.com"])) {
+    dbRun(
+      "INSERT INTO users (email, password_hash, nickname, role, tenant_id) VALUES (?, ?, ?, 'admin', 2)",
+      ["demo@demo.com", demoHash, "管理员"],
+    );
+    console.log("[seed] local bootstrap admin demo@demo.com");
+  }
+  if (!dbGet("SELECT id FROM users WHERE email = ?", ["user@demo.com"])) {
+    dbRun(
+      "INSERT INTO users (email, password_hash, nickname, role, tenant_id) VALUES (?, ?, ?, 'user', 2)",
+      ["user@demo.com", demoHash, "同事"],
+    );
+    console.log("[seed] local bootstrap user user@demo.com");
+  }
+  if (adminEmail !== "demo@demo.com" && !dbGet("SELECT id FROM users WHERE email = ?", [adminEmail])) {
+    dbRun(
+      "INSERT INTO users (email, password_hash, nickname, role, tenant_id) VALUES (?, ?, ?, 'super_admin', 1)",
+      [adminEmail, adminHash, "超级管理员"],
+    );
+    console.log(`[seed] local bootstrap super admin ${adminEmail}`);
+  }
+}
+
 // 辅助：日期加月份 → ISO日期字符串
 function addMonths(dateStr: string | null | undefined, months: number): string | null {
   if (!dateStr) return null;
@@ -23,7 +72,8 @@ function addMonths(dateStr: string | null | undefined, months: number): string |
 
 export function seedDatabase() {
   if (process.env.SEED_DEMO_DATA !== "true") {
-    console.log("[seed] Demo data is disabled. Set SEED_DEMO_DATA=true to opt in.");
+    console.log("[seed] Demo data is disabled. Seeding local first-login accounts only.");
+    ensureLocalBootstrap();
     return;
   }
 

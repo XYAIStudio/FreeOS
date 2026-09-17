@@ -82,7 +82,10 @@ $env:ALLOW_PUBLIC_REGISTRATION = 'false'
 $env:JWT_SECRET = $jwt
 $env:COOKIE_SECRET = $cookie
 $env:FREEOS_INGEST_TOKEN = $ingest
-$env:CORS_ORIGIN = 'http://127.0.0.1:8088,http://localhost:8088,http://127.0.0.1:18900,http://localhost:18900'
+# Include the sidecar's own origin. Login POSTs from the embedded page at
+# http://127.0.0.1:3780 send that Origin; omitting it made cors() throw and
+# the UI showed the generic 服务器内部错误 message.
+$env:CORS_ORIGIN = 'http://127.0.0.1:8088,http://localhost:8088,http://127.0.0.1:18900,http://localhost:18900,http://127.0.0.1:3780,http://localhost:3780,http://[::1]:3780'
 $env:FREEOS_HOME = $freeosHome
 $env:OCTOP_HOME = $freeosHome
 $env:FREEOS_ORG_SIDECAR_PORT = '3780'
