@@ -26,7 +26,8 @@ Same precedence as the FreeOS CLI/server:
   else `{home}/openxyos`. During Setup the FreeOS installer `nsExec`s a
   shipped **provisioner subprocess** (`provision-openxyos.ps1`) that expands
   `openxyos-runtime.zip` with `tar.exe` into that live workdir (and keeps
-  `$INSTDIR\openxyos` / `$INSTDIR\openxyos-runtime` as backups), starts FE/BE
+  `$INSTDIR\openxyos` as a sealed copy; the `openxyos-runtime` zip and folder
+  are deleted after a successful provision), starts FE/BE
   at medium integrity (Node inherits `CORS_ORIGIN` / `NODE_ENV`; stdout/stderr
   go to `start.log`), and writes `.install-ready` only after
   `http://127.0.0.1:3780/api/health/livez` is healthy. If Node dies before
@@ -54,7 +55,11 @@ a child process** and waits for exit 0. The child extracts with Windows
 `%LOCALAPPDATA%\FreeOS\openxyos`, starts Node at medium integrity
 (IShellDispatch2 — never High-IL Node from the elevated installer), waits
 for livez, and writes `.install-ready` only when healthy. `$INSTDIR\openxyos`
-and `$INSTDIR\openxyos-runtime` are sealed backups. A README-only tree or a
+is the sealed install copy. After success the provisioner removes
+`$INSTDIR\openxyos-runtime.zip` (and similarly named archives) plus the
+`$INSTDIR\openxyos-runtime` folder, and a sibling `openxyos-runtime` under
+`%LOCALAPPDATA%\FreeOS` if one was staged there. A failed provision leaves
+those artifacts for debugging. A README-only tree or a
 failed health check is a provision failure, not a skipped success. Setup does
 **not** register HKCU Run or a logon scheduled task.
 
