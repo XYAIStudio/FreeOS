@@ -747,7 +747,10 @@
       "corpus_pointer": "attached cloud corpus pointer → {path}",
       "corpus_distilled": "distilled {count} corpus files → {path}",
       "corpus_empty": "no knowledge mount; producing a corpus-ready expert workspace",
-      "permissions_unreachable": "sidecar permissions unreachable; pass --policies or retry when signed in"
+      "permissions_unreachable": "sidecar permissions unreachable; pass --policies or retry when signed in",
+      "loop_skip_already": "skipped promotion for {slug}: already {lifecycle}",
+      "loop_skip_illegal": "skipped illegal transition for {slug}: cannot move {current} → {target}",
+      "loop_skip_unknown": "skipped promotion for {slug}: unknown colleague"
     },
     "sidecar": {
       "already": "sidecar already reachable",

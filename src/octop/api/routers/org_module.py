@@ -574,14 +574,17 @@ async def run_loop(
     from octop.modules.org_os.loop.run import run_growth_loop
 
     service = _service(server)
-    proof = run_growth_loop(
-        service.home,
-        tenant_id=body.tenant_id or service.tenant_id() or "1",
-        blueprint_path=Path(body.blueprint_path) if body.blueprint_path else None,
-        policies_path=Path(body.policies_path) if body.policies_path else None,
-        sidecar_url=body.base_url or service.sidecar_url(),
-        config_path=service.config_path,
-    )
+    try:
+        proof = run_growth_loop(
+            service.home,
+            tenant_id=body.tenant_id or service.tenant_id() or "1",
+            blueprint_path=Path(body.blueprint_path) if body.blueprint_path else None,
+            policies_path=Path(body.policies_path) if body.policies_path else None,
+            sidecar_url=body.base_url or service.sidecar_url(),
+            config_path=service.config_path,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     payload = proof.to_dict()
     return localize_mapping(payload, resolve_request_locale(request), "notes")
 

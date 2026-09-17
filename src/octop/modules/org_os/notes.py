@@ -202,6 +202,21 @@ _PATTERNS: tuple[tuple[re.Pattern[str], str, tuple[str, ...]], ...] = (
         "org.notes.permissions_unreachable",
         (),
     ),
+    (
+        re.compile(r"^skipped promotion for (.+): already (.+)$"),
+        "org.notes.loop_skip_already",
+        ("slug", "lifecycle"),
+    ),
+    (
+        re.compile(r"^skipped illegal transition for (.+): cannot move (.+) → (.+)$"),
+        "org.notes.loop_skip_illegal",
+        ("slug", "current", "target"),
+    ),
+    (
+        re.compile(r"^skipped promotion for (.+): unknown colleague$"),
+        "org.notes.loop_skip_unknown",
+        ("slug",),
+    ),
 )
 
 

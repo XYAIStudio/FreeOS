@@ -27,6 +27,31 @@ ALLOWED: dict[str, frozenset[str]] = {
     "offboard": frozenset(),
 }
 
+# Happy-path ladder used by the self-growth loop. ``offboard`` is terminal.
+PROMOTION_ORDER: tuple[str, ...] = ("draft", "market", "recruit", "shadow", "active")
+
+
+def can_transition(current: str, target: str) -> bool:
+    """Return True when *target* is a no-op or an allowed FSM edge."""
+    if target not in LIFECYCLE_STATES:
+        return False
+    if current == target:
+        return True
+    return target in ALLOWED.get(current, frozenset())
+
+
+def already_at_or_beyond(current: str, target: str) -> bool:
+    """True when *current* is at or past *target* on the happy-path ladder.
+
+    ``offboard`` is terminal and treated as beyond every promotion target.
+    """
+    if current == "offboard":
+        return True
+    try:
+        return PROMOTION_ORDER.index(current) >= PROMOTION_ORDER.index(target)
+    except ValueError:
+        return False
+
 
 def _apply_flags(record: ColleagueRecord) -> None:
     record.read_only = record.lifecycle in {"shadow", "offboard"}

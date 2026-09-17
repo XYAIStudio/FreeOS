@@ -5,12 +5,19 @@ from octop.modules.org_os.lifecycle.store import (
     ColleagueRecord,
     LifecycleStore,
 )
-from octop.modules.org_os.lifecycle.transitions import register_compiled, transition
+from octop.modules.org_os.lifecycle.transitions import (
+    already_at_or_beyond,
+    can_transition,
+    register_compiled,
+    transition,
+)
 
 __all__ = [
     "LIFECYCLE_STATES",
     "ColleagueRecord",
     "LifecycleStore",
+    "already_at_or_beyond",
+    "can_transition",
     "register_compiled",
     "transition",
 ]
