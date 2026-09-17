@@ -9,9 +9,7 @@ NSI = REPO / "desktop" / "src" / "build" / "windows" / "nsis" / "project.nsi"
 NSH = REPO / "desktop" / "src" / "build" / "windows" / "nsis" / "wails_tools.nsh"
 DESKTOP_README = REPO / "desktop" / "README.md"
 ORG_PAGE = REPO / "dashboard" / "src" / "pages" / "Organization" / "index.tsx"
-ORG_BROWSER = (
-    REPO / "dashboard" / "src" / "pages" / "Organization" / "OrgMiniBrowser.tsx"
-)
+ORG_BROWSER = REPO / "dashboard" / "src" / "pages" / "Organization" / "OrgMiniBrowser.tsx"
 ORG_TABS = REPO / "dashboard" / "src" / "pages" / "Organization" / "orgBrowser.ts"
 OPENURL_GO = REPO / "desktop" / "src" / "openurl.go"
 

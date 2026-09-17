@@ -7,8 +7,8 @@ function blankLinkFromEvent(event: Event): HTMLAnchorElement | null {
     raw instanceof Element
       ? raw
       : raw instanceof Node
-        ? raw.parentElement
-        : null;
+      ? raw.parentElement
+      : null;
   if (!node) return null;
   const link = node.closest("a[href][target]");
   if (!(link instanceof HTMLAnchorElement)) return null;

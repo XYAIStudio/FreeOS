@@ -442,12 +442,12 @@ export default function OrganizationPage() {
     busy === "assemble"
       ? t("organization.progressAssemble")
       : busy === "pack"
-        ? t("organization.progressPack")
-        : busy === "loop"
-          ? t("organization.progressLoop")
-          : busy === "produce"
-            ? t("organization.progressProduce")
-            : null;
+      ? t("organization.progressPack")
+      : busy === "loop"
+      ? t("organization.progressLoop")
+      : busy === "produce"
+      ? t("organization.progressProduce")
+      : null;
 
   const lastLoop = (loopProof ?? overview?.last_loop) as OrgLoopProof | null;
   const lastSync = overview?.last_sync
@@ -575,8 +575,8 @@ export default function OrganizationPage() {
               {previewBlank
                 ? t("organization.sidecarEmbedFailed")
                 : sidecarUp
-                  ? t("organization.sidecarUp")
-                  : t("organization.sidecarOpening")}
+                ? t("organization.sidecarUp")
+                : t("organization.sidecarOpening")}
             </span>
             <span className={styles.chip}>
               {t("organization.lastSync")}: {lastSync}
@@ -629,13 +629,18 @@ export default function OrganizationPage() {
             if (tab) setAddressValue(tab.url);
           }}
           onCloseTab={(id) => {
+            let nextActive = activeId;
+            let nextAddress = addressValue;
             setTabs((current) => {
               const next = closeOrgTab(current, activeId, id);
-              setActiveId(next.activeId);
-              const tab = next.tabs.find((row) => row.id === next.activeId);
-              if (tab) setAddressValue(tab.url);
+              nextActive = next.activeId;
+              nextAddress =
+                next.tabs.find((row) => row.id === next.activeId)?.url ??
+                addressValue;
               return next.tabs;
             });
+            setActiveId(nextActive);
+            setAddressValue(nextAddress);
           }}
           onNewTab={() => openTab(localConsoleUrl + "/", homeTitle, false)}
           onFrameLoad={pushTogglesToPreview}
@@ -676,8 +681,8 @@ export default function OrganizationPage() {
                       {row.locked
                         ? t("organization.locked")
                         : moduleToggles[row.key] === false
-                          ? t("organization.catalogDisabled")
-                          : t("organization.catalogEnabled")}
+                        ? t("organization.catalogDisabled")
+                        : t("organization.catalogEnabled")}
                     </Tag>
                   </p>
                   <p className={styles.catalogDesc}>
