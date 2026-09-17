@@ -48,6 +48,14 @@ export function normalizeComposerContext(
     ctx.reasoningEffort = raw.reasoningEffort.trim();
     has = true;
   }
+  if (
+    raw.permissionMode === "default" ||
+    raw.permissionMode === "auto" ||
+    raw.permissionMode === "full"
+  ) {
+    ctx.permissionMode = raw.permissionMode;
+    has = true;
+  }
 
   return has ? ctx : undefined;
 }
@@ -88,6 +96,7 @@ export function buildComposerContext(params: {
   selectedModel?: string | null;
   reasoningMode?: "auto" | "enabled" | "disabled";
   reasoningEffort?: string | null;
+  permissionMode?: "default" | "auto" | "full";
 }): UserComposerContext | undefined {
   const ctx: UserComposerContext = {};
   let has = false;
@@ -120,6 +129,10 @@ export function buildComposerContext(params: {
   }
   if (params.reasoningEffort) {
     ctx.reasoningEffort = params.reasoningEffort;
+    has = true;
+  }
+  if (params.permissionMode) {
+    ctx.permissionMode = params.permissionMode;
     has = true;
   }
 

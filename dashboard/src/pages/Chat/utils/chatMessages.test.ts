@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
+  buildComposerContext,
   formatRunUsage,
+  normalizeComposerContext,
   resolveTurnModelRef,
   assistantTurnsFromEnd,
   userTurnsFromEnd,
@@ -24,6 +26,18 @@ describe("formatRunUsage", () => {
         },
       ),
     ).toBe("1000 input / 700 cache hit (70%) / 80 output / 1080 total");
+  });
+});
+
+describe("composer permissionMode", () => {
+  it("stamps and normalizes permissionMode", () => {
+    expect(
+      buildComposerContext({ permissionMode: "auto" }),
+    ).toEqual({ permissionMode: "auto" });
+    expect(
+      normalizeComposerContext({ permissionMode: "full" }),
+    ).toEqual({ permissionMode: "full" });
+    expect(normalizeComposerContext({ permissionMode: "yolo" })).toBeUndefined();
   });
 });
 

@@ -1,0 +1,294 @@
+/* Right-rail start state, panel picker, and composer permission. */
+
+.rightRailStart {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  padding: 28px 28px 20px;
+  box-sizing: border-box;
+  background: var(--fn-bg-primary, #fff);
+}
+
+.rightRailStartIntro {
+  margin-bottom: 28px;
+}
+
+.rightRailStartKicker {
+  font-size: 13px;
+  color: var(--fn-text-tertiary);
+  margin-bottom: 10px;
+}
+
+.rightRailStartTitle {
+  margin: 0 0 10px;
+  font-size: 22px;
+  font-weight: 650;
+  line-height: 1.3;
+  color: var(--fn-text-primary);
+}
+
+.rightRailStartDesc {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--fn-text-secondary);
+  max-width: 28em;
+}
+
+.rightRailStartList {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.rightRailStartItem {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 14px 4px;
+  border: none;
+  border-top: 1px solid var(--fn-border-secondary, rgba(0, 0, 0, 0.06));
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  color: inherit;
+
+  &:last-of-type {
+    border-bottom: 1px solid var(--fn-border-secondary, rgba(0, 0, 0, 0.06));
+  }
+
+  &:hover {
+    background: var(--fn-fill-secondary, rgba(0, 51, 255, 0.04));
+  }
+}
+
+.rightRailStartItemIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  color: var(--fn-text-secondary);
+}
+
+.rightRailStartItemText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.rightRailStartItemTitle {
+  font-size: 14px;
+  color: var(--fn-text-primary);
+}
+
+.rightRailStartItemHint {
+  font-size: 12px;
+  color: var(--fn-text-tertiary);
+}
+
+.rightRailStartItemChevron {
+  color: var(--fn-text-quaternary);
+  flex-shrink: 0;
+}
+
+.rightRailStartFooter {
+  margin: 18px 0 0;
+  font-size: 12px;
+  color: var(--fn-text-quaternary);
+}
+
+.rightRailPicker {
+  min-width: 240px;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.rightRailPickerItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 10px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  color: inherit;
+
+  &:hover:not(:disabled) {
+    background: var(--fn-fill-secondary, rgba(0, 51, 255, 0.06));
+  }
+
+  &:disabled {
+    opacity: 0.45;
+    cursor: default;
+  }
+}
+
+.rightRailPickerIcon {
+  display: inline-flex;
+  color: var(--fn-text-secondary);
+}
+
+.rightRailPickerText {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.rightRailPickerLabel {
+  font-size: 13px;
+  color: var(--fn-text-primary);
+}
+
+.rightRailPickerHint {
+  font-size: 12px;
+  color: var(--fn-text-tertiary);
+}
+
+.rightRailPanelEmpty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 24px;
+  box-sizing: border-box;
+}
+
+.rightRailPanelEmptyHint {
+  margin: 8px 0 0;
+  font-size: 13px;
+  color: var(--fn-text-tertiary);
+}
+
+.rightRailReviewBody {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.rightRailTasks {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.rightRailTaskList {
+  list-style: none;
+  margin: 0;
+  padding: 8px 16px 0;
+  overflow: auto;
+  flex: 1;
+}
+
+.rightRailTaskItem {
+  padding: 12px 4px;
+  border-bottom: 1px solid var(--fn-border-secondary, rgba(0, 0, 0, 0.06));
+}
+
+.rightRailTaskName {
+  font-size: 14px;
+  color: var(--fn-text-primary);
+}
+
+.rightRailTaskMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--fn-text-tertiary);
+}
+
+.rightRailTaskFooter {
+  padding: 8px 12px 12px;
+}
+
+.permissionPopover :global(.ant-popover-inner) {
+  padding: 6px;
+  border-radius: 12px;
+}
+
+.permissionMenu {
+  min-width: 200px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.permissionMenuItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 9px 12px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  color: var(--fn-text-primary);
+  font-size: 14px;
+
+  &:hover {
+    background: var(--fn-fill-secondary, rgba(0, 51, 255, 0.06));
+  }
+}
+
+.permissionMenuItemActive {
+  background: var(--fn-fill-secondary, rgba(0, 51, 255, 0.08));
+}
+
+.permissionMenuItemWarn {
+  color: #d46b08;
+}
+
+.permissionMenuIcon {
+  display: inline-flex;
+  color: inherit;
+}
+
+.permissionMenuLabel {
+  flex: 1;
+  min-width: 0;
+}
+
+.permissionTrigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 10px 0 8px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--fn-text-secondary);
+  font-size: 13px;
+  cursor: pointer;
+  white-space: nowrap;
+
+  &:hover:not(:disabled) {
+    background: var(--fn-fill-secondary, rgba(0, 0, 0, 0.04));
+    color: var(--fn-text-primary);
+  }
+
+  &:disabled {
+    opacity: 0.45;
+    cursor: default;
+  }
+}
+
+.permissionTriggerWarn {
+  color: #d46b08;
+}

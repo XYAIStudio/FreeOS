@@ -2,12 +2,12 @@
   pointer-events: none;
   position: absolute;
   inset-block: 0;
-  inset-inline-start: 0;
+  inset-inline-end: 0;
   z-index: 10;
   width: 48px;
   opacity: 0;
   visibility: hidden;
-  transform: translateX(-8px);
+  transform: translateX(8px);
   transition:
     opacity 150ms ease-out,
     transform 150ms ease-out,
@@ -15,6 +15,10 @@
 
   @media (prefers-reduced-motion: reduce) {
     transition: none;
+  }
+
+  &[data-direction="rtl"] {
+    transform: translateX(-8px);
   }
 }
 
@@ -28,7 +32,7 @@
 .railScroll {
   pointer-events: auto;
   position: absolute;
-  inset-inline-start: 8px;
+  inset-inline-end: 8px;
   top: 50%;
   max-height: calc(100% - 6rem);
   width: 40px;
@@ -59,10 +63,10 @@
 .tickButton {
   display: flex;
   align-items: center;
-  justify-content: flex-start;
+  justify-content: flex-end;
   width: 40px;
   height: 14px;
-  padding: 0 0 0 2px;
+  padding: 0 2px 0 0;
   border: 0;
   border-radius: 4px;
   background: transparent;
@@ -74,12 +78,23 @@
   }
 }
 
+.rail[data-direction="rtl"] {
+  .tickButton {
+    justify-content: flex-start;
+    padding: 0 0 0 2px;
+  }
+
+  .tickBar {
+    transform-origin: left center;
+  }
+}
+
 .tickBar {
   display: block;
   width: 12px;
   height: 2px;
   border-radius: 999px;
-  transform-origin: left center;
+  transform-origin: right center;
   background: var(--fn-text-quaternary);
   transition:
     opacity 150ms ease-out,

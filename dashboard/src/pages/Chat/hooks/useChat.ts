@@ -831,6 +831,7 @@ export function useChat(
       composerContext?: UserComposerContext,
       reasoningMode?: "auto" | "enabled" | "disabled",
       reasoningEffort?: string | null,
+      permissionMode?: "default" | "auto" | "full",
     ) => {
       const key = storeKey || stableSessionId;
 
@@ -863,6 +864,7 @@ export function useChat(
         targetAgentIds,
         reasoningMode,
         reasoningEffort,
+        permissionMode,
       );
     },
     [stableSessionId],

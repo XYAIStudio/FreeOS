@@ -179,6 +179,11 @@ describe("TurnTimelineRail", () => {
     expect(rail).toHaveAttribute("data-item-count", "2");
     expect(rail).toHaveAttribute("data-visible", "true");
     expect(rail).toHaveAttribute("data-direction", "ltr");
+    expect(rail).toHaveAttribute("data-placement", "end");
+
+    fireEvent.mouseEnter(screen.getByTestId("turn-timeline-tick-0"));
+    expect(await screen.findByText("first question")).toBeInTheDocument();
+    expect(screen.getByText("first answer")).toBeInTheDocument();
 
     fireEvent.click(screen.getByTestId("turn-timeline-tick-0"));
     await waitFor(() => {
@@ -256,5 +261,40 @@ describe("TurnTimelineRail", () => {
     expect(
       container.querySelector('[data-testid="turn-timeline-rail"]'),
     ).toBeNull();
+  });
+
+  it("stays visible at mid widths used when the right sidebar is open", async () => {
+    const messages = [
+      msg("user", "u1", "first"),
+      msg("assistant", "a1", "a"),
+      msg("user", "u2", "second"),
+      msg("assistant", "a2", "b"),
+    ];
+    const messageGroups = groupConsecutiveAssistantMessages(messages);
+    const { scroller, bubbleRefsMap } = mountScrollerWithAnchors(["u1", "u2"]);
+    const wrapper = document.createElement("div");
+    Object.defineProperty(wrapper, "clientWidth", {
+      configurable: true,
+      value: 600,
+    });
+    document.body.appendChild(wrapper);
+
+    render(
+      <TurnTimelineRail
+        messages={messages}
+        messageGroups={messageGroups}
+        useVirtual={false}
+        firstItemIndex={0}
+        scrollerRef={{ current: null }}
+        containerRef={{ current: scroller }}
+        virtuosoRef={{ current: null }}
+        bubbleRefsMap={{ current: bubbleRefsMap }}
+        wrapperRef={{ current: wrapper }}
+        armProgrammaticGuard={vi.fn()}
+      />,
+    );
+
+    const rail = await screen.findByTestId("turn-timeline-rail");
+    expect(rail).toHaveAttribute("data-visible", "true");
   });
 });

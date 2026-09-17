@@ -3,7 +3,8 @@ import { deriveMessageContent } from "./messageContent";
 import type { MessageGroup } from "./messageGrouping";
 
 export const TURN_TIMELINE_MIN_TURNS = 2;
-export const TURN_TIMELINE_MIN_WIDTH_PX = 864;
+/** Wide enough for ticks along the scroll track even with the right sidebar open. */
+export const TURN_TIMELINE_MIN_WIDTH_PX = 560;
 export const TURN_TIMELINE_MAX_PREVIEW_CHARS = 220;
 export const TURN_TIMELINE_MAX_PREVIEW_PARAGRAPHS = 2;
 export const TURN_TIMELINE_ROW_PX = 14;

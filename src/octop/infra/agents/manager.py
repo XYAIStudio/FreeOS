@@ -2638,6 +2638,21 @@ class AgentManager:
             configurable = dict(req.get("configurable") or {})
             configurable["plugin_tool_configs"] = tool_configs
             req["configurable"] = configurable
+        from octop.infra.agents.permission_mode import (  # noqa: PLC0415
+            CONFIG_KEY,
+            normalize_permission_mode,
+            permission_mode_security_override,
+        )
+
+        configurable = dict(req.get("configurable") or {})
+        mode = normalize_permission_mode(configurable.get(CONFIG_KEY))
+        if mode is not None:
+            configurable[CONFIG_KEY] = mode
+            patch = permission_mode_security_override(mode)
+            if patch:
+                policy = SecurityPolicy.merge(self._security.harness_policy(), patch)
+                req["interrupt_on"] = policy.resolve_interrupt_on()
+            req["configurable"] = configurable
         return apply_agent_runtime_to_stream_request(req, agent_cfg)
 
     def _build_harness_config(self, row: AgentRow) -> HarnessAgentConfig:

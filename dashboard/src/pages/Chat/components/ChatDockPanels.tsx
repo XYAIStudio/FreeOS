@@ -1,6 +1,7 @@
 import type { PanelMode } from "../../../components/BrowserWorkspace";
 import type { DisplayEnvironment } from "../../../api/types/browser";
 import type { DockTab, DockTabId } from "../hooks/useChatDockPanel";
+import type { WorkspacePanelKind } from "../utils/workspacePanels";
 import styles from "../index.module.less";
 import ChatDockPanel from "./ChatDockPanel";
 
@@ -17,6 +18,10 @@ interface ChatDockPanelsProps {
   onSelectTab: (id: DockTabId) => void;
   onCloseTab: (id: DockTabId) => void;
   onOpenFile: (path: string) => void;
+  onOpenPanel?: (kind: WorkspacePanelKind) => void;
+  onExpand?: () => void;
+  expandActive?: boolean;
+  railWide?: boolean;
   browserEnvironment: DisplayEnvironment;
   threadId?: string | null;
   isStreamingTurn?: boolean;
@@ -51,6 +56,10 @@ export default function ChatDockPanels({
   onSelectTab,
   onCloseTab,
   onOpenFile,
+  onOpenPanel,
+  onExpand,
+  expandActive = false,
+  railWide = false,
   browserEnvironment,
   threadId = null,
   isStreamingTurn = false,
@@ -58,12 +67,16 @@ export default function ChatDockPanels({
   onClose,
   onResizeStart,
 }: ChatDockPanelsProps) {
-  const keepAlive = openTabs.length > 0;
+  const keepAlive = openTabs.length > 0 || dockOpen;
   const visible = dockOpen && keepAlive;
 
   if (!keepAlive) {
     return null;
   }
+
+  const rightWidth = railWide
+    ? Math.max(panelSizes.rightWidth, 720)
+    : panelSizes.rightWidth;
 
   const effectiveMode: PanelMode =
     dockMode === "right" && isMobile ? "popup" : dockMode;
@@ -77,7 +90,7 @@ export default function ChatDockPanels({
         effectiveMode === "bottom"
           ? { height: panelSizes.bottomHeight }
           : effectiveMode === "right"
-          ? { width: panelSizes.rightWidth }
+          ? { width: rightWidth }
           : undefined
       }
       agentId={agentId}
@@ -87,6 +100,9 @@ export default function ChatDockPanels({
       onSelectTab={onSelectTab}
       onCloseTab={onCloseTab}
       onOpenFile={onOpenFile}
+      onOpenPanel={onOpenPanel}
+      onExpand={onExpand}
+      expandActive={expandActive}
       browserEnvironment={browserEnvironment}
       threadId={threadId}
       isStreamingTurn={isStreamingTurn}

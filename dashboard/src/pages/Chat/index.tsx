@@ -10,6 +10,7 @@ import {
   Terminal,
   FolderOpen,
   Activity,
+  PanelRightOpen,
 } from "lucide-react";
 import { Alert, Button, Tooltip } from "antd";
 import { message as antMessage } from "@/utils/antdMessage";
@@ -80,6 +81,12 @@ import {
 import ChatSidebarPanel from "./components/ChatSidebarPanel";
 import ChatTitleBar from "./components/ChatTitleBar";
 import ChatComposerChrome from "./components/ChatComposerChrome";
+import {
+  loadPermissionMode,
+  savePermissionMode,
+  type ChatPermissionMode,
+} from "./utils/permissionMode";
+import type { WorkspacePanelKind } from "./utils/workspacePanels";
 import AskQuestionCard from "./components/AskQuestionCard";
 import { extractAskQuestions, isAskHitl } from "../../api/types/hitl";
 import { isAgentChatReady } from "../../utils/agentError";
@@ -345,6 +352,7 @@ function ChatPageInner() {
   const {
     dockOpen,
     dockMode,
+    railWide,
     openTabs,
     activeTabId,
     panelSizes: dockPanelSizes,
@@ -352,17 +360,35 @@ function ChatPageInner() {
     handleResizeStart: dockHandleResizeStart,
     handleClose: handleDockClose,
     handleModeChange: handleDockModeChange,
+    openRail,
     openFileList,
     openFileAt,
     openKnowledgeCitation,
     openBrowserTab,
+    openWorkspacePanel,
     toggleBrowserPanel,
     toggleTerminalPanel,
     openToolUiTab,
     focusToolUiTab,
     closeTab: closeDockTab,
     setActiveTab: setDockActiveTab,
+    toggleRailWide,
   } = useChatDockPanel(isMobile, resolvedAgentId);
+  const [permissionMode, setPermissionMode] = useState<ChatPermissionMode>(() =>
+    loadPermissionMode(activeThreadId),
+  );
+
+  useEffect(() => {
+    setPermissionMode(loadPermissionMode(activeThreadId));
+  }, [activeThreadId]);
+
+  const handlePermissionModeChange = useCallback(
+    (mode: ChatPermissionMode) => {
+      setPermissionMode(mode);
+      savePermissionMode(mode, activeThreadId);
+    },
+    [activeThreadId],
+  );
 
   const chromeCheckInFlightRef = useRef(false);
   const handleToggleBrowserPanel = useCallback(async () => {
@@ -397,6 +423,17 @@ function ChatPageInner() {
     }
     toggleBrowserPanel();
   }, [browserSessionId, isMobile, navigate, t, toggleBrowserPanel]);
+
+  const handleOpenWorkspacePanel = useCallback(
+    (kind: WorkspacePanelKind) => {
+      if (kind === "browser") {
+        void handleToggleBrowserPanel();
+        return;
+      }
+      openWorkspacePanel(kind);
+    },
+    [handleToggleBrowserPanel, openWorkspacePanel],
+  );
 
   const closeToolUiPanel = useCallback(
     (callId: string) => {
@@ -546,6 +583,7 @@ function ChatPageInner() {
     selectedKnowledgeBaseIds,
     reasoningMode,
     reasoningEffort,
+    permissionMode,
     defaultModel: activeAgent?.default_model ?? null,
     sendMessage,
     createSession,
@@ -1274,7 +1312,7 @@ function ChatPageInner() {
                           type="button"
                           className={styles.chatFloatBtn}
                           disabled={!activeThreadId || !agentChatReady}
-                          onClick={() => setTrajectoryDrawerOpen(true)}
+                          onClick={() => handleOpenWorkspacePanel("review")}
                           aria-label={t("chat.openTrajectory", "运行轨迹")}
                         >
                           <Activity size={20} strokeWidth={2.1} />
@@ -1353,6 +1391,9 @@ function ChatPageInner() {
             ) : null}
             <ChatInput
               ref={chatInputRef}
+              onOpenWorkspacePanel={handleOpenWorkspacePanel}
+              permissionMode={permissionMode}
+              onPermissionModeChange={handlePermissionModeChange}
               onSend={wrappedHandleSend}
               onQueue={enqueueQueued}
               queuedItems={queuedItems}
@@ -1390,6 +1431,18 @@ function ChatPageInner() {
             />
           </div>
 
+          {!isMobile && !dockOpen && (
+            <button
+              type="button"
+              className={styles.rightRailExpandEdge}
+              onClick={openRail}
+              aria-label={t("chat.rightRail.expand", "展开右侧栏")}
+              title={t("chat.rightRail.expand", "展开右侧栏")}
+            >
+              <PanelRightOpen size={16} strokeWidth={1.8} />
+            </button>
+          )}
+
           <ChatDockPanels
             isMobile={isMobile}
             dockOpen={dockOpen}
@@ -1403,6 +1456,10 @@ function ChatPageInner() {
             onSelectTab={setDockActiveTab}
             onCloseTab={closeDockTab}
             onOpenFile={openFileAt}
+            onOpenPanel={handleOpenWorkspacePanel}
+            onExpand={toggleRailWide}
+            expandActive={railWide}
+            railWide={railWide}
             browserEnvironment={browserEnvironment}
             threadId={activeThreadId}
             isStreamingTurn={isStreaming}

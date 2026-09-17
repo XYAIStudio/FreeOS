@@ -32,6 +32,7 @@ def build_composer_context(
     target_agent_ids: list[str] | None,
     model_ref: str | None,
     default_model: str | None,
+    permission_mode: str | None = None,
 ) -> dict[str, Any] | None:
     """Snapshot of per-turn composer selections for history display chips.
 
@@ -52,6 +53,8 @@ def build_composer_context(
     default = (default_model or "").strip()
     if model and model != default:
         ctx["model"] = model
+    if permission_mode in ("default", "auto", "full"):
+        ctx["permissionMode"] = permission_mode
     return ctx or None
 
 

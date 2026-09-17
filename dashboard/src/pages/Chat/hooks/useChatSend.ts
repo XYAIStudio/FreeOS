@@ -25,6 +25,7 @@ interface UseChatSendParams {
   selectedTargetAgents?: string[];
   reasoningMode: "auto" | "enabled" | "disabled";
   reasoningEffort: string | null;
+  permissionMode?: "default" | "auto" | "full";
   defaultModel?: string | null;
   sendMessage: (
     text: string,
@@ -39,6 +40,7 @@ interface UseChatSendParams {
     composerContext?: UserComposerContext,
     reasoningMode?: "auto" | "enabled" | "disabled",
     reasoningEffort?: string | null,
+    permissionMode?: "default" | "auto" | "full",
   ) => void;
   createSession: () => { session: Session; resolvedId: Promise<string> };
   renameSession: (id: string, name: string) => void;
@@ -76,6 +78,7 @@ export function useChatSend({
   selectedTargetAgents = [],
   reasoningMode,
   reasoningEffort,
+  permissionMode = "default",
   defaultModel,
   sendMessage,
   createSession,
@@ -129,6 +132,8 @@ export function useChatSend({
             overrides?.composerContext?.reasoningMode ?? reasoningMode,
           reasoningEffort:
             overrides?.composerContext?.reasoningEffort ?? reasoningEffort,
+          permissionMode:
+            overrides?.composerContext?.permissionMode ?? permissionMode,
         });
 
       const modelOverride =
@@ -151,6 +156,7 @@ export function useChatSend({
           composerContext,
           composerContext?.reasoningMode ?? reasoningMode,
           composerContext?.reasoningEffort ?? reasoningEffort,
+          composerContext?.permissionMode ?? permissionMode,
         );
       };
 
@@ -210,6 +216,7 @@ export function useChatSend({
           targetAgents,
           composerContext?.reasoningMode ?? reasoningMode,
           composerContext?.reasoningEffort ?? reasoningEffort,
+          composerContext?.permissionMode ?? permissionMode,
         );
         navigate(`/chat/${agent}/${tid}`, { replace: true });
       });
@@ -230,6 +237,7 @@ export function useChatSend({
       selectedTargetAgents,
       reasoningMode,
       reasoningEffort,
+      permissionMode,
       defaultModel,
       t,
     ],

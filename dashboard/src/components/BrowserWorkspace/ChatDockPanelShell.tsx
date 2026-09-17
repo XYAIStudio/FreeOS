@@ -10,13 +10,13 @@ import type { MenuProps } from "antd";
 import { useTranslation } from "react-i18next";
 import {
   Check,
+  Columns2,
   Maximize2,
   Minimize2,
-  MoreVertical,
   PanelBottom,
   PanelRight,
+  PanelRightClose,
   PictureInPicture2,
-  X,
 } from "lucide-react";
 import { beginPointerDragSession } from "../../hooks/usePointerDragSession";
 import type { PanelMode } from "./index";
@@ -37,8 +37,13 @@ interface ChatDockPanelShellProps {
   style?: React.CSSProperties;
   /** Left-side title (filename / “远程浏览器”). */
   title?: React.ReactNode;
+  /** Leading control before the title (e.g. add-panel +). */
+  leadingActions?: React.ReactNode;
   /** Content actions left of the layout/close group (mode, refresh, download…). */
   toolbarActions?: React.ReactNode;
+  /** Widen / restore the right dock (desktop). */
+  onExpand?: () => void;
+  expandActive?: boolean;
   children: React.ReactNode;
 }
 
@@ -116,7 +121,10 @@ const ChatDockPanelShell: React.FC<ChatDockPanelShellProps> = ({
   onClose,
   style,
   title,
+  leadingActions,
   toolbarActions,
+  onExpand,
+  expandActive = false,
   children,
 }) => {
   const { t } = useTranslation();
@@ -449,6 +457,9 @@ const ChatDockPanelShell: React.FC<ChatDockPanelShellProps> = ({
         onPointerDown={handlePopupDragStart}
         style={toolbarStyle}
       >
+        {leadingActions ? (
+          <div className={styles.toolbarLeading}>{leadingActions}</div>
+        ) : null}
         <div className={styles.toolbarTitle}>{title}</div>
         <div className={styles.toolbarSpacer} />
         {toolbarActions ? (
@@ -507,18 +518,44 @@ const ChatDockPanelShell: React.FC<ChatDockPanelShellProps> = ({
               aria-label={t("browserWorkspace.panelLayout", "面板布局")}
               onPointerDown={(e) => e.stopPropagation()}
             >
-              <MoreVertical size={16} strokeWidth={1.8} />
+              <Columns2 size={16} strokeWidth={1.8} />
             </button>
           </Dropdown>
-          <button
-            type="button"
-            className={styles.toolbarIconBtn}
-            onClick={onClose}
-            onPointerDown={(e) => e.stopPropagation()}
-            aria-label={t("common.close", "关闭")}
-          >
-            <X size={14} strokeWidth={1.8} />
-          </button>
+          {onExpand && mode === "right" ? (
+            <Tooltip
+              title={
+                expandActive
+                  ? t("chat.rightRail.shrink", "恢复面板宽度")
+                  : t("chat.rightRail.expandWide", "加宽面板")
+              }
+            >
+              <button
+                type="button"
+                className={styles.toolbarIconBtn}
+                onClick={onExpand}
+                onPointerDown={(e) => e.stopPropagation()}
+                aria-label={
+                  expandActive
+                    ? t("chat.rightRail.shrink", "恢复面板宽度")
+                    : t("chat.rightRail.expandWide", "加宽面板")
+                }
+                aria-pressed={expandActive}
+              >
+                <Maximize2 size={16} strokeWidth={1.8} />
+              </button>
+            </Tooltip>
+          ) : null}
+          <Tooltip title={t("chat.rightRail.collapse", "收起右侧栏")}>
+            <button
+              type="button"
+              className={styles.toolbarIconBtn}
+              onClick={onClose}
+              onPointerDown={(e) => e.stopPropagation()}
+              aria-label={t("chat.rightRail.collapse", "收起右侧栏")}
+            >
+              <PanelRightClose size={16} strokeWidth={1.8} />
+            </button>
+          </Tooltip>
         </div>
         {windowControlsSpacerPx > 0 ? (
           <span
