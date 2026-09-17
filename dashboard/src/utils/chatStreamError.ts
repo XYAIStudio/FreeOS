@@ -12,6 +12,7 @@ const _STREAM_ERROR_KEYS = [
   "stream_errors.timeout_network",
   "stream_errors.provider_unavailable",
   "stream_errors.model_call_failed",
+  "stream_errors.local_runtime",
 ] as const;
 
 export type StreamErrorKey = (typeof _STREAM_ERROR_KEYS)[number];
@@ -34,6 +35,10 @@ const STREAM_ERROR_ACTIONS: Partial<Record<StreamErrorKey, StreamErrorAction>> =
     "stream_errors.recursion_limit": {
       path: "/system-settings/agent-config",
       labelKey: "chat.goToAgentConfig",
+    },
+    "stream_errors.local_runtime": {
+      path: "/models",
+      labelKey: "models.useInChat",
     },
   };
 
@@ -124,6 +129,18 @@ export function classifyChatStreamError(
       (lower.includes("reached") || lower.includes("without hitting a stop")))
   ) {
     return "stream_errors.recursion_limit";
+  }
+
+  if (
+    (lower.includes("11434") || lower.includes("ollama")) &&
+    (lower.includes("connect") ||
+      lower.includes("refused") ||
+      lower.includes("unreachable") ||
+      lower.includes("not running") ||
+      lower.includes("connection") ||
+      lower.includes("errno 111"))
+  ) {
+    return "stream_errors.local_runtime";
   }
 
   if (

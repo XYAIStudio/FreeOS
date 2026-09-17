@@ -58,6 +58,7 @@ export interface LocalRuntimeResult {
   size?: number;
   source?: string;
   provider_name?: string;
+  registered?: boolean;
 }
 
 export interface LocalScanJob {

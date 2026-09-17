@@ -21,6 +21,7 @@ import type {
   ProviderPreset,
   ProviderRow,
 } from "../../useProviders";
+import { MODELS_CHANGED_EVENT } from "../../modelsChanged";
 import { presetLogoId } from "../../presetUtils";
 import { ProviderConfigModal } from "../modals/ProviderConfigModal";
 import styles from "../../index.module.less";
@@ -71,36 +72,41 @@ export function LocalServiceCard({
 
   useEffect(() => {
     let cancelled = false;
-    void (async () => {
-      try {
-        if (isOnnx) {
-          const st = await onnxModelApi.getStatus();
-          if (!cancelled) {
-            setServiceEnabled(st.enabled);
-            setServiceRunning(st.ready || st.enabled);
-            setDepsAvailable(st.deps_available !== false);
-            setDepsInstallFailed(false);
+    const refreshService = () => {
+      void (async () => {
+        try {
+          if (isOnnx) {
+            const st = await onnxModelApi.getStatus();
+            if (!cancelled) {
+              setServiceEnabled(st.enabled);
+              setServiceRunning(st.ready || st.enabled);
+              setDepsAvailable(st.deps_available !== false);
+              setDepsInstallFailed(false);
+            }
+          } else {
+            const st = await ollamaModelApi.getService();
+            if (!cancelled) {
+              setServiceEnabled(st.enabled);
+              setServiceRunning(st.running);
+              setDepsAvailable(true);
+              setDepsInstallFailed(false);
+            }
           }
-        } else {
-          const st = await ollamaModelApi.getService();
+        } catch {
           if (!cancelled) {
-            setServiceEnabled(st.enabled);
-            setServiceRunning(st.running);
-            setDepsAvailable(true);
-            setDepsInstallFailed(false);
+            setServiceEnabled(false);
+            setServiceRunning(false);
           }
         }
-      } catch {
-        if (!cancelled) {
-          setServiceEnabled(false);
-          setServiceRunning(false);
-        }
-      }
-    })();
+      })();
+    };
+    refreshService();
+    window.addEventListener(MODELS_CHANGED_EVENT, refreshService);
     return () => {
       cancelled = true;
+      window.removeEventListener(MODELS_CHANGED_EVENT, refreshService);
     };
-  }, [isOnnx, provider?.id]);
+  }, [isOnnx, provider?.id, provider?.enabled]);
 
   const ensureProvider = async (): Promise<ProviderRow> => {
     if (row) return row;

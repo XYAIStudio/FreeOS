@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import asyncio
-import json
 import logging
 import subprocess
 from typing import Any
@@ -13,14 +12,18 @@ from pydantic import BaseModel, Field
 
 from octop.api.deps import current_user, get_server, require_permission
 from octop.infra.agents.providers.local_probe import probe_local_models
-from octop.infra.agents.providers.local_register import load_registered, register_local_weight
+from octop.infra.agents.providers.local_register import (
+    ensure_ollama_service_flag,
+    load_registered,
+    register_local_weight,
+    upsert_ollama_model,
+)
 from octop.infra.agents.providers.local_scan import (
     cancel_scan_job,
     get_scan_job,
     latest_scan_job,
     start_scan_job,
 )
-from octop.infra.agents.providers.model_flags import is_ollama_local_provider
 from octop.infra.agents.providers.ollama_install import ensure_ollama_runtime
 from octop.infra.errors import ErrorCode, OctopError
 from octop.infra.server import OctopServer
@@ -137,37 +140,26 @@ async def local_models_ensure_deps(
     return await asyncio.to_thread(ensure_ollama_runtime, install=body.install)
 
 
-def _register_ollama_model(server: OctopServer, name: str) -> bool:
+def _register_installed_ollama(server: OctopServer, name: str) -> str:
+    """Persist *name* on the shared Ollama provider and mark the runtime on."""
     services = getattr(server, "services", None)
     repo = getattr(services, "provider_repo", None) if services is not None else None
     if repo is None:
-        return False
-    model = {"id": name, "name": name, "enabled": True, "input": ["text"]}
-    row = None
-    for candidate in repo.list_all():
-        if is_ollama_local_provider(
-            candidate.name,
-            provider_api_key=candidate.api_key,
-            provider_base_url=candidate.base_url,
-        ):
-            row = candidate
-            break
-    if row is None:
-        repo.create(
-            name="ollama",
-            kind="ollama",
-            base_url="http://127.0.0.1:11434/v1",
-            api_key="ollama",
-            models_json=json.dumps([model]),
-            note="Registered by one-click local model install",
-        )
-        return True
-    models = row.get_models()
-    if any(str(item.get("id") or "") == name for item in models if isinstance(item, dict)):
-        return False
-    models.append(model)
-    repo.update(row.id, models_json=json.dumps(models))
-    return True
+        raise OSError("provider store is not available")
+    provider_name = upsert_ollama_model(repo, name, name)
+    settings = getattr(services, "settings_repo", None)
+    if settings is not None:
+        ensure_ollama_service_flag(settings)
+    return provider_name
+
+
+async def _reload_after_register(server: OctopServer, provider_name: str, model_name: str) -> None:
+    if server.app_runtime is None:
+        return
+    try:
+        await server.app_runtime.agent_registry.on_provider_changed(provider_name=provider_name)
+    except Exception as exc:
+        logger.warning("Registered %s but provider reload failed: %s", model_name, exc)
 
 
 @router.post("/install", summary="Download and register a recommended Ollama model")
@@ -187,16 +179,19 @@ async def local_models_install(
         info = await asyncio.to_thread(OllamaModelManager.pull_model, body.name)
     except Exception as exc:
         raise register_failure(exc) from exc
+    model_name = info.name or body.name
     try:
-        registered = _register_ollama_model(server, info.name or body.name)
+        provider_name = _register_installed_ollama(server, model_name)
     except Exception as exc:
         raise register_failure(exc) from exc
+    await _reload_after_register(server, provider_name, model_name)
     return {
         "ok": True,
-        "name": info.name,
+        "name": model_name,
         "size": info.size,
         "source": "ollama",
-        "registered": registered,
+        "registered": True,
+        "provider_name": provider_name,
     }
 
 
@@ -259,15 +254,10 @@ async def local_models_register(
         )
     except _REGISTER_FAIL_TYPES as exc:
         raise register_failure(exc) from exc
-    if server.app_runtime is not None and result.get("ok"):
-        try:
-            await server.app_runtime.agent_registry.on_provider_changed(
-                provider_name=str(result.get("provider_name") or "Ollama (Local)")
-            )
-        except Exception as exc:
-            logger.warning(
-                "Registered %s but provider reload failed: %s",
-                result.get("name"),
-                exc,
-            )
+    if result.get("ok"):
+        await _reload_after_register(
+            server,
+            str(result.get("provider_name") or "Ollama (Local)"),
+            str(result.get("name") or body.name or ""),
+        )
     return result

@@ -10,6 +10,7 @@ import {
 } from "../../../api/modules/knowledgeBases";
 import type { ResolvedModel } from "../../../api/types";
 import { CONNECTORS_CHANGED_EVENT } from "../../Agent/Connectors/customMcpUtils";
+import { MODELS_CHANGED_EVENT } from "../../Settings/Models/modelsChanged";
 import { useCurrentUser } from "../../../hooks/useCurrentUser";
 import { useAgent } from "../../../context/AgentContext";
 import { activeModelToRef } from "./useChatContextWindow";
@@ -273,9 +274,11 @@ export function useChatComposerResources(
     loadModels();
     const onFocus = () => loadModels();
     window.addEventListener("focus", onFocus);
+    window.addEventListener(MODELS_CHANGED_EVENT, loadModels);
     return () => {
       cancelled = true;
       window.removeEventListener("focus", onFocus);
+      window.removeEventListener(MODELS_CHANGED_EVENT, loadModels);
     };
   }, []);
 

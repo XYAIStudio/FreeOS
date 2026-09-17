@@ -65,13 +65,6 @@ export function presetLogoId(preset: ProviderPreset): string {
   return preset.logo_id || preset.id;
 }
 
-export function findConfiguredProvider(
-  preset: ProviderPreset,
-  providers: ProviderRow[],
-): ProviderRow | undefined {
-  return providers.find((p) => p.name === preset.name || p.name === preset.id);
-}
-
 export function groupPresets(presets: ProviderPreset[]): {
   grouped: PresetGroup[];
   ungrouped: ProviderPreset[];
@@ -166,4 +159,21 @@ export function isLocalProviderRow(provider: {
   api_key?: string | null;
 }): boolean {
   return isOnnxProviderRow(provider) || isOllamaProviderRow(provider);
+}
+
+export function findConfiguredProvider(
+  preset: ProviderPreset,
+  providers: ProviderRow[],
+): ProviderRow | undefined {
+  const exact = providers.find(
+    (p) => p.name === preset.name || p.name === preset.id,
+  );
+  if (exact) return exact;
+  if (preset.id === "ollama") {
+    return providers.find((p) => isOllamaProviderRow(p));
+  }
+  if (preset.id === "onnx") {
+    return providers.find((p) => isOnnxProviderRow(p));
+  }
+  return undefined;
 }
