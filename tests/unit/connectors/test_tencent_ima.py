@@ -74,6 +74,11 @@ def test_list_notebooks_defaults_cursor_zero(monkeypatch: pytest.MonkeyPatch) ->
     _call("list_notebooks", {"limit": 10})
     assert captured["url"] == "https://ima.qq.com/openapi/note/v1/list_notebook"
     assert captured["json"] == {"cursor": "0", "limit": 10}
+    headers = captured["headers"]
+    assert isinstance(headers, dict)
+    assert headers["ima-openapi-clientid"] == "c"
+    assert headers["ima-openapi-apikey"] == "k"
+    assert headers["ima-openapi-ctx"] == "skill_version=1.1.10"
 
 
 def test_get_note_uses_plaintext(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -223,6 +228,35 @@ def test_add_note_to_knowledge(monkeypatch: pytest.MonkeyPatch) -> None:
         "knowledge_base_id": "kb1",
         "note_info": {"content_id": "n1"},
     }
+
+
+def test_openapi_accepts_official_retcode(monkeypatch: pytest.MonkeyPatch) -> None:
+    class _Resp:
+        status_code = 200
+
+        def json(self) -> dict[str, object]:
+            return {"retcode": 0, "errmsg": "成功", "data": {"ok": True}}
+
+    class _Client:
+        def __init__(self, *_args: object, **_kwargs: object) -> None:
+            return None
+
+        def __enter__(self) -> _Client:
+            return self
+
+        def __exit__(self, *_args: object) -> None:
+            return None
+
+        def post(self, *_args: object, **_kwargs: object) -> _Resp:
+            return _Resp()
+
+    monkeypatch.setattr(
+        "octop.infra.connectors.gateway.adapters.tencent_ima.httpx.Client",
+        _Client,
+    )
+    from octop.infra.connectors.gateway.adapters.tencent_ima import openapi_data
+
+    assert openapi_data({"api_key": "k", "client_id": "c"}, "openapi/wiki/v1/x", {}) == {"ok": True}
 
 
 def test_get_media(monkeypatch: pytest.MonkeyPatch) -> None:
