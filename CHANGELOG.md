@@ -8,6 +8,7 @@
 
 ### 修复
 
+- Windows 覆盖安装时，openXYOS 预配不再因为旧 Node 锁住 `%LOCALAPPDATA%\FreeOS\openxyos` 里的文件、`tar.exe` 返回非 0 就直接退出码 3。安装前只停止 FreeOS 自己的 openXYOS（与启动脚本相同的 `Stop-OpenXYOSNode`：`start.pid` / live 与 `$INSTDIR\openxyos` 路径），先解到 LocalAppData 临时目录再合入工作目录，并把 tar 的 stdout/stderr 写入 `provision.log`。tar 非 0 但布局可修复时记警告并继续；只有 extract+heal 之后布局仍不完整才退出 3。幂等短路要求完整布局、`.install-ready`，以及 3780 上是我们的 FreeOS openXYOS，而不是任意 livez。
 - 组织页嵌入本机 openXYOS 不再因为边车「已连接」却空白：`CORS_ORIGIN` 即使漏了 `http://127.0.0.1:3780` / `localhost` / `[::1]`，服务端也会合并监听自源，模块脚本和登录不再 500。FreeOS 启动会先停掉 live 目录里旧的 Node，再用当前 `start-sidecar.ps1` 拉起；嵌套的 `openxyos\dist` 会在启动前提升到 live 根。若 livez 正常但自源请求失败，状态栏和预览区会明确提示，而不是一片白。
 - Windows 安装成功后删除 `$INSTDIR\openxyos-runtime` 目录和 `openxyos-runtime.zip`（以及 `%LOCALAPPDATA%\FreeOS` 下同名暂存）。预配失败时保留这些文件以便排查。最终工作目录 `$INSTDIR\openxyos` 与 `%LOCALAPPDATA%\FreeOS\openxyos` 不受影响。
 - ima 知识库挂接对齐官方 Agent Interface（https://ima.qq.com/agent-interface，落地页现发 ima-skill 1.1.10）：用 Client ID / API Key 连接后，按 `search_knowledge_base` + `get_knowledge_base` 选知识库，按 `get_knowledge_list` / `search_knowledge` 自选文档；文件夹 ID 用接口返回的 `media_id`（不自造 `folder_` 前缀），选择会写入挂接。

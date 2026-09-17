@@ -1,5 +1,7 @@
 # Install-time openXYOS provisioner (child process of the FreeOS NSIS Setup).
-# Extract + normalize + start once at medium IL + wait livez + write .install-ready.
+# Stop owned FreeOS openXYOS Node (start.pid / live+install paths only),
+# extract to a LocalAppData temp dir, heal into $LiveDir, start once at
+# medium IL, wait livez, write .install-ready.
 # Exit 0 only when http://127.0.0.1:3780/api/health/livez is healthy.
 # On success, deletes $InstallDir\openxyos-runtime (folder + archive) and a
 # sibling openxyos-runtime under the live parent. Never deletes $LiveDir or
@@ -9,7 +11,7 @@
 # Exit codes (NSIS maps these to localized MessageBox text):
 #   0  healthy (.install-ready written; openxyos-runtime staging removed)
 #   2  zip missing
-#   3  tar extract into live dir failed
+#   3  live layout still incomplete after extract+heal
 #   5  tar.exe missing
 #   6  node\node.exe missing after extract/heal
 #   7  dist\index.html missing after extract/heal
@@ -57,7 +59,11 @@ function Copy-OpenXYOSTree {
     param([string]$Src, [string]$Dest)
     New-Item -ItemType Directory -Force -Path $Dest | Out-Null
     $xcopy = Join-Path $env:SystemRoot 'System32\xcopy.exe'
-    & $xcopy /E /I /Y "$Src\*" "$Dest\" | Out-Null
+    if (Test-Path -LiteralPath $xcopy) {
+        & $xcopy /E /I /Y "$Src\*" "$Dest\" | Out-Null
+        return
+    }
+    Copy-Item -Path (Join-Path $Src '*') -Destination $Dest -Recurse -Force
 }
 
 function Find-OpenXYOSBundleRoot {
@@ -82,6 +88,17 @@ function Find-OpenXYOSBundleRoot {
 
 function Repair-OpenXYOSLayout {
     param([string]$Root)
+    $nestedFe = Join-Path $Root 'openxyos\dist\index.html'
+    $flatFe = Join-Path $Root 'dist\index.html'
+    $nestedBe = Join-Path $Root 'openxyos\backend-dist\server.js'
+    $flatBe = Join-Path $Root 'backend-dist\server.js'
+    if ((Test-Path -LiteralPath $nestedFe) -and -not (Test-Path -LiteralPath $flatFe)) {
+        Write-ProvLog "Normalizing nested layout $nestedFe -> $Root"
+        Copy-OpenXYOSTree (Join-Path $Root 'openxyos') $Root
+    } elseif ((Test-Path -LiteralPath $nestedBe) -and -not (Test-Path -LiteralPath $flatBe)) {
+        Write-ProvLog "Normalizing nested backend $nestedBe -> $Root"
+        Copy-OpenXYOSTree (Join-Path $Root 'openxyos') $Root
+    }
     if (Test-OpenXYOSLayout $Root) { return $true }
     $found = Find-OpenXYOSBundleRoot $Root
     if (-not $found) { return $false }
@@ -204,15 +221,23 @@ function Test-OpenXYOSPortListen {
     }
 }
 
+function Read-OpenXYOSPidFile {
+    param([string]$Dir)
+    $pidFile = Join-Path $Dir 'start.pid'
+    if (-not (Test-Path -LiteralPath $pidFile)) { return 0 }
+    $raw = (Get-Content -LiteralPath $pidFile -Raw -ErrorAction SilentlyContinue)
+    $nid = 0
+    if ($null -ne $raw -and [int]::TryParse($raw.Trim(), [ref]$nid) -and $nid -gt 0) {
+        return $nid
+    }
+    return 0
+}
+
 function Test-OpenXYOSNodeAlive {
-    $pidFile = Join-Path $LiveDir 'start.pid'
-    if (Test-Path -LiteralPath $pidFile) {
-        $raw = (Get-Content -LiteralPath $pidFile -Raw -ErrorAction SilentlyContinue)
-        $nid = 0
-        if ($null -ne $raw -and [int]::TryParse($raw.Trim(), [ref]$nid) -and $nid -gt 0) {
-            $p = Get-Process -Id $nid -ErrorAction SilentlyContinue
-            if ($p -and -not $p.HasExited) { return $true }
-        }
+    $nid = Read-OpenXYOSPidFile $LiveDir
+    if ($nid -gt 0) {
+        $p = Get-Process -Id $nid -ErrorAction SilentlyContinue
+        if ($p -and -not $p.HasExited) { return $true }
     }
     $nodes = Get-Process -Name node -ErrorAction SilentlyContinue
     if ($nodes) { return $true }
@@ -295,12 +320,197 @@ function Install-StartHelpers {
     }
 }
 
+function Get-OpenXYOSLockRoots {
+    $roots = New-Object System.Collections.Generic.List[string]
+    if ($LiveDir) { $roots.Add($LiveDir) }
+    if ($InstallDir) { $roots.Add((Join-Path $InstallDir 'openxyos')) }
+    return $roots
+}
+
+function Test-CommandLineMentionsRoot {
+    param([string]$CommandLine, [string]$Root)
+    if (-not $CommandLine -or -not $Root) { return $false }
+    try {
+        $rootFull = [IO.Path]::GetFullPath($Root).TrimEnd('\', '/')
+    } catch {
+        return $false
+    }
+    $normCmd = $CommandLine.Replace('/', '\').ToLowerInvariant()
+    $normRoot = $rootFull.Replace('/', '\').ToLowerInvariant()
+    return $normCmd.Contains($normRoot)
+}
+
+function Test-OpenXYOSOwnedPath {
+    param([string]$Path)
+    if (-not $Path) { return $false }
+    foreach ($root in (Get-OpenXYOSLockRoots)) {
+        if (Test-PathUnderRoot $Path $root) { return $true }
+    }
+    return $false
+}
+
+function Test-OpenXYOSOwnedCommandLine {
+    param([string]$CommandLine)
+    if (-not $CommandLine) { return $false }
+    foreach ($root in (Get-OpenXYOSLockRoots)) {
+        if (Test-CommandLineMentionsRoot $CommandLine $root) { return $true }
+    }
+    return $false
+}
+
+function Test-OpenXYOSOwnNode {
+    foreach ($root in (Get-OpenXYOSLockRoots)) {
+        $nid = Read-OpenXYOSPidFile $root
+        if ($nid -le 0) { continue }
+        $p = Get-Process -Id $nid -ErrorAction SilentlyContinue
+        if (-not $p -or $p.HasExited) { continue }
+        $exe = $null
+        try { $exe = $p.Path } catch { }
+        $name = ''
+        try { $name = $p.ProcessName } catch { }
+        if ($exe -and -not (Test-OpenXYOSOwnedPath $exe)) { continue }
+        if ($name -and $name -ne 'node') { continue }
+        return $true
+    }
+    $nodes = Get-Process -Name node -ErrorAction SilentlyContinue
+    foreach ($p in @($nodes)) {
+        $exe = $null
+        try { $exe = $p.Path } catch { }
+        if ($exe -and (Test-OpenXYOSOwnedPath $exe)) { return $true }
+    }
+    try {
+        $cimNodes = @(Get-CimInstance Win32_Process -Filter "Name = 'node.exe'" -ErrorAction SilentlyContinue)
+        foreach ($row in $cimNodes) {
+            if ((Test-OpenXYOSOwnedPath $row.ExecutablePath) -or (Test-OpenXYOSOwnedCommandLine $row.CommandLine)) {
+                return $true
+            }
+        }
+    } catch {
+    }
+    return $false
+}
+
+function Test-OpenXYOSOwnLivez {
+    if (-not (Test-OpenXYOSLivez)) { return $false }
+    return (Test-OpenXYOSOwnNode)
+}
+
+function Stop-OpenXYOSNode {
+    param([string]$Root)
+    if (-not $Root) { return }
+    $pidFile = Join-Path $Root 'start.pid'
+    if (Test-Path -LiteralPath $pidFile) {
+        $nid = Read-OpenXYOSPidFile $Root
+        if ($nid -gt 0) {
+            Write-ProvLog "Stopping FreeOS openXYOS process pid=$nid ($Root)"
+            Stop-Process -Id $nid -Force -ErrorAction SilentlyContinue
+        }
+        Remove-Item -LiteralPath $pidFile -Force -ErrorAction SilentlyContinue
+    }
+    $nodeExe = Join-Path $Root 'node\node.exe'
+    $want = ''
+    if (Test-Path -LiteralPath $nodeExe) {
+        try { $want = [IO.Path]::GetFullPath($nodeExe) } catch { $want = $nodeExe }
+    }
+    $fullRoot = ''
+    try { $fullRoot = [IO.Path]::GetFullPath($Root) } catch { $fullRoot = $Root }
+    Get-CimInstance Win32_Process -Filter "Name = 'node.exe'" -ErrorAction SilentlyContinue |
+        Where-Object {
+            if ($want -and $_.ExecutablePath) {
+                try {
+                    return ([IO.Path]::GetFullPath($_.ExecutablePath) -eq $want)
+                } catch {
+                }
+            }
+            if ($fullRoot -and $_.CommandLine) {
+                return ($_.CommandLine -like "*$fullRoot*")
+            }
+            return $false
+        } |
+        ForEach-Object {
+            Write-ProvLog "Stopping FreeOS openXYOS process pid=$($_.ProcessId) ($Root)"
+            Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue
+        }
+}
+
+function Stop-OpenXYOSLockedProcesses {
+    Write-ProvLog 'Stopping FreeOS openXYOS processes before extract'
+    $any = $false
+    foreach ($root in (Get-OpenXYOSLockRoots)) {
+        if (-not $root) { continue }
+        if (-not (Test-Path -LiteralPath $root)) { continue }
+        $any = $true
+        Stop-OpenXYOSNode $root
+    }
+    if (-not $any) {
+        Write-ProvLog 'No FreeOS openXYOS processes to stop before extract'
+    }
+    for ($i = 0; $i -lt 8; $i++) {
+        if (-not (Test-OpenXYOSOwnLivez)) { break }
+        Start-Sleep -Milliseconds 250
+    }
+}
+
+function Clear-OpenXYOSPayload {
+    param([string]$Root)
+    foreach ($name in @('node', 'openxyos', 'org-sidecar', 'dist', 'backend', 'backend-dist')) {
+        $p = Join-Path $Root $name
+        if (-not (Test-Path -LiteralPath $p)) { continue }
+        Write-ProvLog "Clearing stale payload $p"
+        Remove-Item -LiteralPath $p -Recurse -Force -ErrorAction SilentlyContinue
+    }
+}
+
+function New-OpenXYOSExtractTemp {
+    $base = ''
+    if ($env:LOCALAPPDATA) {
+        $base = Join-Path $env:LOCALAPPDATA 'FreeOS'
+    }
+    if (-not $base) {
+        $base = Split-Path -Parent $LiveDir
+    }
+    if (-not $base) {
+        $base = $env:TEMP
+    }
+    $dir = Join-Path $base ('openxyos-extract-' + [guid]::NewGuid().ToString('N'))
+    New-Item -ItemType Directory -Force -Path $dir | Out-Null
+    return $dir
+}
+
 function Invoke-TarExtract {
     param([string]$Tar, [string]$Zip, [string]$Dest)
+    $extractDir = New-OpenXYOSExtractTemp
+    Write-ProvLog "tar -xf $Zip -C $extractDir (staging, dest=$Dest)"
+    $output = & $Tar -xf $Zip -C $extractDir 2>&1
+    $code = $LASTEXITCODE
+    if ($null -eq $code) { $code = 0 }
+    foreach ($row in @($output)) {
+        $text = "$row"
+        if ($text) { Write-ProvLog "tar: $text" }
+    }
+    if ($code -ne 0) {
+        Write-ProvLog "tar exit $code"
+    }
     New-Item -ItemType Directory -Force -Path $Dest | Out-Null
-    Write-ProvLog "tar -xf $Zip -C $Dest"
-    & $Tar -xf $Zip -C $Dest
-    return ($LASTEXITCODE -eq 0)
+    $null = Repair-OpenXYOSLayout $extractDir
+    $tempOk = Test-OpenXYOSLayout $extractDir
+    if ($tempOk) {
+        Clear-OpenXYOSPayload $Dest
+        Copy-OpenXYOSTree $extractDir $Dest
+    } elseif (Test-Path -LiteralPath $extractDir) {
+        Write-ProvLog "temp extract layout incomplete; merging into $Dest"
+        Copy-OpenXYOSTree $extractDir $Dest
+    }
+    $null = Repair-OpenXYOSLayout $Dest
+    $ok = Test-OpenXYOSLayout $Dest
+    if ($ok -and $code -ne 0) {
+        Write-ProvLog "tar returned $code but layout is complete; treating extract as success"
+    }
+    if (-not $ok) {
+        Write-ProvLog "extract layout incomplete after tar exit $code"
+    }
+    Remove-Item -LiteralPath $extractDir -Recurse -Force -ErrorAction SilentlyContinue
+    return $ok
 }
 
 function Test-SamePath {
@@ -385,12 +595,20 @@ New-Item -ItemType Directory -Force -Path $LiveDir | Out-Null
 Write-ProvLog "provision-openxyos start zip=$ZipPath install=$InstallDir live=$LiveDir"
 
 $marker = Join-Path $LiveDir '.install-ready'
-if ((Test-OpenXYOSLayout $LiveDir) -and (Test-OpenXYOSLivez)) {
+$layoutReady = Test-OpenXYOSLayout $LiveDir
+$ownLivez = Test-OpenXYOSOwnLivez
+if ($layoutReady -and (Test-Path -LiteralPath $marker) -and $ownLivez) {
     Write-ProvLog 'Already extracted and livez healthy (idempotent)'
     Complete-OpenXYOSSuccess
 }
+if ((Test-OpenXYOSLivez) -and -not $layoutReady) {
+    Write-ProvLog 'livez healthy but layout incomplete; not treating as idempotent'
+}
+if ($layoutReady -and (Test-OpenXYOSLivez) -and -not $ownLivez) {
+    Write-ProvLog 'livez is up but not our FreeOS openxyos node; continuing provision'
+}
 if (Test-Path -LiteralPath $marker) {
-    Write-ProvLog 'Removing stale .install-ready (livez not healthy)'
+    Write-ProvLog 'Removing stale .install-ready (livez not healthy or layout incomplete)'
     Remove-Item -LiteralPath $marker -Force -ErrorAction SilentlyContinue
 }
 
@@ -404,21 +622,17 @@ if (-not (Test-Path -LiteralPath $tar)) {
     exit 5
 }
 
-if (-not (Test-OpenXYOSLayout $LiveDir)) {
-    if (-not (Invoke-TarExtract -Tar $tar -Zip $ZipPath -Dest $LiveDir)) {
-        Write-ProvLog 'extract into live dir failed'
-        exit 3
-    }
-    $null = Repair-OpenXYOSLayout $LiveDir
+Stop-OpenXYOSLockedProcesses
+
+if (-not (Invoke-TarExtract -Tar $tar -Zip $ZipPath -Dest $LiveDir)) {
+    Write-ProvLog 'extract into live dir returned incomplete layout (will try backup heal)'
 }
 
 $backupRuntime = Join-Path $InstallDir 'openxyos-runtime'
 $backupOpen = Join-Path $InstallDir 'openxyos'
 foreach ($backup in @($backupRuntime, $backupOpen)) {
     if (-not (Test-OpenXYOSLayout $backup)) {
-        if (Invoke-TarExtract -Tar $tar -Zip $ZipPath -Dest $backup) {
-            $null = Repair-OpenXYOSLayout $backup
-        } else {
+        if (-not (Invoke-TarExtract -Tar $tar -Zip $ZipPath -Dest $backup)) {
             Write-ProvLog "backup extract skipped/failed: $backup"
         }
     }
@@ -433,6 +647,11 @@ if (-not (Test-OpenXYOSLayout $LiveDir)) {
         }
     }
     $null = Repair-OpenXYOSLayout $LiveDir
+}
+
+if (-not (Test-OpenXYOSLayout $LiveDir)) {
+    Write-ProvLog 'extract into live dir failed'
+    exit 3
 }
 
 if (-not (Test-Path -LiteralPath (Join-Path $LiveDir 'node\node.exe'))) {
@@ -487,7 +706,7 @@ if ($env:USERNAME) {
 
 Install-StartHelpers $LiveDir
 
-if (Test-OpenXYOSLivez) {
+if (Test-OpenXYOSOwnLivez) {
     Write-ProvLog 'livez already healthy after extract'
     Complete-OpenXYOSSuccess
 }
