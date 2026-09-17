@@ -430,12 +430,9 @@ function ChatPageInner() {
         void handleToggleBrowserPanel();
         return;
       }
-      if (kind === "terminal" && !canTerminal) {
-        return;
-      }
       openWorkspacePanel(kind);
     },
-    [canTerminal, handleToggleBrowserPanel, openWorkspacePanel],
+    [handleToggleBrowserPanel, openWorkspacePanel],
   );
 
   const closeToolUiPanel = useCallback(

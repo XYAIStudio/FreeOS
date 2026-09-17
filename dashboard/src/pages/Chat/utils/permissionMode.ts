@@ -6,10 +6,10 @@ export type ChatPermissionMode = (typeof CHAT_PERMISSION_MODES)[number];
 
 const WORKSPACE_KEY = "octop:chat-permission-mode";
 
-export function isChatPermissionMode(value: unknown): value is ChatPermissionMode {
-  return (
-    value === "default" || value === "auto" || value === "full"
-  );
+export function isChatPermissionMode(
+  value: unknown,
+): value is ChatPermissionMode {
+  return value === "default" || value === "auto" || value === "full";
 }
 
 function threadKey(threadId: string): string {
@@ -45,12 +45,15 @@ export function loadPermissionMode(
   return readStored(WORKSPACE_KEY) ?? "default";
 }
 
-/** Persist for this conversation and as the workspace default. */
+/** Persist for this conversation, or as the workspace default when no thread. */
 export function savePermissionMode(
   mode: ChatPermissionMode,
   threadId?: string | null,
 ): void {
-  writeStored(WORKSPACE_KEY, mode);
   const tid = threadId?.trim();
-  if (tid) writeStored(threadKey(tid), mode);
+  if (tid) {
+    writeStored(threadKey(tid), mode);
+    return;
+  }
+  writeStored(WORKSPACE_KEY, mode);
 }
