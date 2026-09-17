@@ -1,7 +1,23 @@
 import { Router } from "express";
 import { dbGet } from "../db";
+import {
+  corsAllowsSelf,
+  mergeCorsOrigins,
+  parseOriginList,
+} from "../utils/cors-origins";
 
 export const healthRoutes = Router();
+
+function listenPort(): string {
+  return String(process.env.PORT ?? "3780").trim() || "3780";
+}
+
+function selfOriginAllowed(): boolean {
+  const port = listenPort();
+  const configured = parseOriginList(process.env.CORS_ORIGIN);
+  const allowed = mergeCorsOrigins(configured, port);
+  return corsAllowsSelf(allowed, port);
+}
 
 function checkDatabase() {
   const employees = dbGet("SELECT COUNT(*) as c FROM employees") as any;
@@ -11,7 +27,11 @@ function checkDatabase() {
 }
 
 healthRoutes.get("/livez", (_req, res) => {
-  res.status(200).json({ status: "live", uptime: Math.floor(process.uptime()) });
+  res.status(200).json({
+    status: "live",
+    uptime: Math.floor(process.uptime()),
+    self_origin_allowed: selfOriginAllowed(),
+  });
 });
 
 healthRoutes.get("/readyz", (_req, res) => {

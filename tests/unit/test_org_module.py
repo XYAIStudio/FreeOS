@@ -139,6 +139,58 @@ def test_probe_sidecar_livez(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) ->
     assert health.payload["status"] == "live"
 
 
+def test_probe_sidecar_embed_rejects_self_origin_500(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    class _Resp:
+        def __init__(self, status_code: int) -> None:
+            self.status_code = status_code
+
+    class _Client:
+        def __init__(self, *args: object, **kwargs: object) -> None:
+            pass
+
+        def __enter__(self) -> _Client:
+            return self
+
+        def __exit__(self, *args: object) -> None:
+            return None
+
+        def get(self, url: str, headers: dict[str, str] | None = None) -> _Resp:
+            assert url == "http://127.0.0.1:3780/"
+            assert headers is not None
+            assert headers["Origin"] == "http://127.0.0.1:3780"
+            return _Resp(500)
+
+    monkeypatch.setattr(httpx, "Client", _Client)
+    service = OrgModuleService(config_path=tmp_path / "config.json", home=tmp_path)
+    assert service.probe_sidecar_embed() is False
+
+
+def test_probe_sidecar_embed_allows_self_origin(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    class _Resp:
+        status_code = 200
+
+    class _Client:
+        def __init__(self, *args: object, **kwargs: object) -> None:
+            pass
+
+        def __enter__(self) -> _Client:
+            return self
+
+        def __exit__(self, *args: object) -> None:
+            return None
+
+        def get(self, url: str, headers: dict[str, str] | None = None) -> _Resp:
+            return _Resp()
+
+    monkeypatch.setattr(httpx, "Client", _Client)
+    service = OrgModuleService(config_path=tmp_path / "config.json", home=tmp_path)
+    assert service.probe_sidecar_embed() is True
+
+
 def test_sidecar_target_rejects_traversal() -> None:
     with pytest.raises(ValueError, match="traversal"):
         sidecar_target("http://127.0.0.1:3780", "../secret")
@@ -185,6 +237,7 @@ def test_overview_reports_real_empty_counts(tmp_path: Path) -> None:
     assert payload["freeos"]["mcp"] == 1
     assert payload["freeos"]["tasks"] == 3
     assert payload["sidecar_reachable"] is False
+    assert payload["sidecar_embed_ok"] is False
     assert payload["install_ready"] is False
     assert payload["last_loop"] is None
     assert any("FreeOS does the work" in note for note in payload["notes"])

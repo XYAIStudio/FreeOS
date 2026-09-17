@@ -4,8 +4,11 @@ package main
 
 import (
 	"io"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"strconv"
+	"strings"
 	"syscall"
 
 	"golang.org/x/sys/windows"
@@ -25,7 +28,44 @@ func configureProcGroup(cmd *exec.Cmd) {
 }
 
 func killProcessTree(cmd *exec.Cmd) {
-	kill := exec.Command("taskkill", "/F", "/T", "/PID", strconv.Itoa(cmd.Process.Pid))
+	if cmd == nil || cmd.Process == nil {
+		return
+	}
+	killPid(cmd.Process.Pid)
+}
+
+func killPid(pid int) {
+	if pid <= 0 {
+		return
+	}
+	kill := exec.Command("taskkill", "/F", "/T", "/PID", strconv.Itoa(pid))
 	hideConsole(kill)
 	_ = kill.Run()
+}
+
+func killWindowsImageAt(exe string) {
+	exe = strings.TrimSpace(exe)
+	if exe == "" {
+		return
+	}
+	ps := filepath.Join(os.Getenv("SystemRoot"), `System32`, `WindowsPowerShell`, `v1.0`, `powershell.exe`)
+	if os.Getenv("SystemRoot") == "" {
+		ps = `C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe`
+	}
+	script := `
+param($Path)
+$want = ''
+try { $want = [IO.Path]::GetFullPath($Path) } catch { $want = $Path }
+Get-CimInstance Win32_Process -Filter "Name = 'node.exe'" -ErrorAction SilentlyContinue | ForEach-Object {
+    if (-not $_.ExecutablePath) { return }
+    try {
+        if ([IO.Path]::GetFullPath($_.ExecutablePath) -eq $want) {
+            Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue
+        }
+    } catch {}
+}
+`
+	cmd := exec.Command(ps, "-NoProfile", "-Command", script, "-Path", exe)
+	hideConsole(cmd)
+	_ = cmd.Run()
 }

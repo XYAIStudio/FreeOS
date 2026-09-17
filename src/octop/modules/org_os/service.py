@@ -211,6 +211,25 @@ class OrgModuleService:
             payload=payload,
         )
 
+    def probe_sidecar_embed(self, timeout: float = 2.0) -> bool:
+        """True when a document request with the sidecar's own Origin is not 5xx.
+
+        WebView module loads send ``Origin: http://127.0.0.1:<port>``. A stale
+        CORS whitelist answers those with HTTP 500 while livez (no Origin)
+        still looks healthy — the Organization iframe stays white.
+        """
+        url = self.sidecar_url()
+        origin = url.rstrip("/")
+        try:
+            with httpx.Client(timeout=timeout, follow_redirects=True) as client:
+                response = client.get(
+                    f"{origin}/",
+                    headers={"Origin": origin, "Accept": "text/html"},
+                )
+        except httpx.HTTPError:
+            return False
+        return response.status_code < 500
+
     def status(self) -> OrgModuleStatus:
         sidecar = self.probe_sidecar()
         enabled = self.is_enabled()

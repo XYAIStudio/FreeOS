@@ -49,6 +49,15 @@ func TestSidecarLaunchEnvPointsAtHomeDatabase(t *testing.T) {
 	if !strings.Contains(env["CORS_ORIGIN"], "http://127.0.0.1:8088") {
 		t.Fatalf("CORS_ORIGIN=%q", env["CORS_ORIGIN"])
 	}
+	if !strings.Contains(env["CORS_ORIGIN"], "http://127.0.0.1:3780") {
+		t.Fatalf("CORS_ORIGIN missing sidecar self origin: %q", env["CORS_ORIGIN"])
+	}
+	if !strings.Contains(env["CORS_ORIGIN"], "http://localhost:3780") {
+		t.Fatalf("CORS_ORIGIN missing localhost self origin: %q", env["CORS_ORIGIN"])
+	}
+	if !strings.Contains(env["CORS_ORIGIN"], "http://[::1]:3780") {
+		t.Fatalf("CORS_ORIGIN missing ipv6 self origin: %q", env["CORS_ORIGIN"])
+	}
 }
 
 func TestSidecarReadyRequiresFrontendBuild(t *testing.T) {
@@ -295,7 +304,7 @@ func TestSidecarLiveReadsHealthURL(t *testing.T) {
 	}
 }
 
-func TestStartOrgSidecarSkipsWhenLive(t *testing.T) {
+func TestStartOrgSidecarSkipsWhenNoBundle(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	}))
@@ -307,7 +316,41 @@ func TestStartOrgSidecarSkipsWhenLive(t *testing.T) {
 		t.Fatal(err)
 	}
 	if cmd != nil {
-		t.Fatal("already-live sidecar must not spawn a second node")
+		t.Fatal("missing sidecar bundle must not spawn node even if livez is up")
+	}
+}
+
+func TestHealOpenXYOSLayoutPromotesNestedApp(t *testing.T) {
+	root := t.TempDir()
+	inner := filepath.Join(root, "openxyos")
+	writeSidecarBundle(t, inner)
+	if sidecarBundleReady(root) {
+		t.Fatal("outer tree should be incomplete before heal")
+	}
+	if !healOpenXYOSLayout(root) {
+		t.Fatal("heal should copy nested bundle to the live root")
+	}
+	if !sidecarBundleReady(root) {
+		t.Fatal("healed root should be a complete sidecar")
+	}
+	if !fileExists(filepath.Join(root, "dist", "index.html")) &&
+		!fileExists(filepath.Join(root, "openxyos", "dist", "index.html")) {
+		t.Fatal("heal should expose dist/index.html at nested or flat layout")
+	}
+}
+
+func TestHealOpenXYOSLayoutCopiesNestedFrontendToRoot(t *testing.T) {
+	root := t.TempDir()
+	writeSidecarBundle(t, root)
+	flat := filepath.Join(root, "dist", "index.html")
+	if fileExists(flat) {
+		t.Fatal("bundled layout should keep FE under openxyos/ until promoted")
+	}
+	if !healOpenXYOSLayout(root) {
+		t.Fatal("complete nested bundle should stay ready")
+	}
+	if !fileExists(flat) {
+		t.Fatal("missing top-level dist/index.html should be copied from openxyos/")
 	}
 }
 

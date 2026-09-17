@@ -45,6 +45,7 @@ def _read_loop_proof(home: Path) -> dict[str, Any] | None:
 class DualLoopOverview:
     enabled: bool
     sidecar_reachable: bool
+    sidecar_embed_ok: bool
     sidecar_url: str
     start_available: bool
     install_ready: bool
@@ -60,6 +61,7 @@ class DualLoopOverview:
         return {
             "enabled": self.enabled,
             "sidecar_reachable": self.sidecar_reachable,
+            "sidecar_embed_ok": self.sidecar_embed_ok,
             "sidecar_url": self.sidecar_url,
             "start_available": self.start_available,
             "install_ready": self.install_ready,
@@ -123,6 +125,12 @@ def build_overview(
         "FreeOS does the work. openXYOS owns organization and governance.",
         "Data plane: colleagues / experts / skills / MCP / tasks. Control plane: department employees / blueprints / modules / governance.",
     ]
+    embed_ok = False
+    if status.sidecar.reachable:
+        try:
+            embed_ok = service.probe_sidecar_embed()
+        except Exception:
+            embed_ok = True
     if not status.sidecar.reachable:
         if install_ready:
             notes.append(
@@ -130,9 +138,14 @@ def build_overview(
             )
         else:
             notes.append("openXYOS sidecar is offline — start it to sync blueprints and approvals.")
+    elif not embed_ok:
+        notes.append(
+            "openXYOS livez is up but the embed origin is blocked (blank preview)."
+        )
     return DualLoopOverview(
         enabled=status.enabled,
         sidecar_reachable=status.sidecar.reachable,
+        sidecar_embed_ok=embed_ok,
         sidecar_url=status.sidecar.url,
         start_available=start_available,
         install_ready=install_ready,

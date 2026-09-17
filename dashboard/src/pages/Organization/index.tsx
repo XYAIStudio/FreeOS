@@ -29,6 +29,7 @@ import {
 } from "../../utils/desktopFolder";
 import { message } from "../../utils/antdMessage";
 import { resolveOpenxyosSourceDest } from "./pickSourceDest";
+import { shouldShowPreviewBlank } from "./sidecarRecover";
 import styles from "./Organization.module.less";
 
 type ActionKey = "assemble" | "pack" | "loop" | "sidecar" | "produce" | null;
@@ -110,6 +111,11 @@ export default function OrganizationPage() {
   }, [applyOverview, overview?.sidecar_reachable]);
 
   const sidecarUp = Boolean(overview?.sidecar_reachable);
+  const embedOk = overview?.sidecar_embed_ok;
+  const previewBlank = shouldShowPreviewBlank({
+    sidecarUp,
+    embedOk,
+  });
   const firstRun = useMemo(() => {
     if (!overview) return false;
     return (
@@ -186,11 +192,19 @@ export default function OrganizationPage() {
 
   useEffect(() => {
     if (autoStartRef.current) return;
-    if (!overview || overview.sidecar_reachable) return;
-    if (!canSilentStart) return;
+    if (!overview) return;
+    const embedBroken =
+      overview.sidecar_reachable && overview.sidecar_embed_ok === false;
+    if (overview.sidecar_reachable && !embedBroken) return;
+    if (!embedBroken && !canSilentStart) return;
     autoStartRef.current = true;
     void startSidecar();
-  }, [canSilentStart, overview, overview?.sidecar_reachable]);
+  }, [
+    canSilentStart,
+    overview,
+    overview?.sidecar_reachable,
+    overview?.sidecar_embed_ok,
+  ]);
 
   const toggleModule = async (key: string, enabled: boolean) => {
     const next = { ...moduleToggles, [key]: enabled };
@@ -404,9 +418,11 @@ export default function OrganizationPage() {
               {overview?.enabled ? t("organization.on") : t("organization.off")}
             </span>
             <span className={styles.chip}>
-              {sidecarUp
-                ? t("organization.sidecarUp")
-                : t("organization.sidecarOpening")}
+              {previewBlank
+                ? t("organization.sidecarEmbedFailed")
+                : sidecarUp
+                  ? t("organization.sidecarUp")
+                  : t("organization.sidecarOpening")}
             </span>
             <span className={styles.chip}>
               {t("organization.lastSync")}: {lastSync}
@@ -447,6 +463,14 @@ export default function OrganizationPage() {
           {!sidecarUp && (
             <div className={styles.previewOffline}>
               {t("organization.previewOffline")}
+            </div>
+          )}
+          {previewBlank && (
+            <div
+              className={styles.previewBlank}
+              data-testid="org-preview-blank"
+            >
+              {t("organization.previewBlank")}
             </div>
           )}
           <iframe

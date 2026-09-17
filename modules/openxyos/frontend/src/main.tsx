@@ -8,6 +8,11 @@ import "./index.css";
 
 if (typeof window !== "undefined" && window.self !== window.top) {
   document.documentElement.classList.add("ox-embedded");
+  try {
+    window.parent.postMessage({ type: "openxyos:ready" }, "*");
+  } catch {
+    /* embed host may ignore */
+  }
 }
 
 const queryClient = new QueryClient({
