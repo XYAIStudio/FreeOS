@@ -33,6 +33,10 @@ import {
 } from "../utils/turnTimeline";
 import styles from "./TurnTimelineRail.module.less";
 
+/**
+ * In-thread history scrubber (Cindy / DSH / Codex-style): one tick per user
+ * turn along the scroll-track edge, hover preview, click to seek.
+ */
 const FLASH_CLASS = "turn-timeline-flash";
 const FLASH_MS = 700;
 const JUMP_RETRY_FRAMES = 30;
@@ -99,9 +103,12 @@ export default function TurnTimelineRail({
         messages,
         messageGroups,
         {
-          userFallback: t("chat.turnTimeline.userFallback"),
-          emptyAssistant: t("chat.turnTimeline.emptyAssistant"),
-          runningAssistant: t("chat.turnTimeline.runningAssistant"),
+          userFallback: t("chat.turnTimeline.userFallback", "（空消息）"),
+          emptyAssistant: t("chat.turnTimeline.emptyAssistant", "（暂无回复）"),
+          runningAssistant: t(
+            "chat.turnTimeline.runningAssistant",
+            "（生成中…）",
+          ),
         },
         { isStreaming },
       ),
@@ -308,19 +315,20 @@ export default function TurnTimelineRail({
     viewportHeight: railViewport.height || totalHeight,
     forceFull,
   });
-  const previewPlacement = textDirection === "rtl" ? "leftTop" : "rightTop";
+  const previewPlacement = textDirection === "rtl" ? "rightTop" : "leftTop";
 
   return (
     <nav
       className={[styles.rail, showRail ? styles.railVisible : ""]
         .filter(Boolean)
         .join(" ")}
-      aria-label={t("chat.turnTimeline.label")}
+      aria-label={t("chat.turnTimeline.label", "对话回合")}
       aria-hidden={!showRail}
       data-testid="turn-timeline-rail"
       data-item-count={turns.length}
       data-visible={showRail ? "true" : "false"}
       data-direction={textDirection}
+      data-placement="end"
     >
       <div
         ref={railScrollRef}
@@ -393,6 +401,7 @@ export default function TurnTimelineRail({
                     aria-current={isActive ? "location" : undefined}
                     aria-label={t("chat.turnTimeline.jumpToQuery", {
                       index: String(index + 1),
+                      defaultValue: "跳转到第 {{index}} 条消息",
                     })}
                     aria-posinset={index + 1}
                     aria-setsize={turns.length}

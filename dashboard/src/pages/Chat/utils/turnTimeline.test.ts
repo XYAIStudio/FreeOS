@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { ChatMessage } from "../hooks/useChat";
 import { groupConsecutiveAssistantMessages } from "./messageGrouping";
 import {
+  TURN_TIMELINE_MIN_WIDTH_PX,
   buildTurnTimelineItems,
   mergeTurnPositions,
   readElementDirection,
@@ -32,6 +33,12 @@ const copy = {
   emptyAssistant: "(no reply)",
   runningAssistant: "(generating)",
 };
+
+describe("turn timeline constants", () => {
+  it("keeps the rail visible beside an open right sidebar", () => {
+    expect(TURN_TIMELINE_MIN_WIDTH_PX).toBe(560);
+  });
+});
 
 describe("truncatePreviewText", () => {
   it("falls back when empty", () => {
