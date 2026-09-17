@@ -81,8 +81,14 @@ describe("sidebarNav", () => {
     expect(en.nav.organization).toBe("Organization");
     expect(zh.organization.enableModule).toBe("启用组织模块");
     expect(zh.organization.manageOs).toBe("组织OS管理");
+    expect(zh.organization.downloadSourceBar).toBe("下载最新源码");
+    expect(zh.organization.downloadSource).toBe("下载最新 openXYOS 源码");
     expect(en.organization.enableModule).toBe("Enable organization module");
     expect(en.organization.manageOs).toBe("Organization OS");
+    expect(en.organization.downloadSourceBar).toBe("Download latest source");
+    expect(en.organization.downloadSource).toBe(
+      "Download latest openXYOS source",
+    );
     expect(zh.chat.modelPickerManage).toBe("模型管理");
     expect(en.chat.modelPickerManage).toBe("Model management");
   });

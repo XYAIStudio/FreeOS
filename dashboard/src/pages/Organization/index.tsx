@@ -3,6 +3,7 @@ import { Button, Drawer, Input, Space, Switch, Tag } from "antd";
 import {
   ArrowDownUp,
   Building2,
+  Download,
   ExternalLink,
   Package,
   Play,
@@ -271,24 +272,6 @@ export default function OrganizationPage() {
     }
   };
 
-  const browseSourceDest = async () => {
-    setPickingFolder(true);
-    try {
-      const path = await pickDesktopFolder();
-      if (path) {
-        setSourceDest(path);
-      } else if (!canPickDesktopFolder()) {
-        message.info(t("organization.pickFolderFailed"));
-      }
-    } catch (err) {
-      message.error(
-        err instanceof Error ? err.message : t("organization.pickFolderFailed"),
-      );
-    } finally {
-      setPickingFolder(false);
-    }
-  };
-
   const downloadSource = async () => {
     setPickingFolder(true);
     let dest: string | null = null;
@@ -498,6 +481,16 @@ export default function OrganizationPage() {
             </span>
           </div>
           <div className={styles.statusActions}>
+            <Button
+              type="primary"
+              icon={<Download size={14} />}
+              loading={downloading || pickingFolder}
+              onClick={() => void downloadSource()}
+              data-testid="org-download-source"
+              title={t("organization.downloadSource")}
+            >
+              {t("organization.downloadSourceBar")}
+            </Button>
             <Button
               type="default"
               onClick={() => setDrawer("module")}
@@ -902,24 +895,18 @@ export default function OrganizationPage() {
                 {t("organization.downloadSourceHint")}
               </p>
               <Space wrap style={{ marginTop: 12 }}>
-                <Space.Compact style={{ minWidth: 320 }}>
+                {!canPickDesktopFolder() && (
                   <Input
                     value={sourceDest}
                     onChange={(event) => setSourceDest(event.target.value)}
                     placeholder={t("organization.downloadSourceDest")}
-                    readOnly={canPickDesktopFolder()}
+                    style={{ minWidth: 280 }}
                   />
-                  <Button
-                    loading={pickingFolder}
-                    onClick={() => void browseSourceDest()}
-                  >
-                    {t("organization.browseDest")}
-                  </Button>
-                </Space.Compact>
+                )}
                 <Button
-                  type="primary"
                   loading={downloading || pickingFolder}
                   onClick={() => void downloadSource()}
+                  data-testid="org-download-source-drawer"
                 >
                   {t("organization.downloadSource")}
                 </Button>

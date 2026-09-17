@@ -1,7 +1,8 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi, beforeEach } from "vitest";
 import OrganizationPage from "./index";
 import { orgModuleApi, type OrgOverview } from "../../api/modules/orgModule";
+import { message } from "../../utils/antdMessage";
 
 const overview: OrgOverview = {
   enabled: true,
@@ -65,7 +66,28 @@ vi.mock("../../hooks/useServerTimezone", () => ({
   useServerTimezone: () => "UTC",
 }));
 
+const pickDesktopFolder = vi.fn();
+const canPickDesktopFolder = vi.fn();
+
+vi.mock("../../utils/desktopFolder", () => ({
+  pickDesktopFolder: (...args: unknown[]) => pickDesktopFolder(...args),
+  canPickDesktopFolder: (...args: unknown[]) => canPickDesktopFolder(...args),
+}));
+
+vi.mock("../../utils/antdMessage", () => ({
+  message: { success: vi.fn(), error: vi.fn(), info: vi.fn() },
+}));
+
 describe("OrganizationPage", () => {
+  beforeEach(() => {
+    canPickDesktopFolder.mockReturnValue(true);
+    pickDesktopFolder.mockReset();
+    vi.mocked(orgModuleApi.overview).mockResolvedValue(overview);
+    vi.mocked(orgModuleApi.downloadSource).mockReset();
+    vi.mocked(message.success).mockReset();
+    vi.mocked(message.error).mockReset();
+  });
+
   it("defaults to the local embed and keeps extras behind the two status buttons", async () => {
     render(<OrganizationPage />);
 
@@ -77,8 +99,12 @@ describe("OrganizationPage", () => {
     const frame = screen.getByTitle("organization.previewTitle");
     expect(frame).toHaveAttribute("src", "http://127.0.0.1:3780/");
 
+    expect(screen.getByTestId("org-download-source")).toHaveTextContent(
+      "organization.downloadSourceBar",
+    );
     expect(screen.queryByText("organization.assembleAction")).toBeNull();
     expect(screen.queryByText("organization.startSidecarAction")).toBeNull();
+    expect(screen.queryByTestId("org-download-source-drawer")).toBeNull();
 
     fireEvent.click(screen.getByTestId("org-enable-module"));
     expect(
@@ -91,9 +117,43 @@ describe("OrganizationPage", () => {
     ).toBeInTheDocument();
     expect(screen.getByText("organization.loopTitle")).toBeInTheDocument();
     expect(
-      screen.getAllByText("organization.downloadSource").length,
-    ).toBeGreaterThan(0);
+      screen.getByTestId("org-download-source-drawer"),
+    ).toBeInTheDocument();
     expect(screen.queryByTestId("org-preview-blank")).toBeNull();
+  });
+
+  it("downloads latest source from the status bar after picking a folder", async () => {
+    pickDesktopFolder.mockResolvedValue("D:\\源码\\openXYOS");
+    vi.mocked(orgModuleApi.downloadSource).mockResolvedValue({
+      path: "D:\\源码\\openXYOS\\openXYOS-main.zip",
+    });
+
+    render(<OrganizationPage />);
+    fireEvent.click(await screen.findByTestId("org-download-source"));
+
+    await waitFor(() => {
+      expect(pickDesktopFolder).toHaveBeenCalled();
+      expect(orgModuleApi.downloadSource).toHaveBeenCalledWith(
+        "D:\\源码\\openXYOS",
+      );
+    });
+    expect(message.success).toHaveBeenCalledWith(
+      "organization.downloadSourceDone",
+    );
+    expect(screen.queryByText("organization.assembleTitle")).toBeNull();
+  });
+
+  it("does not download when the folder picker is cancelled", async () => {
+    pickDesktopFolder.mockResolvedValue(null);
+
+    render(<OrganizationPage />);
+    fireEvent.click(await screen.findByTestId("org-download-source"));
+
+    await waitFor(() => {
+      expect(pickDesktopFolder).toHaveBeenCalled();
+    });
+    expect(orgModuleApi.downloadSource).not.toHaveBeenCalled();
+    expect(message.error).not.toHaveBeenCalled();
   });
 
   it("surfaces a blank-preview error when livez is up but embed origin fails", async () => {

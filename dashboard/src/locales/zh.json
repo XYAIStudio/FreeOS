@@ -109,6 +109,7 @@
     "fullscreen": "全屏",
     "exitFullscreen": "退出全屏",
     "downloadSource": "下载最新 openXYOS 源码",
+    "downloadSourceBar": "下载最新源码",
     "downloadSourceHint": "用系统文件夹选择器任选盘符与目录，FreeOS 会从 GitHub 下载最新 openXYOS 主分支源码。",
     "downloadSourceDest": "保存到文件夹",
     "downloadSourceDone": "已下载到 {{path}}",
