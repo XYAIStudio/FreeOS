@@ -111,7 +111,9 @@ def test_provisioner_writes_marker_only_when_healthy() -> None:
     text = PROVISION_PS1.read_text(encoding="utf-8")
     write_fn = text.index("function Write-InstallReady")
     complete_fn = text.index("function Complete-OpenXYOSSuccess")
-    first_complete = text.index("Complete-OpenXYOSSuccess", complete_fn + len("function Complete-OpenXYOSSuccess"))
+    first_complete = text.index(
+        "Complete-OpenXYOSSuccess", complete_fn + len("function Complete-OpenXYOSSuccess")
+    )
     assert write_fn < complete_fn < first_complete
     assert "Test-OpenXYOSLivez" in text
     assert ".install-ready" in text
