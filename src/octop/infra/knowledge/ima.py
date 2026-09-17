@@ -1,14 +1,15 @@
 """Official IMA Agent Interface helpers for knowledge-base mount.
 
-Auth and endpoints follow https://ima.qq.com/agent-interface and the
-official ima-skill 1.1.9 Wiki OpenAPI (``openapi/wiki/v1``):
+Auth and endpoints follow the live https://ima.qq.com/agent-interface page
+(JS app) and the skill it ships (currently ima-skill 1.1.10):
 
-- Headers ``ima-openapi-clientid`` / ``ima-openapi-apikey``
+- Headers ``ima-openapi-clientid`` / ``ima-openapi-apikey`` /
+  ``ima-openapi-ctx: skill_version=1.1.10``
 - POST JSON to ``https://ima.qq.com/openapi/wiki/v1/*``
 - List bases: ``search_knowledge_base`` (limit 1–20), then hydrate with
   ``get_knowledge_base``
 - Browse docs: ``get_knowledge_list``; search docs: ``search_knowledge``
-- Folders in those lists use ``media_id`` prefixed ``folder_``
+- Folder id is the returned ``media_id`` (do not invent a ``folder_`` prefix)
 """
 
 from __future__ import annotations
@@ -165,7 +166,7 @@ def list_knowledge_bases(
     cursor: str = "",
     limit: int = 20,
 ) -> dict[str, Any]:
-    # Official ima-skill 1.1.9: search_knowledge_base limit is 1–20.
+    # Official ima-skill: search_knowledge_base limit is 1–20.
     limit = max(1, min(int(limit or 20), 20))
     try:
         data = openapi_data(
@@ -370,30 +371,41 @@ def _folder_item(item: dict[str, Any], folder_id: str) -> dict[str, Any]:
 
 
 def _folder_id_of(item: dict[str, Any]) -> str:
+    """Official 1.1.10: folder id is the returned media_id, not a made-up prefix."""
     nested = item.get("folder_info")
     if isinstance(nested, dict):
-        nested_id = str(nested.get("folder_id") or nested.get("id") or "").strip()
+        nested_id = str(
+            nested.get("media_id") or nested.get("folder_id") or nested.get("id") or ""
+        ).strip()
         if nested_id:
             return nested_id
-    folder_id = str(item.get("folder_id") or item.get("id") or "").strip()
-    if folder_id.startswith("folder_") or (
-        folder_id and not str(item.get("media_id") or "").strip()
-    ):
-        return folder_id
     media_id = str(item.get("media_id") or "").strip()
-    if media_id.startswith("folder_"):
+    if media_id and (
+        media_id.startswith("folder_")
+        or item.get("is_folder") is True
+        or "file_number" in item
+        or "folder_number" in item
+        or isinstance(item.get("folder_info"), dict)
+    ):
         return media_id
-    return folder_id if folder_id.startswith("folder_") else ""
+    folder_id = str(item.get("folder_id") or item.get("id") or "").strip()
+    if folder_id and not media_id:
+        return folder_id
+    if folder_id.startswith("folder_"):
+        return folder_id
+    return media_id if media_id.startswith("folder_") else ""
 
 
 def _is_folder_entry(item: dict[str, Any]) -> bool:
-    """Official lists mix files and folders; folders use ``folder_`` ids."""
-    media_id = str(item.get("media_id") or "").strip()
-    if media_id.startswith("folder_"):
-        return True
+    """Official lists mix files and folders; folder id is the item media_id."""
     if item.get("is_folder") is True:
         return True
     if isinstance(item.get("folder_info"), dict):
+        return True
+    if "file_number" in item or "folder_number" in item:
+        return True
+    media_id = str(item.get("media_id") or "").strip()
+    if media_id.startswith("folder_"):
         return True
     folder_id = str(item.get("folder_id") or "").strip()
     return bool(folder_id and not media_id)

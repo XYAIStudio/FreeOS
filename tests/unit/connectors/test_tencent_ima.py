@@ -78,7 +78,7 @@ def test_list_notebooks_defaults_cursor_zero(monkeypatch: pytest.MonkeyPatch) ->
     assert isinstance(headers, dict)
     assert headers["ima-openapi-clientid"] == "c"
     assert headers["ima-openapi-apikey"] == "k"
-    assert headers["ima-openapi-ctx"] == "skill_version=1.1.9"
+    assert headers["ima-openapi-ctx"] == "skill_version=1.1.10"
 
 
 def test_get_note_uses_plaintext(monkeypatch: pytest.MonkeyPatch) -> None:

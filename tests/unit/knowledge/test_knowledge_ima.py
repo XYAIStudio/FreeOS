@@ -56,8 +56,14 @@ def test_parse_knowledge_bases_and_docs() -> None:
                 {"folder_id": "fd1", "name": "归档", "file_number": 2},
                 {"media_id": "folder_abc", "title": "设计文档"},
                 {
-                    "folder_info": {"folder_id": "folder_nested", "name": "会议纪要"},
+                    "media_id": "kbpath-meeting",
                     "title": "会议纪要",
+                    "file_number": 12,
+                    "folder_number": 0,
+                },
+                {
+                    "folder_info": {"folder_id": "folder_nested", "name": "归档"},
+                    "title": "归档",
                 },
             ],
             "current_path": [{"folder_id": "kb1", "name": "工作库"}],
@@ -65,7 +71,12 @@ def test_parse_knowledge_bases_and_docs() -> None:
         }
     )
     assert [item["media_id"] for item in docs] == ["m1"]
-    assert [item["folder_id"] for item in folders] == ["fd1", "folder_abc", "folder_nested"]
+    assert [item["folder_id"] for item in folders] == [
+        "fd1",
+        "folder_abc",
+        "kbpath-meeting",
+        "folder_nested",
+    ]
     assert path[0]["name"] == "工作库"
     assert is_end is True
 
