@@ -61,6 +61,10 @@ export function CloudMountPanel({
   const [folders, setFolders] = useState<ImaKnowledgeFolder[]>([]);
   const [folderPath, setFolderPath] = useState<ImaKnowledgeFolder[]>([]);
   const [docsError, setDocsError] = useState("");
+  const [docQuery, setDocQuery] = useState("");
+  const [docsCursor, setDocsCursor] = useState("");
+  const [docsEnd, setDocsEnd] = useState(true);
+  const [activeFolderId, setActiveFolderId] = useState("");
   const [selectedBases, setSelectedBases] = useState<ImaSelectedBase[]>([]);
   const [selectedDocs, setSelectedDocs] = useState<ImaSelectedDoc[]>([]);
   const canPick = canPickKnowledgeFolder();
@@ -72,7 +76,9 @@ export function CloudMountPanel({
   const selectedDocKeys = useMemo(
     () =>
       new Set(
-        selectedDocs.map((item) => `${item.knowledge_base_id}:${item.media_id}`),
+        selectedDocs.map(
+          (item) => `${item.knowledge_base_id}:${item.media_id}`,
+        ),
       ),
     [selectedDocs],
   );
@@ -107,25 +113,47 @@ export function CloudMountPanel({
         setActiveKbId("");
         setDocs([]);
         setFolders([]);
+        setActiveFolderId("");
+        setDocQuery("");
       }
     },
     [],
   );
 
   const loadDocs = useCallback(
-    async (id: string, imaKbId: string, folderId = "") => {
+    async (
+      id: string,
+      imaKbId: string,
+      folderId = "",
+      query = "",
+      cursor = "",
+      append = false,
+    ) => {
       setDocsError("");
       try {
         const result = await knowledgeBasesApi.imaListDocuments(imaKbId, {
-          folder_id: folderId,
+          folder_id: query ? "" : folderId,
+          query,
+          cursor,
           instance_id: id,
         });
-        setDocs(result.items || []);
-        setFolders(result.folders || []);
-        setFolderPath(result.current_path || []);
+        setDocs((prev) =>
+          append ? [...prev, ...result.items] : result.items || [],
+        );
+        setFolders((prev) =>
+          append ? [...prev, ...(result.folders || [])] : result.folders || [],
+        );
+        if (!append) {
+          setFolderPath(result.current_path || []);
+          setActiveFolderId(query ? "" : folderId);
+        }
+        setDocsCursor(result.next_cursor || "");
+        setDocsEnd(result.is_end);
       } catch (err) {
-        setDocs([]);
-        setFolders([]);
+        if (!append) {
+          setDocs([]);
+          setFolders([]);
+        }
         setDocsError(
           err instanceof Error
             ? err.message
@@ -134,6 +162,15 @@ export function CloudMountPanel({
       }
     },
     [t],
+  );
+
+  const browseDocs = useCallback(
+    (id: string, imaKbId: string, folderId = "", query = "") => {
+      setDocQuery(query);
+      setActiveFolderId(query ? "" : folderId);
+      void loadDocs(id, imaKbId, folderId, query);
+    },
+    [loadDocs],
   );
 
   useEffect(() => {
@@ -185,8 +222,13 @@ export function CloudMountPanel({
 
   useEffect(() => {
     if (!instanceId || !activeKbId || showAuthForm) return;
+    setDocQuery("");
+    setActiveFolderId("");
     void loadDocs(instanceId, activeKbId);
-  }, [instanceId, activeKbId, showAuthForm, loadDocs]);
+    // loadDocs is stable enough for mount/selection; omit it so i18n `t`
+    // identity changes do not retrigger listing.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [instanceId, activeKbId, showAuthForm]);
 
   const resolveKb = async () => {
     if (kbId) return kbId;
@@ -217,10 +259,14 @@ export function CloudMountPanel({
       applyStatus(status);
       setApiKey("");
       await loadBases(status.instance_id, baseQuery);
-      message.success(t("knowledgeBases.imaConnected", { preview: status.client_id_preview }));
+      message.success(
+        t("knowledgeBases.imaConnected", { preview: status.client_id_preview }),
+      );
     } catch (err) {
       message.error(
-        err instanceof Error ? err.message : t("knowledgeBases.cloudMountFailed"),
+        err instanceof Error
+          ? err.message
+          : t("knowledgeBases.cloudMountFailed"),
       );
     } finally {
       setBusy(false);
@@ -256,7 +302,11 @@ export function CloudMountPanel({
     setSelectedDocs((prev) => {
       const key = `${activeKbId}:${doc.media_id}`;
       if (checked) {
-        if (prev.some((item) => `${item.knowledge_base_id}:${item.media_id}` === key)) {
+        if (
+          prev.some(
+            (item) => `${item.knowledge_base_id}:${item.media_id}` === key,
+          )
+        ) {
           return prev;
         }
         return [
@@ -482,9 +532,7 @@ export function CloudMountPanel({
                 >
                   <Checkbox
                     checked={selectedBaseIds.has(base.id)}
-                    onChange={(event) =>
-                      toggleBase(base, event.target.checked)
-                    }
+                    onChange={(event) => toggleBase(base, event.target.checked)}
                     onClick={() => setActiveKbId(base.id)}
                   >
                     {base.name}
@@ -520,25 +568,36 @@ export function CloudMountPanel({
                   </Button>
                 </Space>
               </div>
-              <div className={styles.crumbs}>
-                <button
-                  type="button"
-                  onClick={() => void loadDocs(instanceId, activeKbId, "")}
-                >
-                  {t("knowledgeBases.imaRootFolder")}
-                </button>
-                {folderPath.map((folder) => (
+              <Input.Search
+                allowClear
+                placeholder={t("knowledgeBases.imaSearchDocs")}
+                value={docQuery}
+                onChange={(event) => setDocQuery(event.target.value)}
+                onSearch={(value) => {
+                  browseDocs(instanceId, activeKbId, "", value);
+                }}
+              />
+              {!docQuery ? (
+                <div className={styles.crumbs}>
                   <button
-                    key={folder.folder_id}
                     type="button"
-                    onClick={() =>
-                      void loadDocs(instanceId, activeKbId, folder.folder_id)
-                    }
+                    onClick={() => browseDocs(instanceId, activeKbId, "")}
                   >
-                    / {folder.name}
+                    {t("knowledgeBases.imaRootFolder")}
                   </button>
-                ))}
-              </div>
+                  {folderPath.map((folder) => (
+                    <button
+                      key={folder.folder_id}
+                      type="button"
+                      onClick={() =>
+                        browseDocs(instanceId, activeKbId, folder.folder_id)
+                      }
+                    >
+                      / {folder.name}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
               {docsError ? (
                 <Alert type="error" showIcon message={docsError} />
               ) : null}
@@ -548,7 +607,7 @@ export function CloudMountPanel({
                   type="button"
                   className={styles.folderRow}
                   onClick={() =>
-                    void loadDocs(instanceId, activeKbId, folder.folder_id)
+                    browseDocs(instanceId, activeKbId, folder.folder_id)
                   }
                 >
                   <Folder size={14} />
@@ -561,7 +620,11 @@ export function CloudMountPanel({
               {docs.length === 0 && folders.length === 0 && !docsError ? (
                 <Empty
                   image={Empty.PRESENTED_IMAGE_SIMPLE}
-                  description={t("knowledgeBases.imaDocsEmpty")}
+                  description={
+                    docQuery
+                      ? t("knowledgeBases.imaDocsSearchEmpty")
+                      : t("knowledgeBases.imaDocsEmpty")
+                  }
                 />
               ) : (
                 docs.map((doc) => (
@@ -570,15 +633,30 @@ export function CloudMountPanel({
                       checked={selectedDocKeys.has(
                         `${activeKbId}:${doc.media_id}`,
                       )}
-                      onChange={(event) =>
-                        toggleDoc(doc, event.target.checked)
-                      }
+                      onChange={(event) => toggleDoc(doc, event.target.checked)}
                     >
                       {doc.title}
                     </Checkbox>
                   </label>
                 ))
               )}
+              {!docsEnd ? (
+                <Button
+                  size="small"
+                  onClick={() =>
+                    void loadDocs(
+                      instanceId,
+                      activeKbId,
+                      activeFolderId,
+                      docQuery,
+                      docsCursor,
+                      true,
+                    )
+                  }
+                >
+                  {t("knowledgeBases.imaLoadMore")}
+                </Button>
+              ) : null}
               {selectedBaseIds.has(activeKbId) && !activeHasDocs ? (
                 <Typography.Paragraph type="secondary" style={{ marginTop: 8 }}>
                   {t("knowledgeBases.imaWholeBaseHint")}

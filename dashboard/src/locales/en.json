@@ -540,6 +540,8 @@
     "imaExistingConnection": "Existing IMA connection",
     "imaExistingPlaceholder": "Select a saved IMA connection",
     "imaSearchBases": "Search ima knowledge bases",
+    "imaSearchDocs": "Search documents in this knowledge base",
+    "imaDocsSearchEmpty": "No matching documents.",
     "imaSelectBases": "Select knowledge bases",
     "imaSelectDocs": "Select documents",
     "imaBasesEmpty": "No ima knowledge bases yet. Create one in ima, then refresh.",

@@ -1,9 +1,14 @@
 """Official IMA Agent Interface helpers for knowledge-base mount.
 
-Auth and endpoints follow https://ima.qq.com/agent-interface:
+Auth and endpoints follow https://ima.qq.com/agent-interface and the
+official ima-skill 1.1.9 Wiki OpenAPI (``openapi/wiki/v1``):
 
 - Headers ``ima-openapi-clientid`` / ``ima-openapi-apikey``
 - POST JSON to ``https://ima.qq.com/openapi/wiki/v1/*``
+- List bases: ``search_knowledge_base`` (limit 1–20), then hydrate with
+  ``get_knowledge_base``
+- Browse docs: ``get_knowledge_list``; search docs: ``search_knowledge``
+- Folders in those lists use ``media_id`` prefixed ``folder_``
 """
 
 from __future__ import annotations
@@ -160,7 +165,8 @@ def list_knowledge_bases(
     cursor: str = "",
     limit: int = 20,
 ) -> dict[str, Any]:
-    limit = max(1, min(int(limit or 20), 50))
+    # Official ima-skill 1.1.9: search_knowledge_base limit is 1–20.
+    limit = max(1, min(int(limit or 20), 20))
     try:
         data = openapi_data(
             creds,
@@ -170,6 +176,7 @@ def list_knowledge_bases(
     except ValueError as exc:
         raise ValueError(f"IMA API: {exc}") from exc
     items, next_cursor, is_end = parse_knowledge_bases(data)
+    _hydrate_knowledge_bases(creds, items)
     return {"items": items, "next_cursor": next_cursor, "is_end": is_end}
 
 
@@ -180,21 +187,30 @@ def list_knowledge_documents(
     folder_id: str = "",
     cursor: str = "",
     limit: int = 20,
+    query: str = "",
 ) -> dict[str, Any]:
     kb_id = knowledge_base_id.strip()
     if not kb_id:
         raise ValueError("IMA API: knowledge_base_id is required")
     limit = max(1, min(int(limit or 20), 50))
-    body: dict[str, Any] = {
-        "knowledge_base_id": kb_id,
-        "cursor": cursor,
-        "limit": limit,
-    }
     folder = folder_id.strip()
-    if folder:
-        body["folder_id"] = folder
+    q = query.strip()
     try:
-        data = openapi_data(creds, "openapi/wiki/v1/get_knowledge_list", body)
+        if q:
+            data = openapi_data(
+                creds,
+                "openapi/wiki/v1/search_knowledge",
+                {"query": q, "knowledge_base_id": kb_id, "cursor": cursor},
+            )
+        else:
+            body: dict[str, Any] = {
+                "knowledge_base_id": kb_id,
+                "cursor": cursor,
+                "limit": limit,
+            }
+            if folder:
+                body["folder_id"] = folder
+            data = openapi_data(creds, "openapi/wiki/v1/get_knowledge_list", body)
     except ValueError as exc:
         raise ValueError(f"IMA API: {exc}") from exc
     items, folders, current_path, next_cursor, is_end = parse_knowledge_list(data)
@@ -205,7 +221,8 @@ def list_knowledge_documents(
         "next_cursor": next_cursor,
         "is_end": is_end,
         "knowledge_base_id": kb_id,
-        "folder_id": folder,
+        "folder_id": "" if q else folder,
+        "query": q,
     }
 
 
@@ -257,6 +274,8 @@ def search_selected_knowledge(
         added = 0
         for item in _as_dicts(data.get("info_list") or data.get("knowledge_list")):
             media_id = str(item.get("media_id") or "").strip()
+            if not media_id or _is_folder_entry(item):
+                continue
             if allowed is not None and media_id not in allowed:
                 continue
             text = str(item.get("highlight_content") or item.get("title") or "").strip()
@@ -305,12 +324,15 @@ def parse_knowledge_list(
 ) -> tuple[list[dict[str, str]], list[dict[str, Any]], list[dict[str, Any]], str, bool]:
     docs: list[dict[str, str]] = []
     folders: list[dict[str, Any]] = []
+    seen_folders: set[str] = set()
     for item in _as_dicts(data.get("knowledge_list") or data.get("info_list")):
-        folder_id = str(item.get("folder_id") or "").strip()
-        media_id = str(item.get("media_id") or "").strip()
-        if folder_id and not media_id:
-            folders.append(_folder_item(item, folder_id))
+        if _is_folder_entry(item):
+            folder_id = _folder_id_of(item)
+            if folder_id and folder_id not in seen_folders:
+                seen_folders.add(folder_id)
+                folders.append(_folder_item(item, folder_id))
             continue
+        media_id = str(item.get("media_id") or "").strip()
         if media_id:
             docs.append(
                 {
@@ -321,26 +343,83 @@ def parse_knowledge_list(
                 }
             )
     for item in _as_dicts(data.get("folder_list") or data.get("folders")):
-        folder_id = str(item.get("folder_id") or item.get("id") or "").strip()
-        if folder_id:
+        folder_id = _folder_id_of(item)
+        if folder_id and folder_id not in seen_folders:
+            seen_folders.add(folder_id)
             folders.append(_folder_item(item, folder_id))
     path = [
-        _folder_item(item, str(item.get("folder_id") or item.get("id") or "").strip())
+        _folder_item(item, fid)
         for item in _as_dicts(data.get("current_path"))
-        if str(item.get("folder_id") or item.get("id") or "").strip()
+        if (fid := _folder_id_of(item))
     ]
     return docs, folders, path, _next_cursor(data), _is_end(data)
 
 
 def _folder_item(item: dict[str, Any], folder_id: str) -> dict[str, Any]:
+    nested = item.get("folder_info")
+    src = nested if isinstance(nested, dict) else item
     return {
         "folder_id": folder_id,
-        "name": str(item.get("name") or folder_id).strip() or folder_id,
-        "parent_folder_id": str(item.get("parent_folder_id") or ""),
-        "file_number": int(item.get("file_number") or 0),
-        "folder_number": int(item.get("folder_number") or 0),
+        "name": str(src.get("name") or item.get("title") or item.get("name") or folder_id).strip()
+        or folder_id,
+        "parent_folder_id": str(src.get("parent_folder_id") or item.get("parent_folder_id") or ""),
+        "file_number": int(src.get("file_number") or item.get("file_number") or 0),
+        "folder_number": int(src.get("folder_number") or item.get("folder_number") or 0),
         "is_folder": True,
     }
+
+
+def _folder_id_of(item: dict[str, Any]) -> str:
+    nested = item.get("folder_info")
+    if isinstance(nested, dict):
+        nested_id = str(nested.get("folder_id") or nested.get("id") or "").strip()
+        if nested_id:
+            return nested_id
+    folder_id = str(item.get("folder_id") or item.get("id") or "").strip()
+    if folder_id.startswith("folder_") or (
+        folder_id and not str(item.get("media_id") or "").strip()
+    ):
+        return folder_id
+    media_id = str(item.get("media_id") or "").strip()
+    if media_id.startswith("folder_"):
+        return media_id
+    return folder_id if folder_id.startswith("folder_") else ""
+
+
+def _is_folder_entry(item: dict[str, Any]) -> bool:
+    """Official lists mix files and folders; folders use ``folder_`` ids."""
+    media_id = str(item.get("media_id") or "").strip()
+    if media_id.startswith("folder_"):
+        return True
+    if item.get("is_folder") is True:
+        return True
+    if isinstance(item.get("folder_info"), dict):
+        return True
+    folder_id = str(item.get("folder_id") or "").strip()
+    return bool(folder_id and not media_id)
+
+
+def _hydrate_knowledge_bases(creds: dict[str, Any], items: list[dict[str, str]]) -> None:
+    ids = [item["id"] for item in items if item.get("id")]
+    if not ids:
+        return
+    try:
+        data = openapi_data(creds, "openapi/wiki/v1/get_knowledge_base", {"ids": ids[:20]})
+    except ValueError:
+        return
+    infos = data.get("infos")
+    if not isinstance(infos, dict):
+        return
+    by_id = {str(key): value for key, value in infos.items() if isinstance(value, dict)}
+    for item in items:
+        info = by_id.get(item["id"])
+        if info is None:
+            continue
+        name = str(info.get("name") or "").strip()
+        if name:
+            item["name"] = name
+        item["cover_url"] = str(info.get("cover_url") or item.get("cover_url") or "")
+        item["description"] = str(info.get("description") or item.get("description") or "")
 
 
 def _as_dicts(raw: object) -> list[dict[str, Any]]:

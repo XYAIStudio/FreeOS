@@ -540,6 +540,8 @@
     "imaExistingConnection": "已有 IMA 连接",
     "imaExistingPlaceholder": "选择已保存的 IMA 连接",
     "imaSearchBases": "搜索 ima 知识库",
+    "imaSearchDocs": "在当前知识库中搜索文档",
+    "imaDocsSearchEmpty": "没有匹配的文档。",
     "imaSelectBases": "选择知识库",
     "imaSelectDocs": "选择文档",
     "imaBasesEmpty": "还没有 ima 知识库。请先在 ima 中创建，然后刷新。",

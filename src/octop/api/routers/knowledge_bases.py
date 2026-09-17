@@ -681,7 +681,7 @@ async def ima_list_bases(
     request: Request,
     query: str = Query(default=""),
     cursor: str = Query(default=""),
-    limit: int = Query(default=20, ge=1, le=50),
+    limit: int = Query(default=20, ge=1, le=20),
     instance_id: str = Query(default=""),
     server: OctopServer = Depends(get_server),
     user: User = Depends(require_permission("knowledge_bases")),
@@ -707,7 +707,7 @@ async def ima_list_bases(
 
 @router.get(
     "/ima/bases/{ima_kb_id}/documents",
-    summary="List ima documents via official get_knowledge_list",
+    summary="List ima documents via official get_knowledge_list or search_knowledge",
 )
 async def ima_list_documents(
     ima_kb_id: str,
@@ -715,6 +715,7 @@ async def ima_list_documents(
     folder_id: str = Query(default=""),
     cursor: str = Query(default=""),
     limit: int = Query(default=20, ge=1, le=50),
+    query: str = Query(default="", description="When set, uses official search_knowledge"),
     instance_id: str = Query(default=""),
     server: OctopServer = Depends(get_server),
     user: User = Depends(require_permission("knowledge_bases")),
@@ -735,6 +736,7 @@ async def ima_list_documents(
                 folder_id=folder_id,
                 cursor=cursor,
                 limit=limit,
+                query=query,
             )
 
         return await asyncio.to_thread(_load)

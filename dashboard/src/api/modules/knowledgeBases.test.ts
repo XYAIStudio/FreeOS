@@ -90,7 +90,10 @@ describe("knowledgeBasesApi", () => {
     knowledgeBasesApi.imaStatus();
     knowledgeBasesApi.imaConnect({ client_id: "c", api_key: "k" });
     knowledgeBasesApi.imaListBases({ query: "work" });
-    knowledgeBasesApi.imaListDocuments("kb-ima", { folder_id: "fd1" });
+    knowledgeBasesApi.imaListDocuments("kb-ima", {
+      folder_id: "fd1",
+      query: "周报",
+    });
 
     expect(request).toHaveBeenNthCalledWith(1, "/knowledge-bases/ima/status");
     expect(request).toHaveBeenNthCalledWith(2, "/knowledge-bases/ima/connect", {
@@ -103,7 +106,7 @@ describe("knowledgeBasesApi", () => {
     );
     expect(request).toHaveBeenNthCalledWith(
       4,
-      "/knowledge-bases/ima/bases/kb-ima/documents?folder_id=fd1",
+      "/knowledge-bases/ima/bases/kb-ima/documents?folder_id=fd1&query=%E5%91%A8%E6%8A%A5",
     );
   });
 

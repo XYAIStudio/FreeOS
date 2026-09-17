@@ -127,4 +127,90 @@ describe("<CloudMountPanel />", () => {
       ],
     });
   });
+
+  it("browses official folder_ entries and searches documents", async () => {
+    const user = userEvent.setup();
+    imaStatus.mockResolvedValue({
+      connected: true,
+      instance_id: "inst-1",
+      client_id_preview: "clid…1234",
+      auth_url: "https://ima.qq.com/agent-interface",
+      instances: [
+        {
+          instance_id: "inst-1",
+          display_name: "腾讯 IMA",
+          client_id_preview: "clid…1234",
+        },
+      ],
+    });
+    imaListDocuments.mockImplementation(
+      async (_kb: string, opts?: { folder_id?: string; query?: string }) => {
+        if (opts?.query === "排期") {
+          return {
+            items: [{ media_id: "doc-3", title: "排期" }],
+            folders: [],
+            current_path: [],
+            next_cursor: "",
+            is_end: true,
+            knowledge_base_id: "kb-ima",
+            folder_id: "",
+            query: "排期",
+          };
+        }
+        if (opts?.folder_id === "folder_abc") {
+          return {
+            items: [{ media_id: "doc-2", title: "需求" }],
+            folders: [],
+            current_path: [
+              { folder_id: "folder_abc", name: "设计文档", is_folder: true },
+            ],
+            next_cursor: "",
+            is_end: true,
+            knowledge_base_id: "kb-ima",
+            folder_id: "folder_abc",
+          };
+        }
+        return {
+          items: [],
+          folders: [
+            { folder_id: "folder_abc", name: "设计文档", is_folder: true },
+          ],
+          current_path: [],
+          next_cursor: "",
+          is_end: true,
+          knowledge_base_id: "kb-ima",
+          folder_id: "",
+        };
+      },
+    );
+
+    render(<CloudMountPanel prominent kbId="kb-local" />);
+
+    expect(await screen.findByText("设计文档")).toBeInTheDocument();
+    await user.click(screen.getByText("设计文档"));
+    expect(
+      await screen.findByRole("checkbox", { name: "需求" }),
+    ).toBeInTheDocument();
+    expect(imaListDocuments).toHaveBeenCalledWith("kb-ima", {
+      folder_id: "folder_abc",
+      query: "",
+      cursor: "",
+      instance_id: "inst-1",
+    });
+
+    await user.type(
+      screen.getByPlaceholderText("knowledgeBases.imaSearchDocs"),
+      "排期",
+    );
+    await user.keyboard("{Enter}");
+    expect(
+      await screen.findByRole("checkbox", { name: "排期" }),
+    ).toBeInTheDocument();
+    expect(imaListDocuments).toHaveBeenLastCalledWith("kb-ima", {
+      folder_id: "",
+      query: "排期",
+      cursor: "",
+      instance_id: "inst-1",
+    });
+  });
 });

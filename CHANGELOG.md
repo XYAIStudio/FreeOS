@@ -8,6 +8,7 @@
 
 ### 修复
 
+- ima 知识库挂接对齐官方 Agent Interface（https://ima.qq.com/agent-interface，ima-skill 1.1.9）：用 Client ID / API Key 连接后，按 `search_knowledge_base` + `get_knowledge_base` 选知识库，按 `get_knowledge_list` / `search_knowledge` 自选文档；文件夹按官方 `folder_` `media_id` 浏览，选择会写入挂接。
 - 模型页注册的本机 Ollama / GGUF 现在会出现在对话区模型选择器里，并走本机 `127.0.0.1:11434` 调用。注册会补齐 Ollama 供应商默认值、打开服务开关、热加载对话列表；Ollama 未启动时给出可操作错误，而不是静默失败。
 - 对话模型选择器底部增加「模型管理」，跳到侧栏同一条「模型」路由（`/models`）。
 - 组织页默认只显示本机 openXYOS 嵌入和顶部蓝色状态栏；「启用组织模块」「组织OS管理」在状态栏右下。互生长导入/导出、源码下载、循环时间线等收到「组织OS管理」。iframe 高度等于可见预览区，openXYOS 弹窗按 iframe 视口水平垂直居中。

@@ -54,13 +54,18 @@ def test_parse_knowledge_bases_and_docs() -> None:
             "knowledge_list": [
                 {"media_id": "m1", "title": "纪要", "parent_folder_id": "kb1"},
                 {"folder_id": "fd1", "name": "归档", "file_number": 2},
+                {"media_id": "folder_abc", "title": "设计文档"},
+                {
+                    "folder_info": {"folder_id": "folder_nested", "name": "会议纪要"},
+                    "title": "会议纪要",
+                },
             ],
             "current_path": [{"folder_id": "kb1", "name": "工作库"}],
             "is_end": True,
         }
     )
-    assert docs[0]["media_id"] == "m1"
-    assert folders[0]["folder_id"] == "fd1"
+    assert [item["media_id"] for item in docs] == ["m1"]
+    assert [item["folder_id"] for item in folders] == ["fd1", "folder_abc", "folder_nested"]
     assert path[0]["name"] == "工作库"
     assert is_end is True
 
@@ -99,6 +104,81 @@ def test_ima_mount_rejects_disconnected(tmp_path) -> None:
         )
 
 
+def test_list_knowledge_bases_hydrates_via_get_knowledge_base(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from octop.infra.knowledge.ima import list_knowledge_bases
+
+    calls: list[dict[str, object]] = []
+
+    def fake_openapi(
+        _creds: dict[str, object], path: str, body: dict[str, object]
+    ) -> dict[str, object]:
+        calls.append({"path": path, "body": body})
+        if path.endswith("search_knowledge_base"):
+            assert body["limit"] == 20
+            return {"info_list": [{"id": "kb1", "name": "工作"}], "is_end": True}
+        assert path.endswith("get_knowledge_base")
+        assert body == {"ids": ["kb1"]}
+        return {
+            "infos": {
+                "kb1": {
+                    "id": "kb1",
+                    "name": "工作库",
+                    "description": "产品资料",
+                    "cover_url": "https://x",
+                }
+            }
+        }
+
+    monkeypatch.setattr("octop.infra.knowledge.ima.openapi_data", fake_openapi)
+    result = list_knowledge_bases({"client_id": "c", "api_key": "k"}, limit=50)
+    assert result["items"][0] == {
+        "id": "kb1",
+        "name": "工作库",
+        "cover_url": "https://x",
+        "description": "产品资料",
+    }
+
+
+def test_list_knowledge_documents_search_uses_official_search(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from octop.infra.knowledge.ima import list_knowledge_documents
+
+    captured: list[dict[str, object]] = []
+
+    def fake_openapi(
+        _creds: dict[str, object], path: str, body: dict[str, object]
+    ) -> dict[str, object]:
+        captured.append({"path": path, "body": body})
+        return {
+            "info_list": [
+                {"media_id": "keep", "title": "周报"},
+                {"media_id": "folder_skip", "title": "归档"},
+            ],
+            "is_end": True,
+        }
+
+    monkeypatch.setattr("octop.infra.knowledge.ima.openapi_data", fake_openapi)
+    result = list_knowledge_documents(
+        {"client_id": "c", "api_key": "k"},
+        "kb1",
+        query="周报",
+        folder_id="folder_ignored",
+    )
+    assert captured[0]["path"] == "openapi/wiki/v1/search_knowledge"
+    assert captured[0]["body"] == {
+        "query": "周报",
+        "knowledge_base_id": "kb1",
+        "cursor": "",
+    }
+    assert [item["media_id"] for item in result["items"]] == ["keep"]
+    assert result["folders"][0]["folder_id"] == "folder_skip"
+    assert result["folder_id"] == ""
+    assert result["query"] == "周报"
+
+
 def test_search_selected_knowledge_filters_docs(monkeypatch: pytest.MonkeyPatch) -> None:
     captured: list[dict[str, object]] = []
 
@@ -110,6 +190,11 @@ def test_search_selected_knowledge_filters_docs(monkeypatch: pytest.MonkeyPatch)
             "info_list": [
                 {"media_id": "keep", "title": "保留", "highlight_content": "命中保留"},
                 {"media_id": "skip", "title": "跳过", "highlight_content": "不该出现"},
+                {
+                    "media_id": "folder_skip",
+                    "title": "归档",
+                    "highlight_content": "文件夹不应作为文档命中",
+                },
             ]
         }
 

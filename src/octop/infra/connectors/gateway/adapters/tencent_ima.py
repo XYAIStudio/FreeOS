@@ -464,6 +464,7 @@ def _headers(creds: dict[str, Any]) -> dict[str, str]:
     return {
         "ima-openapi-clientid": client_id,
         "ima-openapi-apikey": api_key,
+        "ima-openapi-ctx": "skill_version=1.1.9",
         "Content-Type": "application/json",
         "User-Agent": "octop-connector/0.1",
     }

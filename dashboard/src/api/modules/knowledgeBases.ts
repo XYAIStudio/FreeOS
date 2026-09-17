@@ -419,6 +419,7 @@ export const knowledgeBasesApi = {
       folder_id?: string;
       cursor?: string;
       limit?: number;
+      query?: string;
       instance_id?: string;
     },
   ) => {
@@ -426,6 +427,7 @@ export const knowledgeBasesApi = {
     if (opts?.folder_id) params.set("folder_id", opts.folder_id);
     if (opts?.cursor) params.set("cursor", opts.cursor);
     if (opts?.limit) params.set("limit", String(opts.limit));
+    if (opts?.query) params.set("query", opts.query);
     if (opts?.instance_id) params.set("instance_id", opts.instance_id);
     const qs = params.toString();
     return request<{
@@ -438,7 +440,9 @@ export const knowledgeBasesApi = {
       folder_id: string;
     }>(
       qs
-        ? `/knowledge-bases/ima/bases/${encodeURIComponent(imaKbId)}/documents?${qs}`
+        ? `/knowledge-bases/ima/bases/${encodeURIComponent(
+            imaKbId,
+          )}/documents?${qs}`
         : `/knowledge-bases/ima/bases/${encodeURIComponent(imaKbId)}/documents`,
     );
   },
