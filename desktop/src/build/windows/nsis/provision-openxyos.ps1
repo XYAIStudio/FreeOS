@@ -1,10 +1,13 @@
 # Install-time openXYOS provisioner (child process of the FreeOS NSIS Setup).
 # Extract + normalize + start once at medium IL + wait livez + write .install-ready.
 # Exit 0 only when http://127.0.0.1:3780/api/health/livez is healthy.
+# On success, deletes $InstallDir\openxyos-runtime (folder + archive) and a
+# sibling openxyos-runtime under the live parent. Never deletes $LiveDir or
+# $InstallDir\openxyos. Failed runs leave staging in place for debugging.
 # Does NOT register HKCU Run / scheduled-task logon autostart.
 #
 # Exit codes (NSIS maps these to localized MessageBox text):
-#   0  healthy (.install-ready written)
+#   0  healthy (.install-ready written; openxyos-runtime staging removed)
 #   2  zip missing
 #   3  tar extract into live dir failed
 #   5  tar.exe missing
@@ -300,6 +303,83 @@ function Invoke-TarExtract {
     return ($LASTEXITCODE -eq 0)
 }
 
+function Test-SamePath {
+    param([string]$Left, [string]$Right)
+    if (-not $Left -or -not $Right) { return $false }
+    try {
+        $a = [IO.Path]::GetFullPath($Left)
+        $b = [IO.Path]::GetFullPath($Right)
+    } catch {
+        return $false
+    }
+    return $a.Equals($b, [StringComparison]::OrdinalIgnoreCase)
+}
+
+function Test-PathUnderRoot {
+    param([string]$Path, [string]$Root)
+    if (-not $Path -or -not $Root) { return $false }
+    try {
+        $full = [IO.Path]::GetFullPath($Path)
+        $rootFull = [IO.Path]::GetFullPath($Root).TrimEnd('\', '/')
+    } catch {
+        return $false
+    }
+    if ($full.Equals($rootFull, [StringComparison]::OrdinalIgnoreCase)) { return $true }
+    $prefix = $rootFull + [IO.Path]::DirectorySeparatorChar
+    return $full.StartsWith($prefix, [StringComparison]::OrdinalIgnoreCase)
+}
+
+function Remove-OpenXYOSStaging {
+    $keepLive = $LiveDir
+    $keepInstall = Join-Path $InstallDir 'openxyos'
+    $stageDirs = New-Object System.Collections.Generic.List[string]
+    $stageDirs.Add((Join-Path $InstallDir 'openxyos-runtime'))
+    $liveParent = ''
+    if ($LiveDir) {
+        $liveParent = Split-Path -Parent $LiveDir
+        if ($liveParent) {
+            $stageDirs.Add((Join-Path $liveParent 'openxyos-runtime'))
+        }
+    }
+    foreach ($dir in $stageDirs) {
+        if (-not (Test-Path -LiteralPath $dir)) { continue }
+        if ((Test-SamePath $dir $keepLive) -or (Test-SamePath $dir $keepInstall)) {
+            Write-ProvLog "Skipping staging cleanup of protected path $dir"
+            continue
+        }
+        Write-ProvLog "Removing staging directory $dir"
+        Remove-Item -LiteralPath $dir -Recurse -Force -ErrorAction SilentlyContinue
+    }
+    $archiveRoots = New-Object System.Collections.Generic.List[string]
+    if ($InstallDir) { $archiveRoots.Add($InstallDir) }
+    if ($liveParent) { $archiveRoots.Add($liveParent) }
+    foreach ($root in $archiveRoots) {
+        if (-not (Test-Path -LiteralPath $root)) { continue }
+        Get-ChildItem -LiteralPath $root -File -ErrorAction SilentlyContinue | ForEach-Object {
+            if ($_.Name -notmatch '(?i)^openxyos-runtime(\.(zip|7z|tgz|tar|tar\.gz))?$') { return }
+            Write-ProvLog "Removing staging archive $($_.FullName)"
+            Remove-Item -LiteralPath $_.FullName -Force -ErrorAction SilentlyContinue
+        }
+    }
+    if ($ZipPath -and (Test-Path -LiteralPath $ZipPath)) {
+        $zipIsStaging = (Test-PathUnderRoot $ZipPath $InstallDir) -or (
+            $liveParent -and (Test-PathUnderRoot $ZipPath $liveParent)
+        )
+        if ($zipIsStaging) {
+            Write-ProvLog "Removing staging zip $ZipPath"
+            Remove-Item -LiteralPath $ZipPath -Force -ErrorAction SilentlyContinue
+        }
+    }
+}
+
+function Complete-OpenXYOSSuccess {
+    if (-not (Write-InstallReady $LiveDir)) {
+        exit 13
+    }
+    Remove-OpenXYOSStaging
+    exit 0
+}
+
 # --- main ---
 New-Item -ItemType Directory -Force -Path $LiveDir | Out-Null
 Write-ProvLog "provision-openxyos start zip=$ZipPath install=$InstallDir live=$LiveDir"
@@ -307,8 +387,7 @@ Write-ProvLog "provision-openxyos start zip=$ZipPath install=$InstallDir live=$L
 $marker = Join-Path $LiveDir '.install-ready'
 if ((Test-OpenXYOSLayout $LiveDir) -and (Test-OpenXYOSLivez)) {
     Write-ProvLog 'Already extracted and livez healthy (idempotent)'
-    if (Write-InstallReady $LiveDir) { exit 0 }
-    exit 13
+    Complete-OpenXYOSSuccess
 }
 if (Test-Path -LiteralPath $marker) {
     Write-ProvLog 'Removing stale .install-ready (livez not healthy)'
@@ -392,8 +471,7 @@ if (-not (Test-OpenXYOSCompiledSql $LiveDir)) {
 $readme = @(
     'FreeOS local openXYOS environment'
     "Live workdir (writable): $LiveDir"
-    "Install backup: $backupOpen"
-    "Sealed backup: $backupRuntime"
+    "Install copy: $backupOpen"
     'URL: http://127.0.0.1:3780'
 ) -join "`r`n"
 Set-Content -LiteralPath (Join-Path $LiveDir 'README.txt') -Value $readme -Encoding ASCII
@@ -411,8 +489,7 @@ Install-StartHelpers $LiveDir
 
 if (Test-OpenXYOSLivez) {
     Write-ProvLog 'livez already healthy after extract'
-    if (Write-InstallReady $LiveDir) { exit 0 }
-    exit 13
+    Complete-OpenXYOSSuccess
 }
 
 if (-not (Start-OpenXYOSUnelevated $LiveDir)) {
@@ -422,8 +499,7 @@ if (-not (Start-OpenXYOSUnelevated $LiveDir)) {
 }
 
 if (Wait-OpenXYOSLivez $LivezTimeoutSec) {
-    if (Write-InstallReady $LiveDir) { exit 0 }
-    exit 13
+    Complete-OpenXYOSSuccess
 }
 
 Write-ProvLog "livez not ready after ${LivezTimeoutSec}s; re-invoking start once"
@@ -433,8 +509,7 @@ if (-not (Start-OpenXYOSUnelevated $LiveDir)) {
     exit 10
 }
 if (Wait-OpenXYOSLivez $RetryTimeoutSec) {
-    if (Write-InstallReady $LiveDir) { exit 0 }
-    exit 13
+    Complete-OpenXYOSSuccess
 }
 
 Write-ProvLog 'livez timeout after start retry — see this log and start.log (not assumed to be port 3780 in use)'

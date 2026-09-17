@@ -110,11 +110,43 @@ def test_provisioner_fail_fast_when_node_dies() -> None:
 def test_provisioner_writes_marker_only_when_healthy() -> None:
     text = PROVISION_PS1.read_text(encoding="utf-8")
     write_fn = text.index("function Write-InstallReady")
-    first_write = text.index("if (Write-InstallReady $LiveDir) { exit 0 }")
-    assert write_fn < first_write
+    complete_fn = text.index("function Complete-OpenXYOSSuccess")
+    first_complete = text.index(
+        "Complete-OpenXYOSSuccess", complete_fn + len("function Complete-OpenXYOSSuccess")
+    )
+    assert write_fn < complete_fn < first_complete
     assert "Test-OpenXYOSLivez" in text
     assert ".install-ready" in text
     assert write_fn < text.index("status=healthy")
+    assert "if (Write-InstallReady $LiveDir) { exit 0 }" not in text
+
+
+def test_provisioner_removes_staging_only_after_success() -> None:
+    """Zip + openxyos-runtime folder go away only after .install-ready."""
+    text = PROVISION_PS1.read_text(encoding="utf-8")
+    clean_fn = text.index("function Remove-OpenXYOSStaging")
+    complete_fn = text.index("function Complete-OpenXYOSSuccess")
+    main = text.index("# --- main ---")
+    assert clean_fn < complete_fn < main
+    complete_body = text[complete_fn:main]
+    assert complete_body.index("Write-InstallReady") < complete_body.index("Remove-OpenXYOSStaging")
+    assert complete_body.index("Remove-OpenXYOSStaging") < complete_body.index("exit 0")
+    assert "exit 13" in complete_body
+    clean_body = text[clean_fn:complete_fn]
+    assert "Join-Path $InstallDir 'openxyos-runtime'" in clean_body
+    assert "Join-Path $liveParent 'openxyos-runtime'" in clean_body
+    assert "openxyos-runtime" in clean_body
+    assert "SilentlyContinue" in clean_body
+    assert "Join-Path $InstallDir 'openxyos'" in clean_body
+    assert "Skipping staging cleanup of protected path" in clean_body
+    # Failure exits must not call cleanup (keep zip/folder for debug).
+    for code in ("exit 2", "exit 3", "exit 5", "exit 6", "exit 7", "exit 10", "exit 12"):
+        idx = text.index(code)
+        window = text[max(0, idx - 120) : idx]
+        assert "Remove-OpenXYOSStaging" not in window, code
+        assert "Complete-OpenXYOSSuccess" not in window, code
+    assert text.count("Complete-OpenXYOSSuccess") >= 5
+    assert "Sealed backup:" not in text
 
 
 def test_wrappers_have_no_goto_labels() -> None:

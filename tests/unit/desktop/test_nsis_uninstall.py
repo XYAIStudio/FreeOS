@@ -218,6 +218,10 @@ def test_nsis_runs_openxyos_provisioner_subprocess() -> None:
     assert "nsExec::ExecToLog $R4" in provision
     assert r"$INSTDIR\openxyos-runtime.zip" in provision
     assert r"$R6\FreeOS\openxyos" in provision
+    # Cleanup after success lives in the provisioner, not NSIS (failed
+    # provision must keep the zip / openxyos-runtime folder for debug).
+    assert 'Delete "$INSTDIR\\openxyos-runtime.zip"' not in provision
+    assert 'RMDir /r "$INSTDIR\\openxyos-runtime"' not in provision
     assert "Pop $0" in provision
     assert "Abort" in provision
     assert ".install-ready" in provision
