@@ -321,7 +321,8 @@ def test_organization_embeds_local_openxyos_url() -> None:
     assert "pickDesktopFolder" in page
     assert "canPickDesktopFolder" in page
     assert "resolveOpenxyosSourceDest" in page
-    assert "browseSourceDest" in page
+    assert 'data-testid="org-download-source"' in page
+    assert "void downloadSource()" in page
     assert "http://127.0.0.1:3780" in page
     assert "<iframe" in page
     assert "onClick={() => void startSidecar()}" not in page
