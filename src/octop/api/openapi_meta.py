@@ -91,7 +91,7 @@ OPENAPI_TAGS: list[dict[str, str]] = [
     },
     {
         "name": "local-models",
-        "description": "Desktop hardware scan, local LLM discovery (Ollama / GGUF), and one-click install.",
+        "description": "Desktop hardware scan, local LLM discovery (Ollama / GGUF), speed test, and default-model selection.",
     },
     {
         "name": "internal-mcp",

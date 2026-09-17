@@ -7,13 +7,20 @@ import logging
 import subprocess
 from typing import Any
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel, Field
 
 from octop.api.deps import current_user, get_server, require_permission
+from octop.infra.agents.providers.local_default import (
+    annotate_local_models,
+    provider_base_url,
+    resolve_local_model_ref,
+    resolve_registered_or_usable,
+)
 from octop.infra.agents.providers.local_probe import probe_local_models
 from octop.infra.agents.providers.local_register import (
     ensure_ollama_service_flag,
+    find_ollama_row,
     load_registered,
     register_local_weight,
     upsert_ollama_model,
@@ -24,6 +31,7 @@ from octop.infra.agents.providers.local_scan import (
     latest_scan_job,
     start_scan_job,
 )
+from octop.infra.agents.providers.local_speed import speed_test_local_model
 from octop.infra.agents.providers.ollama_install import ensure_ollama_runtime
 from octop.infra.errors import ErrorCode, OctopError
 from octop.infra.server import OctopServer
@@ -80,6 +88,18 @@ class LocalEnsureBody(BaseModel):
     )
 
 
+class LocalSpeedTestBody(BaseModel):
+    name: str = Field(min_length=1, max_length=120, description="Local model tag to ping")
+
+
+class LocalDefaultBody(BaseModel):
+    name: str = Field(
+        min_length=1,
+        max_length=120,
+        description="Registered local model to use as the chat default",
+    )
+
+
 def register_failure(exc: BaseException) -> OctopError:
     """Map a recoverable register/import failure to a 400 the UI can show."""
     reason = str(exc).strip() or exc.__class__.__name__
@@ -114,12 +134,19 @@ def _merge_registered(probe: dict[str, Any], rows: list[dict[str, Any]]) -> dict
 
 @router.get("/probe", summary="Scan hardware and already-installed local models")
 async def local_models_probe(
-    _: Any = Depends(current_user),
+    user: Any = Depends(current_user),
     server: Any = Depends(get_server),
 ) -> dict[str, Any]:
     payload = await asyncio.to_thread(probe_local_models)
     registered = await asyncio.to_thread(load_registered, server.services.settings_repo)
-    return _merge_registered(payload, registered)
+    merged = _merge_registered(payload, registered)
+    user_row = server.services.user_repo.get(user.id)
+    return annotate_local_models(
+        merged,
+        provider_repo=server.services.provider_repo,
+        settings_repo=server.services.settings_repo,
+        user_preferences_json=user_row.preferences_json if user_row else None,
+    )
 
 
 @router.post("/start-ollama", summary="Start the installed Ollama app or daemon")
@@ -261,3 +288,101 @@ async def local_models_register(
             str(result.get("name") or body.name or ""),
         )
     return result
+
+
+def _local_runtime_url(server: Any) -> str | None:
+    return provider_base_url(find_ollama_row(server.services.provider_repo))
+
+
+async def _apply_local_default(
+    server: Any,
+    user: Any,
+    *,
+    provider_name: str,
+    model_id: str,
+) -> None:
+    ref = f"{provider_name}/{model_id}"
+    await server.user_manager.set_model_preferences(user.username, preferred_model=ref)
+    server.services.settings_repo.set_active_model(provider_name, model_id)
+    if server.app_runtime is not None:
+        await server.app_runtime.agent_registry.on_provider_changed(active_model_changed=True)
+
+
+@router.post("/speed-test", summary="Measure latency and tokens/sec for a local model")
+async def local_models_speed_test(
+    body: LocalSpeedTestBody,
+    server: Any = Depends(get_server),
+    _: Any = Depends(require_permission("ollama_models")),
+) -> dict[str, Any]:
+    """Ping Ollama ``/api/generate`` (or chat completions) with a tiny fixed prompt."""
+    resolved = resolve_local_model_ref(server.services.provider_repo, body.name)
+    model_id = resolved[1] if resolved is not None else body.name.strip()
+    result = await speed_test_local_model(name=model_id, base_url=_local_runtime_url(server))
+    result["name"] = model_id
+    if resolved is not None:
+        result["provider_name"] = resolved[0]
+    return result
+
+
+@router.put("/default", summary="Set a registered local model as the chat default")
+async def local_models_set_default(
+    body: LocalDefaultBody,
+    user: Any = Depends(require_permission("ollama_models")),
+    server: Any = Depends(get_server),
+) -> dict[str, Any]:
+    """Store the model as the user preferred model and the global active model.
+
+    Allowed when the tag is registered or already enabled on the local provider.
+    Ollama does not need to be running.
+    """
+    resolved = resolve_registered_or_usable(
+        provider_repo=server.services.provider_repo,
+        settings_repo=server.services.settings_repo,
+        name=body.name,
+    )
+    if resolved is None:
+        return {
+            "ok": False,
+            "action": "not_registered",
+            "error": "Register this local model before setting it as the default.",
+            "next_step": "Register this local model before setting it as the default.",
+            "name": body.name,
+        }
+    provider_name, model_id = resolved
+    await _apply_local_default(server, user, provider_name=provider_name, model_id=model_id)
+    ref = f"{provider_name}/{model_id}"
+    return {
+        "ok": True,
+        "action": "default",
+        "name": model_id,
+        "provider_name": provider_name,
+        "ref": ref,
+        "preferred_model": ref,
+    }
+
+
+@router.delete("/default", summary="Clear the local model as the chat default")
+async def local_models_clear_default(
+    name: str | None = Query(default=None, description="Clear only when the active model matches"),
+    user: Any = Depends(require_permission("ollama_models")),
+    server: Any = Depends(get_server),
+) -> dict[str, Any]:
+    """Clear the per-user preferred model; also drop the global active model if it matches."""
+    await server.user_manager.set_model_preferences(user.username, preferred_model=None)
+    active_name, active_model = server.services.settings_repo.get_active_model()
+    should_clear_active = True
+    if name and name.strip():
+        resolved = resolve_local_model_ref(server.services.provider_repo, name.strip())
+        should_clear_active = active_model == name.strip() or resolved == (
+            active_name,
+            active_model,
+        )
+    if should_clear_active and active_name and active_model:
+        server.services.settings_repo.delete("active_model")
+    if server.app_runtime is not None:
+        await server.app_runtime.agent_registry.on_provider_changed(active_model_changed=True)
+    return {
+        "ok": True,
+        "action": "cleared",
+        "name": name,
+    }

@@ -219,6 +219,9 @@ require the `ollama_models` permission.
 | `GET` | `/local-models/scan/{job_id}` | ollama_models | poll scan progress |
 | `DELETE` | `/local-models/scan/{job_id}` | ollama_models | cancel a running scan |
 | `POST` | `/local-models/register` | ollama_models | body `{path, name?, source, size?}` — `ollama create` from GGUF/GGML and enable the local provider |
+| `POST` | `/local-models/speed-test` | ollama_models | body `{name}` — tiny prompt against Ollama `/api/generate` (or chat completions). Returns `latency_ms`, optional `ttft_ms` / `tokens_per_sec`. Times out at 45s |
+| `PUT` | `/local-models/default` | ollama_models | body `{name}` — set the registered local model as the user preferred model and the global active model |
+| `DELETE` | `/local-models/default` | ollama_models | query `name?` — clear the preferred model; also clear the global active model when it matches |
 
 ### Media generation models
 

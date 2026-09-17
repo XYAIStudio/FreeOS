@@ -28,6 +28,8 @@ export interface LocalInstalledModel {
   source: string;
   registerable?: boolean;
   registered?: boolean;
+  provider_name?: string;
+  is_default?: boolean;
 }
 
 export interface LocalRecommendedModel {
@@ -41,6 +43,33 @@ export interface LocalProbe {
   deps?: LocalDep[];
   installed: LocalInstalledModel[];
   recommended: LocalRecommendedModel[];
+  default_ref?: string;
+  default_provider_name?: string;
+  default_model?: string;
+}
+
+export interface LocalSpeedTestResult {
+  ok: boolean;
+  name?: string;
+  provider_name?: string;
+  latency_ms?: number;
+  ttft_ms?: number | null;
+  tokens?: number | null;
+  tokens_per_sec?: number | null;
+  error?: string | null;
+  next_step?: string;
+  action?: string;
+}
+
+export interface LocalDefaultResult {
+  ok: boolean;
+  action?: string;
+  name?: string | null;
+  provider_name?: string;
+  ref?: string;
+  preferred_model?: string;
+  error?: string | null;
+  next_step?: string;
 }
 
 export interface LocalRuntimeResult {
@@ -115,4 +144,24 @@ export const localModelsApi = {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     }),
+  speedTest: (name: string, init?: RequestInit) =>
+    request<LocalSpeedTestResult>("/local-models/speed-test", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name }),
+      ...init,
+    }),
+  setDefault: (name: string) =>
+    request<LocalDefaultResult>("/local-models/default", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name }),
+    }),
+  clearDefault: (name?: string) =>
+    request<LocalDefaultResult>(
+      name
+        ? `/local-models/default?name=${encodeURIComponent(name)}`
+        : "/local-models/default",
+      { method: "DELETE" },
+    ),
 };
