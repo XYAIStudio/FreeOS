@@ -109,6 +109,7 @@
     "fullscreen": "Fullscreen",
     "exitFullscreen": "Exit fullscreen",
     "downloadSource": "Download latest openXYOS source",
+    "downloadSourceBar": "Download latest source",
     "downloadSourceHint": "Pick any folder on any drive with the system dialog. FreeOS then downloads the latest openXYOS main-branch source from GitHub.",
     "downloadSourceDest": "Save to folder",
     "downloadSourceDone": "Downloaded to {{path}}",
