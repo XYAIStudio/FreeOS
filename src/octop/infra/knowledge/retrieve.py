@@ -67,11 +67,7 @@ def _retrieve_context_sync(
     locale: str,
     visible_bases: Sequence[Any] | None,
 ) -> str:
-    assert_knowledge_usable(services.settings_repo.get, getattr(services, "provider_repo", None))
-    query_vectors = embed_knowledge_texts(services, [(query or "").strip()])
-    if not query_vectors:
-        return ""
-
+    selected_ids = _unique_ids(knowledge_base_ids)
     visible = visible_bases
     if visible is None:
         visible = (
@@ -80,25 +76,46 @@ def _retrieve_context_sync(
             else services.knowledge_repo.list_visible(user_id)
         )
     visible_by_id = {base.id: base for base in visible}
-    selected_ids = _unique_ids(knowledge_base_ids)
+    local_body = ""
+    try:
+        assert_knowledge_usable(
+            services.settings_repo.get, getattr(services, "provider_repo", None)
+        )
+        query_vectors = embed_knowledge_texts(services, [(query or "").strip()])
+        if query_vectors:
+            ranked: list[tuple[Any, Hit, Any]] = []
+            for kb_id in selected_ids:
+                base = visible_by_id.get(kb_id)
+                if base is None:
+                    continue
+                ready_documents = {
+                    document.id: document
+                    for document in services.knowledge_repo.list_documents(kb_id)
+                    if document.status == "ready" and not document.is_dir
+                }
+                for hit in KnowledgeIndex(kb_id).search(query_vectors[0], k=k):
+                    document = ready_documents.get(hit.doc_id)
+                    if document is not None:
+                        ranked.append((base, hit, document))
+            ranked.sort(key=lambda item: item[1].score, reverse=True)
+            local_body = _format_context(ranked[:k], char_budget=char_budget, locale=locale)
+    except Exception:
+        logger.warning("local knowledge retrieval skipped for user=%s", user_id, exc_info=True)
+        local_body = ""
 
-    ranked: list[tuple[Any, Hit, Any]] = []
-    for kb_id in selected_ids:
-        base = visible_by_id.get(kb_id)
-        if base is None:
-            continue
-        ready_documents = {
-            document.id: document
-            for document in services.knowledge_repo.list_documents(kb_id)
-            if document.status == "ready" and not document.is_dir
-        }
-        for hit in KnowledgeIndex(kb_id).search(query_vectors[0], k=k):
-            document = ready_documents.get(hit.doc_id)
-            if document is not None:
-                ranked.append((base, hit, document))
-
-    ranked.sort(key=lambda item: item[1].score, reverse=True)
-    return _format_context(ranked[:k], char_budget=char_budget, locale=locale)
+    remaining = max(0, char_budget - len(local_body))
+    ima_body = _format_ima_context(
+        services,
+        user_id=user_id,
+        query=(query or "").strip(),
+        selected_ids=selected_ids,
+        visible_by_id=visible_by_id,
+        char_budget=remaining,
+        locale=locale,
+    )
+    if local_body and ima_body:
+        return f"{local_body}\n\n{ima_body}"
+    return local_body or ima_body
 
 
 def _unique_ids(ids: Sequence[str]) -> list[str]:
@@ -130,3 +147,72 @@ def _format_context(
         return ""
     body = tr("knowledge.retrieval.preamble", locale) + "\n\n" + "\n\n".join(sections)
     return append_citations_marker(body, citations_from_ranked(ranked))
+
+
+def _format_ima_context(
+    services: Any,
+    *,
+    user_id: int,
+    query: str,
+    selected_ids: Sequence[str],
+    visible_by_id: dict[str, Any],
+    char_budget: int,
+    locale: str,
+) -> str:
+    if not query or char_budget <= 0:
+        return ""
+    from octop.infra.knowledge.ima import (
+        load_ima_connector_credentials,
+        search_selected_knowledge,
+    )
+    from octop.infra.knowledge.local_mount import load_mounts
+
+    if getattr(services, "connector_repo", None) is None:
+        return ""
+    try:
+        mounts = load_mounts()
+    except Exception:
+        return ""
+    passages: list[dict[str, str]] = []
+    for kb_id in selected_ids:
+        if visible_by_id.get(kb_id) is None:
+            continue
+        mount = mounts.get(kb_id)
+        if (
+            mount is None
+            or mount.kind != "cloud"
+            or (mount.cloud_provider or "ima") != "ima"
+            or not (mount.selected_bases or mount.selected_docs)
+        ):
+            continue
+        try:
+            creds = load_ima_connector_credentials(
+                services, user_id, instance_id=mount.connector_instance_id
+            )
+            passages.extend(
+                search_selected_knowledge(creds, query, mount.selected_bases, mount.selected_docs)
+            )
+        except Exception:
+            logger.warning("ima knowledge retrieval skipped for kb=%s", kb_id, exc_info=True)
+    if not passages:
+        return ""
+    sections: list[str] = []
+    remaining = char_budget
+    for item in passages:
+        citation = tr(
+            "knowledge.retrieval.ima_citation",
+            locale,
+            name=item["knowledge_base_name"],
+            filename=item["title"],
+        )
+        if remaining <= len(citation):
+            break
+        text = item["text"].strip()[: remaining - len(citation)]
+        if not text:
+            continue
+        section = f"{citation}{text}"
+        sections.append(section)
+        remaining -= len(section)
+    if not sections:
+        return ""
+    return tr("knowledge.retrieval.ima_preamble", locale) + "\n\n" + "\n\n".join(sections)

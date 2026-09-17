@@ -86,6 +86,27 @@ describe("knowledgeBasesApi", () => {
     );
   });
 
+  it("uses official ima Agent Interface endpoints", () => {
+    knowledgeBasesApi.imaStatus();
+    knowledgeBasesApi.imaConnect({ client_id: "c", api_key: "k" });
+    knowledgeBasesApi.imaListBases({ query: "work" });
+    knowledgeBasesApi.imaListDocuments("kb-ima", { folder_id: "fd1" });
+
+    expect(request).toHaveBeenNthCalledWith(1, "/knowledge-bases/ima/status");
+    expect(request).toHaveBeenNthCalledWith(2, "/knowledge-bases/ima/connect", {
+      method: "POST",
+      body: JSON.stringify({ client_id: "c", api_key: "k" }),
+    });
+    expect(request).toHaveBeenNthCalledWith(
+      3,
+      "/knowledge-bases/ima/bases?query=work",
+    );
+    expect(request).toHaveBeenNthCalledWith(
+      4,
+      "/knowledge-bases/ima/bases/kb-ima/documents?folder_id=fd1",
+    );
+  });
+
   it("forwards the upload progress handler", () => {
     const file = new File(["document"], "notes.md", { type: "text/markdown" });
     const onProgress = vi.fn();

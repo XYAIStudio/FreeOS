@@ -147,8 +147,20 @@ def produce_from_corpus(
     mounts = load_mounts(service.home)
     mount = mounts.get(kb_id) if kb_id else None
     cloud = ima_url or (mount.cloud_url if mount is not None else "")
-    if cloud:
-        pointer = attach_cloud_pointer(cloud, dest_s, provider="ima")
+    ima_mount = (
+        mount is not None
+        and mount.kind == "cloud"
+        and (mount.cloud_provider or "ima") == "ima"
+        and (mount.connector_instance_id or mount.selected_bases or mount.selected_docs)
+    )
+    if cloud or ima_mount:
+        pointer = attach_cloud_pointer(
+            cloud,
+            dest_s,
+            provider="ima",
+            selected_bases=mount.selected_bases if mount is not None else (),
+            selected_docs=mount.selected_docs if mount is not None else (),
+        )
         copied = int(pointer.get("copied") or 0)
         notes.append(f"attached cloud corpus pointer → {dest_s}")
     elif mount is not None and mount.source_path:

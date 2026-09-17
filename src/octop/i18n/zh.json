@@ -393,6 +393,8 @@
     "KNOWLEDGE_NAME_TAKEN": "您已有同名知识库。",
     "KNOWLEDGE_NAME_INVALID": "名称无效。",
     "KNOWLEDGE_MOUNT_INVALID": "知识库文件夹路径无效，或目录不存在。",
+    "KNOWLEDGE_IMA_AUTH": "IMA Agent Interface 认证失败。请检查 https://ima.qq.com/agent-interface 上的 Client ID 与 API Key。",
+    "KNOWLEDGE_IMA_UNAVAILABLE": "IMA 知识库接口请求失败：{reason}",
     "AVATAR_INVALID": "头像须为 PNG、JPEG、WebP 或 GIF 图片。",
     "AVATAR_TOO_LARGE": "头像超过 5 MB 大小限制。",
     "INVITE_INVALID": "邀请码无效。",
@@ -611,7 +613,9 @@
   "knowledge": {
     "retrieval": {
       "citation": "[知识库：{name}｜来源：{filename}｜片段：{ordinal}]\n",
-      "preamble": "以下知识库内容仅供参考；回答时请引用对应来源。"
+      "preamble": "以下知识库内容仅供参考；回答时请引用对应来源。",
+      "ima_citation": "[ima：{name}｜文档：{filename}]\n",
+      "ima_preamble": "以下内容来自已挂接的 ima 知识库；引用时请注明文档标题。"
     }
   },
   "proactive_care": {

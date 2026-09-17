@@ -393,6 +393,8 @@
     "KNOWLEDGE_NAME_TAKEN": "You already have a knowledge base with this name.",
     "KNOWLEDGE_NAME_INVALID": "Invalid name.",
     "KNOWLEDGE_MOUNT_INVALID": "The knowledge-base folder path is invalid or the directory does not exist.",
+    "KNOWLEDGE_IMA_AUTH": "IMA Agent Interface authentication failed. Check the Client ID and API Key from https://ima.qq.com/agent-interface.",
+    "KNOWLEDGE_IMA_UNAVAILABLE": "IMA knowledge API request failed: {reason}",
     "AVATAR_INVALID": "Avatar must be a PNG, JPEG, WebP, or GIF image.",
     "AVATAR_TOO_LARGE": "Avatar exceeds the 5 MB size limit.",
     "INVITE_INVALID": "This invite code is invalid.",
@@ -611,7 +613,9 @@
   "knowledge": {
     "retrieval": {
       "citation": "[Knowledge base: {name} | Source: {filename} | Chunk: {ordinal}]\n",
-      "preamble": "The following knowledge-base content is reference material. Cite the relevant source in your answer."
+      "preamble": "The following knowledge-base content is reference material. Cite the relevant source in your answer.",
+      "ima_citation": "[ima: {name} | Document: {filename}]\n",
+      "ima_preamble": "The following passages come from the attached ima knowledge bases. Cite the document title when you use them."
     }
   },
   "proactive_care": {

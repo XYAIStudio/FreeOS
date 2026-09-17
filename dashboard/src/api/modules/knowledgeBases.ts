@@ -99,6 +99,73 @@ export interface KnowledgeOcrOptions {
   }[];
 }
 
+export interface ImaConnectorSummary {
+  instance_id: string;
+  display_name: string;
+  client_id_preview: string;
+}
+
+export interface ImaStatus {
+  connected: boolean;
+  instance_id: string;
+  client_id_preview: string;
+  auth_url: string;
+  instances: ImaConnectorSummary[];
+}
+
+export interface ImaKnowledgeBase {
+  id: string;
+  name: string;
+  cover_url?: string;
+  description?: string;
+}
+
+export interface ImaKnowledgeDoc {
+  media_id: string;
+  title: string;
+  parent_folder_id?: string;
+}
+
+export interface ImaKnowledgeFolder {
+  folder_id: string;
+  name: string;
+  parent_folder_id?: string;
+  file_number?: number;
+  folder_number?: number;
+  is_folder: true;
+}
+
+export interface ImaSelectedBase {
+  id: string;
+  name: string;
+}
+
+export interface ImaSelectedDoc {
+  knowledge_base_id: string;
+  knowledge_base_name?: string;
+  media_id: string;
+  title: string;
+}
+
+export interface KnowledgeMountInfo {
+  mounted: boolean;
+  readonly?: boolean;
+  kind?: "local" | "cloud";
+  source_path?: string;
+  distill_path?: string;
+  cloud_url?: string;
+  cloud_provider?: string;
+  connector_instance_id?: string;
+  selected_bases?: ImaSelectedBase[];
+  selected_docs?: ImaSelectedDoc[];
+  entries: Array<{
+    path: string;
+    name: string;
+    is_dir: boolean;
+    size: number;
+  }>;
+}
+
 export interface KnowledgeOnnxDownloadState {
   status: "idle" | "downloading" | "loading" | "done" | "failed";
   progress: number;
@@ -315,22 +382,69 @@ export const knowledgeBasesApi = {
       },
     ),
 
+  imaStatus: () => request<ImaStatus>("/knowledge-bases/ima/status"),
+
+  imaConnect: (body: {
+    client_id?: string;
+    api_key?: string;
+    instance_id?: string;
+  }) =>
+    request<ImaStatus>("/knowledge-bases/ima/connect", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+
+  imaListBases: (opts?: {
+    query?: string;
+    cursor?: string;
+    limit?: number;
+    instance_id?: string;
+  }) => {
+    const params = new URLSearchParams();
+    if (opts?.query) params.set("query", opts.query);
+    if (opts?.cursor) params.set("cursor", opts.cursor);
+    if (opts?.limit) params.set("limit", String(opts.limit));
+    if (opts?.instance_id) params.set("instance_id", opts.instance_id);
+    const qs = params.toString();
+    return request<{
+      items: ImaKnowledgeBase[];
+      next_cursor: string;
+      is_end: boolean;
+    }>(qs ? `/knowledge-bases/ima/bases?${qs}` : "/knowledge-bases/ima/bases");
+  },
+
+  imaListDocuments: (
+    imaKbId: string,
+    opts?: {
+      folder_id?: string;
+      cursor?: string;
+      limit?: number;
+      instance_id?: string;
+    },
+  ) => {
+    const params = new URLSearchParams();
+    if (opts?.folder_id) params.set("folder_id", opts.folder_id);
+    if (opts?.cursor) params.set("cursor", opts.cursor);
+    if (opts?.limit) params.set("limit", String(opts.limit));
+    if (opts?.instance_id) params.set("instance_id", opts.instance_id);
+    const qs = params.toString();
+    return request<{
+      items: ImaKnowledgeDoc[];
+      folders: ImaKnowledgeFolder[];
+      current_path: ImaKnowledgeFolder[];
+      next_cursor: string;
+      is_end: boolean;
+      knowledge_base_id: string;
+      folder_id: string;
+    }>(
+      qs
+        ? `/knowledge-bases/ima/bases/${encodeURIComponent(imaKbId)}/documents?${qs}`
+        : `/knowledge-bases/ima/bases/${encodeURIComponent(imaKbId)}/documents`,
+    );
+  },
+
   getMount: (id: string) =>
-    request<{
-      mounted: boolean;
-      readonly?: boolean;
-      kind?: "local" | "cloud";
-      source_path?: string;
-      distill_path?: string;
-      cloud_url?: string;
-      cloud_provider?: string;
-      entries: Array<{
-        path: string;
-        name: string;
-        is_dir: boolean;
-        size: number;
-      }>;
-    }>(`/knowledge-bases/${id}/mount`),
+    request<KnowledgeMountInfo>(`/knowledge-bases/${id}/mount`),
 
   setMount: (
     id: string,
@@ -340,19 +454,12 @@ export const knowledgeBasesApi = {
       kind?: "local" | "cloud";
       cloud_url?: string;
       cloud_provider?: string;
+      connector_instance_id?: string;
+      selected_bases?: ImaSelectedBase[];
+      selected_docs?: ImaSelectedDoc[];
     },
   ) =>
-    request<{
-      mounted: boolean;
-      source_path: string;
-      distill_path: string;
-      entries: Array<{
-        path: string;
-        name: string;
-        is_dir: boolean;
-        size: number;
-      }>;
-    }>(`/knowledge-bases/${id}/mount`, {
+    request<KnowledgeMountInfo>(`/knowledge-bases/${id}/mount`, {
       method: "PUT",
       body: JSON.stringify({
         source_path,
@@ -360,6 +467,9 @@ export const knowledgeBasesApi = {
         kind: extra?.kind || "local",
         cloud_url: extra?.cloud_url || "",
         cloud_provider: extra?.cloud_provider || "",
+        connector_instance_id: extra?.connector_instance_id || "",
+        selected_bases: extra?.selected_bases || [],
+        selected_docs: extra?.selected_docs || [],
       }),
     }),
 

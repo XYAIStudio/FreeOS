@@ -469,27 +469,49 @@ def _headers(creds: dict[str, Any]) -> dict[str, str]:
     }
 
 
-def _openapi(creds: dict[str, Any], path: str, body: dict[str, Any]) -> str:
+def unwrap_openapi_data(raw: object) -> dict[str, Any]:
+    """Normalize official ``{retcode, errmsg, data}`` and legacy ``{code, msg}`` payloads."""
+    if not isinstance(raw, dict):
+        raise ValueError("IMA API returned a non-object payload")
+    code = raw.get("retcode", raw.get("code"))
+    if code not in (0, None, "0"):
+        msg = str(raw.get("errmsg") or raw.get("msg") or raw.get("message") or "IMA API error")
+        raise ValueError(f"[{code}] {msg}")
+    data = raw.get("data")
+    if isinstance(data, dict):
+        return data
+    return {
+        key: value
+        for key, value in raw.items()
+        if key not in {"retcode", "code", "errmsg", "msg", "message"}
+    }
+
+
+def _request_openapi(creds: dict[str, Any], path: str, body: dict[str, Any]) -> dict[str, Any]:
     url = f"https://ima.qq.com/{path.lstrip('/')}"
     with httpx.Client(timeout=60.0) as client:
         r = client.post(url, headers=_headers(creds), json=body)
         if r.status_code >= 400:
             raise ValueError(_http_error_message(r))
         data = r.json()
-    if isinstance(data, dict):
-        code = data.get("code")
-        if code not in (0, None, "0"):
-            msg = str(data.get("msg") or data.get("message") or "IMA API error")
-            raise ValueError(f"[{code}] {msg}")
-        return json.dumps(data, ensure_ascii=False, indent=2)
-    return str(data)
+    unwrap_openapi_data(data)
+    return data if isinstance(data, dict) else {"value": data}
+
+
+def openapi_data(creds: dict[str, Any], path: str, body: dict[str, Any]) -> dict[str, Any]:
+    """POST an official IMA OpenAPI path and return the unwrapped ``data`` object."""
+    return unwrap_openapi_data(_request_openapi(creds, path, body))
+
+
+def _openapi(creds: dict[str, Any], path: str, body: dict[str, Any]) -> str:
+    return json.dumps(_request_openapi(creds, path, body), ensure_ascii=False, indent=2)
 
 
 def _http_error_message(response: httpx.Response) -> str:
     try:
         body = response.json()
         if isinstance(body, dict):
-            msg = body.get("msg") or body.get("message")
+            msg = body.get("errmsg") or body.get("msg") or body.get("message")
             if msg:
                 return str(msg).strip()
     except Exception:

@@ -79,3 +79,69 @@ def test_retrieve_context_skips_empty_non_text_turn() -> None:
     )
 
     assert context == ""
+
+
+def test_retrieve_context_includes_ima_selection(monkeypatch) -> None:
+    from octop.infra.knowledge.local_mount import KnowledgeMount
+
+    base = SimpleNamespace(id="kb-1", name="Cloud")
+    services = SimpleNamespace(
+        knowledge_repo=SimpleNamespace(
+            list_visible=lambda _uid: [base],
+            list_documents=lambda _id: [],
+        ),
+        settings_repo=SimpleNamespace(get=lambda _key: "model"),
+        connector_repo=object(),
+        secret_repo=object(),
+    )
+    monkeypatch.setattr(retrieve_module, "assert_knowledge_usable", lambda *_args: None)
+    monkeypatch.setattr(retrieve_module, "embed_knowledge_texts", lambda *_a, **_k: [])
+    monkeypatch.setattr(
+        "octop.infra.knowledge.local_mount.load_mounts",
+        lambda: {
+            "kb-1": KnowledgeMount(
+                kb_id="kb-1",
+                kind="cloud",
+                cloud_provider="ima",
+                connector_instance_id="inst-1",
+                selected_bases=({"id": "ima-kb", "name": "工作库"},),
+                selected_docs=(
+                    {
+                        "knowledge_base_id": "ima-kb",
+                        "media_id": "m1",
+                        "title": "纪要",
+                    },
+                ),
+            )
+        },
+    )
+    monkeypatch.setattr(
+        "octop.infra.knowledge.ima.load_ima_connector_credentials",
+        lambda *_a, **_k: {"client_id": "c", "api_key": "k"},
+    )
+    monkeypatch.setattr(
+        "octop.infra.knowledge.ima.search_selected_knowledge",
+        lambda *_a, **_k: [
+            {
+                "knowledge_base_id": "ima-kb",
+                "knowledge_base_name": "工作库",
+                "media_id": "m1",
+                "title": "纪要",
+                "text": "ima selected hit",
+            }
+        ],
+    )
+
+    context = asyncio.run(
+        retrieve_module.retrieve_context(
+            services,
+            user_id=1,
+            is_admin=False,
+            query="周报",
+            knowledge_base_ids=["kb-1"],
+        )
+    )
+
+    assert "ima selected hit" in context
+    assert "工作库" in context
+    assert "纪要" in context

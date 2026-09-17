@@ -30,9 +30,15 @@ class KnowledgeMount:
     kind: str = "local"
     cloud_url: str = ""
     cloud_provider: str = ""
+    connector_instance_id: str = ""
+    selected_bases: tuple[dict[str, str], ...] = ()
+    selected_docs: tuple[dict[str, str], ...] = ()
 
     def to_dict(self) -> dict[str, Any]:
-        return asdict(self)
+        payload = asdict(self)
+        payload["selected_bases"] = [dict(item) for item in self.selected_bases]
+        payload["selected_docs"] = [dict(item) for item in self.selected_docs]
+        return payload
 
 
 @dataclass(frozen=True)
@@ -65,10 +71,13 @@ def load_mounts(home: Path | None = None) -> dict[str, KnowledgeMount]:
             continue
         source = str(value.get("source_path") or "")
         cloud_url = str(value.get("cloud_url") or "")
-        kind = str(value.get("kind") or ("cloud" if cloud_url else "local"))
+        connector_instance_id = str(value.get("connector_instance_id") or "")
+        kind = str(
+            value.get("kind") or ("cloud" if cloud_url or connector_instance_id else "local")
+        )
         if kind == "local" and not source:
             continue
-        if kind == "cloud" and not cloud_url:
+        if kind == "cloud" and not cloud_url and not connector_instance_id:
             continue
         out[str(key)] = KnowledgeMount(
             kb_id=str(key),
@@ -78,13 +87,25 @@ def load_mounts(home: Path | None = None) -> dict[str, KnowledgeMount]:
             kind=kind,
             cloud_url=cloud_url,
             cloud_provider=str(value.get("cloud_provider") or ""),
+            connector_instance_id=connector_instance_id,
+            selected_bases=_normalize_selected_bases(value.get("selected_bases")),
+            selected_docs=_normalize_selected_docs(value.get("selected_docs")),
         )
     return out
 
 
 def save_cloud_mount(mount: KnowledgeMount, home: Path | None = None) -> KnowledgeMount:
+    provider = mount.cloud_provider.strip() or "ima"
     url = mount.cloud_url.strip()
-    if not url.startswith(("http://", "https://")):
+    instance_id = mount.connector_instance_id.strip()
+    selected_bases = _normalize_selected_bases(mount.selected_bases)
+    selected_docs = _normalize_selected_docs(mount.selected_docs)
+    if provider == "ima":
+        if not instance_id and not url.startswith(("http://", "https://")):
+            raise ValueError("IMA mount requires Agent Interface credentials")
+        if url and not url.startswith(("http://", "https://")):
+            raise ValueError("cloud_url must be an http(s) URL")
+    elif not url.startswith(("http://", "https://")):
         raise ValueError("cloud_url must be an http(s) URL")
     distill = mount.distill_path.strip()
     if distill:
@@ -96,7 +117,10 @@ def save_cloud_mount(mount: KnowledgeMount, home: Path | None = None) -> Knowled
         readonly=True,
         kind="cloud",
         cloud_url=url,
-        cloud_provider=mount.cloud_provider.strip() or "ima",
+        cloud_provider=provider,
+        connector_instance_id=instance_id,
+        selected_bases=selected_bases,
+        selected_docs=selected_docs,
     )
     rows = load_mounts(home)
     rows[mount.kb_id] = stored
@@ -108,25 +132,88 @@ def save_cloud_mount(mount: KnowledgeMount, home: Path | None = None) -> Knowled
 
 
 def attach_cloud_pointer(
-    cloud_url: str, distill_path: str, *, provider: str = "ima"
+    cloud_url: str,
+    distill_path: str,
+    *,
+    provider: str = "ima",
+    selected_bases: object = (),
+    selected_docs: object = (),
+    interface_url: str = "https://ima.qq.com/agent-interface",
 ) -> dict[str, Any]:
     """Write a pointer file for corpus distillation. Does not fetch or parse the cloud KB."""
     assert_safe_host_path(distill_path)
     dest = Path(distill_path).expanduser().resolve()
     dest.mkdir(parents=True, exist_ok=True)
     pointer = dest / "CLOUD_SOURCE.md"
-    pointer.write_text(
-        f"# Cloud knowledge mount\n\nprovider: {provider}\nurl: {cloud_url}\nparse: none\n",
-        encoding="utf-8",
-    )
+    bases = _normalize_selected_bases(selected_bases)
+    docs = _normalize_selected_docs(selected_docs)
+    lines = [
+        "# Cloud knowledge mount",
+        "",
+        f"provider: {provider}",
+        f"url: {cloud_url or interface_url}",
+        f"interface: {interface_url}",
+        "parse: none",
+    ]
+    if bases:
+        lines.append("selected_bases:")
+        lines.extend(f"- {item['id']}: {item['name']}" for item in bases)
+    if docs:
+        lines.append("selected_docs:")
+        lines.extend(
+            f"- {item['knowledge_base_id']}/{item['media_id']}: {item['title']}" for item in docs
+        )
+    pointer.write_text("\n".join(lines) + "\n", encoding="utf-8")
     return {
-        "cloud_url": cloud_url,
+        "cloud_url": cloud_url or interface_url,
         "cloud_provider": provider,
         "distill_path": str(dest),
         "copied": 0,
         "no_local_parse": True,
         "readonly_source": True,
+        "selected_bases": [dict(item) for item in bases],
+        "selected_docs": [dict(item) for item in docs],
     }
+
+
+def _normalize_selected_bases(value: object) -> tuple[dict[str, str], ...]:
+    if not isinstance(value, (list, tuple)):
+        return ()
+    out: list[dict[str, str]] = []
+    seen: set[str] = set()
+    for item in value:
+        if not isinstance(item, dict):
+            continue
+        kid = str(item.get("id") or item.get("knowledge_base_id") or "").strip()
+        if not kid or kid in seen:
+            continue
+        seen.add(kid)
+        out.append({"id": kid, "name": str(item.get("name") or kid).strip() or kid})
+    return tuple(out)
+
+
+def _normalize_selected_docs(value: object) -> tuple[dict[str, str], ...]:
+    if not isinstance(value, (list, tuple)):
+        return ()
+    out: list[dict[str, str]] = []
+    seen: set[tuple[str, str]] = set()
+    for item in value:
+        if not isinstance(item, dict):
+            continue
+        kb_id = str(item.get("knowledge_base_id") or "").strip()
+        media_id = str(item.get("media_id") or "").strip()
+        if not kb_id or not media_id or (kb_id, media_id) in seen:
+            continue
+        seen.add((kb_id, media_id))
+        out.append(
+            {
+                "knowledge_base_id": kb_id,
+                "knowledge_base_name": str(item.get("knowledge_base_name") or "").strip(),
+                "media_id": media_id,
+                "title": str(item.get("title") or media_id).strip() or media_id,
+            }
+        )
+    return tuple(out)
 
 
 def save_mount(mount: KnowledgeMount, home: Path | None = None) -> KnowledgeMount:

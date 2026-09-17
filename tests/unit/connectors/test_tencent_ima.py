@@ -225,6 +225,35 @@ def test_add_note_to_knowledge(monkeypatch: pytest.MonkeyPatch) -> None:
     }
 
 
+def test_openapi_accepts_official_retcode(monkeypatch: pytest.MonkeyPatch) -> None:
+    class _Resp:
+        status_code = 200
+
+        def json(self) -> dict[str, object]:
+            return {"retcode": 0, "errmsg": "成功", "data": {"ok": True}}
+
+    class _Client:
+        def __init__(self, *_args: object, **_kwargs: object) -> None:
+            return None
+
+        def __enter__(self) -> _Client:
+            return self
+
+        def __exit__(self, *_args: object) -> None:
+            return None
+
+        def post(self, *_args: object, **_kwargs: object) -> _Resp:
+            return _Resp()
+
+    monkeypatch.setattr(
+        "octop.infra.connectors.gateway.adapters.tencent_ima.httpx.Client",
+        _Client,
+    )
+    from octop.infra.connectors.gateway.adapters.tencent_ima import openapi_data
+
+    assert openapi_data({"api_key": "k", "client_id": "c"}, "openapi/wiki/v1/x", {}) == {"ok": True}
+
+
 def test_get_media(monkeypatch: pytest.MonkeyPatch) -> None:
     captured: dict[str, object] = {}
     _install_httpx_mock(monkeypatch, captured)

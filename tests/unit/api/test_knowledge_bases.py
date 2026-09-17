@@ -820,3 +820,102 @@ async def test_put_mount_missing_dir_is_not_prerequisites(
         )
 
     assert raised.value.code == ErrorCode.KNOWLEDGE_MOUNT_INVALID
+
+
+@pytest.mark.asyncio
+async def test_ima_list_bases_uses_official_helper(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from octop.api.routers import knowledge_bases
+
+    server = SimpleNamespace(services=_services())
+    monkeypatch.setattr(knowledge_bases, "_require_enabled", lambda *_a, **_k: None)
+    monkeypatch.setattr(
+        "octop.infra.knowledge.ima.resolve_ima_credentials",
+        lambda *_a, **_k: ("inst-1", {"client_id": "c", "api_key": "k"}),
+    )
+    monkeypatch.setattr(
+        "octop.infra.knowledge.ima.list_knowledge_bases",
+        lambda *_a, **_k: {
+            "items": [{"id": "ima-kb", "name": "工作库"}],
+            "next_cursor": "",
+            "is_end": True,
+        },
+    )
+
+    response = await knowledge_bases.ima_list_bases(
+        request=_request(),
+        query="",
+        cursor="",
+        limit=20,
+        instance_id="inst-1",
+        server=server,
+        user=SimpleNamespace(id=1, is_admin=False),
+    )
+    assert response["items"][0]["id"] == "ima-kb"
+
+
+@pytest.mark.asyncio
+async def test_put_ima_mount_persists_selection(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    from octop.api.routers import knowledge_bases
+
+    settings = {"knowledge_bases_enabled": "true"}
+    server = SimpleNamespace(
+        services=_services(
+            settings_repo=SimpleNamespace(get=settings.get, set=settings.__setitem__),
+        ),
+        paths=SimpleNamespace(root=tmp_path),
+    )
+    monkeypatch.setattr(
+        knowledge_bases,
+        "_knowledge_service",
+        lambda _server: SimpleNamespace(get_writable_base=lambda *_a, **_k: _Base()),
+    )
+
+    response = await knowledge_bases.put_kb_mount(
+        "kb-1",
+        knowledge_bases.MountBody(
+            kind="cloud",
+            cloud_provider="ima",
+            connector_instance_id="inst-1",
+            selected_bases=[knowledge_bases.ImaSelectedBase(id="ima-kb", name="工作库")],
+            selected_docs=[
+                knowledge_bases.ImaSelectedDoc(
+                    knowledge_base_id="ima-kb",
+                    knowledge_base_name="工作库",
+                    media_id="m1",
+                    title="纪要",
+                )
+            ],
+        ),
+        request=_request(),
+        server=server,
+        user=SimpleNamespace(id=1, is_admin=False),
+    )
+    assert response["mounted"] is True
+    assert response["connector_instance_id"] == "inst-1"
+    assert response["selected_docs"][0]["media_id"] == "m1"
+
+
+@pytest.mark.asyncio
+async def test_ima_connect_maps_auth_error(monkeypatch: pytest.MonkeyPatch) -> None:
+    from octop.api.routers import knowledge_bases
+
+    server = SimpleNamespace(services=_services())
+    monkeypatch.setattr(knowledge_bases, "_require_enabled", lambda *_a, **_k: None)
+
+    def fail(*_a: object, **_k: object) -> None:
+        raise ValueError("IMA credentials: bad key")
+
+    monkeypatch.setattr("octop.infra.knowledge.ima.resolve_ima_credentials", fail)
+
+    with pytest.raises(OctopError) as raised:
+        await knowledge_bases.ima_connect(
+            knowledge_bases.ImaConnectBody(client_id="c", api_key="k"),
+            request=_request(),
+            server=server,
+            user=SimpleNamespace(id=1, is_admin=False),
+        )
+    assert raised.value.code == ErrorCode.KNOWLEDGE_IMA_AUTH

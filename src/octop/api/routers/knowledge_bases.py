@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from contextlib import suppress
 from dataclasses import asdict
 from typing import Any
@@ -224,9 +225,17 @@ def _map_knowledge_error(
             "cloud_url",
             "outside the mounted",
             "not a directory",
+            "ima mount requires",
         )
     ):
         return OctopError.localized(ErrorCode.KNOWLEDGE_MOUNT_INVALID, locale)
+    if isinstance(exc, ValueError) and text.startswith("ima credentials"):
+        return OctopError.localized(ErrorCode.KNOWLEDGE_IMA_AUTH, locale)
+    if isinstance(exc, ValueError) and text.startswith("ima api"):
+        reason = str(exc).split(":", 1)[-1].strip() or str(exc)
+        return OctopError.localized(
+            ErrorCode.KNOWLEDGE_IMA_UNAVAILABLE, locale, details={"reason": reason}, reason=reason
+        )
     if "at most 100" in text:
         return OctopError.localized(ErrorCode.KNOWLEDGE_DOC_LIMIT, locale)
     if "document size exceeds" in text:
@@ -574,6 +583,165 @@ async def default_open_bases(
             if base.default_open and int(base.owner_user_id) == int(user.id)
         ]
     }
+
+
+class ImaConnectBody(BaseModel):
+    client_id: str = Field(default="", description="IMA OpenAPI Client ID")
+    api_key: str = Field(default="", description="IMA OpenAPI API Key (shown once on IMA)")
+    instance_id: str = Field(default="", description="Existing tencent-ima connector instance")
+
+
+class ImaSelectedBase(BaseModel):
+    id: str = Field(min_length=1)
+    name: str = ""
+
+
+class ImaSelectedDoc(BaseModel):
+    knowledge_base_id: str = Field(min_length=1)
+    knowledge_base_name: str = ""
+    media_id: str = Field(min_length=1)
+    title: str = ""
+
+
+def _ima_status_payload(server: OctopServer, user_id: int) -> dict[str, Any]:
+    from octop.infra.knowledge.ima import list_ima_connector_summaries
+
+    assert server.services is not None
+    instances = list_ima_connector_summaries(server.services, user_id)
+    first = instances[0] if instances else None
+    return {
+        "connected": bool(first),
+        "instance_id": first["instance_id"] if first else "",
+        "client_id_preview": first["client_id_preview"] if first else "",
+        "auth_url": "https://ima.qq.com/agent-interface",
+        "instances": instances,
+    }
+
+
+@router.get(
+    "/ima/status",
+    summary="IMA Agent Interface connection status for knowledge mount",
+)
+async def ima_status(
+    request: Request,
+    server: OctopServer = Depends(get_server),
+    user: User = Depends(current_user),
+) -> dict[str, Any]:
+    try:
+        _require_enabled(server, request)
+        return _ima_status_payload(server, user.id)
+    except Exception as exc:
+        raise _map_knowledge_error(
+            exc, locale=resolve_request_locale(request), server=server
+        ) from exc
+
+
+@router.post(
+    "/ima/connect",
+    summary="Connect ima with official Agent Interface Client ID and API Key",
+)
+async def ima_connect(
+    body: ImaConnectBody,
+    request: Request,
+    server: OctopServer = Depends(get_server),
+    user: User = Depends(require_permission("knowledge_bases")),
+) -> dict[str, Any]:
+    from octop.infra.knowledge.ima import preview_client_id, resolve_ima_credentials
+
+    try:
+        _require_enabled(server, request)
+        assert server.services is not None
+        instance_id, creds = await asyncio.to_thread(
+            resolve_ima_credentials,
+            server.services,
+            user.id,
+            instance_id=body.instance_id,
+            client_id=body.client_id,
+            api_key=body.api_key,
+            persist=True,
+        )
+        status_payload = _ima_status_payload(server, user.id)
+        return {
+            **status_payload,
+            "connected": True,
+            "instance_id": instance_id,
+            "client_id_preview": preview_client_id(creds["client_id"]),
+        }
+    except Exception as exc:
+        raise _map_knowledge_error(
+            exc, locale=resolve_request_locale(request), server=server
+        ) from exc
+
+
+@router.get(
+    "/ima/bases",
+    summary="List ima knowledge bases via official search_knowledge_base",
+)
+async def ima_list_bases(
+    request: Request,
+    query: str = Query(default=""),
+    cursor: str = Query(default=""),
+    limit: int = Query(default=20, ge=1, le=50),
+    instance_id: str = Query(default=""),
+    server: OctopServer = Depends(get_server),
+    user: User = Depends(require_permission("knowledge_bases")),
+) -> dict[str, Any]:
+    from octop.infra.knowledge.ima import list_knowledge_bases, resolve_ima_credentials
+
+    try:
+        _require_enabled(server, request)
+        assert server.services is not None
+
+        def _load() -> dict[str, Any]:
+            _instance_id, creds = resolve_ima_credentials(
+                server.services, user.id, instance_id=instance_id
+            )
+            return list_knowledge_bases(creds, query=query, cursor=cursor, limit=limit)
+
+        return await asyncio.to_thread(_load)
+    except Exception as exc:
+        raise _map_knowledge_error(
+            exc, locale=resolve_request_locale(request), server=server
+        ) from exc
+
+
+@router.get(
+    "/ima/bases/{ima_kb_id}/documents",
+    summary="List ima documents via official get_knowledge_list",
+)
+async def ima_list_documents(
+    ima_kb_id: str,
+    request: Request,
+    folder_id: str = Query(default=""),
+    cursor: str = Query(default=""),
+    limit: int = Query(default=20, ge=1, le=50),
+    instance_id: str = Query(default=""),
+    server: OctopServer = Depends(get_server),
+    user: User = Depends(require_permission("knowledge_bases")),
+) -> dict[str, Any]:
+    from octop.infra.knowledge.ima import list_knowledge_documents, resolve_ima_credentials
+
+    try:
+        _require_enabled(server, request)
+        assert server.services is not None
+
+        def _load() -> dict[str, Any]:
+            _instance_id, creds = resolve_ima_credentials(
+                server.services, user.id, instance_id=instance_id
+            )
+            return list_knowledge_documents(
+                creds,
+                ima_kb_id,
+                folder_id=folder_id,
+                cursor=cursor,
+                limit=limit,
+            )
+
+        return await asyncio.to_thread(_load)
+    except Exception as exc:
+        raise _map_knowledge_error(
+            exc, locale=resolve_request_locale(request), server=server
+        ) from exc
 
 
 @router.get("/{kb_id}", summary="Get a visible knowledge base")
@@ -980,9 +1148,18 @@ class MountBody(BaseModel):
     )
     kind: str = Field(default="local", pattern="^(local|cloud)$")
     cloud_url: str = Field(
-        default="", description="Cloud knowledge URL (e.g. ima). No local parse."
+        default="", description="Optional cloud pointer URL. ima mounts use Agent Interface IDs."
     )
     cloud_provider: str = Field(default="", description="Cloud corpus provider id, e.g. ima")
+    connector_instance_id: str = Field(
+        default="", description="tencent-ima connector that holds official Client ID / API Key"
+    )
+    selected_bases: list[ImaSelectedBase] = Field(
+        default_factory=list, description="IMA knowledge bases chosen after connect"
+    )
+    selected_docs: list[ImaSelectedDoc] = Field(
+        default_factory=list, description="IMA documents chosen after connect"
+    )
 
 
 class DistillBody(BaseModel):
@@ -1050,6 +1227,19 @@ async def put_kb_mount(
                 kind=body.kind,
                 cloud_url=body.cloud_url,
                 cloud_provider=body.cloud_provider,
+                connector_instance_id=body.connector_instance_id,
+                selected_bases=tuple(
+                    {"id": item.id, "name": item.name} for item in body.selected_bases
+                ),
+                selected_docs=tuple(
+                    {
+                        "knowledge_base_id": item.knowledge_base_id,
+                        "knowledge_base_name": item.knowledge_base_name,
+                        "media_id": item.media_id,
+                        "title": item.title,
+                    }
+                    for item in body.selected_docs
+                ),
             ),
             _mount_home(server),
         )
@@ -1121,6 +1311,8 @@ async def distill_kb_mount(
                 mount.cloud_url,
                 body.distill_path,
                 provider=mount.cloud_provider or "ima",
+                selected_bases=mount.selected_bases,
+                selected_docs=mount.selected_docs,
             )
             save_mount(
                 KnowledgeMount(
@@ -1129,6 +1321,9 @@ async def distill_kb_mount(
                     kind="cloud",
                     cloud_url=mount.cloud_url,
                     cloud_provider=mount.cloud_provider,
+                    connector_instance_id=mount.connector_instance_id,
+                    selected_bases=mount.selected_bases,
+                    selected_docs=mount.selected_docs,
                 ),
                 _mount_home(server),
             )
