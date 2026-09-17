@@ -9,6 +9,7 @@
 ### Fixed
 
 - Detect models from an already-running Ollama daemon even when FreeOS-managed Ollama startup is disabled; model discovery never starts Ollama unless the user enabled it.
+- Preserve `config.json` when it is malformed: startup and all configuration writers now report the file and parser position, avoid leaking stored credentials, and use atomic replacement instead of silently rebuilding an empty configuration.
 
 ## [0.0.10] - 2026-10-03
 
