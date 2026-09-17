@@ -153,10 +153,10 @@ export default function PersonalizationPage() {
   return (
     <PageShell
       title={pageTitle}
-      subtitle={t("personalization.description")}
       agentScoped
       fill={!isMobile}
       pathTabs={pathTabs}
+      pathTabsPlacement="below-title"
     >
       <div className={styles.panels}>
         {isMounted("skills") && (

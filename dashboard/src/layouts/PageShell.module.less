@@ -73,6 +73,41 @@
   border-radius: 8px;
 }
 
+.pathTabsRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+}
+
+.pathTabsFlush {
+  flex-direction: column;
+  flex-wrap: nowrap;
+  align-items: stretch;
+  width: 100%;
+  padding: 0;
+  background: var(--fn-bg-layout);
+  border-radius: 0;
+
+  .pathTabsRow {
+    flex-wrap: nowrap;
+    width: 100%;
+    overflow-x: auto;
+    scrollbar-width: none;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
+  }
+}
+
+.pathTabsBelowTitle {
+  flex-shrink: 0;
+  width: 100%;
+  margin: 0 0 12px;
+  background: var(--fn-bg-layout);
+}
+
 .pathTabsCompact {
   width: 100%;
 }
