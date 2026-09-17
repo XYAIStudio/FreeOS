@@ -37,4 +37,55 @@ describe("PageShell path tabs", () => {
       "true",
     );
   });
+
+  it("places a two-row flush strip below the title without a subtitle", () => {
+    const labels = [
+      "技能",
+      "通道",
+      "连接器/MCP",
+      "技能包",
+      "工具",
+      "插件",
+      "子智能体",
+      "MBTI",
+      "记忆",
+      "工作台",
+      "远程桌面",
+      "ACP",
+      "用户",
+      "存储",
+      "主机插件",
+      "安全",
+      "高级",
+      "智能体配置",
+    ];
+    const { container } = render(
+      <PageShell
+        title="个性化 / 技能"
+        pathTabsPlacement="below-title"
+        pathTabs={{
+          value: "skills",
+          onChange: vi.fn(),
+          options: labels.map((label) => ({
+            value: label,
+            label,
+            icon: null,
+          })),
+        }}
+      >
+        <div>body</div>
+      </PageShell>,
+    );
+
+    expect(screen.queryByText("技能、通道、连接器、技能包")).toBeNull();
+    expect(container.querySelector("div[class*='titleActions']")).toBeNull();
+    const rows = container.querySelectorAll("[data-testid='path-tabs-row']");
+    expect(rows).toHaveLength(2);
+    expect(rows[0].querySelectorAll("[role='tab']")).toHaveLength(9);
+    expect(rows[1].querySelectorAll("[role='tab']")).toHaveLength(9);
+    expect(container.querySelector("div[class*='pathTabsFlush']")).toBeTruthy();
+    expect(
+      container.querySelector("div[class*='pathTabsBelowTitle']"),
+    ).toBeTruthy();
+  });
 });

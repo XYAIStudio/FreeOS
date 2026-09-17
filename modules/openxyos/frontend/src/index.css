@@ -97,6 +97,48 @@ html, body, #root {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/*
+ * FreeOS Organization embeds this app in an iframe whose box is the visible
+ * preview pane. `position:fixed` is relative to that box. Center overlays
+ * with grid + place-items so dialogs stay in the visible iframe (vertical
+ * and horizontal), and cap height so tall forms scroll inside the dialog.
+ */
+html.ox-embedded,
+html.ox-embedded body,
+html.ox-embedded #root {
+  height: 100%;
+  max-height: 100%;
+}
+
+.ox-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  justify-items: center;
+  overflow: auto;
+  max-height: 100%;
+  padding: 16px;
+  box-sizing: border-box;
+}
+
+.ox-overlay > .ox-dialog,
+.ox-dialog {
+  margin: auto;
+  max-height: min(90dvh, calc(100% - 24px));
+  overflow: auto;
+}
+
+html.ox-embedded .fixed.inset-0 {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  max-height: 100%;
+  overflow: auto;
+}
+
 /* ===== 跨浏览器兼容修复 ===== */
 
 /* Safari/旧WebKit backdrop-filter */

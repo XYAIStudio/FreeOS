@@ -87,6 +87,8 @@ def test_start_sidecar_cors_origin_is_parseorigins_safe() -> None:
     origins = [part.strip() for part in match.group(1).split(",") if part.strip()]
     assert origins
     assert "*" not in origins
+    assert "http://127.0.0.1:3780" in origins
+    assert "http://localhost:3780" in origins
     for origin in origins:
         parsed = urlparse(origin)
         assert parsed.scheme in {"http", "https"}, origin

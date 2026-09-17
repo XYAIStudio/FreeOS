@@ -8,6 +8,10 @@
 
 ### 修复
 
+- 对话模型选择器底部增加「模型管理」，跳到侧栏同一条「模型」路由（`/models`）。
+- 组织页默认只显示本机 openXYOS 嵌入和顶部蓝色状态栏；「启用组织模块」「组织OS管理」在状态栏右下。互生长导入/导出、源码下载、循环时间线等收到「组织OS管理」。iframe 高度等于可见预览区，openXYOS 弹窗按 iframe 视口水平垂直居中。
+- 嵌入本机 openXYOS 登录不再因 CORS 漏掉 `http://127.0.0.1:3780` 而返回笼统的「服务器内部错误」。启动环境合并 sidecar 自源；无演示种子时写入本地 demo 账号，保证隔空第一台电脑能登录。
+
 - Windows 安装期 `start-sidecar.ps1` 不再把数据目录写到只读自动变量 `$home` / `$HOME`（赋值抛 `SessionStateUnauthorizedAccessException`，`$ErrorActionPreference = Continue` 时脚本继续跑，SQLite 会落到 `%USERPROFILE%\\org-os\\xiongyuan.db`）。改为 `$freeosHome`（默认 `%USERPROFILE%\\.freeos`）。
 - 预构建 `openxyos-runtime.zip` 现在带上 `backend-dist/migrations/*.sql`。编译后的 `server.js` 用 `__dirname/migrations` 做 `initDatabase()`，缺文件会 ENOENT（`013_audit_bundle.sql`）并让 livez 永远起不来。安装期预配也会把已有 live 目录里的 `backend/migrations` 补到 `backend-dist/migrations`。
 - Windows 安装期 `start-sidecar.ps1` 不再用 PowerShell 5.1 默认的 `UseShellExecute=true` 拉起 Node（那样不会继承 `$env:CORS_ORIGIN`，生产环境 `parseOrigins` 立刻抛错，进程退出，3780 无监听，预配空等 90s 后才以退出码 12 失败）。改为 `UseShellExecute=false` 并显式写入 `ProcessStartInfo.EnvironmentVariables`，把 Node stdout/stderr 记入 `%LOCALAPPDATA%\\FreeOS\\openxyos\\start.log`；进程在 livez 前退出则预配以退出码 10 失败并附上日志摘录。

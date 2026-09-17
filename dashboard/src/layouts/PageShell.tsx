@@ -32,8 +32,14 @@ interface PageShellProps {
   /**
    * Path tabs shared by Workbench / Personalization:
    * desktop → title-row actions (wraps); mobile → full-width bar above content.
+   * Use `pathTabsPlacement="below-title"` for a two-row strip under the title.
    */
   pathTabs?: PathTabsConfig;
+  /**
+   * `title-row` (default): desktop chips sit in the title actions slot and wrap.
+   * `below-title`: two equal rows directly under the title, on the page background.
+   */
+  pathTabsPlacement?: "title-row" | "below-title";
   /** Render agent picker below the title row, outside the scrollable content card. */
   agentScoped?: boolean;
   /** When true, the content area does not scroll; children fill remaining height. */
@@ -41,36 +47,75 @@ interface PageShellProps {
   children: React.ReactNode;
 }
 
+function splitPathTabRows(options: PathTabOption[]): PathTabOption[][] {
+  if (options.length <= 1) return [options];
+  const mid = Math.ceil(options.length / 2);
+  return [options.slice(0, mid), options.slice(mid)];
+}
+
+function PathTabButton({
+  opt,
+  active,
+  compact,
+  onChange,
+}: {
+  opt: PathTabOption;
+  active: boolean;
+  compact: boolean;
+  onChange: (value: string | number) => void;
+}) {
+  return (
+    <button
+      type="button"
+      role="tab"
+      aria-selected={active}
+      className={`${styles.pathTab} ${active ? styles.pathTabActive : ""}`}
+      onClick={() => onChange(opt.value)}
+    >
+      {compact ? null : opt.icon}
+      <span className={styles.pathTabText}>{opt.label}</span>
+    </button>
+  );
+}
+
 function PathTabsBar({
   pathTabs,
   compact,
+  splitRows,
+  flush,
 }: {
   pathTabs: PathTabsConfig;
   compact: boolean;
+  splitRows?: boolean;
+  flush?: boolean;
 }) {
+  const rows = splitRows
+    ? splitPathTabRows(pathTabs.options)
+    : [pathTabs.options];
   return (
     <div
-      className={`${styles.pathTabs} ${compact ? styles.pathTabsCompact : ""}`}
+      className={`${styles.pathTabs} ${compact ? styles.pathTabsCompact : ""} ${
+        flush ? styles.pathTabsFlush : ""
+      }`}
       role="tablist"
     >
-      {pathTabs.options.map((opt) => {
-        const active = opt.value === pathTabs.value;
-        return (
-          <button
-            key={opt.value}
-            type="button"
-            role="tab"
-            aria-selected={active}
-            className={`${styles.pathTab} ${
-              active ? styles.pathTabActive : ""
-            }`}
-            onClick={() => pathTabs.onChange(opt.value)}
-          >
-            {compact ? null : opt.icon}
-            <span className={styles.pathTabText}>{opt.label}</span>
-          </button>
-        );
-      })}
+      {rows.map((row, index) => (
+        <div
+          key={index}
+          className={styles.pathTabsRow}
+          data-testid="path-tabs-row"
+        >
+          {row.map((opt) => (
+            <PathTabButton
+              key={opt.value}
+              opt={opt}
+              active={opt.value === pathTabs.value}
+              compact={compact}
+              onChange={pathTabs.onChange}
+            />
+          ))}
+        </div>
+      ))}
     </div>
   );
 }
@@ -87,6 +132,7 @@ function PathTabsBar({
  *  - Only the content area scrolls internally
  *  - `actions` slot: right-aligned in the title row
  *  - `pathTabs`: desktop in title row (flex-wrap); mobile full-width wrapping bar
+ *  - `pathTabsPlacement="below-title"`: two rows under the title, page-bg strip
  *
  * Tabbed helpers: `PageShell.FillTabs` (Ant Tabs) and `PageShell.Tabbed`
  * (custom tab bar) pin the tab chrome and scroll only the body on desktop.
@@ -96,6 +142,7 @@ function PageShell({
   subtitle,
   actions,
   pathTabs,
+  pathTabsPlacement = "title-row",
   agentScoped,
   fill,
   children,
@@ -104,11 +151,16 @@ function PageShell({
   const outerPad = isMobile ? 12 : 32;
   const outerPadTop = isMobile ? 12 : 24;
   const contentPad = isMobile ? 12 : 24;
+  const tabsBelowTitle = Boolean(
+    pathTabs && pathTabsPlacement === "below-title",
+  );
+  const tabsInTitleRow = Boolean(pathTabs && !tabsBelowTitle && !isMobile);
+  const tabsInContent = Boolean(pathTabs && !tabsBelowTitle && isMobile);
   /** Fill layout, or mobile path-tabs that must stay pinned above the body. */
-  const pinBody = Boolean(fill || (isMobile && pathTabs));
+  const pinBody = Boolean(fill || tabsInContent);
 
   const titleActions =
-    !isMobile && pathTabs ? (
+    tabsInTitleRow && pathTabs ? (
       <>
         <PathTabsBar pathTabs={pathTabs} compact={false} />
         {actions}
@@ -133,7 +185,7 @@ function PageShell({
       <div
         className={styles.titleRow}
         style={{
-          marginBottom: agentScoped ? 12 : 24,
+          marginBottom: tabsBelowTitle ? 8 : agentScoped ? 12 : 24,
           paddingRight: titleRowEndPadding(outerPad),
         }}
       >
@@ -151,6 +203,12 @@ function PageShell({
           <div className={styles.titleActions}>{titleActions}</div>
         ) : null}
       </div>
+
+      {tabsBelowTitle && pathTabs ? (
+        <div className={styles.pathTabsBelowTitle}>
+          <PathTabsBar pathTabs={pathTabs} compact={isMobile} splitRows flush />
+        </div>
+      ) : null}
 
       {agentScoped && (
         <div className={styles.agentBar}>
@@ -178,7 +236,7 @@ function PageShell({
           flexDirection: pinBody ? "column" : undefined,
         }}
       >
-        {isMobile && pathTabs && (
+        {tabsInContent && pathTabs && (
           <div className={styles.pathTabsMobile}>
             <PathTabsBar pathTabs={pathTabs} compact />
           </div>

@@ -1,127 +1,49 @@
+/*
+ * Organization page layout
+ * ------------------------
+ * The main view is a slim blue status bar + a full-area iframe. The iframe
+ * box is height-constrained to the remaining window (not stretched to match
+ * leftover chrome). That matters for openXYOS dialogs: `position:fixed`
+ * inside the iframe is relative to the iframe element's box. A tall iframe
+ * (old two-column layout) centered modals far below the visible FreeOS
+ * viewport. Keeping the iframe == the visible pane centers overlays both
+ * vertically and horizontally.
+ */
 .page {
   display: flex;
   flex-direction: column;
-  gap: 20px;
-}
-
-.workspace {
-  display: grid;
-  grid-template-columns: minmax(320px, 42%) minmax(0, 1fr);
-  gap: 16px;
-  align-items: stretch;
+  flex: 1;
   min-height: 0;
+  height: 100%;
+  gap: 0;
 }
 
-.column {
+.statusBar {
   display: flex;
-  flex-direction: column;
-  gap: 16px;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  flex-shrink: 0;
+  min-height: 56px;
+  padding: 10px 16px;
+  color: #fff;
+  background: #0033ff;
+  box-shadow: 0 8px 24px rgba(0, 51, 255, 0.22);
+}
+
+.statusMeta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
   min-width: 0;
 }
 
-.preview {
-  display: flex;
-  flex-direction: column;
-  min-height: 560px;
-  border-radius: 16px;
-  border: 1px solid var(--fn-border-primary);
-  background: var(--fn-bg-primary);
-  overflow: hidden;
-}
-
-.previewFullscreen {
-  position: fixed;
-  inset: 0;
-  z-index: 1200;
-  min-height: 0;
-  border-radius: 0;
-  background: var(--fn-bg-primary);
-}
-
-.previewHeader {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 12px 14px;
-  border-bottom: 1px solid var(--fn-border-primary);
-}
-
-.previewTitle {
-  margin: 0;
+.statusTitle {
+  margin: 0 8px 0 0;
   font-size: 15px;
-  font-weight: 650;
-}
-
-.previewBody {
-  position: relative;
-  flex: 1;
-  min-height: 0;
-  background: #fff;
-}
-
-.previewEmpty {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  justify-content: center;
-  gap: 12px;
-  padding: 24px;
-  background: var(--fn-bg-secondary);
-}
-
-@media (max-width: 1100px) {
-  .workspace {
-    grid-template-columns: 1fr;
-  }
-
-  .preview {
-    min-height: 420px;
-  }
-}
-
-.hero {
-  position: relative;
-  overflow: hidden;
-  border-radius: 20px;
-  padding: 28px 28px 24px;
-  color: #fff;
-  background: radial-gradient(
-      1200px 400px at 10% -20%,
-      rgba(107, 140, 255, 0.55),
-      transparent 60%
-    ),
-    radial-gradient(
-      800px 360px at 90% 120%,
-      rgba(0, 51, 255, 0.45),
-      transparent 55%
-    ),
-    linear-gradient(135deg, #001a80 0%, #0033ff 48%, #4b74fa 100%);
-  box-shadow: 0 18px 48px rgba(0, 51, 255, 0.22);
-}
-
-.heroTitle {
-  margin: 0 0 8px;
-  font-size: 28px;
-  font-weight: 720;
-  letter-spacing: -0.03em;
-}
-
-.heroStory {
-  margin: 0;
-  max-width: 720px;
-  font-size: 16px;
-  line-height: 1.6;
-  color: rgba(255, 255, 255, 0.9);
-}
-
-.heroMeta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 16px;
+  font-weight: 680;
+  letter-spacing: -0.02em;
 }
 
 .chip {
@@ -129,10 +51,71 @@
   align-items: center;
   gap: 6px;
   border-radius: 999px;
-  padding: 4px 10px;
+  padding: 3px 10px;
   font-size: 12px;
   background: rgba(255, 255, 255, 0.14);
   border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+.statusActions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+}
+
+.statusActions :global(.ant-btn) {
+  color: #0033ff;
+  border-color: transparent;
+  background: #fff;
+}
+
+.statusActions :global(.ant-btn:hover) {
+  color: #0033ff !important;
+  border-color: #fff !important;
+  background: #f4f6ff !important;
+}
+
+.embedPane {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  background: #fff;
+  overflow: hidden;
+}
+
+.embed {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: #fff;
+}
+
+.previewOffline {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  color: var(--fn-text-secondary);
+  background: var(--fn-bg-secondary);
+  pointer-events: none;
+}
+
+.drawerBody {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.heroStory {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--fn-text-secondary);
 }
 
 .dual {
@@ -150,6 +133,15 @@
   .flow {
     min-height: 72px;
   }
+
+  .statusBar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .statusActions {
+    justify-content: flex-end;
+  }
 }
 
 .plane {
@@ -157,7 +149,6 @@
   padding: 20px;
   background: var(--fn-bg-primary);
   border: 1px solid var(--fn-border-primary);
-  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04);
 }
 
 .planeHead {
@@ -234,7 +225,6 @@
   display: grid;
   place-items: center;
   margin: 8px 0;
-  animation: spin 12s linear infinite;
 }
 
 .orbitCore {
@@ -243,18 +233,6 @@
   border-radius: 50%;
   background: var(--fn-color-brand);
   box-shadow: 0 0 0 6px rgba(0, 51, 255, 0.12);
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .orbit {
-    animation: none;
-  }
 }
 
 .actions {
@@ -313,11 +291,6 @@
   font-weight: 680;
 }
 
-.recoverBody {
-  margin: 0 0 12px;
-  color: var(--fn-text-secondary);
-}
-
 .timeline {
   border-radius: 16px;
   padding: 18px 20px;
@@ -362,15 +335,6 @@
   color: var(--fn-text-secondary);
 }
 
-.embed {
-  display: block;
-  width: 100%;
-  height: 100%;
-  min-height: 100%;
-  border: 0;
-  background: #fff;
-}
-
 .empty {
   border-radius: 16px;
   padding: 22px;
@@ -382,4 +346,11 @@
   margin: 0 0 8px;
   font-size: 18px;
   font-weight: 680;
+}
+
+.moduleToggle {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
 }

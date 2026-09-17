@@ -8,6 +8,7 @@ import { LTSProvider, getAuthProvider } from "../services/auth-provider";
 import { dbGet, dbRun } from "../db";
 import bcrypt from "bcryptjs";
 import { localizedError } from "../utils/locale";
+import { logError } from "../utils/error-handler";
 
 function authError(req: Parameters<typeof localizedError>[0], message: string): string {
   const known: Record<string, string> = {
@@ -77,8 +78,17 @@ authRoutes.post("/login", async (req, res) => {
         tokens: result.tokens,
       },
     });
-  } catch (err: any) {
-    res.status(500).json({ success: false, error: err.message || String(err) });
+  } catch (err: unknown) {
+    const tid = logError("POST /login", err);
+    res.status(500).json({
+      success: false,
+      error: localizedError(
+        req,
+        "登录服务暂时不可用。请确认本机 openXYOS 已启动，或稍后重试。",
+        "Sign-in is temporarily unavailable. Confirm local openXYOS is running, or try again shortly.",
+      ),
+      traceId: tid,
+    });
   }
 });
 
