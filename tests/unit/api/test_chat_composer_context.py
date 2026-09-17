@@ -89,4 +89,7 @@ def test_chat_turn_body_reads_permission_mode() -> None:
         }
     )
     assert turn.permission_mode == "full"
-    assert ChatTurnBody.from_ws_payload({"text": "hi", "permission_mode": "yolo"}).permission_mode is None
+    assert (
+        ChatTurnBody.from_ws_payload({"text": "hi", "permission_mode": "yolo"}).permission_mode
+        is None
+    )

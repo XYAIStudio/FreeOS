@@ -14,11 +14,16 @@ ChatPermissionMode = Literal["default", "auto", "full"]
 
 PERMISSION_MODES: tuple[ChatPermissionMode, ...] = ("default", "auto", "full")
 CONFIG_KEY = "octop_permission_mode"
+_MODE_BY_VALUE: dict[str, ChatPermissionMode] = {
+    "default": "default",
+    "auto": "auto",
+    "full": "full",
+}
 
 
 def normalize_permission_mode(raw: Any) -> ChatPermissionMode | None:
-    if raw in PERMISSION_MODES:
-        return raw  # type: ignore[return-value]
+    if isinstance(raw, str):
+        return _MODE_BY_VALUE.get(raw)
     return None
 
 

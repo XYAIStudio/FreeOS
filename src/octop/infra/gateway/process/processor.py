@@ -1286,7 +1286,7 @@ class GlobalProcessor:
             reasoning_overrides=reasoning_overrides,
         )
         from octop.infra.agents.permission_mode import (  # noqa: PLC0415
-            CONFIG_KEY as PERMISSION_MODE_KEY,
+            CONFIG_KEY,
             normalize_permission_mode,
         )
 
@@ -1295,7 +1295,7 @@ class GlobalProcessor:
             permission_mode = normalize_permission_mode(composer.get("permissionMode"))
         if permission_mode is not None:
             configurable = dict(request.get("configurable") or {})
-            configurable[PERMISSION_MODE_KEY] = permission_mode
+            configurable[CONFIG_KEY] = permission_mode
             request["configurable"] = configurable
             if isinstance(message_kwargs.get(COMPOSER_CTX_KEY), dict):
                 stamped_ctx = dict(message_kwargs[COMPOSER_CTX_KEY])

@@ -2639,15 +2639,15 @@ class AgentManager:
             configurable["plugin_tool_configs"] = tool_configs
             req["configurable"] = configurable
         from octop.infra.agents.permission_mode import (  # noqa: PLC0415
-            CONFIG_KEY as PERMISSION_MODE_KEY,
+            CONFIG_KEY,
             normalize_permission_mode,
             permission_mode_security_override,
         )
 
         configurable = dict(req.get("configurable") or {})
-        mode = normalize_permission_mode(configurable.get(PERMISSION_MODE_KEY))
+        mode = normalize_permission_mode(configurable.get(CONFIG_KEY))
         if mode is not None:
-            configurable[PERMISSION_MODE_KEY] = mode
+            configurable[CONFIG_KEY] = mode
             patch = permission_mode_security_override(mode)
             if patch:
                 policy = SecurityPolicy.merge(self._security.harness_policy(), patch)
