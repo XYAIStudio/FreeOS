@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import logging
 import os
 import subprocess
@@ -143,9 +144,7 @@ def sidecar_bundle_dir() -> Path | None:
 
 
 def _app_looks_complete(app: Path) -> bool:
-    return (app / "backend" / "server.ts").is_file() and (
-        app / "dist" / "index.html"
-    ).is_file()
+    return (app / "backend" / "server.ts").is_file() and (app / "dist" / "index.html").is_file()
 
 
 def _bundle_looks_complete(path: Path) -> bool:
@@ -175,8 +174,7 @@ def heal_openxyos_layout(root: Path) -> bool:
         return False
     nested = root / "openxyos"
     need_flat = (
-        (nested / "dist" / "index.html").is_file()
-        and not (root / "dist" / "index.html").is_file()
+        (nested / "dist" / "index.html").is_file() and not (root / "dist" / "index.html").is_file()
     ) or (
         (nested / "backend-dist" / "server.js").is_file()
         and not (root / "backend-dist" / "server.js").is_file()
@@ -209,10 +207,9 @@ def heal_openxyos_layout(root: Path) -> bool:
         if not _bundle_looks_complete(clean):
             continue
         _copy_tree(clean, root)
-        need_flat = (
-            (nested / "dist" / "index.html").is_file()
-            and not (root / "dist" / "index.html").is_file()
-        )
+        need_flat = (nested / "dist" / "index.html").is_file() and not (
+            root / "dist" / "index.html"
+        ).is_file()
         if need_flat:
             _copy_tree(nested, root)
         return _bundle_looks_complete(root)
@@ -396,11 +393,7 @@ def launch_sidecar_argv(runtime: SidecarRuntime | None, launcher: Path | None) -
     Windows prefers the shipped ``start-sidecar.ps1`` so CORS/env always match
     the current helper (and so a stale Node is replaced first).
     """
-    if (
-        launcher is not None
-        and sys.platform == "win32"
-        and launcher.suffix.lower() == ".ps1"
-    ):
+    if launcher is not None and sys.platform == "win32" and launcher.suffix.lower() == ".ps1":
         return [
             "powershell",
             "-NoProfile",
@@ -430,26 +423,20 @@ def stop_stale_openxyos(root: Path) -> None:
         if raw.isdigit():
             pid = int(raw)
             if pid > 0:
-                try:
+                with contextlib.suppress(OSError):
                     os.kill(pid, 15)
-                except OSError:
-                    pass
                 if sys.platform == "win32":
                     subprocess.run(
                         ["taskkill", "/F", "/T", "/PID", str(pid)],
                         check=False,
                         capture_output=True,
                     )
-        try:
+        with contextlib.suppress(OSError):
             pid_file.unlink()
-        except OSError:
-            pass
     node = root / "node" / "node.exe"
     if sys.platform == "win32" and node.is_file():
         script = (
-            "$want = [IO.Path]::GetFullPath('"
-            + str(node).replace("'", "''")
-            + "'); "
+            "$want = [IO.Path]::GetFullPath('" + str(node).replace("'", "''") + "'); "
             "Get-CimInstance Win32_Process -Filter \"Name = 'node.exe'\" -ErrorAction SilentlyContinue | "
             "ForEach-Object { if ($_.ExecutablePath) { "
             "try { if ([IO.Path]::GetFullPath($_.ExecutablePath) -eq $want) { "

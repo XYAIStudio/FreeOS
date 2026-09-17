@@ -421,8 +421,8 @@ export default function OrganizationPage() {
               {previewBlank
                 ? t("organization.sidecarEmbedFailed")
                 : sidecarUp
-                  ? t("organization.sidecarUp")
-                  : t("organization.sidecarOpening")}
+                ? t("organization.sidecarUp")
+                : t("organization.sidecarOpening")}
             </span>
             <span className={styles.chip}>
               {t("organization.lastSync")}: {lastSync}

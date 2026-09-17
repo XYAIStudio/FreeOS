@@ -217,9 +217,7 @@ def test_sidecar_launch_env_merges_existing_cors(
     assert "http://127.0.0.1:3780" in env["CORS_ORIGIN"]
 
 
-def test_launch_argv_windows_prefers_ps1(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-) -> None:
+def test_launch_argv_windows_prefers_ps1(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     monkeypatch.setattr("octop.modules.org_os.sidecar_launch.sys.platform", "win32")
     runtime = _write_runtime(tmp_path)
     launcher = tmp_path / "org-sidecar" / "start-sidecar.ps1"

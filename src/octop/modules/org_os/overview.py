@@ -139,9 +139,7 @@ def build_overview(
         else:
             notes.append("openXYOS sidecar is offline — start it to sync blueprints and approvals.")
     elif not embed_ok:
-        notes.append(
-            "openXYOS livez is up but the embed origin is blocked (blank preview)."
-        )
+        notes.append("openXYOS livez is up but the embed origin is blocked (blank preview).")
     return DualLoopOverview(
         enabled=status.enabled,
         sidecar_reachable=status.sidecar.reachable,

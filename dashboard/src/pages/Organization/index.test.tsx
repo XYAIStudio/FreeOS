@@ -105,6 +105,8 @@ describe("OrganizationPage", () => {
     expect(await screen.findByTestId("org-preview-blank")).toHaveTextContent(
       "organization.previewBlank",
     );
-    expect(screen.getByText("organization.sidecarEmbedFailed")).toBeInTheDocument();
+    expect(
+      screen.getByText("organization.sidecarEmbedFailed"),
+    ).toBeInTheDocument();
   });
 });

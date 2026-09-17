@@ -27,8 +27,16 @@ assert.ok(merged.includes("http://[::1]:3780"));
 assert.equal(corsAllowsSelf(merged, 3780), true);
 assert.equal(corsAllowsSelf(staleDashboardOnly, 3780), false);
 assert.equal(
-  corsAllowsSelf(staleDashboardOnly, 3780, "127.0.0.1:3780"),
+  isAllowedCorsOrigin(
+    "http://127.0.0.1:3780",
+    staleDashboardOnly,
+    "127.0.0.1:3780",
+  ),
   true,
+);
+assert.equal(
+  corsAllowsSelf(staleDashboardOnly, 3780, "127.0.0.1:3780"),
+  false,
 );
 
 assert.deepEqual(parseOriginList("http://a.com, http://b.com"), [
