@@ -1,3 +1,5 @@
+import { tryOpenInOrgBrowser } from "./orgBrowserHost";
+
 const INSTALL_FLAG = "__OCTOP_EXTERNAL_LINKS_INSTALLED__";
 const OPEN_URL_EVENT_PREFIX = "desktop:open-url:";
 
@@ -31,6 +33,7 @@ let lastUrl = "";
 let lastAt = 0;
 
 function openExternal(url: string): boolean {
+  if (tryOpenInOrgBrowser(url)) return true;
   const invoke = wailsInvoke();
   if (!invoke || !isDesktopExternalURL(url)) return false;
   const now = Date.now();

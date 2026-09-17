@@ -9,6 +9,9 @@ NSI = REPO / "desktop" / "src" / "build" / "windows" / "nsis" / "project.nsi"
 NSH = REPO / "desktop" / "src" / "build" / "windows" / "nsis" / "wails_tools.nsh"
 DESKTOP_README = REPO / "desktop" / "README.md"
 ORG_PAGE = REPO / "dashboard" / "src" / "pages" / "Organization" / "index.tsx"
+ORG_BROWSER = REPO / "dashboard" / "src" / "pages" / "Organization" / "OrgMiniBrowser.tsx"
+ORG_TABS = REPO / "dashboard" / "src" / "pages" / "Organization" / "orgBrowser.ts"
+OPENURL_GO = REPO / "desktop" / "src" / "openurl.go"
 
 
 def _uninstall_section(text: str) -> str:
@@ -316,6 +319,9 @@ def test_nsis_does_not_register_openxyos_logon_autostart() -> None:
 
 def test_organization_embeds_local_openxyos_url() -> None:
     page = ORG_PAGE.read_text(encoding="utf-8")
+    browser = ORG_BROWSER.read_text(encoding="utf-8")
+    tabs = ORG_TABS.read_text(encoding="utf-8")
+    openurl = OPENURL_GO.read_text(encoding="utf-8")
     zh = (REPO / "dashboard" / "src" / "locales" / "zh.json").read_text(encoding="utf-8")
     assert "window.prompt" not in page
     assert "pickDesktopFolder" in page
@@ -323,9 +329,20 @@ def test_organization_embeds_local_openxyos_url() -> None:
     assert "resolveOpenxyosSourceDest" in page
     assert 'data-testid="org-download-source"' in page
     assert "void downloadSource()" in page
-    assert "http://127.0.0.1:3780" in page
-    assert "<iframe" in page
+    assert "http://127.0.0.1:3780" in tabs
+    assert "DEFAULT_ORG_URL" in page
+    assert "<iframe" in browser
+    assert "org-address-bar" in browser
+    assert "org-mini-browser" in browser
+    assert "organization.openSidecar" not in page
+    assert "organization.openSidecar" not in browser
+    assert "ExternalLink" not in page
+    assert 'target="_blank"' not in page
+    assert 'target="_blank"' not in browser
     assert "onClick={() => void startSidecar()}" not in page
+    assert "__FREEOS_ORG_OPEN_TAB__" in openurl
+    assert "installOrgPageWindowTrap" in page
+    assert "registerOrgBrowserHost" in page
     org = zh[zh.index('"organization"') : zh.index('"systemSettings"')]
     assert "启动边车" not in org
     assert "重试启动" not in org

@@ -4,12 +4,14 @@ import { BrowserRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import App from "./OpenApp";
 import { LocaleProvider } from "./i18n";
+import { installOpenxyosEmbedTrap, OPENXYOS_READY } from "./embed/trapWindows";
 import "./index.css";
 
 if (typeof window !== "undefined" && window.self !== window.top) {
   document.documentElement.classList.add("ox-embedded");
+  installOpenxyosEmbedTrap(window);
   try {
-    window.parent.postMessage({ type: "openxyos:ready" }, "*");
+    window.parent.postMessage({ type: OPENXYOS_READY }, "*");
   } catch {
     /* embed host may ignore */
   }
