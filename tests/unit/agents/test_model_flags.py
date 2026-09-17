@@ -127,3 +127,19 @@ def test_list_resolved_models_skips_embedding() -> None:
     assert resolved[0]["max_input_tokens"] == 120_000
     assert resolved[0]["max_output_tokens"] == 16_384
     assert resolved[0]["max_tokens"] == 16_384
+
+
+def test_list_resolved_models_includes_ollama_without_api_key() -> None:
+    providers = [
+        SimpleNamespace(
+            id=1,
+            name="Ollama (Local)",
+            kind="openai",
+            enabled=True,
+            api_key="",
+            base_url="",
+            get_models=lambda: [{"id": "tiny", "name": "tiny", "enabled": True}],
+        )
+    ]
+    resolved = list_resolved_models(providers)
+    assert [(r["provider_name"], r["model"]) for r in resolved] == [("Ollama (Local)", "tiny")]

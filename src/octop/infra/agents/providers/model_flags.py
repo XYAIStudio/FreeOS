@@ -11,6 +11,9 @@ _ONNX_PRESET_NAMES = frozenset({"onnx", "onnx (local)"})
 # Same pattern for Ollama (placeholder api_key + exact preset names).
 _OLLAMA_PRESET_API_KEY = "ollama"
 _OLLAMA_PRESET_NAMES = frozenset({"ollama", "ollama (local)"})
+OLLAMA_PROVIDER_DISPLAY_NAME = "Ollama (Local)"
+OLLAMA_DEFAULT_BASE_URL = "http://127.0.0.1:11434/v1"
+OLLAMA_SERVICE_SETTINGS_KEY = "ollama_service_enabled"
 
 
 def is_onnx_local_provider(
@@ -50,6 +53,24 @@ def is_ollama_local_provider(
         return True
     url = (provider_base_url or "").strip().lower()
     return "11434" in url or "ollama" in url
+
+
+def local_ollama_endpoint(
+    provider_name: str | None = None,
+    *,
+    provider_api_key: str | None = None,
+    provider_base_url: str | None = None,
+) -> tuple[str | None, str | None]:
+    """Return ``(api_key, base_url)``, filling Ollama defaults for local rows."""
+    api_key = (provider_api_key or "").strip() or None
+    base_url = (provider_base_url or "").strip() or None
+    if is_ollama_local_provider(
+        provider_name,
+        provider_api_key=api_key,
+        provider_base_url=base_url,
+    ):
+        return api_key or _OLLAMA_PRESET_API_KEY, base_url or OLLAMA_DEFAULT_BASE_URL
+    return api_key, base_url
 
 
 def is_local_runtime_provider(

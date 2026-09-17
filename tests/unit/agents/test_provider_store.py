@@ -322,6 +322,23 @@ def test_resolve_first_model_ref_returns_first_enabled_model(store: ProviderStor
     assert store.resolve_first_model_ref() == "p1/ready"
 
 
+def test_ollama_defaults_make_local_ref_usable(store: ProviderStore) -> None:
+    store._provider_repo.create(
+        name="Ollama (Local)",
+        kind="openai",
+        base_url="http://127.0.0.1:11434/v1",
+        api_key="",
+        models_json=json.dumps([{"id": "tiny", "name": "tiny", "enabled": True}]),
+    )
+    assert store.is_model_ref_usable("Ollama (Local)/tiny") is True
+    assert store.is_model_ref_usable("ollama/tiny") is True
+    configs = store.build_harness_configs()
+    assert configs[0].id == "Ollama (Local)"
+    assert configs[0].base_url == "http://127.0.0.1:11434/v1"
+    assert configs[0].api_key == "ollama"
+    assert [model.id for model in configs[0].models] == ["tiny"]
+
+
 def test_resolve_multimodal_model_ref_prefers_inferred_vision_model(store: ProviderStore) -> None:
     store._provider_repo.create(
         name="p",

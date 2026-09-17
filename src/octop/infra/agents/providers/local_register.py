@@ -8,7 +8,12 @@ import re
 from pathlib import Path
 from typing import Any
 
-from octop.infra.agents.providers.model_flags import is_ollama_local_provider
+from octop.infra.agents.providers.model_flags import (
+    OLLAMA_DEFAULT_BASE_URL,
+    OLLAMA_PROVIDER_DISPLAY_NAME,
+    OLLAMA_SERVICE_SETTINGS_KEY,
+    is_ollama_local_provider,
+)
 from octop.infra.utils.ollama_manager import OllamaModelManager, create_from_weight
 
 logger = logging.getLogger(__name__)
@@ -16,7 +21,6 @@ logger = logging.getLogger(__name__)
 _SETTINGS_KEY = "local_registered_weights"
 # Keep Ollama tags (``llama3.2:1b``) while sanitizing Windows paths / file stems.
 _NAME_SAFE = re.compile(r"[^a-z0-9._:-]+")
-_OLLAMA_BASE_URL = "http://127.0.0.1:11434/v1"
 _WEIGHT_SOURCES = frozenset({"gguf", "ggml"})
 _REGISTER_SOURCES = frozenset({*_WEIGHT_SOURCES, "ollama"})
 
@@ -70,7 +74,16 @@ def _find_ollama_row(provider_repo: Any) -> Any | None:
     return None
 
 
-def _upsert_ollama_model(provider_repo: Any, model_id: str, display: str) -> str:
+def ensure_ollama_service_flag(settings_repo: Any) -> None:
+    """Mark the Ollama runtime as enabled so chat / Models cards stay in sync."""
+    setter = getattr(settings_repo, "set", None)
+    if not callable(setter):
+        return
+    setter(OLLAMA_SERVICE_SETTINGS_KEY, "true")
+
+
+def upsert_ollama_model(provider_repo: Any, model_id: str, display: str) -> str:
+    """Add *model_id* to the local Ollama provider and make it chat-usable."""
     row = _find_ollama_row(provider_repo)
     model = {
         "id": model_id,
@@ -81,19 +94,19 @@ def _upsert_ollama_model(provider_repo: Any, model_id: str, display: str) -> str
     if row is None:
         try:
             provider_repo.create(
-                name="Ollama (Local)",
-                kind="ollama",
-                base_url=_OLLAMA_BASE_URL,
+                name=OLLAMA_PROVIDER_DISPLAY_NAME,
+                kind="openai",
+                base_url=OLLAMA_DEFAULT_BASE_URL,
                 api_key="ollama",
                 models_json=json.dumps([model]),
             )
-            return "Ollama (Local)"
+            return OLLAMA_PROVIDER_DISPLAY_NAME
         except Exception as exc:
             existing = getattr(provider_repo, "get_by_name", None)
-            row = existing("Ollama (Local)") if callable(existing) else None
+            row = existing(OLLAMA_PROVIDER_DISPLAY_NAME) if callable(existing) else None
             if row is None:
                 raise OSError(f"Could not save the Ollama provider: {exc}") from exc
-    models = row.get_models()
+    models = [item for item in row.get_models() if isinstance(item, dict)]
     existing = next((item for item in models if str(item.get("id") or "") == model_id), None)
     if existing is None:
         models.append(model)
@@ -104,7 +117,9 @@ def _upsert_ollama_model(provider_repo: Any, model_id: str, display: str) -> str
         row.id,
         models_json=json.dumps(models),
         enabled=True,
-        base_url=row.base_url or _OLLAMA_BASE_URL,
+        kind=getattr(row, "kind", None) or "openai",
+        api_key=getattr(row, "api_key", None) or "ollama",
+        base_url=getattr(row, "base_url", None) or OLLAMA_DEFAULT_BASE_URL,
     )
     return str(row.name)
 
@@ -188,7 +203,7 @@ def register_local_weight(
     except Exception as exc:
         logger.warning("Ollama list after register failed for %s: %s", model_id, exc)
     try:
-        provider_name = _upsert_ollama_model(provider_repo, model_id, model_id)
+        provider_name = upsert_ollama_model(provider_repo, model_id, model_id)
     except Exception as exc:
         return _fail(f"Could not save the model provider: {exc}")
     entry = {
@@ -204,6 +219,12 @@ def register_local_weight(
         remember_weight(settings_repo, entry)
     except Exception as exc:
         return _fail(f"Could not remember the registered model: {exc}")
+    try:
+        ensure_ollama_service_flag(settings_repo)
+    except Exception as exc:
+        logger.warning(
+            "Registered %s but could not enable the Ollama service flag: %s", model_id, exc
+        )
     return {
         "ok": True,
         "action": "registered",

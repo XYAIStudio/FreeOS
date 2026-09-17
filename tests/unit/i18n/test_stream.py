@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from octop.i18n.domains.stream import (
+    LOCAL_RUNTIME,
     MODEL_CALL_FAILED,
     RECURSION_LIMIT,
     STREAM_STALL,
@@ -88,6 +89,19 @@ def test_classify_recursion_limit() -> None:
         classify_stream_error_message("GraphRecursionError: GRAPH_RECURSION_LIMIT")
         == RECURSION_LIMIT
     )
+
+
+def test_classify_local_runtime() -> None:
+    assert (
+        classify_stream_error_message("Failed to connect to ollama at http://127.0.0.1:11434")
+        == LOCAL_RUNTIME
+    )
+    assert classify_stream_error_message("Connection refused [Errno 111] 127.0.0.1:11434") == (
+        LOCAL_RUNTIME
+    )
+    text = format_stream_error("Failed to connect to ollama", "zh")
+    assert "Ollama" in text
+    assert "11434" in text
 
 
 def test_classify_model_call_failed_fallback() -> None:

@@ -24,6 +24,7 @@ from octop.api.routers.ollama_download_store import (
     get_tasks,
     update_status,
 )
+from octop.infra.agents.providers.model_flags import OLLAMA_SERVICE_SETTINGS_KEY
 
 logger = logging.getLogger(__name__)
 
@@ -233,9 +234,6 @@ async def delete_ollama_model(
     return {"status": "deleted", "name": name}
 
 
-_SETTINGS_KEY_OLLAMA_SERVICE = "ollama_service_enabled"
-
-
 class OllamaServiceBody(BaseModel):
     enabled: bool = Field(..., description="Whether Octop should keep the Ollama service running")
 
@@ -246,7 +244,7 @@ class OllamaServiceStatus(BaseModel):
 
 
 def _ollama_service_enabled(server: Any) -> bool:
-    raw = server.services.settings_repo.get(_SETTINGS_KEY_OLLAMA_SERVICE)
+    raw = server.services.settings_repo.get(OLLAMA_SERVICE_SETTINGS_KEY)
     if raw is None:
         return False
     return raw.strip().lower() in {"1", "true", "yes", "on"}
@@ -289,7 +287,7 @@ async def put_ollama_service(
     )
 
     server.services.settings_repo.set(
-        _SETTINGS_KEY_OLLAMA_SERVICE,
+        OLLAMA_SERVICE_SETTINGS_KEY,
         "true" if body.enabled else "false",
     )
     if body.enabled:

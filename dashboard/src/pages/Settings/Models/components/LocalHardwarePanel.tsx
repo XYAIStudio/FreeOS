@@ -26,32 +26,10 @@ import {
   canPickDesktopFolder,
   pickDesktopFolder,
 } from "../../../../utils/desktopFolder";
-import { providerApi } from "../../../../api/modules/provider";
 import { message } from "../../../../utils/antdMessage";
 import { apiErrorMessage } from "../../../../utils/apiError";
 import { CONVERSATION_LIST_PATH } from "../../../../layouts/conversationHome";
-import { isOllamaProviderRow } from "../presetUtils";
-
-async function registerOllamaModel(name: string): Promise<boolean> {
-  const providers = await providerApi.listProviders();
-  const ollama = providers.find(
-    (row) =>
-      row.id === "ollama" ||
-      isOllamaProviderRow({
-        name: row.name,
-        base_url: row.current_base_url,
-        api_key: row.current_api_key,
-      }),
-  );
-  if (!ollama) return false;
-  const already = [
-    ...(ollama.models ?? []),
-    ...(ollama.extra_models ?? []),
-  ].some((model) => model.id === name || model.name === name);
-  if (already) return true;
-  await providerApi.addModel(ollama.id, { id: name, name });
-  return true;
-}
+import { notifyModelsChanged } from "../modelsChanged";
 
 function mergeModels(
   ...groups: Array<LocalInstalledModel[] | undefined>
@@ -77,7 +55,11 @@ function canRegister(item: LocalInstalledModel): boolean {
   );
 }
 
-export function LocalHardwarePanel() {
+export function LocalHardwarePanel({
+  onSaved,
+}: {
+  onSaved?: () => void | Promise<void>;
+} = {}) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [probe, setProbe] = useState<LocalProbe | null>(null);
@@ -199,18 +181,14 @@ export function LocalHardwarePanel() {
         await refresh();
         return;
       }
-      let registered = false;
-      try {
-        registered = await registerOllamaModel(name);
-      } catch {
-        registered = false;
-      }
+      notifyModelsChanged();
+      await onSaved?.();
       message.success(
         t(
-          registered
-            ? "models.localInstallRegistered"
-            : "models.localInstallNeedProvider",
-          { name },
+          result.registered === false
+            ? "models.localInstallNeedProvider"
+            : "models.localInstallRegistered",
+          { name: result.name || name },
         ),
       );
       await refresh();
@@ -338,6 +316,8 @@ export function LocalHardwarePanel() {
         showRuntimeError(result, t("models.localRegisterFailed"));
         return;
       }
+      notifyModelsChanged();
+      await onSaved?.();
       message.success(t("models.localRegisterDone", { name: result.name }));
       await refresh();
     } catch (err) {

@@ -16,11 +16,13 @@ RECURSION_LIMIT = f"{_PREFIX}stream_errors.recursion_limit"
 TIMEOUT_NETWORK = f"{_PREFIX}stream_errors.timeout_network"
 PROVIDER_UNAVAILABLE = f"{_PREFIX}stream_errors.provider_unavailable"
 MODEL_CALL_FAILED = f"{_PREFIX}stream_errors.model_call_failed"
+LOCAL_RUNTIME = f"{_PREFIX}stream_errors.local_runtime"
 
 __all__ = [
     "AUTH",
     "CONTEXT_LENGTH",
     "INSUFFICIENT_BALANCE",
+    "LOCAL_RUNTIME",
     "MODEL_CALL_FAILED",
     "PROVIDER_UNAVAILABLE",
     "RATE_LIMIT",
@@ -117,6 +119,16 @@ def classify_stream_error_message(message: str) -> str | None:
         )
     ):
         return RECURSION_LIMIT
+
+    if ("11434" in lower or "ollama" in lower) and (
+        "connect" in lower
+        or "refused" in lower
+        or "unreachable" in lower
+        or "not running" in lower
+        or "connection" in lower
+        or "errno 111" in lower
+    ):
+        return LOCAL_RUNTIME
 
     if (
         "internalservererror" in compact

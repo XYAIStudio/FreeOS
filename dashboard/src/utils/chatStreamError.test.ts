@@ -47,6 +47,15 @@ describe("classifyChatStreamError", () => {
     });
   });
 
+  it("classifies an unreachable local Ollama runtime", () => {
+    const msg = "Failed to connect to ollama at http://127.0.0.1:11434";
+    expect(classifyChatStreamError(msg)).toBe("stream_errors.local_runtime");
+    expect(chatStreamErrorAction(msg)).toEqual({
+      path: "/models",
+      labelKey: "models.useInChat",
+    });
+  });
+
   it("classifies HTTP 5xx as provider_unavailable", () => {
     expect(classifyChatStreamError("HTTP 503: service overloaded")).toBe(
       "stream_errors.provider_unavailable",

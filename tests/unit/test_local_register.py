@@ -44,19 +44,34 @@ class _Providers:
             return data if isinstance(data, list) else []
 
         row = SimpleNamespace(
-            id=1,
+            id=len(self.rows) + 1,
             name=kwargs["name"],
             kind=kwargs["kind"],
             base_url=kwargs.get("base_url"),
             api_key=kwargs.get("api_key"),
+            enabled=kwargs.get("enabled", True),
             models_json=models_json,
             get_models=_models,
         )
         self.rows.append(row)
-        return 1
+        return row.id
 
     def update(self, provider_id: int, **kwargs: object) -> None:
-        del provider_id, kwargs
+        row = next((item for item in self.rows if item.id == provider_id), None)
+        if row is None:
+            return
+        for key, value in kwargs.items():
+            setattr(row, key, value)
+        models_json = kwargs.get("models_json")
+        if isinstance(models_json, str):
+
+            def _models() -> list[dict[str, object]]:
+                import json
+
+                data = json.loads(models_json)
+                return data if isinstance(data, list) else []
+
+            row.get_models = _models
 
 
 def test_sanitize_model_name() -> None:
@@ -111,6 +126,7 @@ def test_register_imports_gguf(monkeypatch: pytest.MonkeyPatch) -> None:
     assert providers.rows[0].name == "Ollama (Local)"
     assert providers.rows[0].base_url == "http://127.0.0.1:11434/v1"
     assert "tiny.gguf" in settings.data.get("local_registered_weights", "")
+    assert settings.data.get("ollama_service_enabled") == "true"
 
 
 def test_register_ollama_source_skips_create(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -221,6 +237,38 @@ def test_register_survives_list_models_attribute_error(
     )
     assert result["ok"] is True
     assert created == [("tiny", "/tmp/tiny.gguf")]
+
+
+def test_register_enables_existing_local_service_row(monkeypatch: pytest.MonkeyPatch) -> None:
+    import json
+
+    monkeypatch.setattr(
+        "octop.infra.agents.providers.local_register.OllamaModelManager.list_models",
+        lambda: [SimpleNamespace(name="llama3.2:1b", size=99)],
+    )
+    providers = _Providers()
+    providers.create(
+        name="Ollama (Local)",
+        kind="openai",
+        base_url="http://127.0.0.1:11434/v1",
+        api_key="ollama",
+        models_json=json.dumps([{"id": "preset", "name": "preset", "enabled": False}]),
+        enabled=False,
+    )
+    settings = _Settings()
+    result = register_local_weight(
+        path="",
+        name="llama3.2:1b",
+        source="ollama",
+        size=99,
+        provider_repo=providers,
+        settings_repo=settings,
+    )
+    assert result["ok"] is True
+    assert providers.rows[0].enabled is True
+    models = providers.rows[0].get_models()
+    assert any(item.get("id") == "llama3.2:1b" and item.get("enabled") for item in models)
+    assert settings.data.get("ollama_service_enabled") == "true"
 
 
 def test_remember_weight_keys_ollama_rows_by_name() -> None:

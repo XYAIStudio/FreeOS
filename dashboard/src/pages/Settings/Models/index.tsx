@@ -276,7 +276,7 @@ export default function ModelsPage() {
 
           <Divider style={{ margin: "24px 0" }} />
 
-          {showLocalTab ? <LocalHardwarePanel /> : null}
+          {showLocalTab ? <LocalHardwarePanel onSaved={fetchAll} /> : null}
 
           {showPresetSection && (
             <>

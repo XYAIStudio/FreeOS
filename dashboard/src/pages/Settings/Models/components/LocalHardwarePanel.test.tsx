@@ -1,6 +1,7 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { MemoryRouter } from "react-router-dom";
 
 const probe = vi.fn();
 const startOllama = vi.fn();
@@ -76,9 +77,17 @@ beforeEach(() => {
   });
 });
 
+function renderPanel(props: { onSaved?: () => void | Promise<void> } = {}) {
+  return render(
+    <MemoryRouter>
+      <LocalHardwarePanel {...props} />
+    </MemoryRouter>,
+  );
+}
+
 describe("<LocalHardwarePanel />", () => {
   it("shows Start Ollama when the binary exists but the API is down", async () => {
-    render(<LocalHardwarePanel />);
+    renderPanel();
     await waitFor(() => expect(probe).toHaveBeenCalled());
     expect(screen.getByText("models.localStartOllama")).toBeInTheDocument();
     await userEvent.click(screen.getByText("models.localStartOllama"));
@@ -86,16 +95,30 @@ describe("<LocalHardwarePanel />", () => {
   });
 
   it("lists discovered GGUF files with a register action", async () => {
-    render(<LocalHardwarePanel />);
+    renderPanel();
     await waitFor(() => expect(screen.getByText("tiny")).toBeInTheDocument());
     expect(screen.getByText("D:\\\\models\\\\tiny.gguf")).toBeInTheDocument();
     expect(screen.getByText("models.localRegister")).toBeInTheDocument();
   });
 
   it("starts a local weight search", async () => {
-    render(<LocalHardwarePanel />);
+    renderPanel();
     await waitFor(() => expect(probe).toHaveBeenCalled());
     await userEvent.click(screen.getByText("models.localSearchModels"));
     await waitFor(() => expect(startScan).toHaveBeenCalled());
+  });
+
+  it("notifies the chat picker after a successful register", async () => {
+    const onSaved = vi.fn();
+    const heard = vi.fn();
+    register.mockResolvedValue({ ok: true, name: "tiny" });
+    window.addEventListener("octop:models-changed", heard);
+    renderPanel({ onSaved });
+    await waitFor(() => expect(screen.getByText("tiny")).toBeInTheDocument());
+    await userEvent.click(screen.getByText("models.localRegister"));
+    await waitFor(() => expect(register).toHaveBeenCalled());
+    expect(heard).toHaveBeenCalled();
+    expect(onSaved).toHaveBeenCalled();
+    window.removeEventListener("octop:models-changed", heard);
   });
 });

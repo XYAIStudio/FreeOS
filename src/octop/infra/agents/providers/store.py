@@ -8,7 +8,12 @@ from typing import TYPE_CHECKING, Any
 
 from harness_agent.config import ModelConfig, ProviderConfig
 
-from octop.infra.agents.providers.model_flags import is_chat_eligible_model, is_vision_model
+from octop.infra.agents.providers.model_flags import (
+    is_chat_eligible_model,
+    is_ollama_local_provider,
+    is_vision_model,
+    local_ollama_endpoint,
+)
 from octop.infra.agents.providers.opencode_session import (
     OPENCODE_SESSION_HEADER,
     is_opencode_go_base_url,
@@ -111,18 +116,44 @@ class ProviderStore:
     ) -> None:
         self._provider_repo = provider_repo
 
+    def _row_credentials(self, row: Any) -> tuple[str | None, str | None]:
+        return local_ollama_endpoint(
+            getattr(row, "name", None),
+            provider_api_key=getattr(row, "api_key", None),
+            provider_base_url=getattr(row, "base_url", None),
+        )
+
+    def _row_for_model_ref(self, ref: str) -> tuple[Any | None, str]:
+        """Resolve ``provider/model``; local aliases like ``ollama/`` map to the Ollama row."""
+        provider_name, _, model_id = ref.partition("/")
+        if not provider_name or not model_id:
+            return None, model_id
+        row = self._provider_repo.get_by_name(provider_name)
+        if row is not None:
+            return row, model_id
+        if is_ollama_local_provider(provider_name):
+            for candidate in self._provider_repo.list_all():
+                if is_ollama_local_provider(
+                    candidate.name,
+                    provider_api_key=candidate.api_key,
+                    provider_base_url=candidate.base_url,
+                ):
+                    return candidate, model_id
+        return None, model_id
+
     def iter_usable_rows(self) -> Iterator[Any]:
         """Yield enabled DB providers that have credentials and at least one enabled model."""
         for row in self._provider_repo.list_all():
             if not row.enabled:
                 continue
-            if not row.base_url or not row.api_key:
+            api_key, base_url = self._row_credentials(row)
+            if not base_url or not api_key:
                 continue
             models = row.get_models()
             if not models:
                 continue
             if any(
-                is_chat_eligible_model(m, provider_name=row.name, provider_api_key=row.api_key)
+                is_chat_eligible_model(m, provider_name=row.name, provider_api_key=api_key)
                 for m in models
             ):
                 yield row
@@ -135,11 +166,12 @@ class ProviderStore:
         out: list[ProviderConfig] = []
         for row in self.iter_usable_rows():
             protocol = KIND_TO_PROTOCOL.get(row.kind, "openai")
+            api_key, base_url = self._row_credentials(row)
             raw_models = json.loads(row.models_json) if getattr(row, "models_json", None) else []
             models = [
                 self._model_config_from_row(m)
                 for m in raw_models
-                if is_chat_eligible_model(m, provider_name=row.name, provider_api_key=row.api_key)
+                if is_chat_eligible_model(m, provider_name=row.name, provider_api_key=api_key)
             ]
             if not models:
                 continue
@@ -154,14 +186,14 @@ class ProviderStore:
             out.append(
                 ProviderConfig(
                     id=row.name,
-                    base_url=row.base_url,
-                    api_key=row.api_key,
+                    base_url=base_url,
+                    api_key=api_key,
                     protocol=protocol,  # type: ignore[arg-type]
                     name=row.name,
                     models=models,
                     headers=headers,
                     session_header=(
-                        OPENCODE_SESSION_HEADER if is_opencode_go_base_url(row.base_url) else None
+                        OPENCODE_SESSION_HEADER if is_opencode_go_base_url(base_url) else None
                     ),
                 )
             )
@@ -183,13 +215,13 @@ class ProviderStore:
         ref = ref.strip()
         if not ref or "/" not in ref:
             return False
-        provider_name, _, model_id = ref.partition("/")
-        row = self._provider_repo.get_by_name(provider_name)
-        if row is None:
+        row, model_id = self._row_for_model_ref(ref)
+        if row is None or not model_id:
             return False
+        api_key, _base_url = self._row_credentials(row)
         for model in row.get_models():
             if model.get("id") == model_id and is_chat_eligible_model(
-                model, provider_name=provider_name, provider_api_key=row.api_key
+                model, provider_name=row.name, provider_api_key=api_key
             ):
                 return _model_dict_supports_image(model)
         return False
@@ -239,27 +271,24 @@ class ProviderStore:
         ref = ref.strip()
         if not ref or ref.lower() == "auto" or "/" not in ref:
             return False
-        provider_name, _, model_id = ref.partition("/")
-        if not provider_name or not model_id:
+        row, model_id = self._row_for_model_ref(ref)
+        if row is None or not row.enabled or not model_id:
             return False
-        row = self._provider_repo.get_by_name(provider_name)
-        if row is None or not row.enabled or not row.api_key or not row.base_url:
+        api_key, base_url = self._row_credentials(row)
+        if not api_key or not base_url:
             return False
         for model in row.get_models():
             if model.get("id") != model_id:
                 continue
-            return is_chat_eligible_model(
-                model, provider_name=provider_name, provider_api_key=row.api_key
-            )
+            return is_chat_eligible_model(model, provider_name=row.name, provider_api_key=api_key)
         return False
 
     def get_model_reasoning_capability(self, ref: str) -> dict[str, Any] | None:
         """Return normalized reasoning metadata for a usable model ref."""
         if not self.is_model_ref_usable(ref):
             return None
-        provider_name, _, model_id = ref.partition("/")
-        row = self._provider_repo.get_by_name(provider_name)
-        if row is None:
+        row, model_id = self._row_for_model_ref(ref)
+        if row is None or not model_id:
             return None
         for model in row.get_models():
             if model.get("id") == model_id and model.get("enabled", True):
