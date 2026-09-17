@@ -17,7 +17,11 @@ from octop.modules.org_os.governance.interceptor import (
     gate_tool_call,
 )
 from octop.modules.org_os.lifecycle.store import LifecycleStore
-from octop.modules.org_os.lifecycle.transitions import transition
+from octop.modules.org_os.lifecycle.transitions import (
+    already_at_or_beyond,
+    can_transition,
+    transition,
+)
 from octop.modules.org_os.loop.fixtures import (
     blueprint_fixture,
     extra_blueprint_fixtures,
@@ -76,13 +80,49 @@ def _wait_control_plane(url: str, *, home: Path, attempts: int = 12) -> bool:
     return False
 
 
-def _promote(store: LifecycleStore, slug: str) -> dict[str, str]:
+def _promote(store: LifecycleStore, slug: str) -> tuple[dict[str, str], list[str]]:
+    """Walk *slug* toward ``active`` along allowed edges only.
+
+    Already-deployed colleagues (e.g. ``active``) and illegal pairs such as
+    ``active → market`` are recorded as skips instead of raising.
+    """
     states = ("market", "recruit", "shadow", "active")
-    seen: dict[str, str] = {"draft": "draft"}
+    record = store.get(slug)
+    if record is None:
+        return {}, [f"skipped promotion for {slug}: unknown colleague"]
+
+    initial = record.lifecycle
+    seen: dict[str, str] = {}
+    notes: list[str] = []
+    skipped_states: list[str] = []
+    if initial == "draft":
+        seen["draft"] = "draft"
+
     for state in states:
-        record = transition(store, slug, state, reason="org loop run")
+        current = record.lifecycle
+        if current == state:
+            seen[state] = current
+            continue
+        if already_at_or_beyond(current, state):
+            seen[state] = current
+            skipped_states.append(state)
+            continue
+        if not can_transition(current, state):
+            seen[state] = current
+            notes.append(f"skipped illegal transition for {slug}: cannot move {current} → {state}")
+            continue
+        try:
+            record = transition(store, slug, state, reason="org loop run")
+        except ValueError as exc:
+            notes.append(f"skipped illegal transition for {slug}: {exc}")
+            seen[state] = record.lifecycle
+            continue
         seen[state] = record.lifecycle
-    return seen
+
+    seen[record.lifecycle] = record.lifecycle
+    if skipped_states:
+        notes.append(f"skipped promotion for {slug}: already {initial}")
+    return seen, notes
 
 
 def run_growth_loop(
@@ -150,8 +190,11 @@ def run_growth_loop(
     store = LifecycleStore(home, tid)
     lifecycle: dict[str, str] = {}
     spawned: list[SpawnedAgent] = []
-    for slug in imported.employees:
-        lifecycle.update(_promote(store, slug))
+    promotion_notes: list[str] = []
+    for slug in dict.fromkeys(imported.employees):
+        advanced, skipped = _promote(store, slug)
+        lifecycle.update(advanced)
+        promotion_notes.extend(skipped)
         record = store.get(slug)
         if record is None:
             continue
@@ -218,6 +261,7 @@ def run_growth_loop(
             *imported.notes,
             *applied.notes,
             *feedback.notes,
+            *promotion_notes,
             "Loop produced colleagues, published an asset pack, applied department employees, and imported back.",
         ],
     )

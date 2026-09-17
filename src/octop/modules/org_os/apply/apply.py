@@ -156,22 +156,38 @@ def apply_asset_pack(
         control_plane_url=client.base_url,
         notes=[
             "Local mirror is the durable record.",
-            "Nothing is auto-enabled on the control plane.",
+            "Assets are visible on the logged-in tenant's Employees, Talent, Skills, and Plugins lists.",
         ],
     )
 
-    ingest_payload = {
-        "tenant_id": tid if tid.isdigit() else 1,
+    ui_tenant = client.ui_tenant_id() if client.base_url else None
+    if ui_tenant is not None:
+        ingest_tenant: int | None = ui_tenant
+    elif tid.isdigit() and int(tid) > 0:
+        ingest_tenant = int(tid)
+    else:
+        ingest_tenant = None
+    result.tenant_id = ingest_tenant
+
+    ingest_payload: dict[str, Any] = {
         "employees": employees,
         "talent": talent,
         "plugins": plugins,
         "skills": skills,
         "mcp": mcp,
     }
+    if ingest_tenant is not None:
+        ingest_payload["tenant_id"] = ingest_tenant
     ingest = client.ingest(ingest_payload)
     if ingest.ok:
         landed = ingest.body.get("data") if isinstance(ingest.body, dict) else {}
         result.landed = landed if isinstance(landed, dict) else {}
+        raw_tid = result.landed.get("tenant_id")
+        if isinstance(raw_tid, int) and raw_tid > 0:
+            result.tenant_id = raw_tid
+        preview = result.landed.get("preview")
+        if isinstance(preview, str) and preview.startswith("/"):
+            result.preview_path = preview
         result.receipts.append(
             ApplyReceipt(
                 surface="ingest",

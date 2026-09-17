@@ -8,6 +8,8 @@
 
 ### 修复
 
+- 组织页「把 FreeOS 资产推到 openXYOS」不再把行写进 tenant 1 却让嵌入式登录（`demo@demo.com` → tenant 2）看不见。ingest 以当前登录 / 最近登录 / 本地演示租户为准，并把员工/人才写成列表页会显示的状态；打包回执带落地数量，预览跳到员工页。
+- 组织页「运行自增长循环」在员工已是 `active`（或生命周期不允许再跳到 `market`）时不再 500。循环只沿合法边晋升，已到达或非法的步骤记为 skip，接口返回成功的循环证明而不是 `INTERNAL_ERROR`。
 - Windows 覆盖安装时，openXYOS 预配不再因为旧 Node 锁住 `%LOCALAPPDATA%\FreeOS\openxyos` 里的文件、`tar.exe` 返回非 0 就直接退出码 3。安装前只停止 FreeOS 自己的 openXYOS（与启动脚本相同的 `Stop-OpenXYOSNode`：`start.pid` / live 与 `$INSTDIR\openxyos` 路径），先解到 LocalAppData 临时目录再合入工作目录，并把 tar 的 stdout/stderr 写入 `provision.log`。tar 非 0 但布局可修复时记警告并继续；只有 extract+heal 之后布局仍不完整才退出 3。幂等短路要求完整布局、`.install-ready`，以及 3780 上是我们的 FreeOS openXYOS，而不是任意 livez。
 - 组织页嵌入本机 openXYOS 不再因为边车「已连接」却空白：`CORS_ORIGIN` 即使漏了 `http://127.0.0.1:3780` / `localhost` / `[::1]`，服务端也会合并监听自源，模块脚本和登录不再 500。FreeOS 启动会先停掉 live 目录里旧的 Node，再用当前 `start-sidecar.ps1` 拉起；嵌套的 `openxyos\dist` 会在启动前提升到 live 根。若 livez 正常但自源请求失败，状态栏和预览区会明确提示，而不是一片白。
 - Windows 安装成功后删除 `$INSTDIR\openxyos-runtime` 目录和 `openxyos-runtime.zip`（以及 `%LOCALAPPDATA%\FreeOS` 下同名暂存）。预配失败时保留这些文件以便排查。最终工作目录 `$INSTDIR\openxyos` 与 `%LOCALAPPDATA%\FreeOS\openxyos` 不受影响。

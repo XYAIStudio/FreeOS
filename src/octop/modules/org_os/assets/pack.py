@@ -173,7 +173,8 @@ def publish_asset_pack(
             "name": item["name"],
             "talent_type": "ai",
             "agent_type": item.get("agent_type"),
-            "status": item.get("talent_status") or "draft",
+            "status": "available",
+            "talent_status": "available",
             "skills": item.get("skills"),
             "source": "FreeOS",
             "integration_type": "agent-blueprint-v1",
@@ -182,7 +183,6 @@ def publish_asset_pack(
             "enabled_by_default": False,
         }
         for item in employees
-        if item.get("lifecycle") in {"market", "recruit", "shadow", "active"}
     ]
     (dest / "openxyos" / "org-talent.publish.json").write_text(
         json.dumps(

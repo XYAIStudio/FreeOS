@@ -174,6 +174,19 @@ class OpenXyosControlClient:
     def export(self) -> Any | None:
         return self.get_json("/api/freeos/export")
 
+    def ui_tenant_id(self) -> int | None:
+        """Tenant the embedded openXYOS login is using, when the sidecar reports it."""
+        for path in ("/api/freeos/session", "/api/freeos/health"):
+            body = self.get_json(path)
+            if not isinstance(body, dict):
+                continue
+            raw = body.get("ui_tenant_id")
+            if isinstance(raw, int) and raw > 0:
+                return raw
+            if isinstance(raw, str) and raw.isdigit() and int(raw) > 0:
+                return int(raw)
+        return None
+
     def bridge_ready(self) -> bool:
         body = self.get_json("/api/freeos/health")
         return isinstance(body, dict) and bool(body.get("ok"))
@@ -207,6 +220,8 @@ class ApplyResult:
     notes: list[str] = field(default_factory=list)
     control_plane_url: str = ""
     landed: dict[str, Any] = field(default_factory=dict)
+    tenant_id: int | None = None
+    preview_path: str = "/employees"
 
     @property
     def remote_applied(self) -> bool:
@@ -223,6 +238,8 @@ class ApplyResult:
             "control_plane_url": self.control_plane_url,
             "remote_applied": self.remote_applied,
             "mirrored": self.mirrored,
+            "tenant_id": self.tenant_id,
+            "preview_path": self.preview_path,
             "landed": dict(self.landed),
             "receipts": [item.to_dict() for item in self.receipts],
             "notes": list(self.notes),

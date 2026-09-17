@@ -84,7 +84,7 @@ uv run freeos org employee export-profile my-analyst --tenant-id 1
 ```
 
 `assets publish` writes `{FREEOS_HOME}/asset-packs/latest/`.
-`assets apply` POSTs/PUTs those drafts to the control plane when reachable and always writes `{FREEOS_HOME}/openxyos-mirror/<tenant>/`. Nothing is auto-enabled on the sidecar.
+`assets apply` POSTs to `/api/freeos/ingest` when the sidecar is reachable and always writes `{FREEOS_HOME}/openxyos-mirror/<tenant>/`. Ingest targets the **signed-in openXYOS tenant** (the embed login), so employees / talent / skills / plugins show in the normal list UIs.
 
 ## Where files live
 

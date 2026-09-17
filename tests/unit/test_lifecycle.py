@@ -8,7 +8,12 @@ import pytest
 
 from octop.modules.org_os.compiler.compile import compile_blueprint
 from octop.modules.org_os.lifecycle.store import LifecycleStore
-from octop.modules.org_os.lifecycle.transitions import register_compiled, transition
+from octop.modules.org_os.lifecycle.transitions import (
+    already_at_or_beyond,
+    can_transition,
+    register_compiled,
+    transition,
+)
 
 _FIXTURE = Path(__file__).resolve().parents[1] / "fixtures" / "agent-blueprint.v1.json"
 
@@ -54,6 +59,13 @@ def test_illegal_skip_rejected(tmp_path: Path) -> None:
     store, slug, _workspace = _spawn(tmp_path)
     with pytest.raises(ValueError, match="cannot move"):
         transition(store, slug, "active")
+    assert can_transition("draft", "active") is False
+    assert can_transition("active", "market") is False
+    assert can_transition("active", "active") is True
+    assert can_transition("shadow", "active") is True
+    assert already_at_or_beyond("active", "market") is True
+    assert already_at_or_beyond("draft", "market") is False
+    assert already_at_or_beyond("offboard", "active") is True
 
 
 def test_offboard_revokes_and_archives_memory(tmp_path: Path) -> None:

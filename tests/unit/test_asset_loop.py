@@ -118,4 +118,8 @@ def test_publish_asset_pack_includes_skills_mcp_agents(tmp_path: Path) -> None:
     )
     assert employees["enabled_by_default"] is False
     assert employees["employees"][0]["slug"] == "policy-analyst"
-    assert (pack.directory / "openxyos" / "org-talent.publish.json").is_file()
+    talent = json.loads(
+        (pack.directory / "openxyos" / "org-talent.publish.json").read_text(encoding="utf-8")
+    )
+    assert any(item.get("name") == employees["employees"][0]["name"] for item in talent["talent"])
+    assert all(item.get("status") == "available" for item in talent["talent"])
