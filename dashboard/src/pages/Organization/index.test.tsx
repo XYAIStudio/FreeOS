@@ -54,6 +54,7 @@ vi.mock("../../api/modules/orgModule", () => ({
     overview: vi.fn(async () => overview),
     setEnabled: vi.fn(),
     startSidecar: vi.fn(),
+    restartSidecar: vi.fn(),
     assemble: vi.fn(),
     produce: vi.fn(),
     pack: vi.fn(),
@@ -86,6 +87,7 @@ describe("OrganizationPage", () => {
     vi.mocked(orgModuleApi.overview).mockResolvedValue(overview);
     vi.mocked(orgModuleApi.downloadSource).mockReset();
     vi.mocked(orgModuleApi.startSidecar).mockReset();
+    vi.mocked(orgModuleApi.restartSidecar).mockReset();
     vi.mocked(orgModuleApi.pack).mockReset();
     vi.mocked(message.success).mockReset();
     vi.mocked(message.error).mockReset();
@@ -105,6 +107,15 @@ describe("OrganizationPage", () => {
     expect(screen.getByTestId("org-address-bar")).toHaveValue(
       "http://127.0.0.1:3780/",
     );
+    expect(screen.getByTestId("org-browser-back")).toBeDisabled();
+    expect(screen.getByTestId("org-browser-forward")).toBeDisabled();
+    expect(screen.getByTestId("org-browser-reload")).toBeEnabled();
+    const restart = screen.getByTestId("org-restart-sidecar");
+    const lastSync = screen.getByTestId("org-last-sync");
+    expect(
+      restart.compareDocumentPosition(lastSync) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
     expect(screen.queryByText("organization.openSidecar")).toBeNull();
     expect(screen.getByTestId("org-download-source")).toHaveTextContent(
       "organization.downloadSourceBar",
@@ -124,7 +135,9 @@ describe("OrganizationPage", () => {
       await screen.findByText("organization.assembleTitle"),
     ).toBeInTheDocument();
     expect(screen.getByText("organization.loopTitle")).toBeInTheDocument();
-    expect(screen.getByTestId("org-download-source-drawer")).toBeInTheDocument();
+    expect(
+      screen.getByTestId("org-download-source-drawer"),
+    ).toBeInTheDocument();
     expect(screen.queryByTestId("org-preview-blank")).toBeNull();
   });
 
@@ -205,6 +218,57 @@ describe("OrganizationPage", () => {
         "https://example.com/path",
       );
     });
+    expect(screen.getByTestId("org-browser-back")).toBeEnabled();
+    fireEvent.click(screen.getByTestId("org-browser-back"));
+    await waitFor(() => {
+      expect(screen.getByTestId("org-address-bar")).toHaveValue(
+        "http://127.0.0.1:3780/",
+      );
+    });
+    fireEvent.click(screen.getByTestId("org-browser-reload"));
+    await waitFor(() => {
+      expect(screen.getByTestId("org-browser-frame")).toHaveAttribute(
+        "data-tab-id",
+        "org-home",
+      );
+    });
+  });
+
+  it("restarts openXYOS and returns the embed to the local home page", async () => {
+    vi.mocked(orgModuleApi.restartSidecar).mockImplementation(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 20));
+      return {
+        started: true,
+        already: false,
+        reachable: true,
+        url: "http://127.0.0.1:3780",
+        command: "start-sidecar",
+        detail: "restarted openXYOS frontend and backend",
+        launcher: "",
+      };
+    });
+    render(<OrganizationPage />);
+    const address = await screen.findByTestId("org-address-bar");
+    fireEvent.change(address, {
+      target: { value: "https://example.com/docs" },
+    });
+    fireEvent.submit(address.closest("form") as HTMLFormElement);
+    fireEvent.click(screen.getByTestId("org-restart-sidecar"));
+    expect(
+      await screen.findByTestId("org-restart-overlay"),
+    ).toBeInTheDocument();
+    await waitFor(() => {
+      expect(orgModuleApi.restartSidecar).toHaveBeenCalled();
+    });
+    await waitFor(() => {
+      expect(screen.getByTestId("org-address-bar")).toHaveValue(
+        "http://127.0.0.1:3780/",
+      );
+    });
+    expect(screen.queryByTestId("org-restart-overlay")).toBeNull();
+    expect(message.success).toHaveBeenCalledWith(
+      "organization.restartSidecarDone",
+    );
   });
 
   it("auto-starts the sidecar when Organization is opened offline", async () => {

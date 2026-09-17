@@ -758,7 +758,9 @@
       "started_pending": "started but not reachable yet; check logs/org-sidecar.log",
       "missing_frontend": "started but frontend build (dist/index.html) is missing; sidecar may still come up — check logs/org-sidecar.log",
       "ok": "ok",
-      "no_runtime": "no bundled sidecar runtime"
+      "no_runtime": "no bundled sidecar runtime",
+      "restarted": "restarted openXYOS frontend and backend",
+      "restarted_pending": "restarted but not reachable yet; check logs/org-sidecar.log"
     }
   }
 }

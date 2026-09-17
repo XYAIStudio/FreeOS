@@ -6,11 +6,13 @@ import {
   Download,
   Package,
   Play,
+  RefreshCw,
   Settings2,
   Shield,
   Users,
   Workflow,
 } from "lucide-react";
+import { xyaiMascotSrc } from "../../assets/mascot";
 import { useTranslation } from "react-i18next";
 import PageShell from "../../layouts/PageShell";
 import {
@@ -35,11 +37,14 @@ import {
   DEFAULT_ORG_URL,
   closeOrgTab,
   createHomeTab,
+  goBackOrgTab,
+  goForwardOrgTab,
   navigateOrgTab,
   normalizeOrgUrl,
   openOrgTab,
   parseOrgNavigatedMessage,
   parseOrgOpenTabMessage,
+  reloadOrgTab,
   sidecarOriginOf,
   tabTitleFromUrl,
   type OrgBrowserTab,
@@ -48,7 +53,14 @@ import { installOrgPageWindowTrap } from "./orgPageWindowTrap";
 import { registerOrgBrowserHost } from "../../utils/orgBrowserHost";
 import styles from "./Organization.module.less";
 
-type ActionKey = "assemble" | "pack" | "loop" | "sidecar" | "produce" | null;
+type ActionKey =
+  | "assemble"
+  | "pack"
+  | "loop"
+  | "sidecar"
+  | "restart"
+  | "produce"
+  | null;
 type DrawerKey = "module" | "manage" | null;
 
 type LastReceipt = {
@@ -224,7 +236,7 @@ export default function OrganizationPage() {
     setBusy(key);
     try {
       await fn();
-      if (key !== "sidecar") {
+      if (key !== "sidecar" && key !== "restart") {
         await applyOverview(false);
       }
     } catch (err) {
@@ -447,6 +459,8 @@ export default function OrganizationPage() {
       ? t("organization.progressLoop")
       : busy === "produce"
       ? t("organization.progressProduce")
+      : busy === "restart"
+      ? t("organization.restartingSidecar")
       : null;
 
   const lastLoop = (loopProof ?? overview?.last_loop) as OrgLoopProof | null;
@@ -494,6 +508,59 @@ export default function OrganizationPage() {
     );
     setAddressValue(url);
   }, [activeId, addressValue, homeTitle, localConsoleUrl]);
+
+  const goHomeAfterRestart = useCallback(() => {
+    const home = normalizeOrgUrl(localConsoleUrl + "/");
+    setTabs([createHomeTab(home, homeTitle)]);
+    setActiveId("org-home");
+    setAddressValue(home);
+    setPreviewNonce(String(Date.now()));
+  }, [homeTitle, localConsoleUrl]);
+
+  const onBrowserBack = useCallback(() => {
+    let nextAddress = addressValue;
+    setTabs((current) => {
+      const next = goBackOrgTab(current, activeId, homeTitle);
+      nextAddress =
+        next.find((tab) => tab.id === activeId)?.url ?? addressValue;
+      return next;
+    });
+    setAddressValue(nextAddress);
+  }, [activeId, addressValue, homeTitle]);
+
+  const onBrowserForward = useCallback(() => {
+    let nextAddress = addressValue;
+    setTabs((current) => {
+      const next = goForwardOrgTab(current, activeId, homeTitle);
+      nextAddress =
+        next.find((tab) => tab.id === activeId)?.url ?? addressValue;
+      return next;
+    });
+    setAddressValue(nextAddress);
+  }, [activeId, addressValue, homeTitle]);
+
+  const onBrowserReload = useCallback(() => {
+    setTabs((current) => reloadOrgTab(current, activeId));
+  }, [activeId]);
+
+  const restartSidecar = () =>
+    runAction("restart", async () => {
+      const result = await orgModuleApi.restartSidecar();
+      setLastActionNotes([result.detail, result.command].filter(Boolean));
+      const next = result.reachable
+        ? await applyOverview(true)
+        : await waitForSidecar();
+      if (next?.sidecar_reachable) {
+        goHomeAfterRestart();
+        message.success(t("organization.restartSidecarDone"));
+        return;
+      }
+      message.error(
+        t("organization.restartSidecarFailed", {
+          detail: result.detail || t("organization.actionFailed"),
+        }),
+      );
+    });
 
   const pushTogglesToPreview = useCallback(() => {
     for (const frame of Object.values(iframeRefs.current)) {
@@ -578,7 +645,19 @@ export default function OrganizationPage() {
                 ? t("organization.sidecarUp")
                 : t("organization.sidecarOpening")}
             </span>
-            <span className={styles.chip}>
+            <Button
+              size="small"
+              className={styles.restartBtn}
+              icon={<RefreshCw size={13} />}
+              loading={busy === "restart"}
+              disabled={busy !== null && busy !== "restart"}
+              onClick={() => void restartSidecar()}
+              data-testid="org-restart-sidecar"
+              title={t("organization.restartSidecar")}
+            >
+              {t("organization.restartSidecar")}
+            </Button>
+            <span className={styles.chip} data-testid="org-last-sync">
               {t("organization.lastSync")}: {lastSync}
             </span>
           </div>
@@ -643,8 +722,33 @@ export default function OrganizationPage() {
             setAddressValue(nextAddress);
           }}
           onNewTab={() => openTab(localConsoleUrl + "/", homeTitle, false)}
+          onBack={onBrowserBack}
+          onForward={onBrowserForward}
+          onReload={onBrowserReload}
           onFrameLoad={pushTogglesToPreview}
         />
+        {busy === "restart" && (
+          <div
+            className={styles.restartOverlay}
+            data-testid="org-restart-overlay"
+            role="status"
+            aria-live="polite"
+          >
+            <img
+              className={styles.restartMascot}
+              src={xyaiMascotSrc("work")}
+              alt=""
+              aria-hidden
+              draggable={false}
+            />
+            <p className={styles.restartLabel}>
+              {t("organization.restartingSidecar")}
+            </p>
+            <p className={styles.restartHint}>
+              {t("organization.restartSidecarHint")}
+            </p>
+          </div>
+        )}
       </div>
 
       <Drawer

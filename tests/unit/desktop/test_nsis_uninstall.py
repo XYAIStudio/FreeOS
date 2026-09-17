@@ -333,7 +333,12 @@ def test_organization_embeds_local_openxyos_url() -> None:
     assert "DEFAULT_ORG_URL" in page
     assert "<iframe" in browser
     assert "org-address-bar" in browser
+    assert "org-browser-back" in browser
+    assert "org-browser-forward" in browser
+    assert "org-browser-reload" in browser
     assert "org-mini-browser" in browser
+    assert 'data-testid="org-restart-sidecar"' in page
+    assert "restartSidecar" in page
     assert "organization.openSidecar" not in page
     assert "organization.openSidecar" not in browser
     assert "ExternalLink" not in page

@@ -517,13 +517,15 @@ def _embed_ok(service: OrgModuleService) -> bool:
         return True
 
 
-def start_sidecar(service: OrgModuleService, *, wait: float = 20.0) -> SidecarStartResult:
+def start_sidecar(
+    service: OrgModuleService, *, wait: float = 20.0, force: bool = False
+) -> SidecarStartResult:
     health = service.probe_sidecar()
     command = sidecar_start_command()
     runtime = find_sidecar_runtime()
     launcher = find_sidecar_launcher()
     launcher_label = str(runtime.node if runtime is not None else launcher or "")
-    if health.reachable and _embed_ok(service):
+    if health.reachable and _embed_ok(service) and not force:
         return SidecarStartResult(
             started=False,
             already=True,
@@ -579,15 +581,77 @@ def start_sidecar(service: OrgModuleService, *, wait: float = 20.0) -> SidecarSt
     )
 
 
+def _bundled_start_helper() -> Path | None:
+    """``start-sidecar.*`` shipped with the live / portable tree (not source npm)."""
+    launcher = find_sidecar_launcher()
+    if launcher is None:
+        return None
+    if launcher.name.startswith("start-sidecar"):
+        return launcher
+    return None
+
+
+def sidecar_runtime_root() -> Path | None:
+    runtime = find_sidecar_runtime()
+    if runtime is not None:
+        return runtime.root
+    helper = _bundled_start_helper()
+    if helper is not None:
+        return helper.parent
+    for root in sidecar_candidate_roots():
+        if (root / ".install-ready").is_file():
+            return root
+        if (root / "org-sidecar" / ".install-ready").is_file():
+            return root / "org-sidecar"
+    return None
+
+
+def _wait_until_down(service: OrgModuleService, wait: float = 8.0) -> None:
+    deadline = time.time() + max(wait, 0.4)
+    while time.time() < deadline and service.probe_sidecar().reachable:
+        time.sleep(0.3)
+
+
+def restart_sidecar(service: OrgModuleService, *, wait: float = 45.0) -> SidecarStartResult:
+    """Stop the live openXYOS Node, then start FE+BE again and wait for livez."""
+    root = sidecar_runtime_root()
+    if root is not None:
+        heal_openxyos_layout(root)
+        stop_stale_openxyos(root)
+        _wait_until_down(service)
+    result = start_sidecar(service, wait=wait, force=True)
+    if result.reachable:
+        return SidecarStartResult(
+            started=True,
+            already=False,
+            reachable=True,
+            url=result.url,
+            command=result.command,
+            detail="restarted openXYOS frontend and backend",
+            launcher=result.launcher,
+        )
+    if result.started:
+        return SidecarStartResult(
+            started=True,
+            already=False,
+            reachable=False,
+            url=result.url,
+            command=result.command,
+            detail="restarted but not reachable yet; check logs/org-sidecar.log",
+            launcher=result.launcher,
+        )
+    return result
+
+
 def ensure_sidecar(service: OrgModuleService, *, wait: float | None = None) -> SidecarStartResult:
     """Keep the bundled sidecar up on desktop / first launch.
 
-    Only auto-starts when the portable ``org-sidecar`` runtime is present.
+    Auto-starts a portable / install-time runtime or ``start-sidecar.*``.
     A source-tree ``scripts/run-org-sidecar.sh`` is left for an explicit
     Start click so host boot never runs ``npm start`` in tests or unpackaged trees.
     """
     if wait is None:
-        wait = 20.0 if sidecar_install_ready() else 8.0
+        wait = 30.0 if sidecar_install_ready() else 8.0
     health = service.probe_sidecar()
     command = sidecar_start_command()
     if health.reachable and _embed_ok(service):
@@ -599,7 +663,10 @@ def ensure_sidecar(service: OrgModuleService, *, wait: float | None = None) -> S
             command=command,
             detail="sidecar already reachable",
         )
-    if find_sidecar_runtime() is None:
+    can_auto = find_sidecar_runtime() is not None or (
+        sidecar_install_ready() and _bundled_start_helper() is not None
+    )
+    if not can_auto:
         return SidecarStartResult(
             started=False,
             already=False,

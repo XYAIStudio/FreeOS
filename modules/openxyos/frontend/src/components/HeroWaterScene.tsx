@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { XYOS_WATER_LOGO_SRC } from "../brandAssets";
 import "./hero-water.css";
 
 /** Brand animation only: falling water, impact waves, then a raised enamel logo. */
@@ -9,7 +10,7 @@ export default function HeroWaterScene() {
     const ctx = canvas?.getContext("2d");
     if (!canvas || !ctx) return;
     const logo = new Image();
-    logo.src = "/assets/xyos-water-logo.png";
+    logo.src = XYOS_WATER_LOGO_SRC;
     const motion = matchMedia("(prefers-reduced-motion: reduce)");
     let frame = 0, width = 0, height = 0, fontReady = false, disposed = false;
     const start = performance.now();

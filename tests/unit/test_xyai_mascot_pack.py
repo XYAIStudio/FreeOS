@@ -33,3 +33,9 @@ def test_openxyos_hero_uses_xyai_mascot() -> None:
     path = OPENXYOS / "xyai-mascot.webp"
     assert path.is_file()
     assert path.stat().st_size > 1024
+    home = REPO / "modules" / "openxyos" / "frontend" / "src" / "pages" / "OpenHomePage.tsx"
+    brand = REPO / "modules" / "openxyos" / "frontend" / "src" / "brandAssets.ts"
+    text = home.read_text(encoding="utf-8")
+    assert "XYAI_MASCOT_SRC" in text
+    assert "/assets/xyai-mascot.webp" not in text
+    assert "xyai-mascot.webp" in brand.read_text(encoding="utf-8")

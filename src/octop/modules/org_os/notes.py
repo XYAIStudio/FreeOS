@@ -82,6 +82,16 @@ _PATTERNS: tuple[tuple[re.Pattern[str], str, tuple[str, ...]], ...] = (
         (),
     ),
     (
+        re.compile(r"^restarted openXYOS frontend and backend$"),
+        "org.sidecar.restarted",
+        (),
+    ),
+    (
+        re.compile(r"^restarted but not reachable yet; check logs/org-sidecar\.log$"),
+        "org.sidecar.restarted_pending",
+        (),
+    ),
+    (
         re.compile(r"^FreeOS does the work\. openXYOS owns organization and governance\.$"),
         "org.notes.hero",
         (),

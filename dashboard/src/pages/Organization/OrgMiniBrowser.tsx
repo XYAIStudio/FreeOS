@@ -1,9 +1,12 @@
 import { useMemo, type MutableRefObject } from "react";
-import { Button, Input } from "antd";
+import { Button, Input, Tooltip } from "antd";
+import { ArrowLeft, ArrowRight, RotateCcw } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { ChromeTabBar } from "../../components/ChromeTabBar";
 import {
   buildEmbedSrc,
+  canGoBack,
+  canGoForward,
   iframeSandboxFor,
   type OrgBrowserTab,
 } from "./orgBrowser";
@@ -24,6 +27,9 @@ type OrgMiniBrowserProps = {
   onSelectTab: (id: string) => void;
   onCloseTab: (id: string) => void;
   onNewTab: () => void;
+  onBack: () => void;
+  onForward: () => void;
+  onReload: () => void;
   onFrameLoad: () => void;
 };
 
@@ -42,9 +48,13 @@ export default function OrgMiniBrowser({
   onSelectTab,
   onCloseTab,
   onNewTab,
+  onBack,
+  onForward,
+  onReload,
   onFrameLoad,
 }: OrgMiniBrowserProps) {
   const { t } = useTranslation();
+  const activeTab = tabs.find((tab) => tab.id === activeId);
   const chromeTabs = useMemo(
     () =>
       tabs.map((tab) => ({
@@ -76,6 +86,32 @@ export default function OrgMiniBrowser({
           onAddressSubmit();
         }}
       >
+        <Tooltip title={t("organization.browserBack")}>
+          <Button
+            data-testid="org-browser-back"
+            aria-label={t("organization.browserBack")}
+            icon={<ArrowLeft size={14} />}
+            disabled={!canGoBack(activeTab)}
+            onClick={onBack}
+          />
+        </Tooltip>
+        <Tooltip title={t("organization.browserForward")}>
+          <Button
+            data-testid="org-browser-forward"
+            aria-label={t("organization.browserForward")}
+            icon={<ArrowRight size={14} />}
+            disabled={!canGoForward(activeTab)}
+            onClick={onForward}
+          />
+        </Tooltip>
+        <Tooltip title={t("organization.browserReload")}>
+          <Button
+            data-testid="org-browser-reload"
+            aria-label={t("organization.browserReload")}
+            icon={<RotateCcw size={14} />}
+            onClick={onReload}
+          />
+        </Tooltip>
         <Input
           data-testid="org-address-bar"
           value={addressValue}
@@ -107,7 +143,7 @@ export default function OrgMiniBrowser({
           const active = tab.id === activeId;
           return (
             <iframe
-              key={tab.id}
+              key={`${tab.id}-${tab.reloadSeq ?? 0}`}
               ref={(node) => {
                 iframeRefs.current[tab.id] = node;
               }}

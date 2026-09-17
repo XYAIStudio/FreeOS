@@ -758,7 +758,9 @@
       "started_pending": "已启动但尚未可达；请查看 logs/org-sidecar.log",
       "missing_frontend": "已启动但缺少前端构建（dist/index.html）；边车可能仍在起来，请查看 logs/org-sidecar.log",
       "ok": "正常",
-      "no_runtime": "未找到捆绑的边车运行时"
+      "no_runtime": "未找到捆绑的边车运行时",
+      "restarted": "已重启 openXYOS 前后端服务",
+      "restarted_pending": "已重启但尚未可达；请查看 logs/org-sidecar.log"
     }
   }
 }

@@ -24,6 +24,7 @@ from octop.modules.org_os.overview import build_overview
 from octop.modules.org_os.proxy import identity_headers, proxy_request
 from octop.modules.org_os.service import OrgModuleService, org_module_from_paths
 from octop.modules.org_os.sidecar_launch import (
+    restart_sidecar,
     sidecar_can_start,
     sidecar_install_ready,
     sidecar_start_command,
@@ -130,6 +131,22 @@ async def org_module_start_sidecar(
     if not service.is_enabled():
         service.set_enabled(True)
     started = await asyncio.to_thread(start_sidecar, service)
+    payload = started.to_dict()
+    locale = resolve_request_locale(request)
+    payload["detail"] = localize_note(str(payload.get("detail") or ""), locale)
+    return payload
+
+
+@router.post("/sidecar/restart", summary="Restart local openXYOS frontend and backend")
+async def org_module_restart_sidecar(
+    request: Request,
+    server: OctopServer = Depends(get_server),
+    _user: Any = Depends(current_user),
+) -> dict[str, Any]:
+    service = _service(server)
+    if not service.is_enabled():
+        service.set_enabled(True)
+    started = await asyncio.to_thread(restart_sidecar, service)
     payload = started.to_dict()
     locale = resolve_request_locale(request)
     payload["detail"] = localize_note(str(payload.get("detail") or ""), locale)

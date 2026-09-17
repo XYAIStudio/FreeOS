@@ -11,7 +11,44 @@ export type OrgBrowserTab = {
   title: string;
   /** Last URL assigned to the iframe src (not updated by in-page SPA nav). */
   srcUrl: string;
+  history: string[];
+  historyIndex: number;
+  /** Bumped to remount the iframe when reloading the same src. */
+  reloadSeq: number;
 };
+
+function withHistory(
+  tab: Omit<OrgBrowserTab, "history" | "historyIndex" | "reloadSeq">,
+): OrgBrowserTab {
+  return {
+    ...tab,
+    history: [tab.url],
+    historyIndex: 0,
+    reloadSeq: 0,
+  };
+}
+
+export function canGoBack(tab: OrgBrowserTab | undefined): boolean {
+  return Boolean(tab && (tab.historyIndex ?? 0) > 0);
+}
+
+export function canGoForward(tab: OrgBrowserTab | undefined): boolean {
+  const history = tab?.history ?? [];
+  return Boolean(tab && (tab.historyIndex ?? 0) < history.length - 1);
+}
+
+function pushHistory(
+  tab: OrgBrowserTab,
+  href: string,
+): Pick<OrgBrowserTab, "history" | "historyIndex"> {
+  const history = tab.history ?? [tab.url];
+  const historyIndex = tab.historyIndex ?? 0;
+  if (history[historyIndex] === href) {
+    return { history, historyIndex };
+  }
+  const next = [...history.slice(0, historyIndex + 1), href];
+  return { history: next, historyIndex: next.length - 1 };
+}
 
 export function nextOrgTabId(now = Date.now(), nonce = Math.random()): string {
   return `org-tab-${now.toString(36)}-${nonce.toString(36).slice(2, 8)}`;
@@ -164,12 +201,12 @@ export function openOrgTab(
       return { tabs, activeId: existing.id };
     }
   }
-  const tab: OrgBrowserTab = {
+  const tab = withHistory({
     id: nextOrgTabId(),
     url: href,
     title: title || tabTitleFromUrl(href, "openXYOS"),
     srcUrl: href,
-  };
+  });
   return { tabs: [...tabs, tab], activeId: tab.id };
 }
 
@@ -195,14 +232,65 @@ export function navigateOrgTab(
   reload = true,
 ): OrgBrowserTab[] {
   const href = normalizeOrgUrl(url);
+  return tabs.map((tab) => {
+    if (tab.id !== tabId) return tab;
+    const next = pushHistory(tab, href);
+    return {
+      ...tab,
+      url: href,
+      title: title || tab.title,
+      srcUrl: reload ? href : tab.srcUrl,
+      history: next.history,
+      historyIndex: next.historyIndex,
+    };
+  });
+}
+
+export function goBackOrgTab(
+  tabs: OrgBrowserTab[],
+  tabId: string,
+  homeTitle: string,
+): OrgBrowserTab[] {
+  return tabs.map((tab) => {
+    if (tab.id !== tabId || !canGoBack(tab)) return tab;
+    const historyIndex = tab.historyIndex - 1;
+    const href = tab.history[historyIndex] ?? tab.url;
+    return {
+      ...tab,
+      url: href,
+      title: tabTitleFromUrl(href, homeTitle),
+      srcUrl: href,
+      historyIndex,
+    };
+  });
+}
+
+export function goForwardOrgTab(
+  tabs: OrgBrowserTab[],
+  tabId: string,
+  homeTitle: string,
+): OrgBrowserTab[] {
+  return tabs.map((tab) => {
+    if (tab.id !== tabId || !canGoForward(tab)) return tab;
+    const historyIndex = tab.historyIndex + 1;
+    const href = tab.history[historyIndex] ?? tab.url;
+    return {
+      ...tab,
+      url: href,
+      title: tabTitleFromUrl(href, homeTitle),
+      srcUrl: href,
+      historyIndex,
+    };
+  });
+}
+
+export function reloadOrgTab(
+  tabs: OrgBrowserTab[],
+  tabId: string,
+): OrgBrowserTab[] {
   return tabs.map((tab) =>
     tab.id === tabId
-      ? {
-          ...tab,
-          url: href,
-          title: title || tab.title,
-          srcUrl: reload ? href : tab.srcUrl,
-        }
+      ? { ...tab, srcUrl: tab.url, reloadSeq: (tab.reloadSeq ?? 0) + 1 }
       : tab,
   );
 }
@@ -212,10 +300,10 @@ export function createHomeTab(
   title: string,
 ): OrgBrowserTab {
   const url = normalizeOrgUrl(sidecarUrl || DEFAULT_ORG_URL);
-  return {
+  return withHistory({
     id: "org-home",
     url,
     title,
     srcUrl: url,
-  };
+  });
 }
