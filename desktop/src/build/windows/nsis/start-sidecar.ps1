@@ -44,9 +44,13 @@ if (-not (Test-Path -LiteralPath (Join-Path $app 'dist\index.html'))) {
 }
 if (-not (Test-Path -LiteralPath $node)) { exit 6 }
 
-$home = $env:FREEOS_HOME
-if (-not $home) { $home = Join-Path $env:USERPROFILE '.freeos' }
-$data = Join-Path $home 'org-os'
+# $HOME / $home is a read-only automatic variable in Windows PowerShell.
+# Assigning it throws SessionStateUnauthorizedAccessException; with
+# $ErrorActionPreference = Continue the script keeps going and $home stays
+# the user profile root, so SQLite lands at %USERPROFILE%\org-os\...
+$freeosHome = $env:FREEOS_HOME
+if (-not $freeosHome) { $freeosHome = Join-Path $env:USERPROFILE '.freeos' }
+$data = Join-Path $freeosHome 'org-os'
 New-Item -ItemType Directory -Force -Path $data | Out-Null
 $secretFile = Join-Path $data 'sidecar.env'
 $jwt = ''
@@ -79,8 +83,8 @@ $env:JWT_SECRET = $jwt
 $env:COOKIE_SECRET = $cookie
 $env:FREEOS_INGEST_TOKEN = $ingest
 $env:CORS_ORIGIN = 'http://127.0.0.1:8088,http://localhost:8088,http://127.0.0.1:18900,http://localhost:18900'
-$env:FREEOS_HOME = $home
-$env:OCTOP_HOME = $home
+$env:FREEOS_HOME = $freeosHome
+$env:OCTOP_HOME = $freeosHome
 $env:FREEOS_ORG_SIDECAR_PORT = '3780'
 $compiled = Join-Path $app 'backend-dist\server.js'
 if (Test-Path -LiteralPath $compiled) {
@@ -107,6 +111,8 @@ $pidFile = Join-Path $live 'start.pid'
     "PORT=$($env:PORT)"
     "CORS_ORIGIN=$($env:CORS_ORIGIN)"
     "DB_DIALECT=$($env:DB_DIALECT)"
+    "DATABASE_PATH=$($env:DATABASE_PATH)"
+    "FREEOS_HOME=$($env:FREEOS_HOME)"
     "AIR_GAP_MODE=$($env:AIR_GAP_MODE)"
 ) | Set-Content -LiteralPath $startLog -Encoding UTF8
 foreach ($old in @($startOut, $startErr)) {

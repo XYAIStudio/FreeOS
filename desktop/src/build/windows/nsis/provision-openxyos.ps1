@@ -90,6 +90,60 @@ function Repair-OpenXYOSLayout {
     return (Test-OpenXYOSLayout $Root)
 }
 
+function Get-OpenXYOSAppDirs {
+    param([string]$Root)
+    return @(
+        (Join-Path $Root 'openxyos'),
+        $Root
+    )
+}
+
+function Test-OpenXYOSCompiledSql {
+    param([string]$Root)
+    $need = @(
+        '013_audit_bundle.sql',
+        '014_cluster_nodes.sql',
+        '015_tenant_industry_packages.sql',
+        '016_tenant_module_settings.sql'
+    )
+    foreach ($app in (Get-OpenXYOSAppDirs $Root)) {
+        $compiled = Join-Path $app 'backend-dist\server.js'
+        if (-not (Test-Path -LiteralPath $compiled)) { continue }
+        $dest = Join-Path $app 'backend-dist\migrations'
+        foreach ($name in $need) {
+            if (-not (Test-Path -LiteralPath (Join-Path $dest $name))) { return $false }
+        }
+        return $true
+    }
+    return $true
+}
+
+function Repair-OpenXYOSMigrations {
+    param([string]$Root)
+    $need = @(
+        '013_audit_bundle.sql',
+        '014_cluster_nodes.sql',
+        '015_tenant_industry_packages.sql',
+        '016_tenant_module_settings.sql'
+    )
+    foreach ($app in (Get-OpenXYOSAppDirs $Root)) {
+        $compiled = Join-Path $app 'backend-dist\server.js'
+        if (-not (Test-Path -LiteralPath $compiled)) { continue }
+        $dest = Join-Path $app 'backend-dist\migrations'
+        $src = Join-Path $app 'backend\migrations'
+        $missing = $false
+        foreach ($name in $need) {
+            if (-not (Test-Path -LiteralPath (Join-Path $dest $name))) { $missing = $true; break }
+        }
+        if (-not $missing) { continue }
+        if (Test-Path -LiteralPath $src) {
+            Write-ProvLog "Copying $src -> $dest (compiled server needs runtime SQL)"
+            New-Item -ItemType Directory -Force -Path $dest | Out-Null
+            Copy-Item -Path (Join-Path $src '*') -Destination $dest -Force
+        }
+    }
+}
+
 function Test-OpenXYOSLivez {
     try {
         $r = Invoke-WebRequest -UseBasicParsing -TimeoutSec 2 -Uri 'http://127.0.0.1:3780/api/health/livez'
@@ -311,6 +365,28 @@ $flatFe = Join-Path $LiveDir 'dist\index.html'
 if (-not ((Test-Path -LiteralPath $nestedFe) -or (Test-Path -LiteralPath $flatFe))) {
     Write-ProvLog 'dist\index.html missing after extract/heal'
     exit 7
+}
+
+# Live dir may already look complete (node + dist) from a prior install that
+# shipped backend-dist/server.js without migrations. Heal SQL in place so
+# initDatabase does not ENOENT on 013_audit_bundle.sql.
+Repair-OpenXYOSMigrations $LiveDir
+if (-not (Test-OpenXYOSCompiledSql $LiveDir)) {
+    foreach ($backup in @($backupRuntime, $backupOpen)) {
+        Repair-OpenXYOSMigrations $backup
+        foreach ($app in (Get-OpenXYOSAppDirs $backup)) {
+            $src = Join-Path $app 'backend-dist\migrations'
+            if (-not (Test-Path -LiteralPath $src)) { continue }
+            foreach ($liveApp in (Get-OpenXYOSAppDirs $LiveDir)) {
+                $compiled = Join-Path $liveApp 'backend-dist\server.js'
+                if (-not (Test-Path -LiteralPath $compiled)) { continue }
+                $dest = Join-Path $liveApp 'backend-dist\migrations'
+                Write-ProvLog "Healing runtime SQL $src -> $dest"
+                New-Item -ItemType Directory -Force -Path $dest | Out-Null
+                Copy-Item -Path (Join-Path $src '*') -Destination $dest -Force
+            }
+        }
+    }
 }
 
 $readme = @(
