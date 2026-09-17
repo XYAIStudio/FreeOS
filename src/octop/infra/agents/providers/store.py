@@ -167,6 +167,8 @@ class ProviderStore:
         for row in self.iter_usable_rows():
             protocol = KIND_TO_PROTOCOL.get(row.kind, "openai")
             api_key, base_url = self._row_credentials(row)
+            if not api_key or not base_url:
+                continue
             raw_models = json.loads(row.models_json) if getattr(row, "models_json", None) else []
             models = [
                 self._model_config_from_row(m)
