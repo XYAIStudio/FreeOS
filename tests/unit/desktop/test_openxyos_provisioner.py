@@ -29,10 +29,13 @@ def test_provisioner_extracts_with_tar_not_expand_archive() -> None:
 
 def test_provisioner_normalizes_nested_and_flat_layout() -> None:
     text = PROVISION_PS1.read_text(encoding="utf-8")
+    start = START_PS1.read_text(encoding="utf-8")
     assert "openxyos\\dist\\index.html" in text
     assert "dist\\index.html" in text
     assert "node\\node.exe" in text
     assert "Repair-OpenXYOSLayout" in text
+    assert "Repair-OpenXYOSLayout" in start
+    assert "backend-dist\\server.js" in text
     assert "Repair-OpenXYOSMigrations" in text
     assert "013_audit_bundle.sql" in text
     assert "Find-OpenXYOSBundleRoot" in text
@@ -158,6 +161,108 @@ def test_provisioner_removes_staging_only_after_success() -> None:
         assert "Complete-OpenXYOSSuccess" not in window, code
     assert text.count("Complete-OpenXYOSSuccess") >= 5
     assert "Sealed backup:" not in text
+
+
+def test_provisioner_stops_owned_node_before_extract() -> None:
+    text = PROVISION_PS1.read_text(encoding="utf-8")
+    start = START_PS1.read_text(encoding="utf-8")
+    stop_fn = text.index("function Stop-OpenXYOSNode")
+    wrap_fn = text.index("function Stop-OpenXYOSLockedProcesses")
+    extract_fn = text.index("function Invoke-TarExtract")
+    main = text.index("# --- main ---")
+    stop_call = text.index("Stop-OpenXYOSLockedProcesses", main)
+    first_extract = text.index("Invoke-TarExtract", main)
+    assert stop_fn < wrap_fn < extract_fn < main
+    assert stop_call < first_extract
+    node_body = text[stop_fn:wrap_fn]
+    wrap_body = text[wrap_fn:extract_fn]
+    assert "Stop-OpenXYOSNode" in start
+    assert "Stop-OpenXYOSNode" in wrap_body
+    assert "start.pid" in node_body
+    assert "Name = 'node.exe'" in node_body
+    assert "CommandLine" in node_body
+    lock_body = text[
+        text.index("function Get-OpenXYOSLockRoots") : text.index(
+            "function Test-CommandLineMentionsRoot"
+        )
+    ]
+    assert "Join-Path $InstallDir 'openxyos'" in lock_body
+    assert "$LiveDir" in lock_body
+    assert "Stopping FreeOS openXYOS process" in node_body
+    assert "stop before extract" in wrap_body
+    assert "Stop-Process -Name node" not in text
+    assert "taskkill" not in node_body.lower()
+    # Same owned-path rule as start-sidecar: live node.exe / command line, not every Node.
+    assert "node\\node.exe" in node_body
+
+
+def test_provisioner_logs_tar_stderr() -> None:
+    text = PROVISION_PS1.read_text(encoding="utf-8")
+    body = text[text.index("function Invoke-TarExtract") : text.index("function Test-SamePath")]
+    assert "2>&1" in body
+    assert 'Write-ProvLog "tar:' in body or 'Write-ProvLog "tar:' in body
+    assert "tar exit" in body
+    assert (
+        "LOCALAPPDATA"
+        in text[
+            text.index("function New-OpenXYOSExtractTemp") : text.index(
+                "function Invoke-TarExtract"
+            )
+        ]
+    )
+    assert "openxyos-extract-" in body or "openxyos-extract-" in text
+
+
+def test_provisioner_nonzero_tar_with_good_layout_is_not_exit_3() -> None:
+    text = PROVISION_PS1.read_text(encoding="utf-8")
+    extract_body = text[
+        text.index("function Invoke-TarExtract") : text.index("function Test-SamePath")
+    ]
+    assert "treating extract as success" in extract_body
+    assert "Test-OpenXYOSLayout" in extract_body
+    assert "Repair-OpenXYOSLayout" in extract_body
+    assert "exit 3" not in extract_body
+    main = text[text.index("# --- main ---") :]
+    assert "will try backup heal" in main
+    hard_fail = (
+        "if (-not (Invoke-TarExtract -Tar $tar -Zip $ZipPath -Dest $LiveDir)) {\n"
+        "        Write-ProvLog 'extract into live dir failed'\n"
+        "        exit 3"
+    )
+    assert hard_fail not in text
+    exit3 = text.index("exit 3")
+    window = text[max(0, exit3 - 240) : exit3]
+    assert "Test-OpenXYOSLayout" in window
+    assert "extract into live dir failed" in window
+    assert "Remove-OpenXYOSStaging" not in window
+
+
+def test_provisioner_incomplete_layout_exits_3() -> None:
+    text = PROVISION_PS1.read_text(encoding="utf-8")
+    main = text[text.index("# --- main ---") :]
+    failed = main.index("extract into live dir failed")
+    exit3 = main.index("exit 3", failed)
+    assert "if (-not (Test-OpenXYOSLayout $LiveDir))" in main[max(0, failed - 160) : failed]
+    heal = main.index("Healing live dir from")
+    assert heal < failed < exit3
+    assert "Complete-OpenXYOSSuccess" not in main[failed:exit3]
+
+
+def test_provisioner_idempotent_requires_own_layout_not_stray_livez() -> None:
+    text = PROVISION_PS1.read_text(encoding="utf-8")
+    assert "function Test-OpenXYOSOwnNode" in text
+    assert "function Test-OpenXYOSOwnLivez" in text
+    main = text[text.index("# --- main ---") :]
+    idem = main.index("Already extracted and livez healthy (idempotent)")
+    window = main[max(0, idem - 500) : idem]
+    assert "Test-OpenXYOSLayout" in window
+    assert "Test-OpenXYOSOwnLivez" in window
+    assert ".install-ready" in window
+    assert "layout incomplete; not treating as idempotent" in main
+    assert "not our FreeOS openxyos node" in main
+    # A healthy stray listener after extract must not write .install-ready.
+    assert "if (Test-OpenXYOSOwnLivez)" in main
+    assert "if (Test-OpenXYOSLivez)" not in main[main.index("Install-StartHelpers") :]
 
 
 def test_wrappers_have_no_goto_labels() -> None:
