@@ -86,12 +86,33 @@ def test_start_sidecar_already_reachable(tmp_path: Path, monkeypatch: pytest.Mon
         "probe_sidecar",
         lambda timeout=2.0: SidecarHealth(reachable=True, url="http://127.0.0.1:3780"),
     )
+    monkeypatch.setattr(service, "probe_sidecar_embed", lambda timeout=2.0: True)
     monkeypatch.setattr(sidecar_launch, "find_sidecar_runtime", lambda: None)
     monkeypatch.setattr(sidecar_launch, "find_sidecar_launcher", lambda: None)
     result = sidecar_launch.start_sidecar(service, wait=0.1)
     assert result.already is True
     assert result.reachable is True
     assert result.started is False
+
+
+def test_start_sidecar_restarts_when_embed_blocked(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from octop.modules.org_os import sidecar_launch
+    from octop.modules.org_os.service import SidecarHealth
+
+    service = OrgModuleService(config_path=tmp_path / "config.json", home=tmp_path)
+    monkeypatch.setattr(
+        service,
+        "probe_sidecar",
+        lambda timeout=2.0: SidecarHealth(reachable=True, url="http://127.0.0.1:3780"),
+    )
+    monkeypatch.setattr(service, "probe_sidecar_embed", lambda timeout=2.0: False)
+    monkeypatch.setattr(sidecar_launch, "find_sidecar_runtime", lambda: None)
+    monkeypatch.setattr(sidecar_launch, "find_sidecar_launcher", lambda: None)
+    result = sidecar_launch.start_sidecar(service, wait=0.1)
+    assert result.already is False
+    assert result.detail == "no bundled sidecar runtime"
 
 
 def test_ensure_sidecar_skips_source_tree_script(
@@ -194,3 +215,39 @@ def test_sidecar_launch_env_merges_existing_cors(
     env = sidecar_launch_env(tmp_path, dashboard_port=8099)
     assert "http://127.0.0.1:9000" in env["CORS_ORIGIN"]
     assert "http://127.0.0.1:3780" in env["CORS_ORIGIN"]
+
+
+def test_launch_argv_windows_prefers_ps1(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    monkeypatch.setattr("octop.modules.org_os.sidecar_launch.sys.platform", "win32")
+    runtime = _write_runtime(tmp_path)
+    launcher = tmp_path / "org-sidecar" / "start-sidecar.ps1"
+    launcher.write_text("# start", encoding="utf-8")
+    argv = launch_sidecar_argv(runtime, launcher)
+    assert argv[0] == "powershell"
+    assert str(launcher) in argv
+
+
+def test_heal_openxyos_layout_promotes_nested(tmp_path: Path) -> None:
+    from octop.modules.org_os.sidecar_launch import heal_openxyos_layout
+
+    inner = tmp_path / "openxyos"
+    _write_runtime(inner)
+    assert heal_openxyos_layout(tmp_path) is True
+    assert (tmp_path / "node" / "node.exe").is_file() or (
+        tmp_path / "node" / "bin" / "node"
+    ).is_file()
+    assert (tmp_path / "openxyos" / "dist" / "index.html").is_file() or (
+        tmp_path / "dist" / "index.html"
+    ).is_file()
+
+
+def test_heal_openxyos_layout_copies_nested_frontend(tmp_path: Path) -> None:
+    from octop.modules.org_os.sidecar_launch import heal_openxyos_layout
+
+    bundled = tmp_path / "live"
+    _write_runtime(bundled)
+    live = bundled / "org-sidecar"
+    assert (live / "openxyos" / "dist" / "index.html").is_file()
+    assert not (live / "dist" / "index.html").is_file()
+    assert heal_openxyos_layout(live) is True
+    assert (live / "dist" / "index.html").is_file()

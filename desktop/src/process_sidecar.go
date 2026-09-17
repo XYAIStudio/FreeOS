@@ -37,8 +37,28 @@ func sidecarNodeAt(bundle string) string {
 	return filepath.Join(base, "bin", "node")
 }
 
+func sidecarAppReady(app string) bool {
+	if strings.TrimSpace(app) == "" {
+		return false
+	}
+	if _, err := os.Stat(filepath.Join(app, "backend", "server.ts")); err != nil {
+		return false
+	}
+	if _, err := os.Stat(filepath.Join(app, "dist", "index.html")); err != nil {
+		return false
+	}
+	return true
+}
+
 func sidecarAppAt(bundle string) string {
-	return filepath.Join(bundle, "openxyos")
+	nested := filepath.Join(bundle, "openxyos")
+	if sidecarAppReady(nested) {
+		return nested
+	}
+	if sidecarAppReady(bundle) {
+		return bundle
+	}
+	return nested
 }
 
 func sidecarNodeArgs(app string) []string {
@@ -56,15 +76,11 @@ func sidecarBundleReady(bundle string) bool {
 	if _, err := os.Stat(sidecarNodeAt(bundle)); err != nil {
 		return false
 	}
-	app := sidecarAppAt(bundle)
-	if _, err := os.Stat(filepath.Join(app, "backend", "server.ts")); err != nil {
-		return false
+	if sidecarAppReady(sidecarAppAt(bundle)) {
+		return true
 	}
-	if _, err := os.Stat(filepath.Join(app, "dist", "index.html")); err != nil {
-		log.Printf("organization sidecar frontend missing under %s", app)
-		return false
-	}
-	return true
+	log.Printf("organization sidecar frontend missing under %s", bundle)
+	return false
 }
 
 func sidecarReady(root string) bool {
@@ -261,8 +277,8 @@ func sidecarLaunchEnv(home string, dashboardPort int) (map[string]string, error)
 		return nil, err
 	}
 	origin := fmt.Sprintf(
-		"http://127.0.0.1:%d,http://localhost:%d,http://127.0.0.1:18900,http://localhost:18900",
-		dashboardPort, dashboardPort,
+		"http://127.0.0.1:%d,http://localhost:%d,http://127.0.0.1:18900,http://localhost:18900,http://127.0.0.1:8088,http://localhost:8088,http://127.0.0.1:%d,http://localhost:%d,http://[::1]:%d",
+		dashboardPort, dashboardPort, defaultSidecarPort, defaultSidecarPort, defaultSidecarPort,
 	)
 	return map[string]string{
 		"NODE_ENV":                  "production",
@@ -282,14 +298,137 @@ func sidecarLaunchEnv(home string, dashboardPort int) (map[string]string, error)
 	}, nil
 }
 
-func startOrgSidecar(root string, dashboardPort int) (*exec.Cmd, error) {
-	if sidecarLive() {
-		log.Printf("organization sidecar already live at %s", sidecarURL())
+func fileExists(path string) bool {
+	_, err := os.Stat(path)
+	return err == nil
+}
+
+func promoteNestedOpenXYOSApp(root string) {
+	nested := filepath.Join(root, "openxyos")
+	need := (fileExists(filepath.Join(nested, "dist", "index.html")) &&
+		!fileExists(filepath.Join(root, "dist", "index.html"))) ||
+		(fileExists(filepath.Join(nested, "backend-dist", "server.js")) &&
+			!fileExists(filepath.Join(root, "backend-dist", "server.js")))
+	if !need {
+		return
+	}
+	if err := copyTree(nested, root); err != nil {
+		log.Printf("heal openXYOS nested layout: %v", err)
+	}
+}
+
+func healOpenXYOSLayout(root string) bool {
+	if strings.TrimSpace(root) == "" {
+		return false
+	}
+	promoteNestedOpenXYOSApp(root)
+	if sidecarBundleReady(root) {
+		return true
+	}
+	candidates := []string{
+		filepath.Join(root, "openxyos"),
+		filepath.Join(root, "org-sidecar"),
+		filepath.Join(root, "openxyos", "openxyos"),
+		filepath.Join(root, "openxyos", "org-sidecar"),
+	}
+	if entries, err := os.ReadDir(root); err == nil {
+		for _, entry := range entries {
+			if !entry.IsDir() {
+				continue
+			}
+			child := filepath.Join(root, entry.Name())
+			candidates = append(candidates, child)
+			candidates = append(candidates, filepath.Join(child, "openxyos"))
+			candidates = append(candidates, filepath.Join(child, "org-sidecar"))
+		}
+	}
+	seen := map[string]bool{}
+	for _, candidate := range candidates {
+		clean := filepath.Clean(candidate)
+		if seen[clean] || clean == filepath.Clean(root) {
+			continue
+		}
+		seen[clean] = true
+		if !sidecarBundleReady(clean) {
+			continue
+		}
+		if err := copyTree(clean, root); err != nil {
+			log.Printf("heal openXYOS from %s: %v", clean, err)
+			continue
+		}
+		promoteNestedOpenXYOSApp(root)
+		return sidecarBundleReady(root)
+	}
+	promoteNestedOpenXYOSApp(root)
+	return sidecarBundleReady(root)
+}
+
+func stopStaleOpenXYOS(bundle string) {
+	if strings.TrimSpace(bundle) == "" {
+		return
+	}
+	pidFile := filepath.Join(bundle, "start.pid")
+	if data, err := os.ReadFile(pidFile); err == nil {
+		if pid, err := strconv.Atoi(strings.TrimSpace(string(data))); err == nil && pid > 0 {
+			killPid(pid)
+		}
+		_ = os.Remove(pidFile)
+	}
+	if runtime.GOOS == "windows" {
+		node := sidecarNodeAt(bundle)
+		killWindowsImageAt(node)
+	}
+	deadline := time.Now().Add(2 * time.Second)
+	for time.Now().Before(deadline) && sidecarLive() {
+		time.Sleep(200 * time.Millisecond)
+	}
+}
+
+func startViaWindowsHelper(bundle string) (*exec.Cmd, error) {
+	helper := filepath.Join(bundle, "start-sidecar.ps1")
+	if !fileExists(helper) {
 		return nil, nil
 	}
+	systemRoot := strings.TrimSpace(os.Getenv("SystemRoot"))
+	if systemRoot == "" {
+		systemRoot = `C:\Windows`
+	}
+	ps := filepath.Join(systemRoot, `System32`, `WindowsPowerShell`, `v1.0`, `powershell.exe`)
+	cmd := exec.Command(ps, "-NoProfile", "-WindowStyle", "Hidden", "-ExecutionPolicy", "Bypass", "-File", helper)
+	cmd.Dir = bundle
+	configureProcGroup(cmd)
+	if f, err := attachProcessLogFile("org-sidecar"); err == nil {
+		cmd.Stdout = f
+		cmd.Stderr = f
+	}
+	if err := cmd.Start(); err != nil {
+		return nil, err
+	}
+	return cmd, nil
+}
+
+func startOrgSidecar(root string, dashboardPort int) (*exec.Cmd, error) {
 	bundle := resolveSidecarDir(root)
 	if bundle == "" {
+		work := openxyosUserWorkDir()
+		if healOpenXYOSLayout(work) {
+			bundle = work
+		}
+	}
+	if bundle == "" {
 		return nil, nil
+	}
+	if !healOpenXYOSLayout(bundle) && !sidecarBundleReady(bundle) {
+		return nil, nil
+	}
+	stopStaleOpenXYOS(bundle)
+	if runtime.GOOS == "windows" {
+		if cmd, err := startViaWindowsHelper(bundle); err != nil {
+			return nil, err
+		} else if cmd != nil {
+			log.Printf("organization sidecar restart via start-sidecar.ps1 at %s", bundle)
+			return cmd, nil
+		}
 	}
 	home := productHome()
 	env, err := sidecarLaunchEnv(home, dashboardPort)

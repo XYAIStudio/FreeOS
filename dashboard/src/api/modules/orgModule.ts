@@ -52,6 +52,7 @@ export interface OrgControlPlane {
 export interface OrgOverview {
   enabled: boolean;
   sidecar_reachable: boolean;
+  sidecar_embed_ok?: boolean;
   sidecar_url: string;
   start_available: boolean;
   install_ready: boolean;

@@ -8,6 +8,7 @@
 
 ### 修复
 
+- 组织页嵌入本机 openXYOS 不再因为边车「已连接」却空白：`CORS_ORIGIN` 即使漏了 `http://127.0.0.1:3780` / `localhost` / `[::1]`，服务端也会合并监听自源，模块脚本和登录不再 500。FreeOS 启动会先停掉 live 目录里旧的 Node，再用当前 `start-sidecar.ps1` 拉起；嵌套的 `openxyos\dist` 会在启动前提升到 live 根。若 livez 正常但自源请求失败，状态栏和预览区会明确提示，而不是一片白。
 - Windows 安装成功后删除 `$INSTDIR\openxyos-runtime` 目录和 `openxyos-runtime.zip`（以及 `%LOCALAPPDATA%\FreeOS` 下同名暂存）。预配失败时保留这些文件以便排查。最终工作目录 `$INSTDIR\openxyos` 与 `%LOCALAPPDATA%\FreeOS\openxyos` 不受影响。
 - ima 知识库挂接对齐官方 Agent Interface（https://ima.qq.com/agent-interface，落地页现发 ima-skill 1.1.10）：用 Client ID / API Key 连接后，按 `search_knowledge_base` + `get_knowledge_base` 选知识库，按 `get_knowledge_list` / `search_knowledge` 自选文档；文件夹 ID 用接口返回的 `media_id`（不自造 `folder_` 前缀），选择会写入挂接。
 - 模型页注册的本机 Ollama / GGUF 现在会出现在对话区模型选择器里，并走本机 `127.0.0.1:11434` 调用。注册会补齐 Ollama 供应商默认值、打开服务开关、热加载对话列表；Ollama 未启动时给出可操作错误，而不是静默失败。

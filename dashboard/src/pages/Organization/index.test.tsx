@@ -1,11 +1,12 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import OrganizationPage from "./index";
-import type { OrgOverview } from "../../api/modules/orgModule";
+import { orgModuleApi, type OrgOverview } from "../../api/modules/orgModule";
 
 const overview: OrgOverview = {
   enabled: true,
   sidecar_reachable: true,
+  sidecar_embed_ok: true,
   sidecar_url: "http://127.0.0.1:3780",
   start_available: false,
   install_ready: true,
@@ -92,5 +93,20 @@ describe("OrganizationPage", () => {
     expect(
       screen.getAllByText("organization.downloadSource").length,
     ).toBeGreaterThan(0);
+    expect(screen.queryByTestId("org-preview-blank")).toBeNull();
+  });
+
+  it("surfaces a blank-preview error when livez is up but embed origin fails", async () => {
+    vi.mocked(orgModuleApi.overview).mockResolvedValue({
+      ...overview,
+      sidecar_embed_ok: false,
+    });
+    render(<OrganizationPage />);
+    expect(await screen.findByTestId("org-preview-blank")).toHaveTextContent(
+      "organization.previewBlank",
+    );
+    expect(
+      screen.getByText("organization.sidecarEmbedFailed"),
+    ).toBeInTheDocument();
   });
 });

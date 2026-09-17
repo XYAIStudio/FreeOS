@@ -14,6 +14,19 @@ func configureProcGroup(cmd *exec.Cmd) {
 }
 
 func killProcessTree(cmd *exec.Cmd) {
-	_ = syscall.Kill(-cmd.Process.Pid, syscall.SIGTERM)
+	if cmd == nil || cmd.Process == nil {
+		return
+	}
+	killPid(cmd.Process.Pid)
 	_ = cmd.Wait()
 }
+
+func killPid(pid int) {
+	if pid <= 0 {
+		return
+	}
+	_ = syscall.Kill(-pid, syscall.SIGTERM)
+	_ = syscall.Kill(pid, syscall.SIGTERM)
+}
+
+func killWindowsImageAt(string) {}

@@ -59,3 +59,14 @@ export function isAllowedCorsOrigin(
   }
   return false;
 }
+
+/** True when every listen-origin (127.0.0.1 / localhost / [::1]) is allowed. */
+export function corsAllowsSelf(
+  allowed: readonly string[],
+  port: string | number,
+  reqHost?: string,
+): boolean {
+  return sidecarSelfOrigins(port).every((origin) =>
+    isAllowedCorsOrigin(origin, allowed, reqHost),
+  );
+}

@@ -79,6 +79,17 @@ def test_start_sidecar_does_not_assign_automatic_home() -> None:
     assert not re.search(r"(?i)\$pid\s*=", text)
 
 
+def test_start_sidecar_stops_stale_node_and_heals_layout() -> None:
+    text = START_PS1.read_text(encoding="utf-8")
+    assert "Repair-OpenXYOSLayout" in text
+    assert "Stop-OpenXYOSNode" in text
+    assert "start.pid" in text
+    assert "openxyos\\dist\\index.html" in text
+    assert "backend-dist\\server.js" in text
+    assert "if (Test-Livez) { exit 0 }" not in text
+    assert "day-old" in text or "stale" in text.lower()
+
+
 def test_start_sidecar_cors_origin_is_parseorigins_safe() -> None:
     """openXYOS parseOrigins requires explicit http(s) origins, no '*'."""
     text = START_PS1.read_text(encoding="utf-8")

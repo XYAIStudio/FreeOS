@@ -1,5 +1,7 @@
 # Internal helper: start local openXYOS (FE+BE) at medium integrity.
-# Used by the install-time provisioner and by explorers that open this file.
+# Used by the install-time provisioner and by FreeOS launch / Organization.
+# Always stop a previous live-dir Node first so a day-old process cannot
+# keep a stale CORS_ORIGIN (missing http://127.0.0.1:3780) and blank the iframe.
 # Never start Node while this process is elevated (High IL).
 $ErrorActionPreference = 'Continue'
 $live = Split-Path -Parent $MyInvocation.MyCommand.Path
@@ -14,7 +16,109 @@ function Test-Livez {
     }
 }
 
-if (Test-Livez) { exit 0 }
+function Test-OpenXYOSLayout {
+    param([string]$Root)
+    $node = Join-Path $Root 'node\node.exe'
+    if (-not (Test-Path -LiteralPath $node)) { return $false }
+    $nested = Join-Path $Root 'openxyos\dist\index.html'
+    $flat = Join-Path $Root 'dist\index.html'
+    return (Test-Path -LiteralPath $nested) -or (Test-Path -LiteralPath $flat)
+}
+
+function Copy-OpenXYOSTree {
+    param([string]$Src, [string]$Dest)
+    New-Item -ItemType Directory -Force -Path $Dest | Out-Null
+    $xcopy = Join-Path $env:SystemRoot 'System32\xcopy.exe'
+    if (Test-Path -LiteralPath $xcopy) {
+        & $xcopy /E /I /Y "$Src\*" "$Dest\" | Out-Null
+        return
+    }
+    Copy-Item -Path (Join-Path $Src '*') -Destination $Dest -Recurse -Force
+}
+
+function Find-OpenXYOSBundleRoot {
+    param([string]$Root)
+    if (Test-OpenXYOSLayout $Root) { return $Root }
+    $candidates = New-Object System.Collections.Generic.List[string]
+    foreach ($name in @('openxyos', 'org-sidecar')) {
+        $candidates.Add((Join-Path $Root $name))
+    }
+    if (Test-Path -LiteralPath $Root) {
+        Get-ChildItem -LiteralPath $Root -Directory -ErrorAction SilentlyContinue | ForEach-Object {
+            $candidates.Add($_.FullName)
+            $candidates.Add((Join-Path $_.FullName 'org-sidecar'))
+            $candidates.Add((Join-Path $_.FullName 'openxyos'))
+        }
+    }
+    foreach ($cand in $candidates) {
+        if (Test-OpenXYOSLayout $cand) { return $cand }
+    }
+    return $null
+}
+
+function Repair-OpenXYOSLayout {
+    param([string]$Root)
+    $nestedFe = Join-Path $Root 'openxyos\dist\index.html'
+    $flatFe = Join-Path $Root 'dist\index.html'
+    $nestedBe = Join-Path $Root 'openxyos\backend-dist\server.js'
+    $flatBe = Join-Path $Root 'backend-dist\server.js'
+    if ((Test-Path -LiteralPath $nestedFe) -and -not (Test-Path -LiteralPath $flatFe)) {
+        Copy-OpenXYOSTree (Join-Path $Root 'openxyos') $Root
+    } elseif ((Test-Path -LiteralPath $nestedBe) -and -not (Test-Path -LiteralPath $flatBe)) {
+        Copy-OpenXYOSTree (Join-Path $Root 'openxyos') $Root
+    }
+    if (Test-OpenXYOSLayout $Root) { return $true }
+    $found = Find-OpenXYOSBundleRoot $Root
+    if (-not $found) { return $false }
+    $fullFound = [IO.Path]::GetFullPath($found)
+    $fullRoot = [IO.Path]::GetFullPath($Root)
+    if ($fullFound -eq $fullRoot) { return $true }
+    Copy-OpenXYOSTree $found $Root
+    return (Test-OpenXYOSLayout $Root)
+}
+
+function Stop-OpenXYOSNode {
+    param([string]$Root)
+    $pidFile = Join-Path $Root 'start.pid'
+    if (Test-Path -LiteralPath $pidFile) {
+        $raw = (Get-Content -LiteralPath $pidFile -Raw -ErrorAction SilentlyContinue)
+        $nid = 0
+        if ($null -ne $raw -and [int]::TryParse($raw.Trim(), [ref]$nid) -and $nid -gt 0) {
+            Stop-Process -Id $nid -Force -ErrorAction SilentlyContinue
+        }
+        Remove-Item -LiteralPath $pidFile -Force -ErrorAction SilentlyContinue
+    }
+    $nodeExe = Join-Path $Root 'node\node.exe'
+    $want = ''
+    if (Test-Path -LiteralPath $nodeExe) {
+        try { $want = [IO.Path]::GetFullPath($nodeExe) } catch { $want = $nodeExe }
+    }
+    $fullRoot = ''
+    try { $fullRoot = [IO.Path]::GetFullPath($Root) } catch { $fullRoot = $Root }
+    Get-CimInstance Win32_Process -Filter "Name = 'node.exe'" -ErrorAction SilentlyContinue |
+        Where-Object {
+            if ($want -and $_.ExecutablePath) {
+                try {
+                    return ([IO.Path]::GetFullPath($_.ExecutablePath) -eq $want)
+                } catch {
+                }
+            }
+            if ($fullRoot -and $_.CommandLine) {
+                return ($_.CommandLine -like "*$fullRoot*")
+            }
+            return $false
+        } |
+        ForEach-Object {
+            Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue
+        }
+}
+
+$null = Repair-OpenXYOSLayout $live
+Stop-OpenXYOSNode $live
+for ($i = 0; $i -lt 8; $i++) {
+    if (-not (Test-Livez)) { break }
+    Start-Sleep -Milliseconds 250
+}
 
 function Test-IsElevated {
     $id = [Security.Principal.WindowsIdentity]::GetCurrent()

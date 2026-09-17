@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import logging
 import os
 import subprocess
@@ -142,20 +143,89 @@ def sidecar_bundle_dir() -> Path | None:
     return bundled if bundled.is_dir() else None
 
 
+def _app_looks_complete(app: Path) -> bool:
+    return (app / "backend" / "server.ts").is_file() and (app / "dist" / "index.html").is_file()
+
+
 def _bundle_looks_complete(path: Path) -> bool:
     if not path.is_dir():
         return False
     node = path / "node" / "node.exe"
     posix = path / "node" / "bin" / "node"
-    app = path / "openxyos"
-    return (
-        (node.is_file() or posix.is_file())
-        and (app / "backend" / "server.ts").is_file()
-        and (app / "dist" / "index.html").is_file()
+    if not (node.is_file() or posix.is_file()):
+        return False
+    return _app_looks_complete(path / "openxyos") or _app_looks_complete(path)
+
+
+def _copy_tree(src: Path, dest: Path) -> None:
+    dest.mkdir(parents=True, exist_ok=True)
+    for child in src.iterdir():
+        target = dest / child.name
+        if child.is_dir():
+            _copy_tree(child, target)
+        else:
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(child.read_bytes())
+
+
+def heal_openxyos_layout(root: Path) -> bool:
+    """Promote a nested ``openxyos\\`` tree so start helpers find FE+BE."""
+    if not root.is_dir():
+        return False
+    nested = root / "openxyos"
+    need_flat = (
+        (nested / "dist" / "index.html").is_file() and not (root / "dist" / "index.html").is_file()
+    ) or (
+        (nested / "backend-dist" / "server.js").is_file()
+        and not (root / "backend-dist" / "server.js").is_file()
     )
+    if need_flat:
+        _copy_tree(nested, root)
+    if _bundle_looks_complete(root):
+        return True
+    candidates: list[Path] = [
+        nested,
+        root / "org-sidecar",
+        nested / "openxyos",
+        nested / "org-sidecar",
+    ]
+    try:
+        children = [child for child in root.iterdir() if child.is_dir()]
+    except OSError:
+        children = []
+    for child in children:
+        candidates.extend((child, child / "openxyos", child / "org-sidecar"))
+    seen: set[Path] = set()
+    for candidate in candidates:
+        try:
+            clean = candidate.resolve()
+        except OSError:
+            continue
+        if clean in seen or clean == root.resolve():
+            continue
+        seen.add(clean)
+        if not _bundle_looks_complete(clean):
+            continue
+        _copy_tree(clean, root)
+        need_flat = (nested / "dist" / "index.html").is_file() and not (
+            root / "dist" / "index.html"
+        ).is_file()
+        if need_flat:
+            _copy_tree(nested, root)
+        return _bundle_looks_complete(root)
+    return _bundle_looks_complete(root)
+
+
+def _sidecar_app_dir(bundled: Path) -> Path:
+    nested = bundled / "openxyos"
+    if _app_looks_complete(nested):
+        return nested
+    return bundled
 
 
 def find_sidecar_runtime() -> SidecarRuntime | None:
+    for candidate in sidecar_candidate_roots():
+        heal_openxyos_layout(candidate)
     bundled = sidecar_bundle_dir()
     if bundled is None:
         return None
@@ -166,7 +236,7 @@ def find_sidecar_runtime() -> SidecarRuntime | None:
     node = next((path for path in node_candidates if path.is_file()), None)
     if node is None:
         return None
-    app = bundled / "openxyos"
+    app = _sidecar_app_dir(bundled)
     runtime = SidecarRuntime(node=node, app=app, root=bundled)
     if not runtime.server.is_file():
         return None
@@ -177,7 +247,7 @@ def find_sidecar_launcher() -> Path | None:
     bundled = sidecar_bundle_dir()
     if bundled is not None:
         names = (
-            ("start-sidecar.bat", "start-sidecar.sh")
+            ("start-sidecar.ps1", "start-sidecar.cmd", "start-sidecar.bat", "start-sidecar.sh")
             if sys.platform == "win32"
             else ("start-sidecar.sh", "start-sidecar.bat")
         )
@@ -187,6 +257,8 @@ def find_sidecar_launcher() -> Path | None:
                 if name.endswith(".bat") and sys.platform != "win32":
                     continue
                 if name.endswith(".sh") and sys.platform == "win32":
+                    continue
+                if name.endswith(".ps1") and sys.platform != "win32":
                     continue
                 return path
     here = Path(__file__).resolve()
@@ -316,7 +388,22 @@ def sidecar_log_path(home: Path | None = None) -> Path:
 
 
 def launch_sidecar_argv(runtime: SidecarRuntime | None, launcher: Path | None) -> list[str]:
-    """Argv used to spawn the sidecar. Prefer bundled Node over .bat/.sh."""
+    """Argv used to spawn the sidecar.
+
+    Windows prefers the shipped ``start-sidecar.ps1`` so CORS/env always match
+    the current helper (and so a stale Node is replaced first).
+    """
+    if launcher is not None and sys.platform == "win32" and launcher.suffix.lower() == ".ps1":
+        return [
+            "powershell",
+            "-NoProfile",
+            "-WindowStyle",
+            "Hidden",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-File",
+            str(launcher),
+        ]
     if runtime is not None:
         return sidecar_node_argv(runtime)
     if launcher is None:
@@ -326,6 +413,40 @@ def launch_sidecar_argv(runtime: SidecarRuntime | None, launcher: Path | None) -
     if launcher.suffix == ".sh" or launcher.name.endswith(".sh"):
         return ["bash", str(launcher)]
     return [str(launcher)]
+
+
+def stop_stale_openxyos(root: Path) -> None:
+    """Stop a previous FreeOS-openxyos Node that still owns the live dir."""
+    pid_file = root / "start.pid"
+    if pid_file.is_file():
+        raw = pid_file.read_text(encoding="utf-8", errors="replace").strip()
+        if raw.isdigit():
+            pid = int(raw)
+            if pid > 0:
+                with contextlib.suppress(OSError):
+                    os.kill(pid, 15)
+                if sys.platform == "win32":
+                    subprocess.run(
+                        ["taskkill", "/F", "/T", "/PID", str(pid)],
+                        check=False,
+                        capture_output=True,
+                    )
+        with contextlib.suppress(OSError):
+            pid_file.unlink()
+    node = root / "node" / "node.exe"
+    if sys.platform == "win32" and node.is_file():
+        script = (
+            "$want = [IO.Path]::GetFullPath('" + str(node).replace("'", "''") + "'); "
+            "Get-CimInstance Win32_Process -Filter \"Name = 'node.exe'\" -ErrorAction SilentlyContinue | "
+            "ForEach-Object { if ($_.ExecutablePath) { "
+            "try { if ([IO.Path]::GetFullPath($_.ExecutablePath) -eq $want) { "
+            "Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue } } catch {} } }"
+        )
+        subprocess.run(
+            ["powershell", "-NoProfile", "-Command", script],
+            check=False,
+            capture_output=True,
+        )
 
 
 def _popen_kwargs(cwd: Path, env: dict[str, str], log_file: Any) -> dict[str, Any]:
@@ -349,10 +470,18 @@ def _spawn(service: OrgModuleService) -> tuple[list[str], str]:
     argv = launch_sidecar_argv(runtime, launcher)
     if not argv:
         return [], "no bundled sidecar runtime or launcher"
-    if runtime is not None:
+    if launcher is not None and launcher.suffix.lower() == ".ps1":
+        cwd = launcher.parent
+        heal_openxyos_layout(cwd)
+        stop_stale_openxyos(cwd)
+    elif runtime is not None:
         cwd = runtime.app
+        heal_openxyos_layout(runtime.root)
+        stop_stale_openxyos(runtime.root)
     elif launcher is not None:
         cwd = launcher.parent
+        heal_openxyos_layout(cwd)
+        stop_stale_openxyos(cwd)
     else:
         return [], "no bundled sidecar runtime or launcher"
     home = service.home
@@ -378,13 +507,23 @@ def _wait_reachable(service: OrgModuleService, wait: float) -> Any:
     return last
 
 
+def _embed_ok(service: OrgModuleService) -> bool:
+    probe = getattr(service, "probe_sidecar_embed", None)
+    if not callable(probe):
+        return True
+    try:
+        return bool(probe())
+    except Exception:
+        return True
+
+
 def start_sidecar(service: OrgModuleService, *, wait: float = 20.0) -> SidecarStartResult:
     health = service.probe_sidecar()
     command = sidecar_start_command()
     runtime = find_sidecar_runtime()
     launcher = find_sidecar_launcher()
     launcher_label = str(runtime.node if runtime is not None else launcher or "")
-    if health.reachable:
+    if health.reachable and _embed_ok(service):
         return SidecarStartResult(
             started=False,
             already=True,
@@ -451,7 +590,7 @@ def ensure_sidecar(service: OrgModuleService, *, wait: float | None = None) -> S
         wait = 20.0 if sidecar_install_ready() else 8.0
     health = service.probe_sidecar()
     command = sidecar_start_command()
-    if health.reachable:
+    if health.reachable and _embed_ok(service):
         return SidecarStartResult(
             started=False,
             already=True,
