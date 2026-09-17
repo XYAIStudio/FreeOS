@@ -44,6 +44,32 @@ function metric(value: number | undefined): string {
   return typeof value === "number" ? String(value) : "—";
 }
 
+function landedCount(
+  landed: Record<string, unknown> | null | undefined,
+  surface: string,
+): number {
+  const inner =
+    landed && typeof landed.landed === "object" && landed.landed
+      ? (landed.landed as Record<
+          string,
+          { created?: number; updated?: number }
+        >)
+      : (landed as Record<
+          string,
+          { created?: number; updated?: number }
+        > | null);
+  const row = inner?.[surface];
+  return Number(row?.created || 0) + Number(row?.updated || 0);
+}
+
+function landedTenant(
+  landed: Record<string, unknown> | null | undefined,
+  fallback?: number | null,
+): string {
+  const raw = landed?.tenant_id ?? fallback;
+  return raw === undefined || raw === null || raw === "" ? "—" : String(raw);
+}
+
 export default function OrganizationPage() {
   const { t, i18n } = useTranslation();
   const isZh = i18n.language?.toLowerCase().startsWith("zh") ?? false;
@@ -67,6 +93,13 @@ export default function OrganizationPage() {
   const [landed, setLanded] = useState<Record<string, unknown> | null>(null);
   const autoStartRef = useRef(false);
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
+  const [previewPath, setPreviewPath] = useState("/");
+  const [previewNonce, setPreviewNonce] = useState("");
+
+  const showPreview = useCallback((path: string) => {
+    setPreviewPath(path.startsWith("/") ? path : `/${path}`);
+    setPreviewNonce(String(Date.now()));
+  }, []);
 
   const applyOverview = useCallback(
     async (quiet = false) => {
@@ -325,6 +358,21 @@ export default function OrganizationPage() {
       const remote = result.applied.remote_applied
         ? t("organization.packRemoteYes")
         : t("organization.packRemoteNo");
+      const landedLines = result.applied.remote_applied
+        ? [
+            t("organization.packLanded", {
+              tenant: landedTenant(
+                result.applied.landed,
+                result.applied.tenant_id,
+              ),
+              employees: landedCount(result.applied.landed, "employees"),
+              talent: landedCount(result.applied.landed, "talent"),
+              skills: landedCount(result.applied.landed, "skills"),
+              plugins: landedCount(result.applied.landed, "plugins"),
+            }),
+            t("organization.packPreviewEmployees"),
+          ]
+        : [];
       setLastActionNotes([
         ...result.pack.notes,
         ...result.applied.notes,
@@ -332,8 +380,11 @@ export default function OrganizationPage() {
       ]);
       setLastReceipt({
         kind: "pack",
-        lines: [t("organization.packReceipt"), remote],
+        lines: [t("organization.packReceipt"), remote, ...landedLines],
       });
+      if (result.applied.remote_applied) {
+        showPreview(result.applied.preview_path || "/employees");
+      }
       message.success(t("organization.packDone"));
     });
 
@@ -350,8 +401,23 @@ export default function OrganizationPage() {
           `${t("organization.timelineRemote")}: ${flagLabel(
             Boolean(proof.remote_applied),
           )}`,
+          ...(proof.remote_applied
+            ? [
+                t("organization.packLanded", {
+                  tenant: landedTenant(proof.landed),
+                  employees: landedCount(proof.landed, "employees"),
+                  talent: landedCount(proof.landed, "talent"),
+                  skills: landedCount(proof.landed, "skills"),
+                  plugins: landedCount(proof.landed, "plugins"),
+                }),
+                t("organization.packPreviewEmployees"),
+              ]
+            : []),
         ],
       });
+      if (proof.remote_applied) {
+        showPreview("/employees");
+      }
       message.success(
         proof.ok ? t("organization.loopOk") : t("organization.loopPartial"),
       );
@@ -384,12 +450,15 @@ export default function OrganizationPage() {
     overview?.sidecar_url || "http://127.0.0.1:3780"
   ).replace(/\/$/, "");
   const previewUrl = useMemo(() => {
-    const base = `${localConsoleUrl}/`;
-    if (!disabledKeys.length) return base;
-    return `${base}?freeos_disabled=${encodeURIComponent(
-      disabledKeys.join(","),
-    )}`;
-  }, [localConsoleUrl, disabledKeys]);
+    const path = previewPath.startsWith("/") ? previewPath : `/${previewPath}`;
+    const qs = new URLSearchParams();
+    if (disabledKeys.length) {
+      qs.set("freeos_disabled", disabledKeys.join(","));
+    }
+    if (previewNonce) qs.set("freeos_sync", previewNonce);
+    const query = qs.toString();
+    return `${localConsoleUrl}${path}${query ? `?${query}` : ""}`;
+  }, [localConsoleUrl, disabledKeys, previewPath, previewNonce]);
   const showFrame = Boolean(previewUrl);
 
   const pushTogglesToPreview = useCallback(() => {
@@ -755,7 +824,7 @@ export default function OrganizationPage() {
           </section>
 
           {lastReceipt ? (
-            <section className={styles.timeline}>
+            <section className={styles.timeline} data-testid="org-last-receipt">
               <p className={styles.timelineTitle}>
                 {t("organization.receiptTitle")}
               </p>

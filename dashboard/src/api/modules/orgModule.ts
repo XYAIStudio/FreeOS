@@ -110,6 +110,8 @@ export interface OrgPackResult {
     mirrored: boolean;
     notes: string[];
     landed?: Record<string, unknown>;
+    tenant_id?: number | null;
+    preview_path?: string;
   };
 }
 

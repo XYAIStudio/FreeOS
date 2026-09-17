@@ -123,7 +123,9 @@
     "receiptTitle": "What just happened",
     "assembleReceipt": "Imported {{count}} employee(s) assigned to a department. In group chat call them colleagues, not experts.",
     "assembleNext": "Next: open Conversations and invite colleagues to a group. Unassigned helpers stay on Experts.",
-    "packReceipt": "Packed and tried to push to openXYOS. Details below."
+    "packReceipt": "Packed and pushed to the signed-in openXYOS tenant.",
+    "packLanded": "Signed-in tenant {{tenant}}: employees {{employees}}, talent {{talent}}, skills {{skills}}, plugins {{plugins}}",
+    "packPreviewEmployees": "The preview now opens Employees so you can confirm the result."
   },
   "systemSettings": {
     "subtitle": "Workbench, remote desktop, and host administration in one place."

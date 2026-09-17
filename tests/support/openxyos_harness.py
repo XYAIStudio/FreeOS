@@ -18,6 +18,7 @@ class ControlPlaneState:
         self.module_settings: dict[str, Any] = {}
         self.ingest_token: str = ""
         self.ingested: dict[str, Any] = {}
+        self.ui_tenant_id: int = 2
         self.permissions: list[dict[str, Any]] = [
             {"category": "delete", "allow": False, "reason": "harness deny"}
         ]
@@ -60,7 +61,32 @@ def start_control_plane(state: ControlPlaneState | None = None) -> tuple[str, Th
                 self._json(200, {"ok": True})
                 return
             if path == "/api/freeos/health":
-                self._json(200, {"success": True, "data": {"ok": True, "ingest": True}})
+                self._json(
+                    200,
+                    {
+                        "success": True,
+                        "data": {
+                            "ok": True,
+                            "ingest": True,
+                            "ui_tenant_id": store.ui_tenant_id,
+                        },
+                    },
+                )
+                return
+            if path == "/api/freeos/session":
+                if not self._ingest_ok():
+                    self._json(401, {"success": False, "error": "invalid ingest token"})
+                    return
+                self._json(
+                    200,
+                    {
+                        "success": True,
+                        "data": {
+                            "ui_tenant_id": store.ui_tenant_id,
+                            "preview": "/employees",
+                        },
+                    },
+                )
                 return
             if path == "/api/freeos/export":
                 if not self._ingest_ok():
@@ -112,6 +138,9 @@ def start_control_plane(state: ControlPlaneState | None = None) -> tuple[str, Th
                     return
                 if isinstance(payload, dict):
                     store.ingested = payload
+                    tenant_id = payload.get("tenant_id")
+                    if tenant_id in (None, "", 0):
+                        payload["tenant_id"] = store.ui_tenant_id
                     if isinstance(payload.get("employees"), list):
                         store.employees.extend(
                             item for item in payload["employees"] if isinstance(item, dict)
@@ -133,6 +162,10 @@ def start_control_plane(state: ControlPlaneState | None = None) -> tuple[str, Th
                     {
                         "success": True,
                         "data": {
+                            "tenant_id": payload.get("tenant_id", store.ui_tenant_id)
+                            if isinstance(payload, dict)
+                            else store.ui_tenant_id,
+                            "preview": "/employees",
                             "landed": {
                                 "employees": {"created": len(store.employees)},
                                 "talent": {"created": len(store.talent)},

@@ -82,6 +82,30 @@ def test_apply_uses_ingest_token(tmp_path: Path) -> None:
         assert accepted.remote_applied is True
         assert state.employees
         assert "/api/freeos/ingest" in state.posts
+        assert accepted.tenant_id == state.ui_tenant_id
+        assert accepted.preview_path == "/employees"
+        assert state.ingested.get("tenant_id") == state.ui_tenant_id
+    finally:
+        server.shutdown()
+        server.server_close()
+
+
+def test_apply_sends_ui_tenant_not_configured_tenant(tmp_path: Path) -> None:
+    import_openxyos_assets(
+        tmp_path, tenant_id="1", catalog=True, blueprint_path=_FIXTURE, spawn_agents=False
+    )
+    pack = publish_asset_pack(tmp_path, tenant_id="1", out_dir=tmp_path / "asset-packs" / "latest")
+    state = ControlPlaneState()
+    state.ui_tenant_id = 2
+    url, server = start_control_plane(state)
+    try:
+        result = apply_asset_pack(pack.directory, home=tmp_path, tenant_id="1", base_url=url)
+        assert result.remote_applied is True
+        assert result.tenant_id == 2
+        assert state.ingested.get("tenant_id") == 2
+        assert result.landed.get("tenant_id") == 2
+        assert result.preview_path == "/employees"
+        assert result.landed.get("landed", {}).get("employees", {}).get("created", 0) >= 1
     finally:
         server.shutdown()
         server.server_close()

@@ -45,11 +45,71 @@ function requireIngestToken(req: Request, res: Response, next: NextFunction) {
   next();
 }
 
-function resolveTenantId(raw: unknown): number {
-  const n = Number(raw);
-  if (Number.isInteger(n) && n > 0) return n;
+function tenantExists(id: number): boolean {
+  if (!Number.isInteger(id) || id <= 0) return false;
+  return Boolean(dbGet("SELECT id FROM tenants WHERE id = ?", [id]));
+}
+
+/** Tenant the embedded / local login actually uses — never assume id=1. */
+export function resolveUiTenantId(): number {
+  const recent = dbGet(
+    `SELECT tenant_id FROM users
+     WHERE last_login IS NOT NULL
+     ORDER BY datetime(last_login) DESC, id DESC
+     LIMIT 1`,
+  ) as { tenant_id?: number } | undefined;
+  const recentId = Number(recent?.tenant_id);
+  if (tenantExists(recentId)) return recentId;
+
+  const demo = dbGet(
+    `SELECT tenant_id FROM users
+     WHERE email IN ('demo@demo.com', 'user@demo.com')
+     ORDER BY CASE email WHEN 'demo@demo.com' THEN 0 ELSE 1 END
+     LIMIT 1`,
+  ) as { tenant_id?: number } | undefined;
+  const demoId = Number(demo?.tenant_id);
+  if (tenantExists(demoId)) return demoId;
+
+  const local = dbGet(
+    `SELECT id FROM tenants
+     WHERE slug IN ('openxyos-local', 'openxyos-demo')
+       AND status IN ('active', 'trial')
+     ORDER BY id DESC
+     LIMIT 1`,
+  ) as { id?: number } | undefined;
+  const localId = Number(local?.id);
+  if (tenantExists(localId)) return localId;
+
   const first = dbGet("SELECT id FROM tenants ORDER BY id LIMIT 1") as { id?: number } | undefined;
   return Number(first?.id) || 1;
+}
+
+export function resolveIngestTenantIds(requested: unknown): { primary: number; mirror: number[] } {
+  const uiTenant = resolveUiTenantId();
+  const requestedId = Number(requested);
+  const mirror: number[] = [];
+  if (tenantExists(requestedId) && requestedId !== uiTenant) {
+    mirror.push(requestedId);
+  }
+  return { primary: uiTenant, mirror };
+}
+
+function visibleEmploymentCategory(raw: unknown): string {
+  const value = text(raw).toLowerCase();
+  if (value === "reserve") return "reserve";
+  return "internal";
+}
+
+function visibleEmployeeStatus(raw: unknown): string {
+  const value = text(raw, "active").toLowerCase();
+  if (value === "inactive") return "inactive";
+  return "active";
+}
+
+function visibleTalentStatus(raw: unknown): string {
+  const value = text(raw).toLowerCase();
+  if (value === "archived") return "archived";
+  return "available";
 }
 
 function asList(value: unknown): Record<string, unknown>[] {
@@ -78,8 +138,8 @@ function upsertEmployee(tenantId: number, item: Record<string, unknown>): "creat
   const role = text(item.role, text(item.agent_type, "ai-colleague"));
   const agentType = text(item.agent_type, item.slug ? `freeos-${item.slug}` : "freeos");
   const skills = skillsText(item.skills || item.capabilities);
-  const status = text(item.status, "active");
-  const category = text(item.employment_category, "internal");
+  const status = visibleEmployeeStatus(item.status);
+  const category = visibleEmploymentCategory(item.employment_category);
   const description = text(item.description);
   const emoji = text(item.avatar_emoji, "🤖");
   if (existing?.id) {
@@ -107,7 +167,7 @@ function upsertTalent(tenantId: number, item: Record<string, unknown>): "created
     [tenantId, name],
   ) as { id?: number } | undefined;
   const skills = skillsText(item.skills || item.capabilities);
-  const status = text(item.status || item.talent_status, "available");
+  const status = visibleTalentStatus(item.status || item.talent_status);
   const description = text(item.description);
   const agentType = text(item.agent_type);
   if (existing?.id) {
@@ -195,14 +255,27 @@ freeosBridgeRoutes.get("/health", (_req, res) => {
       ok: true,
       ingest: Boolean(expectedToken()),
       plane: "openxyos-control",
+      ui_tenant_id: resolveUiTenantId(),
     },
   });
 });
 
 freeosBridgeRoutes.use(requireIngestToken);
 
+freeosBridgeRoutes.get("/session", (_req, res) => {
+  const uiTenantId = resolveUiTenantId();
+  res.json({
+    success: true,
+    data: {
+      ui_tenant_id: uiTenantId,
+      preview: "/employees",
+    },
+  });
+});
+
 freeosBridgeRoutes.get("/export", (req, res) => {
-  const tenantId = resolveTenantId(req.query.tenant_id);
+  const requested = Number(req.query.tenant_id);
+  const tenantId = tenantExists(requested) ? requested : resolveUiTenantId();
   const employees = dbAll("SELECT * FROM employees WHERE tenant_id = ? ORDER BY id", [tenantId]);
   const talent = dbAll("SELECT * FROM talent_pool WHERE tenant_id = ? ORDER BY id", [tenantId]);
   const plugins = dbAll("SELECT * FROM plugins WHERE tenant_id = ? ORDER BY id", [tenantId]);
@@ -225,9 +298,7 @@ freeosBridgeRoutes.get("/export", (req, res) => {
   });
 });
 
-freeosBridgeRoutes.post("/ingest", (req, res) => {
-  const body = (req.body && typeof req.body === "object" ? req.body : {}) as Record<string, unknown>;
-  const tenantId = resolveTenantId(body.tenant_id);
+function ingestIntoTenant(tenantId: number, body: Record<string, unknown>) {
   const landed = {
     employees: { created: 0, updated: 0 },
     talent: { created: 0, updated: 0 },
@@ -235,7 +306,6 @@ freeosBridgeRoutes.post("/ingest", (req, res) => {
     skills: { created: 0, updated: 0 },
     mcp: { created: 0, updated: 0 },
   };
-
   for (const item of asList(body.employees)) {
     landed.employees[upsertEmployee(tenantId, item)] += 1;
   }
@@ -251,19 +321,31 @@ freeosBridgeRoutes.post("/ingest", (req, res) => {
   for (const item of asList(body.mcp)) {
     landed.mcp[upsertPlugin(tenantId, { ...item, category: "MCP" }, "MCP")] += 1;
   }
+  return landed;
+}
+
+freeosBridgeRoutes.post("/ingest", (req, res) => {
+  const body = (req.body && typeof req.body === "object" ? req.body : {}) as Record<string, unknown>;
+  const { primary, mirror } = resolveIngestTenantIds(body.tenant_id);
+  const landed = ingestIntoTenant(primary, body);
+  for (const extra of mirror) {
+    ingestIntoTenant(extra, body);
+  }
 
   res.json({
     success: true,
     data: {
-      tenant_id: tenantId,
+      tenant_id: primary,
+      also_tenants: mirror,
+      preview: "/employees",
       landed,
       counts: {
-        employees: countOf("SELECT COUNT(*) as c FROM employees WHERE tenant_id = ?", tenantId),
-        talent: countOf("SELECT COUNT(*) as c FROM talent_pool WHERE tenant_id = ?", tenantId),
-        plugins: countOf("SELECT COUNT(*) as c FROM plugins WHERE tenant_id = ?", tenantId),
-        skills: countOf("SELECT COUNT(*) as c FROM skills WHERE tenant_id = ?", tenantId),
+        employees: countOf("SELECT COUNT(*) as c FROM employees WHERE tenant_id = ?", primary),
+        talent: countOf("SELECT COUNT(*) as c FROM talent_pool WHERE tenant_id = ?", primary),
+        plugins: countOf("SELECT COUNT(*) as c FROM plugins WHERE tenant_id = ?", primary),
+        skills: countOf("SELECT COUNT(*) as c FROM skills WHERE tenant_id = ?", primary),
       },
-      note: "Drafts landed on the control plane. Modules are not auto-enabled.",
+      note: "Assets are visible on the logged-in tenant's Employees, Talent, Skills, and Plugins lists.",
     },
   });
 });

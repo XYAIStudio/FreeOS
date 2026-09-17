@@ -109,4 +109,58 @@ describe("OrganizationPage", () => {
       screen.getByText("organization.sidecarEmbedFailed"),
     ).toBeInTheDocument();
   });
+
+  it("shows pack landed counts and opens the employees preview", async () => {
+    vi.mocked(orgModuleApi.overview).mockResolvedValue(overview);
+    vi.mocked(orgModuleApi.pack).mockResolvedValue({
+      pack: {
+        directory: "/tmp/pack",
+        skill_count: 12,
+        plugin_count: 11,
+        mcp_count: 1,
+        agent_count: 2,
+        notes: [],
+      },
+      applied: {
+        pack_dir: "/tmp/pack",
+        mirror_dir: "/tmp/mirror",
+        remote_applied: true,
+        mirrored: true,
+        notes: ["control plane accepted the FreeOS ingest"],
+        tenant_id: 2,
+        preview_path: "/employees",
+        landed: {
+          tenant_id: 2,
+          preview: "/employees",
+          landed: {
+            employees: { created: 2, updated: 0 },
+            talent: { created: 2, updated: 0 },
+            plugins: { created: 11, updated: 0 },
+            skills: { created: 12, updated: 0 },
+            mcp: { created: 1, updated: 0 },
+          },
+        },
+      },
+    });
+
+    render(<OrganizationPage />);
+    fireEvent.click(await screen.findByTestId("org-manage-os"));
+    fireEvent.click(screen.getByText("organization.packAction"));
+
+    expect(await screen.findByTestId("org-last-receipt")).toHaveTextContent(
+      "organization.packReceipt",
+    );
+    expect(screen.getByTestId("org-last-receipt")).toHaveTextContent(
+      "organization.packLanded",
+    );
+    expect(screen.getByTestId("org-last-receipt")).toHaveTextContent(
+      "organization.packPreviewEmployees",
+    );
+    await waitFor(() => {
+      expect(screen.getByTitle("organization.previewTitle")).toHaveAttribute(
+        "src",
+        expect.stringContaining("/employees"),
+      );
+    });
+  });
 });

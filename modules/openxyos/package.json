@@ -10,7 +10,7 @@
     "postinstall": "node scripts/patch-express-types.cjs",
     "typecheck": "tsc --noEmit",
     "lint": "eslint . --ext .ts,.tsx --max-warnings 0",
-    "test": "npm run test:runtime-config && npm run test:cors-origins && npm run test:r0-access-control && npm run test:module-settings && npm run test:llm-onboarding && npm run test:agent-studio && npm run test:file-security && npm run test:download-token && npm run test:ws-ticket && npm run test:auth-provider && npm run test:pep && npm run test:audit-bundle && npm run test:tool-gateway && npm run test:v100",
+    "test": "npm run test:runtime-config && npm run test:cors-origins && npm run test:r0-access-control && npm run test:module-settings && npm run test:llm-onboarding && npm run test:agent-studio && npm run test:freeos-ingest && npm run test:file-security && npm run test:download-token && npm run test:ws-ticket && npm run test:auth-provider && npm run test:pep && npm run test:audit-bundle && npm run test:tool-gateway && npm run test:v100",
     "test:runtime-config": "tsx scripts/test-runtime-config.ts",
     "test:cors-origins": "tsx scripts/test-cors-origins.ts",
     "test:r0-access-control": "tsx scripts/test-r0-access-control.ts",
@@ -30,7 +30,8 @@
     "verify:open-source": "node scripts/verify-open-source.mjs",
     "test:module-settings": "tsx scripts/test-module-settings.ts",
     "test:agent-studio": "tsx scripts/test-agent-studio.ts",
-    "test:llm-onboarding": "tsx scripts/test-llm-onboarding.ts"
+    "test:llm-onboarding": "tsx scripts/test-llm-onboarding.ts",
+    "test:freeos-ingest": "tsx scripts/test-freeos-ingest.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

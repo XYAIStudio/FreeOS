@@ -747,7 +747,11 @@
       "corpus_pointer": "已挂接云知识库指针 → {path}",
       "corpus_distilled": "已蒸馏 {count} 个语料文件 → {path}",
       "corpus_empty": "没有知识库挂载；正在生成可供语料使用的专家工作区",
-      "permissions_unreachable": "边车权限接口不可达；请传入策略或登录后再试"
+      "permissions_unreachable": "边车权限接口不可达；请传入策略或登录后再试",
+      "loop_skip_already": "已跳过 {slug} 的晋升：当前已是 {lifecycle}",
+      "loop_skip_illegal": "已跳过 {slug} 的非法迁移：无法从 {current} 转到 {target}",
+      "loop_skip_unknown": "已跳过 {slug} 的晋升：未知同事",
+      "visible_on_ui_tenant": "资产已出现在当前登录租户的员工 / 人才 / 技能 / 插件列表中。"
     },
     "sidecar": {
       "already": "边车已可达",

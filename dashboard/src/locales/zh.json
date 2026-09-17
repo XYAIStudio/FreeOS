@@ -123,7 +123,9 @@
     "receiptTitle": "刚才的结果",
     "assembleReceipt": "已导入 {{count}} 名员工（已入编部门）。群聊里请称他们为同事，不要叫专家。",
     "assembleNext": "下一步：打开「对话」建群，把同事拉进来。还没入编的帮手在「专家」页。",
-    "packReceipt": "已打包并尝试推送到 openXYOS。下面是落地说明。"
+    "packReceipt": "已打包并推送到当前登录的 openXYOS 租户。",
+    "packLanded": "当前登录租户 {{tenant}}：员工 {{employees}}，人才 {{talent}}，技能 {{skills}}，插件 {{plugins}}",
+    "packPreviewEmployees": "右侧预览已打开员工页，可直接核对。"
   },
   "systemSettings": {
     "subtitle": "工作台、远程桌面与主机管理集中在这里。"
