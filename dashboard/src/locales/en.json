@@ -1413,6 +1413,7 @@
       "reviewNeedSession": "Pick a conversation to see the review trail.",
       "tasksEmpty": "No background tasks yet",
       "tasksEmptyHint": "Scheduled jobs and running work will appear here.",
+      "tasksLoadFailed": "Failed to load background tasks",
       "tasksOpenPage": "Manage scheduled tasks",
       "taskOn": "On",
       "taskOff": "Off",

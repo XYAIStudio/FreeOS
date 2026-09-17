@@ -37,7 +37,14 @@ export default function ChatDockTasksContent({
         if (!cancelled) setJobs(rows);
       })
       .catch((err: unknown) => {
-        if (!cancelled) setError(apiErrorMessage(err, t));
+        if (!cancelled)
+          setError(
+            apiErrorMessage(
+              err,
+              t("chat.rightRail.tasksLoadFailed", "加载任务失败"),
+              t,
+            ),
+          );
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
