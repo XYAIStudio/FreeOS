@@ -284,16 +284,23 @@ export function useChatComposerResources(
 
   useEffect(() => {
     let cancelled = false;
-    void preferencesApi
-      .get()
-      .then((preferences) => {
-        if (cancelled) return;
-        setPreferredModel(preferences.preferred_model || null);
-        setModelReasoning(preferences.model_reasoning || {});
-      })
-      .catch(() => undefined);
+    const loadPreferences = () => {
+      void preferencesApi
+        .get()
+        .then((preferences) => {
+          if (cancelled) return;
+          setPreferredModel(preferences.preferred_model || null);
+          setModelReasoning(preferences.model_reasoning || {});
+        })
+        .catch(() => undefined);
+    };
+    loadPreferences();
+    window.addEventListener("focus", loadPreferences);
+    window.addEventListener(MODELS_CHANGED_EVENT, loadPreferences);
     return () => {
       cancelled = true;
+      window.removeEventListener("focus", loadPreferences);
+      window.removeEventListener(MODELS_CHANGED_EVENT, loadPreferences);
     };
   }, []);
 
@@ -313,9 +320,11 @@ export function useChatComposerResources(
     loadActiveModel();
     const onFocus = () => loadActiveModel();
     window.addEventListener("focus", onFocus);
+    window.addEventListener(MODELS_CHANGED_EVENT, loadActiveModel);
     return () => {
       cancelled = true;
       window.removeEventListener("focus", onFocus);
+      window.removeEventListener(MODELS_CHANGED_EVENT, loadActiveModel);
     };
   }, []);
 

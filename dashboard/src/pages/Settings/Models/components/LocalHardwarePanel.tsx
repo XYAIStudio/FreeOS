@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   Alert,
   Button,
@@ -22,6 +22,12 @@ import {
   type LocalScanJob,
 } from "../../../../api/modules/localModels";
 import { formatBytes } from "../../../../utils/embeddingDownload";
+import {
+  loadSpeedResults,
+  saveSpeedResult,
+  speedResultKey,
+  type StoredLocalSpeedResult,
+} from "../../../../utils/localSpeedResults";
 import {
   canPickDesktopFolder,
   pickDesktopFolder,
@@ -55,6 +61,16 @@ function canRegister(item: LocalInstalledModel): boolean {
   );
 }
 
+function canSpeedTest(item: LocalInstalledModel): boolean {
+  return item.registered === true || item.source === "ollama";
+}
+
+function canSetDefault(item: LocalInstalledModel): boolean {
+  return item.registered === true;
+}
+
+const SPEED_TEST_TIMEOUT_MS = 45_000;
+
 export function LocalHardwarePanel({
   onSaved,
 }: {
@@ -68,11 +84,18 @@ export function LocalHardwarePanel({
   const [starting, setStarting] = useState(false);
   const [ensuring, setEnsuring] = useState(false);
   const [registering, setRegistering] = useState<string | null>(null);
+  const [testingKey, setTestingKey] = useState<string | null>(null);
+  const [settingDefault, setSettingDefault] = useState<string | null>(null);
+  const [speedResults, setSpeedResults] = useState<
+    Record<string, StoredLocalSpeedResult>
+  >(() => loadSpeedResults());
   const [scanRoot, setScanRoot] = useState("");
   const [fullDisk, setFullDisk] = useState(false);
   const [scan, setScan] = useState<LocalScanJob | null>(null);
   const [scanning, setScanning] = useState(false);
   const pollRef = useRef<number | null>(null);
+  const speedAbortRef = useRef<AbortController | null>(null);
+  const speedAbortReasonRef = useRef<"user" | "timeout" | null>(null);
 
   const stopPoll = () => {
     if (pollRef.current != null) {
@@ -96,7 +119,10 @@ export function LocalHardwarePanel({
 
   useEffect(() => {
     void refresh();
-    return () => stopPoll();
+    return () => {
+      stopPoll();
+      speedAbortRef.current?.abort();
+    };
   }, []);
 
   const showRuntimeError = (result: LocalRuntimeResult, fallback: string) => {
@@ -327,6 +353,145 @@ export function LocalHardwarePanel({
     }
   };
 
+  const itemKey = (item: LocalInstalledModel) =>
+    speedResultKey(item.source, item.name);
+
+  const runSpeedTest = async (item: LocalInstalledModel) => {
+    const key = itemKey(item);
+    speedAbortRef.current?.abort();
+    const controller = new AbortController();
+    speedAbortRef.current = controller;
+    speedAbortReasonRef.current = null;
+    const timer = window.setTimeout(() => {
+      speedAbortReasonRef.current = "timeout";
+      controller.abort();
+    }, SPEED_TEST_TIMEOUT_MS);
+    setTestingKey(key);
+    try {
+      const result = await localModelsApi.speedTest(item.name, {
+        signal: controller.signal,
+      });
+      const stored = saveSpeedResult(item.source, item.name, result);
+      setSpeedResults((prev) => ({ ...prev, [key]: stored }));
+      if (result.ok) {
+        message.success(
+          t("models.localSpeedSuccess", {
+            name: item.name,
+            latency: result.latency_ms ?? 0,
+          }),
+        );
+        return;
+      }
+      message.error(
+        result.action === "unreachable"
+          ? t("models.localSpeedNeedRuntime")
+          : result.action === "timeout"
+          ? t("models.localSpeedTimeout")
+          : result.next_step || result.error || t("models.localSpeedFailed"),
+      );
+    } catch (err) {
+      if (controller.signal.aborted) {
+        message.info(
+          speedAbortReasonRef.current === "timeout"
+            ? t("models.localSpeedTimeout")
+            : t("models.localSpeedCancelled"),
+        );
+        return;
+      }
+      const stored = saveSpeedResult(item.source, item.name, {
+        ok: false,
+        error:
+          err instanceof Error ? err.message : t("models.localSpeedFailed"),
+      });
+      setSpeedResults((prev) => ({ ...prev, [key]: stored }));
+      message.error(
+        err instanceof Error ? err.message : t("models.localSpeedFailed"),
+      );
+    } finally {
+      window.clearTimeout(timer);
+      if (speedAbortRef.current === controller) {
+        speedAbortRef.current = null;
+      }
+      setTestingKey((current) => (current === key ? null : current));
+    }
+  };
+
+  const cancelSpeedTest = () => {
+    speedAbortReasonRef.current = "user";
+    speedAbortRef.current?.abort();
+  };
+
+  const setAsDefault = async (item: LocalInstalledModel) => {
+    setSettingDefault(item.name);
+    try {
+      const result = await localModelsApi.setDefault(item.name);
+      if (!result.ok) {
+        message.error(
+          result.action === "not_registered"
+            ? t("models.localDefaultNeedRegister")
+            : result.next_step ||
+                result.error ||
+                t("models.localDefaultFailed"),
+        );
+        return;
+      }
+      notifyModelsChanged();
+      await onSaved?.();
+      message.success(t("models.localDefaultSet", { name: item.name }));
+      await refresh();
+    } catch (err) {
+      message.error(
+        err instanceof Error ? err.message : t("models.localDefaultFailed"),
+      );
+    } finally {
+      setSettingDefault(null);
+    }
+  };
+
+  const clearDefault = async (item: LocalInstalledModel) => {
+    setSettingDefault(item.name);
+    try {
+      const result = await localModelsApi.clearDefault(item.name);
+      if (!result.ok) {
+        message.error(
+          result.next_step || result.error || t("models.localDefaultFailed"),
+        );
+        return;
+      }
+      notifyModelsChanged();
+      await onSaved?.();
+      message.success(t("models.localDefaultCleared"));
+      await refresh();
+    } catch (err) {
+      message.error(
+        err instanceof Error ? err.message : t("models.localDefaultFailed"),
+      );
+    } finally {
+      setSettingDefault(null);
+    }
+  };
+
+  const formatSpeed = (result: StoredLocalSpeedResult) => {
+    if (!result.ok) {
+      if (result.action === "unreachable")
+        return t("models.localSpeedNeedRuntime");
+      if (result.action === "timeout") return t("models.localSpeedTimeout");
+      return result.error || t("models.localSpeedFailed");
+    }
+    const parts = [
+      t("models.localSpeedLatency", { ms: result.latency_ms ?? 0 }),
+    ];
+    if (result.ttft_ms != null) {
+      parts.push(t("models.localSpeedTtft", { ms: result.ttft_ms }));
+    }
+    if (result.tokens_per_sec != null) {
+      parts.push(
+        t("models.localSpeedTps", { tps: result.tokens_per_sec.toFixed(1) }),
+      );
+    }
+    return parts.join(" · ");
+  };
+
   const hw = probe?.hardware;
   const ollamaInstalled = Boolean(hw?.ollama_installed || hw?.ollama_binary);
   const ollamaUp = Boolean(hw?.ollama_reachable);
@@ -489,41 +654,100 @@ export function LocalHardwarePanel({
         size="small"
         dataSource={models}
         locale={{ emptyText: t("models.localInstalledEmpty") }}
-        renderItem={(item) => (
-          <List.Item
-            actions={
-              canRegister(item)
-                ? [
-                    <Button
-                      key="register"
-                      size="small"
-                      loading={registering === (item.path || item.name)}
-                      onClick={() => void register(item)}
-                    >
-                      {t("models.localRegister")}
-                    </Button>,
-                  ]
-                : item.source === "safetensors"
-                ? [
-                    <Typography.Text key="manual" type="secondary">
-                      {t("models.localRegisterManual")}
-                    </Typography.Text>,
-                  ]
-                : undefined
-            }
-          >
-            <List.Item.Meta
-              title={
-                <Space wrap size={6}>
-                  <span>{item.name}</span>
-                  <Tag>{item.source}</Tag>
-                  {item.size > 0 && <Tag>{formatBytes(item.size)}</Tag>}
-                </Space>
-              }
-              description={item.path || t("models.localOllamaManaged")}
-            />
-          </List.Item>
-        )}
+        renderItem={(item) => {
+          const key = itemKey(item);
+          const testing = testingKey === key;
+          const lastSpeed = speedResults[key];
+          const actions: ReactNode[] = [];
+          if (canSpeedTest(item)) {
+            actions.push(
+              testing ? (
+                <Button
+                  key="cancel-speed"
+                  size="small"
+                  onClick={cancelSpeedTest}
+                >
+                  {t("models.localSpeedCancel")}
+                </Button>
+              ) : (
+                <Button
+                  key="speed"
+                  size="small"
+                  disabled={!ollamaUp}
+                  title={
+                    ollamaUp ? undefined : t("models.localSpeedNeedRuntime")
+                  }
+                  onClick={() => void runSpeedTest(item)}
+                >
+                  {t("models.localSpeedTest")}
+                </Button>
+              ),
+            );
+          }
+          if (canSetDefault(item)) {
+            actions.push(
+              item.is_default ? (
+                <Button
+                  key="clear-default"
+                  size="small"
+                  loading={settingDefault === item.name}
+                  onClick={() => void clearDefault(item)}
+                >
+                  {t("models.localClearDefault")}
+                </Button>
+              ) : (
+                <Button
+                  key="set-default"
+                  size="small"
+                  loading={settingDefault === item.name}
+                  onClick={() => void setAsDefault(item)}
+                >
+                  {t("models.localSetDefault")}
+                </Button>
+              ),
+            );
+          } else if (canRegister(item)) {
+            actions.push(
+              <Button
+                key="register"
+                size="small"
+                loading={registering === (item.path || item.name)}
+                onClick={() => void register(item)}
+              >
+                {t("models.localRegister")}
+              </Button>,
+            );
+          } else if (item.source === "safetensors") {
+            actions.push(
+              <Typography.Text key="manual" type="secondary">
+                {t("models.localRegisterManual")}
+              </Typography.Text>,
+            );
+          }
+          const description = [
+            item.path || t("models.localOllamaManaged"),
+            lastSpeed ? formatSpeed(lastSpeed) : "",
+          ]
+            .filter(Boolean)
+            .join(" · ");
+          return (
+            <List.Item actions={actions.length ? actions : undefined}>
+              <List.Item.Meta
+                title={
+                  <Space wrap size={6}>
+                    <span>{item.name}</span>
+                    <Tag>{item.source}</Tag>
+                    {item.size > 0 && <Tag>{formatBytes(item.size)}</Tag>}
+                    {item.is_default && (
+                      <Tag color="green">{t("models.localDefaultBadge")}</Tag>
+                    )}
+                  </Space>
+                }
+                description={description}
+              />
+            </List.Item>
+          );
+        }}
       />
       <Typography.Title level={5} style={{ marginTop: 16 }}>
         {t("models.localRecommended")}

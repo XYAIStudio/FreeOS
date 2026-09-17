@@ -8,6 +8,9 @@ const startOllama = vi.fn();
 const ensureDeps = vi.fn();
 const startScan = vi.fn();
 const register = vi.fn();
+const speedTest = vi.fn();
+const setDefault = vi.fn();
+const clearDefault = vi.fn();
 
 vi.mock("../../../../api/modules/localModels", () => ({
   localModelsApi: {
@@ -20,6 +23,9 @@ vi.mock("../../../../api/modules/localModels", () => ({
     getLatestScan: vi.fn(),
     cancelScan: vi.fn(),
     register: (...args: unknown[]) => register(...args),
+    speedTest: (...args: unknown[]) => speedTest(...args),
+    setDefault: (...args: unknown[]) => setDefault(...args),
+    clearDefault: (...args: unknown[]) => clearDefault(...args),
   },
 }));
 
@@ -106,6 +112,63 @@ describe("<LocalHardwarePanel />", () => {
     await waitFor(() => expect(probe).toHaveBeenCalled());
     await userEvent.click(screen.getByText("models.localSearchModels"));
     await waitFor(() => expect(startScan).toHaveBeenCalled());
+  });
+
+  it("offers speed test and set-default on a registered model", async () => {
+    probe.mockResolvedValue({
+      ...installedStopped,
+      hardware: { ...installedStopped.hardware, ollama_reachable: true },
+      installed: [
+        {
+          name: "tiny",
+          path: "",
+          size: 2048,
+          source: "ollama",
+          registered: true,
+          is_default: false,
+        },
+      ],
+    });
+    speedTest.mockResolvedValue({
+      ok: true,
+      latency_ms: 90,
+      ttft_ms: 30,
+      tokens_per_sec: 12,
+    });
+    setDefault.mockResolvedValue({ ok: true, name: "tiny" });
+    renderPanel();
+    await waitFor(() => expect(screen.getByText("tiny")).toBeInTheDocument());
+    expect(screen.getByText("models.localSpeedTest")).toBeInTheDocument();
+    expect(screen.getByText("models.localSetDefault")).toBeInTheDocument();
+    await userEvent.click(screen.getByText("models.localSpeedTest"));
+    await waitFor(() =>
+      expect(speedTest).toHaveBeenCalledWith("tiny", expect.anything()),
+    );
+    await userEvent.click(screen.getByText("models.localSetDefault"));
+    await waitFor(() => expect(setDefault).toHaveBeenCalledWith("tiny"));
+  });
+
+  it("shows a default badge and can clear it", async () => {
+    probe.mockResolvedValue({
+      ...installedStopped,
+      installed: [
+        {
+          name: "tiny",
+          path: "",
+          size: 2048,
+          source: "ollama",
+          registered: true,
+          is_default: true,
+        },
+      ],
+    });
+    clearDefault.mockResolvedValue({ ok: true });
+    renderPanel();
+    await waitFor(() =>
+      expect(screen.getByText("models.localDefaultBadge")).toBeInTheDocument(),
+    );
+    await userEvent.click(screen.getByText("models.localClearDefault"));
+    await waitFor(() => expect(clearDefault).toHaveBeenCalledWith("tiny"));
   });
 
   it("notifies the chat picker after a successful register", async () => {

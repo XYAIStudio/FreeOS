@@ -63,7 +63,8 @@ def remember_weight(settings_repo: Any, entry: dict[str, Any]) -> None:
     save_registered(settings_repo, kept)
 
 
-def _find_ollama_row(provider_repo: Any) -> Any | None:
+def find_ollama_row(provider_repo: Any) -> Any | None:
+    """Return the local Ollama provider row, if one exists."""
     for row in provider_repo.list_all():
         if is_ollama_local_provider(
             row.name,
@@ -72,6 +73,10 @@ def _find_ollama_row(provider_repo: Any) -> Any | None:
         ):
             return row
     return None
+
+
+def _find_ollama_row(provider_repo: Any) -> Any | None:
+    return find_ollama_row(provider_repo)
 
 
 def ensure_ollama_service_flag(settings_repo: Any) -> None:
