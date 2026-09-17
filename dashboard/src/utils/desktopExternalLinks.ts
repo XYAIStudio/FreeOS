@@ -1,3 +1,5 @@
+import { tryOpenInOrgBrowser } from "./orgBrowserHost";
+
 const INSTALL_FLAG = "__OCTOP_EXTERNAL_LINKS_INSTALLED__";
 const OPEN_URL_EVENT_PREFIX = "desktop:open-url:";
 
@@ -31,6 +33,7 @@ let lastUrl = "";
 let lastAt = 0;
 
 function openExternal(url: string): boolean {
+  if (tryOpenInOrgBrowser(url)) return true;
   const invoke = wailsInvoke();
   if (!invoke || !isDesktopExternalURL(url)) return false;
   const now = Date.now();
@@ -47,8 +50,8 @@ function linkFromEvent(event: Event): HTMLAnchorElement | null {
     raw instanceof Element
       ? raw
       : raw instanceof Node
-      ? raw.parentElement
-      : null;
+        ? raw.parentElement
+        : null;
   if (!node) return null;
   const link = node.closest("a[href][target]");
   if (!(link instanceof HTMLAnchorElement)) return null;

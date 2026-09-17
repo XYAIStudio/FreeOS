@@ -4,7 +4,6 @@ import {
   ArrowDownUp,
   Building2,
   Download,
-  ExternalLink,
   Package,
   Play,
   Settings2,
@@ -31,6 +30,22 @@ import {
 import { message } from "../../utils/antdMessage";
 import { resolveOpenxyosSourceDest } from "./pickSourceDest";
 import { shouldShowPreviewBlank } from "./sidecarRecover";
+import OrgMiniBrowser from "./OrgMiniBrowser";
+import {
+  DEFAULT_ORG_URL,
+  closeOrgTab,
+  createHomeTab,
+  navigateOrgTab,
+  normalizeOrgUrl,
+  openOrgTab,
+  parseOrgNavigatedMessage,
+  parseOrgOpenTabMessage,
+  sidecarOriginOf,
+  tabTitleFromUrl,
+  type OrgBrowserTab,
+} from "./orgBrowser";
+import { installOrgPageWindowTrap } from "./orgPageWindowTrap";
+import { registerOrgBrowserHost } from "../../utils/orgBrowserHost";
 import styles from "./Organization.module.less";
 
 type ActionKey = "assemble" | "pack" | "loop" | "sidecar" | "produce" | null;
@@ -93,14 +108,31 @@ export default function OrganizationPage() {
   const [produceIma, setProduceIma] = useState("");
   const [landed, setLanded] = useState<Record<string, unknown> | null>(null);
   const autoStartRef = useRef(false);
-  const iframeRef = useRef<HTMLIFrameElement | null>(null);
-  const [previewPath, setPreviewPath] = useState("/");
+  const iframeRefs = useRef<Record<string, HTMLIFrameElement | null>>({});
   const [previewNonce, setPreviewNonce] = useState("");
+  const homeTitle = t("organization.homeTabTitle");
+  const [tabs, setTabs] = useState<OrgBrowserTab[]>(() => [
+    createHomeTab(DEFAULT_ORG_URL, homeTitle),
+  ]);
+  const [activeId, setActiveId] = useState("org-home");
+  const [addressValue, setAddressValue] = useState(DEFAULT_ORG_URL);
 
-  const showPreview = useCallback((path: string) => {
-    setPreviewPath(path.startsWith("/") ? path : `/${path}`);
-    setPreviewNonce(String(Date.now()));
-  }, []);
+  const showPreview = useCallback(
+    (path: string) => {
+      const dest = normalizeOrgUrl(
+        `${(overview?.sidecar_url || DEFAULT_ORG_URL).replace(/\/$/, "")}${
+          path.startsWith("/") ? path : `/${path}`
+        }`,
+      );
+      setTabs((current) =>
+        navigateOrgTab(current, "org-home", dest, homeTitle),
+      );
+      setActiveId("org-home");
+      setAddressValue(dest);
+      setPreviewNonce(String(Date.now()));
+    },
+    [homeTitle, overview?.sidecar_url],
+  );
 
   const applyOverview = useCallback(
     async (quiet = false) => {
@@ -410,12 +442,12 @@ export default function OrganizationPage() {
     busy === "assemble"
       ? t("organization.progressAssemble")
       : busy === "pack"
-      ? t("organization.progressPack")
-      : busy === "loop"
-      ? t("organization.progressLoop")
-      : busy === "produce"
-      ? t("organization.progressProduce")
-      : null;
+        ? t("organization.progressPack")
+        : busy === "loop"
+          ? t("organization.progressLoop")
+          : busy === "produce"
+            ? t("organization.progressProduce")
+            : null;
 
   const lastLoop = (loopProof ?? overview?.last_loop) as OrgLoopProof | null;
   const lastSync = overview?.last_sync
@@ -429,34 +461,104 @@ export default function OrganizationPage() {
         .map((row) => row.key),
     [catalog, moduleToggles],
   );
-  const localConsoleUrl = (
-    overview?.sidecar_url || "http://127.0.0.1:3780"
-  ).replace(/\/$/, "");
-  const previewUrl = useMemo(() => {
-    const path = previewPath.startsWith("/") ? previewPath : `/${previewPath}`;
-    const qs = new URLSearchParams();
-    if (disabledKeys.length) {
-      qs.set("freeos_disabled", disabledKeys.join(","));
-    }
-    if (previewNonce) qs.set("freeos_sync", previewNonce);
-    const query = qs.toString();
-    return `${localConsoleUrl}${path}${query ? `?${query}` : ""}`;
-  }, [localConsoleUrl, disabledKeys, previewPath, previewNonce]);
-  const showFrame = Boolean(previewUrl);
+  const localConsoleUrl = (overview?.sidecar_url || DEFAULT_ORG_URL).replace(
+    /\/$/,
+    "",
+  );
+  const sidecarOrigin = sidecarOriginOf(localConsoleUrl);
+
+  const openTab = useCallback(
+    (raw: string, title?: string, reuse = true) => {
+      const url = normalizeOrgUrl(raw);
+      const label = title || tabTitleFromUrl(url, homeTitle);
+      let nextActive = "";
+      let nextAddress = url;
+      setTabs((current) => {
+        const next = openOrgTab(current, url, label, reuse);
+        nextActive = next.activeId;
+        nextAddress =
+          next.tabs.find((tab) => tab.id === next.activeId)?.url ?? url;
+        return next.tabs;
+      });
+      if (nextActive) setActiveId(nextActive);
+      setAddressValue(nextAddress);
+      return true;
+    },
+    [homeTitle],
+  );
+
+  const submitAddress = useCallback(() => {
+    const url = normalizeOrgUrl(addressValue, localConsoleUrl + "/");
+    setTabs((current) =>
+      navigateOrgTab(current, activeId, url, tabTitleFromUrl(url, homeTitle)),
+    );
+    setAddressValue(url);
+  }, [activeId, addressValue, homeTitle, localConsoleUrl]);
 
   const pushTogglesToPreview = useCallback(() => {
-    const frame = iframeRef.current?.contentWindow;
-    if (!frame) return;
-    frame.postMessage(
-      { type: "freeos:module-toggles", disabled: disabledKeys },
-      "*",
-    );
+    for (const frame of Object.values(iframeRefs.current)) {
+      frame?.contentWindow?.postMessage(
+        { type: "freeos:module-toggles", disabled: disabledKeys },
+        "*",
+      );
+    }
   }, [disabledKeys]);
 
   useEffect(() => {
-    if (!showFrame) return;
     pushTogglesToPreview();
-  }, [showFrame, pushTogglesToPreview]);
+  }, [pushTogglesToPreview]);
+
+  useEffect(() => {
+    const home = normalizeOrgUrl(localConsoleUrl + "/");
+    setTabs((current) => {
+      const existing = current.find((tab) => tab.id === "org-home");
+      if (!existing || existing.url === home) return current;
+      if (existing.url !== DEFAULT_ORG_URL) return current;
+      return navigateOrgTab(current, "org-home", home, homeTitle);
+    });
+    setAddressValue((current) =>
+      current === DEFAULT_ORG_URL ? home : current,
+    );
+  }, [homeTitle, localConsoleUrl]);
+
+  useEffect(() => {
+    const onMessage = (event: MessageEvent) => {
+      const opened = parseOrgOpenTabMessage(event.data);
+      if (opened) {
+        openTab(opened.url, opened.title);
+        return;
+      }
+      const navigated = parseOrgNavigatedMessage(event.data);
+      if (!navigated) return;
+      setTabs((current) =>
+        navigateOrgTab(
+          current,
+          activeId,
+          navigated.url,
+          navigated.title || tabTitleFromUrl(navigated.url, homeTitle),
+          false,
+        ),
+      );
+      setAddressValue(navigated.url);
+    };
+    window.addEventListener("message", onMessage);
+    return () => window.removeEventListener("message", onMessage);
+  }, [activeId, homeTitle, openTab]);
+
+  useEffect(() => {
+    const stopHost = registerOrgBrowserHost(openTab);
+    const stopTrap = installOrgPageWindowTrap();
+    return () => {
+      stopTrap();
+      stopHost();
+    };
+  }, [openTab]);
+
+  useEffect(() => {
+    if (sidecarUp) {
+      setPreviewNonce((current) => current || String(Date.now()));
+    }
+  }, [sidecarUp]);
 
   return (
     <PageShell title={t("organization.title")} fill>
@@ -473,8 +575,8 @@ export default function OrganizationPage() {
               {previewBlank
                 ? t("organization.sidecarEmbedFailed")
                 : sidecarUp
-                ? t("organization.sidecarUp")
-                : t("organization.sidecarOpening")}
+                  ? t("organization.sidecarUp")
+                  : t("organization.sidecarOpening")}
             </span>
             <span className={styles.chip}>
               {t("organization.lastSync")}: {lastSync}
@@ -506,45 +608,38 @@ export default function OrganizationPage() {
             >
               {t("organization.manageOs")}
             </Button>
-            {showFrame && (
-              <Button
-                type="link"
-                href={previewUrl}
-                target="_blank"
-                rel="noreferrer"
-                icon={<ExternalLink size={14} />}
-                style={{ color: "#fff" }}
-              >
-                {t("organization.openSidecar")}
-              </Button>
-            )}
           </div>
         </section>
 
-        <div className={styles.embedPane}>
-          {!sidecarUp && (
-            <div className={styles.previewOffline}>
-              {t("organization.previewOffline")}
-            </div>
-          )}
-          {previewBlank && (
-            <div
-              className={styles.previewBlank}
-              data-testid="org-preview-blank"
-            >
-              {t("organization.previewBlank")}
-            </div>
-          )}
-          <iframe
-            key={sidecarUp ? "open" : "opening"}
-            ref={iframeRef}
-            title={t("organization.previewTitle")}
-            src={previewUrl}
-            className={styles.embed}
-            allow="clipboard-read; clipboard-write"
-            onLoad={pushTogglesToPreview}
-          />
-        </div>
+        <OrgMiniBrowser
+          tabs={tabs}
+          activeId={activeId}
+          addressValue={addressValue}
+          sidecarOrigin={sidecarOrigin}
+          disabledKeys={disabledKeys}
+          previewNonce={previewNonce}
+          sidecarUp={sidecarUp}
+          previewBlank={previewBlank}
+          iframeRefs={iframeRefs}
+          onAddressChange={setAddressValue}
+          onAddressSubmit={submitAddress}
+          onSelectTab={(id) => {
+            setActiveId(id);
+            const tab = tabs.find((row) => row.id === id);
+            if (tab) setAddressValue(tab.url);
+          }}
+          onCloseTab={(id) => {
+            setTabs((current) => {
+              const next = closeOrgTab(current, activeId, id);
+              setActiveId(next.activeId);
+              const tab = next.tabs.find((row) => row.id === next.activeId);
+              if (tab) setAddressValue(tab.url);
+              return next.tabs;
+            });
+          }}
+          onNewTab={() => openTab(localConsoleUrl + "/", homeTitle, false)}
+          onFrameLoad={pushTogglesToPreview}
+        />
       </div>
 
       <Drawer
@@ -581,8 +676,8 @@ export default function OrganizationPage() {
                       {row.locked
                         ? t("organization.locked")
                         : moduleToggles[row.key] === false
-                        ? t("organization.catalogDisabled")
-                        : t("organization.catalogEnabled")}
+                          ? t("organization.catalogDisabled")
+                          : t("organization.catalogEnabled")}
                     </Tag>
                   </p>
                   <p className={styles.catalogDesc}>

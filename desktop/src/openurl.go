@@ -115,6 +115,9 @@ func injectExternalLinksJS() string {
 	}
 	function openExternal(url) {
 		if (!isOpenable(url)) return false;
+		if (typeof window.__FREEOS_ORG_OPEN_TAB__ === "function") {
+			try { if (window.__FREEOS_ORG_OPEN_TAB__(url)) return true; } catch (e) {}
+		}
 		var now = Date.now();
 		if (url === lastUrl && now - lastAt < 800) return true;
 		lastUrl = url;

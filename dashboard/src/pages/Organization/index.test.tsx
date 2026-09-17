@@ -1,8 +1,9 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import OrganizationPage from "./index";
 import { orgModuleApi, type OrgOverview } from "../../api/modules/orgModule";
 import { message } from "../../utils/antdMessage";
+import { tryOpenInOrgBrowser } from "../../utils/orgBrowserHost";
 
 const overview: OrgOverview = {
   enabled: true,
@@ -84,24 +85,31 @@ describe("OrganizationPage", () => {
     pickDesktopFolder.mockReset();
     vi.mocked(orgModuleApi.overview).mockResolvedValue(overview);
     vi.mocked(orgModuleApi.downloadSource).mockReset();
+    vi.mocked(orgModuleApi.startSidecar).mockReset();
+    vi.mocked(orgModuleApi.pack).mockReset();
     vi.mocked(message.success).mockReset();
     vi.mocked(message.error).mockReset();
   });
 
-  it("defaults to the local embed and keeps extras behind the two status buttons", async () => {
+  it("embeds a multi-tab browser for local openXYOS and keeps extras behind drawers", async () => {
     render(<OrganizationPage />);
 
     await waitFor(() => {
-      expect(
-        screen.getByTitle("organization.previewTitle"),
-      ).toBeInTheDocument();
+      expect(screen.getByTestId("org-mini-browser")).toBeInTheDocument();
     });
-    const frame = screen.getByTitle("organization.previewTitle");
-    expect(frame).toHaveAttribute("src", "http://127.0.0.1:3780/");
-
+    const frame = screen.getByTestId("org-browser-frame");
+    expect(frame).toHaveAttribute(
+      "src",
+      expect.stringMatching(/^http:\/\/127\.0\.0\.1:3780\/\?freeos_embed=1/),
+    );
+    expect(screen.getByTestId("org-address-bar")).toHaveValue(
+      "http://127.0.0.1:3780/",
+    );
+    expect(screen.queryByText("organization.openSidecar")).toBeNull();
     expect(screen.getByTestId("org-download-source")).toHaveTextContent(
       "organization.downloadSourceBar",
     );
+
     expect(screen.queryByText("organization.assembleAction")).toBeNull();
     expect(screen.queryByText("organization.startSidecarAction")).toBeNull();
     expect(screen.queryByTestId("org-download-source-drawer")).toBeNull();
@@ -116,9 +124,7 @@ describe("OrganizationPage", () => {
       await screen.findByText("organization.assembleTitle"),
     ).toBeInTheDocument();
     expect(screen.getByText("organization.loopTitle")).toBeInTheDocument();
-    expect(
-      screen.getByTestId("org-download-source-drawer"),
-    ).toBeInTheDocument();
+    expect(screen.getByTestId("org-download-source-drawer")).toBeInTheDocument();
     expect(screen.queryByTestId("org-preview-blank")).toBeNull();
   });
 
@@ -154,6 +160,73 @@ describe("OrganizationPage", () => {
     });
     expect(orgModuleApi.downloadSource).not.toHaveBeenCalled();
     expect(message.error).not.toHaveBeenCalled();
+  });
+
+  it("opens trapped window.open / host URLs as extra tabs", async () => {
+    render(<OrganizationPage />);
+    await screen.findByTestId("org-mini-browser");
+
+    expect(
+      tryOpenInOrgBrowser("https://github.com/XYAIStudio/openXYOS", "GitHub"),
+    ).toBe(true);
+    await waitFor(() => {
+      expect(screen.getByTestId("org-address-bar")).toHaveValue(
+        "https://github.com/XYAIStudio/openXYOS",
+      );
+    });
+    expect(
+      screen
+        .getAllByTestId("org-browser-frame")
+        .some(
+          (node) =>
+            node.getAttribute("src") ===
+            "https://github.com/XYAIStudio/openXYOS",
+        ),
+    ).toBe(true);
+
+    expect(window.open("https://example.com/docs", "_blank")).toBeNull();
+    await waitFor(() => {
+      expect(screen.getByTestId("org-address-bar")).toHaveValue(
+        "https://example.com/docs",
+      );
+    });
+  });
+
+  it("navigates the active tab from the address bar", async () => {
+    render(<OrganizationPage />);
+    const address = await screen.findByTestId("org-address-bar");
+    fireEvent.change(address, {
+      target: { value: "https://example.com/path" },
+    });
+    fireEvent.submit(address.closest("form") as HTMLFormElement);
+    await waitFor(() => {
+      expect(screen.getByTestId("org-browser-frame")).toHaveAttribute(
+        "src",
+        "https://example.com/path",
+      );
+    });
+  });
+
+  it("auto-starts the sidecar when Organization is opened offline", async () => {
+    vi.mocked(orgModuleApi.overview).mockResolvedValue({
+      ...overview,
+      sidecar_reachable: false,
+      sidecar_embed_ok: false,
+      start_available: true,
+    });
+    vi.mocked(orgModuleApi.startSidecar).mockResolvedValue({
+      started: true,
+      already: false,
+      reachable: true,
+      url: "http://127.0.0.1:3780",
+      command: "",
+      detail: "ok",
+      launcher: "",
+    });
+    render(<OrganizationPage />);
+    await waitFor(() => {
+      expect(orgModuleApi.startSidecar).toHaveBeenCalled();
+    });
   });
 
   it("surfaces a blank-preview error when livez is up but embed origin fails", async () => {
@@ -217,9 +290,8 @@ describe("OrganizationPage", () => {
       "organization.packPreviewEmployees",
     );
     await waitFor(() => {
-      expect(screen.getByTitle("organization.previewTitle")).toHaveAttribute(
-        "src",
-        expect.stringContaining("/employees"),
+      expect(screen.getByTestId("org-address-bar")).toHaveValue(
+        "http://127.0.0.1:3780/employees",
       );
     });
   });
