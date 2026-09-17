@@ -288,6 +288,7 @@ async def prepare_dashboard_turn(
         target_agent_ids=target_ids,
         model_ref=model_ref,
         default_model=default_model,
+        permission_mode=turn.permission_mode,
     )
     inbound_content = content_parts_from_dashboard_turn(turn)
     inbound_attachments = inbound_attachments_from_parts(inbound_content)
@@ -332,6 +333,8 @@ def build_dashboard_inbound(
         metadata["reasoning_mode"] = turn.reasoning_mode
     if turn.reasoning_effort:
         metadata["reasoning_effort"] = turn.reasoning_effort
+    if turn.permission_mode is not None:
+        metadata["permission_mode"] = turn.permission_mode
     if prepared.composer_context:
         metadata[COMPOSER_CTX_KEY] = prepared.composer_context
     if prepared.inbound_attachments:

@@ -11,10 +11,12 @@
 @import "./chatSlashMention.partial.less";
 @import "./chatInputCore.partial.less";
 @import "./chatWelcome.partial.less";
+@import "./chatRightRail.partial.less";
 @import "./chatThemeOverrides.partial.less";
 
 /* ---------- Page shell ---------- */
 .chatPage {
+  position: relative;
   /* Shared column metrics: title bar + composer alignment. */
   --chat-column-max: 960px;
   --chat-column-pad-x: 24px;
@@ -32,6 +34,29 @@
 }
 
 /* ---------- Main chat area ---------- */
+.rightRailExpandEdge {
+  position: absolute;
+  top: 12px;
+  right: 10px;
+  z-index: 4;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 8px;
+  background: var(--fn-bg-elevated, #fff);
+  color: var(--fn-text-secondary);
+  cursor: pointer;
+  box-shadow: var(--fn-shadow-sm, 0 1px 4px rgba(0, 0, 0, 0.08));
+
+  &:hover {
+    color: var(--fn-color-brand, #0033ff);
+    background: var(--fn-fill-secondary, rgba(0, 51, 255, 0.06));
+  }
+}
+
 .chatMain {
   flex: 1;
   display: flex;

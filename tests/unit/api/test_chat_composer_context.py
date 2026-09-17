@@ -64,3 +64,29 @@ def test_build_composer_context_includes_model_override() -> None:
         default_model="openai/gpt-4o",
     )
     assert ctx == {"model": "openai/gpt-4o-mini"}
+
+
+def test_build_composer_context_includes_permission_mode() -> None:
+    ctx = build_composer_context(
+        mcp_servers=None,
+        skills=None,
+        target_agent_ids=None,
+        model_ref=None,
+        default_model=None,
+        permission_mode="auto",
+    )
+    assert ctx == {"permissionMode": "auto"}
+
+
+def test_chat_turn_body_reads_permission_mode() -> None:
+    from octop.api.routers.chat.models import ChatTurnBody
+
+    turn = ChatTurnBody.from_ws_payload(
+        {
+            "text": "hi",
+            "permission_mode": "full",
+            "thread_id": "thr_1",
+        }
+    )
+    assert turn.permission_mode == "full"
+    assert ChatTurnBody.from_ws_payload({"text": "hi", "permission_mode": "yolo"}).permission_mode is None

@@ -146,7 +146,7 @@ describe("useChatDockPanel tabs", () => {
     expect(result.current.dockOpen).toBe(true);
   });
 
-  it("closeTab falls back to files and closes dock when empty", () => {
+  it("closeTab keeps the rail open so the start state can show", () => {
     const { result } = renderHook(() => useChatDockPanel(false));
     act(() => {
       result.current.openBrowserTab();
@@ -155,7 +155,32 @@ describe("useChatDockPanel tabs", () => {
       result.current.closeTab("browser");
     });
     expect(result.current.openTabs).toEqual([]);
-    expect(result.current.dockOpen).toBe(false);
+    expect(result.current.dockOpen).toBe(true);
+  });
+
+  it("openReviewTab and openTasksTab add dedicated dock tabs", () => {
+    const { result } = renderHook(() => useChatDockPanel(false));
+    act(() => {
+      result.current.openReviewTab();
+    });
+    expect(result.current.openTabs.map((t) => t.id)).toEqual(["review"]);
+    act(() => {
+      result.current.openTasksTab();
+    });
+    expect(result.current.activeTabId).toBe("tasks");
+    expect(result.current.openTabs.map((t) => t.kind)).toEqual([
+      "review",
+      "tasks",
+    ]);
+  });
+
+  it("openRail shows the empty sidebar without adding tabs", () => {
+    const { result } = renderHook(() => useChatDockPanel(false));
+    act(() => {
+      result.current.openRail();
+    });
+    expect(result.current.dockOpen).toBe(true);
+    expect(result.current.openTabs).toEqual([]);
   });
 
   it("openToolUiTab dedupes by callId and focuses the tool tab", () => {

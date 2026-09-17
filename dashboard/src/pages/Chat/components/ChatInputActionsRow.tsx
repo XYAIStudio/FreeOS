@@ -23,7 +23,12 @@ import {
   Check,
   ChevronLeft,
   ChevronRight,
+  Plus,
 } from "lucide-react";
+import ChatPanelPicker from "./ChatPanelPicker";
+import ChatPermissionModeMenu from "./ChatPermissionModeMenu";
+import type { ChatPermissionMode } from "../utils/permissionMode";
+import type { WorkspacePanelKind } from "../utils/workspacePanels";
 import { Tooltip, Popover, Drawer } from "antd";
 import type { ResolvedModel } from "../../../api/types";
 import type { KnowledgeBase } from "../../../api/modules/knowledgeBases";
@@ -122,6 +127,9 @@ interface ChatInputActionsRowProps {
   slashMenuItems: SlashMenuItem[];
   onSlashShortcutSelect: (command: string) => void;
   onFileSelect: () => void;
+  permissionMode?: ChatPermissionMode;
+  onPermissionModeChange?: (mode: ChatPermissionMode) => void;
+  onOpenWorkspacePanel?: (kind: WorkspacePanelKind) => void;
   onNewChat: () => void;
   onPolish: () => void;
   onToggleVoice: () => void;
@@ -173,6 +181,9 @@ export default function ChatInputActionsRow({
   slashMenuItems,
   onSlashShortcutSelect,
   onFileSelect,
+  permissionMode = "default",
+  onPermissionModeChange,
+  onOpenWorkspacePanel,
   onNewChat,
   onPolish,
   onToggleVoice,
@@ -199,6 +210,7 @@ export default function ChatInputActionsRow({
   const [mobileOverflowOpen, setMobileOverflowOpen] = useState(false);
   /** Narrow-desktop overflow popover (tools / skills / …). */
   const [overflowPopoverOpen, setOverflowPopoverOpen] = useState(false);
+  const [panelPickerOpen, setPanelPickerOpen] = useState(false);
   /** Active sub-picker for compact layouts (drawer on mobile, panel in popover). */
   const [compactPicker, setCompactPicker] = useState<CompactPickerKey | null>(
     null,
@@ -771,6 +783,46 @@ export default function ChatInputActionsRow({
     renderMobileOverflowMenu()
   );
 
+  const plusButton = onOpenWorkspacePanel ? (
+    <Popover
+      trigger="click"
+      placement="topLeft"
+      open={panelPickerOpen}
+      onOpenChange={setPanelPickerOpen}
+      overlayClassName={styles.skillPickerPopover}
+      content={
+        <ChatPanelPicker
+          onSelect={(kind) => {
+            onOpenWorkspacePanel(kind);
+            setPanelPickerOpen(false);
+          }}
+        />
+      }
+    >
+      <Tooltip
+        title={t("chat.rightRail.addPanel", "添加面板")}
+        mouseEnterDelay={0.4}
+      >
+        <button
+          className={styles.secondaryBtn}
+          type="button"
+          aria-label={t("chat.rightRail.addPanel", "添加面板")}
+        >
+          <Plus size={16} strokeWidth={2} />
+        </button>
+      </Tooltip>
+    </Popover>
+  ) : null;
+
+  const permissionControl = onPermissionModeChange ? (
+    <ChatPermissionModeMenu
+      mode={permissionMode}
+      onChange={onPermissionModeChange}
+      disabled={disabled}
+      isMobile={isMobile}
+    />
+  ) : null;
+
   const renderSecondaryActions = () => {
     if (useCompactControls) {
       const modelButton = (
@@ -803,6 +855,8 @@ export default function ChatInputActionsRow({
 
       return (
         <>
+          {plusButton}
+          {permissionControl}
           {showModelPicker &&
             (isMobile ? (
               modelButton
@@ -888,6 +942,8 @@ export default function ChatInputActionsRow({
 
     return (
       <>
+        {plusButton}
+        {permissionControl}
         {showModelPicker && (
           <Popover
             trigger="click"

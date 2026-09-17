@@ -19,6 +19,8 @@ import type { KnowledgeBase } from "../../../api/modules/knowledgeBases";
 import type { SkillSpec } from "../../Agent/Skills/useSkills";
 import type { ChatAgentOption } from "./ExpertAgentAvatar";
 import type { AgentSubagentSummary } from "../../../api/modules/subagents";
+import type { ChatPermissionMode } from "../utils/permissionMode";
+import type { WorkspacePanelKind } from "../utils/workspacePanels";
 import MentionPickerMenu from "./MentionPickerMenu";
 import ChatInputPreviewBar from "./ChatInputPreviewBar";
 import ChatInputActionsRow from "./ChatInputActionsRow";
@@ -111,6 +113,9 @@ interface ChatInputProps {
   defaultModel?: string | null;
   contextUsedTokens?: number | null;
   contextMaxTokens?: number;
+  permissionMode?: ChatPermissionMode;
+  onPermissionModeChange?: (mode: ChatPermissionMode) => void;
+  onOpenWorkspacePanel?: (kind: WorkspacePanelKind) => void;
 }
 
 const ChatInput = forwardRef<ChatInputHandle, ChatInputProps>(
@@ -159,6 +164,9 @@ const ChatInput = forwardRef<ChatInputHandle, ChatInputProps>(
       defaultModel,
       contextUsedTokens = null,
       contextMaxTokens = 128_000,
+      permissionMode = "default",
+      onPermissionModeChange,
+      onOpenWorkspacePanel,
     },
     ref,
   ) {
@@ -837,6 +845,9 @@ const ChatInput = forwardRef<ChatInputHandle, ChatInputProps>(
             slashMenuItems={slashMenuItems}
             onSlashShortcutSelect={handleSlashSelect}
             onFileSelect={handleFileSelect}
+            permissionMode={permissionMode}
+            onPermissionModeChange={onPermissionModeChange}
+            onOpenWorkspacePanel={onOpenWorkspacePanel}
             onNewChat={onNewChat}
             onPolish={() => void handlePolish()}
             onToggleVoice={() => toggleVoice()}

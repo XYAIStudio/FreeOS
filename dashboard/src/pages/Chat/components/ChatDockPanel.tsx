@@ -8,14 +8,17 @@ import React, {
   useState,
   type ReactNode,
 } from "react";
-import { Spin, Tooltip } from "antd";
+import { Popover, Spin, Tooltip } from "antd";
 import {
   BookOpen,
   FilePen,
   FolderOpen,
   Globe,
+  ListChecks,
+  Plus,
   Puzzle,
   RefreshCw,
+  ScanSearch,
   Terminal,
   X,
 } from "lucide-react";
@@ -34,6 +37,11 @@ import ChatDockFileList from "./ChatDockFileList";
 import FilePanelContent from "./FilePanelContent";
 import KnowledgeCitationPanelContent from "./KnowledgeCitationPanelContent";
 import ChatDockToolUiContent from "./ChatDockToolUiContent";
+import ChatDockStartState from "./ChatDockStartState";
+import ChatDockReviewContent from "./ChatDockReviewContent";
+import ChatDockTasksContent from "./ChatDockTasksContent";
+import ChatPanelPicker from "./ChatPanelPicker";
+import type { WorkspacePanelKind } from "../utils/workspacePanels";
 
 const TerminalPage = lazy(() => import("../../Control/Terminal"));
 
@@ -49,6 +57,9 @@ interface ChatDockPanelProps {
   onSelectTab: (id: DockTabId) => void;
   onCloseTab: (id: DockTabId) => void;
   onOpenFile: (path: string) => void;
+  onOpenPanel?: (kind: WorkspacePanelKind) => void;
+  onExpand?: () => void;
+  expandActive?: boolean;
   browserEnvironment?: DisplayEnvironment;
   threadId?: string | null;
   isStreamingTurn?: boolean;
@@ -76,6 +87,9 @@ const ChatDockPanel: React.FC<ChatDockPanelProps> = ({
   onSelectTab,
   onCloseTab,
   onOpenFile,
+  onOpenPanel,
+  onExpand,
+  expandActive = false,
   browserEnvironment = "desktop",
   threadId = null,
   isStreamingTurn = false,
@@ -89,6 +103,12 @@ const ChatDockPanel: React.FC<ChatDockPanelProps> = ({
   const [terminalMounted, setTerminalMounted] = useState(
     openTabs.some((tab) => tab.kind === "terminal"),
   );
+  const [reviewMounted, setReviewMounted] = useState(
+    openTabs.some((tab) => tab.kind === "review"),
+  );
+  const [tasksMounted, setTasksMounted] = useState(
+    openTabs.some((tab) => tab.kind === "tasks"),
+  );
   const [mountedFilePaths, setMountedFilePaths] = useState<string[]>(() =>
     openTabs.filter((tab) => tab.kind === "file").map((tab) => tab.path),
   );
@@ -99,6 +119,7 @@ const ChatDockPanel: React.FC<ChatDockPanelProps> = ({
     () =>
       openTabs.filter((tab) => tab.kind === "toolUi").map((tab) => tab.callId),
   );
+  const [addOpen, setAddOpen] = useState(false);
   const [fileActionsByPath, setFileActionsByPath] = useState<
     Record<string, ReactNode>
   >({});
@@ -116,8 +137,12 @@ const ChatDockPanel: React.FC<ChatDockPanelProps> = ({
   useEffect(() => {
     const hasBrowser = openTabs.some((tab) => tab.kind === "browser");
     const hasTerminal = openTabs.some((tab) => tab.kind === "terminal");
+    const hasReview = openTabs.some((tab) => tab.kind === "review");
+    const hasTasks = openTabs.some((tab) => tab.kind === "tasks");
     setBrowserMounted(hasBrowser);
     setTerminalMounted(hasTerminal);
+    setReviewMounted(hasReview);
+    setTasksMounted(hasTasks);
     const openFilePaths = new Set(
       openTabs.filter((tab) => tab.kind === "file").map((tab) => tab.path),
     );
@@ -253,6 +278,16 @@ const ChatDockPanel: React.FC<ChatDockPanelProps> = ({
               <FolderOpen size={16} strokeWidth={2} aria-hidden />
               <span>{t("chat.dockFileList", "文件变更")}</span>
             </>
+          ) : tab.kind === "review" ? (
+            <>
+              <ScanSearch size={16} strokeWidth={2} aria-hidden />
+              <span>{t("chat.rightRail.dockReviewTitle", "审查")}</span>
+            </>
+          ) : tab.kind === "tasks" ? (
+            <>
+              <ListChecks size={16} strokeWidth={2} aria-hidden />
+              <span>{t("chat.rightRail.dockTasksTitle", "后台任务")}</span>
+            </>
           ) : tab.kind === "browser" ? (
             <>
               <Globe size={16} strokeWidth={2} aria-hidden />
@@ -342,15 +377,49 @@ const ChatDockPanel: React.FC<ChatDockPanelProps> = ({
     return null;
   }, [activeTab, fileActionsByPath, knowledgeActionsById, t]);
 
+  const addButton = onOpenPanel ? (
+    <Popover
+      trigger="click"
+      placement="bottomLeft"
+      open={addOpen}
+      onOpenChange={setAddOpen}
+      overlayClassName={styles.skillPickerPopover}
+      content={
+        <ChatPanelPicker
+          onSelect={(kind) => {
+            onOpenPanel(kind);
+            setAddOpen(false);
+          }}
+        />
+      }
+    >
+      <Tooltip title={t("chat.rightRail.addPanel", "添加面板")}>
+        <button
+          type="button"
+          className={styles.fileModalIconBtn}
+          aria-label={t("chat.rightRail.addPanel", "添加面板")}
+        >
+          <Plus size={16} strokeWidth={2} />
+        </button>
+      </Tooltip>
+    </Popover>
+  ) : null;
+
   return (
     <ChatDockPanelShell
       mode={mode}
       onModeChange={onModeChange}
       onClose={onClose}
       style={style}
-      title={tabBar}
+      leadingActions={addButton}
+      title={openTabs.length > 0 ? tabBar : undefined}
       toolbarActions={toolbarActions}
+      onExpand={onExpand}
+      expandActive={expandActive}
     >
+      {openTabs.length === 0 && onOpenPanel ? (
+        <ChatDockStartState onOpen={onOpenPanel} />
+      ) : null}
       <div className={styles.dockTabBodies}>
         {openTabs.some((tab) => tab.kind === "files") && (
           <div
@@ -404,6 +473,37 @@ const ChatDockPanel: React.FC<ChatDockPanelProps> = ({
             </div>
           );
         })}
+
+        {reviewMounted && (
+          <div
+            className={styles.dockTabBody}
+            hidden={activeTab?.kind !== "review"}
+            style={{
+              display: activeTab?.kind === "review" ? "flex" : "none",
+            }}
+          >
+            <ChatDockReviewContent
+              agentId={agentId}
+              threadId={threadId}
+              visible={surfaceVisible && activeTab?.kind === "review"}
+            />
+          </div>
+        )}
+
+        {tasksMounted && (
+          <div
+            className={styles.dockTabBody}
+            hidden={activeTab?.kind !== "tasks"}
+            style={{
+              display: activeTab?.kind === "tasks" ? "flex" : "none",
+            }}
+          >
+            <ChatDockTasksContent
+              agentId={agentId}
+              visible={surfaceVisible && activeTab?.kind === "tasks"}
+            />
+          </div>
+        )}
 
         {browserMounted && (
           <div

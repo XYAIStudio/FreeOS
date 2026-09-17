@@ -53,6 +53,7 @@ export interface UserComposerContext {
   model?: string;
   reasoningMode?: "auto" | "enabled" | "disabled";
   reasoningEffort?: string | null;
+  permissionMode?: "default" | "auto" | "full";
 }
 
 export interface ChatMessage {

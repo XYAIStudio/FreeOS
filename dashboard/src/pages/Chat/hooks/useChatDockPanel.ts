@@ -10,9 +10,12 @@ import type { KnowledgeCitation } from "../../../utils/parseKnowledgeCitations";
 import { dockKnowledgeTabId } from "../utils/dockKnowledgeTabId";
 import { dockToolUiTabId } from "../utils/dockToolUiTabId";
 import { usePanelResize, type PanelSizes } from "./usePanelResize";
+import type { WorkspacePanelKind } from "../utils/workspacePanels";
 
 const PANEL_MODE_KEY = "octop:chat-dock:mode";
 const PANEL_SIZE_KEY = "octop:chat-dock:size";
+const RAIL_OPEN_KEY = "octop:chat-right-rail:open";
+const RAIL_WIDE_KEY = "octop:chat-right-rail:wide";
 /** Legacy keys — read once for migration. */
 const LEGACY_FILE_MODE_KEY = "octop:file-panel:mode";
 const LEGACY_BROWSER_MODE_KEY = "octop:browser-panel:mode";
@@ -21,6 +24,8 @@ const LEGACY_BROWSER_SIZE_KEY = "octop:browser-panel:size";
 
 export type DockTab =
   | { id: "files"; kind: "files" }
+  | { id: "review"; kind: "review" }
+  | { id: "tasks"; kind: "tasks" }
   | { id: "browser"; kind: "browser" }
   | { id: "terminal"; kind: "terminal" }
   | { id: string; kind: "file"; path: string }
@@ -90,6 +95,42 @@ function persistPanelSizes(sizes: PanelSizes) {
   }
 }
 
+function loadRailOpen(isMobile: boolean): boolean {
+  if (isMobile) return false;
+  try {
+    const saved = localStorage.getItem(RAIL_OPEN_KEY);
+    if (saved === "true") return true;
+    if (saved === "false") return false;
+  } catch {
+    /* ignore */
+  }
+  return false;
+}
+
+function persistRailOpen(open: boolean) {
+  try {
+    localStorage.setItem(RAIL_OPEN_KEY, open ? "true" : "false");
+  } catch {
+    /* ignore */
+  }
+}
+
+function loadRailWide(): boolean {
+  try {
+    return localStorage.getItem(RAIL_WIDE_KEY) === "true";
+  } catch {
+    return false;
+  }
+}
+
+function persistRailWide(wide: boolean) {
+  try {
+    localStorage.setItem(RAIL_WIDE_KEY, wide ? "true" : "false");
+  } catch {
+    /* ignore */
+  }
+}
+
 function ensureFilesTab(tabs: DockTab[]): DockTab[] {
   if (tabs.some((t) => t.id === "files")) return tabs;
   return [{ id: "files", kind: "files" }, ...tabs];
@@ -112,7 +153,8 @@ function fallbackActiveId(
  * Shared chat dock with tabbed file list / file viewers / browser / terminal.
  */
 export function useChatDockPanel(isMobile: boolean, agentId?: string | null) {
-  const [dockOpen, setDockOpen] = useState(false);
+  const [dockOpen, setDockOpen] = useState(() => loadRailOpen(isMobile));
+  const [railWide, setRailWide] = useState(loadRailWide);
   const [dockMode, setDockMode] = useState<PanelMode>(loadPanelMode);
   const [openTabs, setOpenTabs] = useState<DockTab[]>([]);
   const [activeTabId, setActiveTabId] = useState<DockTabId | null>(null);
@@ -135,13 +177,19 @@ export function useChatDockPanel(isMobile: boolean, agentId?: string | null) {
 
   const openDock = useCallback(() => {
     setDockOpen(true);
+    persistRailOpen(true);
     if (isMobile) {
       setDockMode("bottom");
     }
   }, [isMobile]);
 
+  const openRail = useCallback(() => {
+    openDock();
+  }, [openDock]);
+
   const handleClose = useCallback(() => {
     setDockOpen(false);
+    persistRailOpen(false);
     // Closing the dock restores tool UIs to the message stream.
     setOpenTabs((prev) => {
       const next = prev.filter((t) => t.kind !== "toolUi");
@@ -194,6 +242,24 @@ export function useChatDockPanel(isMobile: boolean, agentId?: string | null) {
       return [...prev, { id: "browser", kind: "browser" }];
     });
     setActiveTabId("browser");
+    openDock();
+  }, [openDock]);
+
+  const openReviewTab = useCallback(() => {
+    setOpenTabs((prev) => {
+      if (prev.some((t) => t.id === "review")) return prev;
+      return [...prev, { id: "review", kind: "review" }];
+    });
+    setActiveTabId("review");
+    openDock();
+  }, [openDock]);
+
+  const openTasksTab = useCallback(() => {
+    setOpenTabs((prev) => {
+      if (prev.some((t) => t.id === "tasks")) return prev;
+      return [...prev, { id: "tasks", kind: "tasks" }];
+    });
+    setActiveTabId("tasks");
     openDock();
   }, [openDock]);
 
@@ -261,11 +327,13 @@ export function useChatDockPanel(isMobile: boolean, agentId?: string | null) {
 
   /** Toggle dock open/closed around a dedicated tab (browser / terminal). */
   const toggleDockTab = useCallback(
-    (tab: Extract<DockTab, { kind: "browser" | "terminal" }>) => {
+    (tab: Extract<DockTab, { kind: "browser" | "terminal" | "review" | "tasks" }>) => {
       setDockOpen((prevOpen) => {
         if (prevOpen && activeTabId === tab.id) {
+          persistRailOpen(false);
           return false;
         }
+        persistRailOpen(true);
         setOpenTabs((prev) => {
           if (prev.some((t) => t.id === tab.id)) return prev;
           return [...prev, tab];
@@ -288,16 +356,41 @@ export function useChatDockPanel(isMobile: boolean, agentId?: string | null) {
     toggleDockTab({ id: "terminal", kind: "terminal" });
   }, [toggleDockTab]);
 
+  const openWorkspacePanel = useCallback(
+    (kind: WorkspacePanelKind) => {
+      if (kind === "files") {
+        openFileList();
+        return;
+      }
+      if (kind === "review") {
+        openReviewTab();
+        return;
+      }
+      if (kind === "tasks") {
+        openTasksTab();
+        return;
+      }
+      if (kind === "browser") {
+        openBrowserTab();
+        return;
+      }
+      openTerminalTab();
+    },
+    [openBrowserTab, openFileList, openReviewTab, openTasksTab, openTerminalTab],
+  );
+
   const closeTab = useCallback((id: DockTabId) => {
     setOpenTabs((prev) => {
       const next = prev.filter((t) => t.id !== id);
-      setActiveTabId((current) => {
-        const nextActive = fallbackActiveId(next, id, current);
-        if (next.length === 0) {
-          setDockOpen(false);
-        }
-        return nextActive;
-      });
+      setActiveTabId((current) => fallbackActiveId(next, id, current));
+      return next;
+    });
+  }, []);
+
+  const toggleRailWide = useCallback(() => {
+    setRailWide((prev) => {
+      const next = !prev;
+      persistRailWide(next);
       return next;
     });
   }, []);
@@ -333,6 +426,7 @@ export function useChatDockPanel(isMobile: boolean, agentId?: string | null) {
   return {
     dockOpen,
     dockMode,
+    railWide,
     filePath,
     openTabs,
     activeTabId,
@@ -342,10 +436,14 @@ export function useChatDockPanel(isMobile: boolean, agentId?: string | null) {
     handleResizeStart,
     handleClose,
     handleModeChange,
+    openRail,
     openFileAt,
     openFileList,
     openKnowledgeCitation,
     openBrowserTab,
+    openReviewTab,
+    openTasksTab,
+    openWorkspacePanel,
     toggleBrowserPanel,
     openTerminalTab,
     toggleTerminalPanel,
@@ -353,5 +451,6 @@ export function useChatDockPanel(isMobile: boolean, agentId?: string | null) {
     focusToolUiTab,
     closeTab,
     setActiveTab,
+    toggleRailWide,
   };
 }

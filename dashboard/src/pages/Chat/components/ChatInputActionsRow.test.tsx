@@ -137,4 +137,71 @@ describe("ChatInputActionsRow compact pickers", () => {
     fireEvent.click(modelButton!);
     expect(await screen.findByText("模型管理")).toBeInTheDocument();
   });
+
+  it("opens the workspace panel picker from the composer + button", async () => {
+    const onOpenWorkspacePanel = vi.fn();
+    const { container } = render(
+      <MemoryRouter>
+        <ChatInputActionsRow
+          isMobile={false}
+          isStreaming={false}
+          canSend={false}
+          text=""
+          polishing={false}
+          uploading={false}
+          recording={false}
+          transcribing={false}
+          slashPickerGroups={null}
+          slashMenuItems={[]}
+          onSlashShortcutSelect={vi.fn()}
+          onFileSelect={vi.fn()}
+          onOpenWorkspacePanel={onOpenWorkspacePanel}
+          permissionMode="default"
+          onPermissionModeChange={vi.fn()}
+          onNewChat={vi.fn()}
+          onPolish={vi.fn()}
+          onToggleVoice={vi.fn()}
+          onCancel={vi.fn()}
+          onSubmit={vi.fn()}
+        />
+      </MemoryRouter>,
+    );
+
+    const plus = container.querySelector("svg.lucide-plus")?.closest("button");
+    expect(plus).not.toBeNull();
+    fireEvent.click(plus!);
+    const openFiles = await screen.findByText("打开文件");
+    fireEvent.click(openFiles.closest("button") ?? openFiles);
+    expect(onOpenWorkspacePanel).toHaveBeenCalledWith("files");
+  });
+
+  it("shows the current permission mode on the trigger", () => {
+    render(
+      <MemoryRouter>
+        <ChatInputActionsRow
+          isMobile={false}
+          isStreaming={false}
+          canSend={false}
+          text=""
+          polishing={false}
+          uploading={false}
+          recording={false}
+          transcribing={false}
+          slashPickerGroups={null}
+          slashMenuItems={[]}
+          onSlashShortcutSelect={vi.fn()}
+          onFileSelect={vi.fn()}
+          permissionMode="full"
+          onPermissionModeChange={vi.fn()}
+          onNewChat={vi.fn()}
+          onPolish={vi.fn()}
+          onToggleVoice={vi.fn()}
+          onCancel={vi.fn()}
+          onSubmit={vi.fn()}
+        />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByText("完全访问")).toBeInTheDocument();
+  });
 });

@@ -1285,6 +1285,28 @@ class GlobalProcessor:
             message_kwargs=message_kwargs or None,
             reasoning_overrides=reasoning_overrides,
         )
+        from octop.infra.agents.permission_mode import (  # noqa: PLC0415
+            CONFIG_KEY as PERMISSION_MODE_KEY,
+            normalize_permission_mode,
+        )
+
+        permission_mode = normalize_permission_mode(meta.get("permission_mode"))
+        if permission_mode is None and isinstance(composer, dict):
+            permission_mode = normalize_permission_mode(composer.get("permissionMode"))
+        if permission_mode is not None:
+            configurable = dict(request.get("configurable") or {})
+            configurable[PERMISSION_MODE_KEY] = permission_mode
+            request["configurable"] = configurable
+            if isinstance(message_kwargs.get(COMPOSER_CTX_KEY), dict):
+                stamped_ctx = dict(message_kwargs[COMPOSER_CTX_KEY])
+                stamped_ctx["permissionMode"] = permission_mode
+                message_kwargs[COMPOSER_CTX_KEY] = stamped_ctx
+                msgs = request.get("messages")
+                if msgs:
+                    first = msgs[0]
+                    extra = getattr(first, "additional_kwargs", None)
+                    if isinstance(extra, dict):
+                        extra[COMPOSER_CTX_KEY] = stamped_ctx
         self._attach_turn_knowledge_config(
             request,
             user_id=user_id,

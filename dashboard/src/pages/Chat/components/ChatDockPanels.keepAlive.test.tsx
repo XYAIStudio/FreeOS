@@ -47,7 +47,7 @@ describe("ChatDockPanels keep-alive", () => {
     expect(screen.getByTestId("chat-dock-panel")).toBe(first);
   });
 
-  it("does not mount an empty dock when there are no tabs", () => {
+  it("does not mount an empty dock when there are no tabs and the rail is closed", () => {
     render(
       <ChatDockPanels
         {...baseProps}
@@ -57,5 +57,17 @@ describe("ChatDockPanels keep-alive", () => {
       />,
     );
     expect(screen.queryByTestId("chat-dock-panel")).toBeNull();
+  });
+
+  it("mounts the start-state dock when the rail is open with no tabs", () => {
+    render(
+      <ChatDockPanels
+        {...baseProps}
+        dockOpen={true}
+        openTabs={[]}
+        activeTabId={null}
+      />,
+    );
+    expect(screen.getByTestId("chat-dock-panel")).toBeTruthy();
   });
 });

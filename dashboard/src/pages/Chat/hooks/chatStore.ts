@@ -1851,6 +1851,7 @@ async function sendTurnWebSocket(
   onStreamEnd?: () => void,
   reasoningMode?: "auto" | "enabled" | "disabled",
   reasoningEffort?: string | null,
+  permissionMode?: "default" | "auto" | "full",
 ): Promise<boolean> {
   const state = getOrCreate(sessionId);
   const resolvedThreadId = (threadId || sessionId).trim();
@@ -1928,6 +1929,7 @@ async function sendTurnWebSocket(
       }
       if (reasoningMode) payload.reasoning_mode = reasoningMode;
       if (reasoningEffort) payload.reasoning_effort = reasoningEffort;
+      if (permissionMode) payload.permission_mode = permissionMode;
       ws.send(JSON.stringify(payload));
     };
 
@@ -2052,6 +2054,7 @@ export async function sendTurn(
   targetAgentIds?: string[] | null,
   reasoningMode?: "auto" | "enabled" | "disabled",
   reasoningEffort?: string | null,
+  permissionMode?: "default" | "auto" | "full",
 ): Promise<void> {
   const state = getOrCreate(sessionId);
 
@@ -2123,6 +2126,7 @@ export async function sendTurn(
     onStreamEnd,
     reasoningMode,
     reasoningEffort,
+    permissionMode,
   );
   if (!wsOk) {
     state.messages = [
