@@ -589,7 +589,14 @@ export default function OrganizationPage() {
       navigateOrgTab(current, activeId, url, tabTitleFromUrl(url, homeTitle)),
     );
     setAddressValue(url);
-  }, [activeId, addressValue, confirmLivez, homeTitle, localConsoleUrl, sidecarOrigin]);
+  }, [
+    activeId,
+    addressValue,
+    confirmLivez,
+    homeTitle,
+    localConsoleUrl,
+    sidecarOrigin,
+  ]);
 
   const goHomeAfterRestart = useCallback(() => {
     const home = normalizeOrgUrl(localConsoleUrl + "/");
@@ -600,26 +607,22 @@ export default function OrganizationPage() {
   }, [homeTitle, localConsoleUrl]);
 
   const onBrowserBack = useCallback(() => {
-    let nextAddress = addressValue;
     setTabs((current) => {
       const next = goBackOrgTab(current, activeId, homeTitle);
-      nextAddress =
-        next.find((tab) => tab.id === activeId)?.url ?? addressValue;
+      const url = next.find((tab) => tab.id === activeId)?.url;
+      if (url) setAddressValue(url);
       return next;
     });
-    setAddressValue(nextAddress);
-  }, [activeId, addressValue, homeTitle]);
+  }, [activeId, homeTitle]);
 
   const onBrowserForward = useCallback(() => {
-    let nextAddress = addressValue;
     setTabs((current) => {
       const next = goForwardOrgTab(current, activeId, homeTitle);
-      nextAddress =
-        next.find((tab) => tab.id === activeId)?.url ?? addressValue;
+      const url = next.find((tab) => tab.id === activeId)?.url;
+      if (url) setAddressValue(url);
       return next;
     });
-    setAddressValue(nextAddress);
-  }, [activeId, addressValue, homeTitle]);
+  }, [activeId, homeTitle]);
 
   const onBrowserReload = useCallback(() => {
     const tab = tabs.find((row) => row.id === activeId);

@@ -45,6 +45,8 @@ export function sidecarRestartSpeechKeys(stepId: SidecarRestartStepId): {
   };
 }
 
-export function sidecarRestartStepLabelKey(stepId: SidecarRestartStepId): string {
+export function sidecarRestartStepLabelKey(
+  stepId: SidecarRestartStepId,
+): string {
   return `organization.restartStep.${stepId}`;
 }

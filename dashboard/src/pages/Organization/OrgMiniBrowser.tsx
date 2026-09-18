@@ -94,6 +94,7 @@ export default function OrgMiniBrowser({
         <Tooltip title={t("organization.browserBack")}>
           <Button
             data-testid="org-browser-back"
+            htmlType="button"
             aria-label={t("organization.browserBack")}
             icon={<ArrowLeft size={14} />}
             disabled={!canGoBack(activeTab)}
@@ -103,6 +104,7 @@ export default function OrgMiniBrowser({
         <Tooltip title={t("organization.browserForward")}>
           <Button
             data-testid="org-browser-forward"
+            htmlType="button"
             aria-label={t("organization.browserForward")}
             icon={<ArrowRight size={14} />}
             disabled={!canGoForward(activeTab)}
@@ -112,6 +114,7 @@ export default function OrgMiniBrowser({
         <Tooltip title={t("organization.browserReload")}>
           <Button
             data-testid="org-browser-reload"
+            htmlType="button"
             aria-label={t("organization.browserReload")}
             icon={<RotateCcw size={14} />}
             onClick={onReload}

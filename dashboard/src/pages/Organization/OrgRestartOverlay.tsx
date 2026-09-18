@@ -89,8 +89,8 @@ export default function OrgRestartOverlay({
                   index < stepIndex
                     ? "done"
                     : index === stepIndex
-                      ? "current"
-                      : "pending";
+                    ? "current"
+                    : "pending";
                 return (
                   <li
                     key={id}
