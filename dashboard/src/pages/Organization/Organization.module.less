@@ -1,13 +1,9 @@
 /*
  * Organization page layout
  * ------------------------
- * The main view is a slim blue status bar + a full-area iframe. The iframe
- * box is height-constrained to the remaining window (not stretched to match
- * leftover chrome). That matters for openXYOS dialogs: `position:fixed`
- * inside the iframe is relative to the iframe element's box. A tall iframe
- * (old two-column layout) centered modals far below the visible FreeOS
- * viewport. Keeping the iframe == the visible pane centers overlays both
- * vertically and horizontally.
+ * The main view is a slim blue status bar + the in-host Organization
+ * workbench (catalog, colleagues, growth loop). The optional Node console
+ * is not required for first paint.
  */
 .page {
   position: relative;
@@ -17,6 +13,47 @@
   min-height: 0;
   height: 100%;
   gap: 0;
+}
+
+.workbench {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 20px 24px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.colleagueList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.colleagueRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-radius: 12px;
+  padding: 10px 14px;
+  background: var(--fn-bg-secondary);
+}
+
+.colleagueName {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.colleagueMeta {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: var(--fn-text-secondary);
 }
 
 .statusBar {

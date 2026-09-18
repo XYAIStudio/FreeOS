@@ -615,7 +615,7 @@ async def run_loop(
             tenant_id=body.tenant_id or service.tenant_id() or "1",
             blueprint_path=Path(body.blueprint_path) if body.blueprint_path else None,
             policies_path=Path(body.policies_path) if body.policies_path else None,
-            sidecar_url=body.base_url or service.sidecar_url(),
+            sidecar_url=body.base_url or service.explicit_sidecar_url(),
             config_path=service.config_path,
             owner_user_id=int(getattr(user, "id", 0) or 0) or None,
         )

@@ -17,7 +17,7 @@
     !define INFO_PRODUCTNAME "FreeOS"
 !endif
 !ifndef INFO_PRODUCTVERSION
-    !define INFO_PRODUCTVERSION "0.0.1"
+    !define INFO_PRODUCTVERSION "0.0.2"
 !endif
 !ifndef INFO_COPYRIGHT
     !define INFO_COPYRIGHT "(c) 2026, XYAI Studio"
@@ -34,15 +34,12 @@
     !define WAILS_INSTALL_SCOPE "machine"
 !endif
 
-# Prebuilt FE+BE zip must exist when makensis runs (CI: stage:openxyos-runtime).
-# A README-only $INSTDIR\openxyos is not a shippable installer.
+# Optional openXYOS Node runtime. Organization runs in the FreeOS host.
+# OPENXYOS_RUNTIME_ZIP_PRESENT is OFF by default. A leftover zip on disk
+# must not silently inflate the installer — only opt-in makensis
+# (-DOPENXYOS_RUNTIME_ZIP_PRESENT from SHIP_OPENXYOS_RUNTIME=1) ships it.
 !ifndef OPENXYOS_RUNTIME_ZIP
     !define OPENXYOS_RUNTIME_ZIP "..\openxyos-runtime.zip"
-!endif
-!if /FileExists "${OPENXYOS_RUNTIME_ZIP}"
-    !define OPENXYOS_RUNTIME_ZIP_PRESENT
-!else
-    !error "openxyos-runtime.zip missing at desktop/src/build/windows/openxyos-runtime.zip; run stage:openxyos-runtime before makensis"
 !endif
 
 !ifndef REQUEST_EXECUTION_LEVEL
@@ -145,76 +142,30 @@ RequestExecutionLevel "${REQUEST_EXECUTION_LEVEL}"
     ${EndIf}
 !macroend
 
-# After the FreeOS shell files are copied, run the shipped openXYOS
-# provisioner as a child process (nsExec::Exec, not ExecToLog). The
-# parent waits for exit 0. Child stdout is discarded (cmd >nul) so
-# UTF-8 Node/PowerShell logs do not mojibake in the ANSI detail list.
-# Localized DetailPrint LangStrings are the only NSIS-visible progress.
-# The child extracts with tar.exe, starts FE/BE at medium IL, waits for
-# livez, and writes .install-ready only when healthy. Do not FileWrite
-# goto-label .cmd scripts here. Do not register logon autostart.
+# Organization is in-host. Default Setup copies no openxyos-runtime.zip.
+# Opt-in builds (-DOPENXYOS_RUNTIME_ZIP_PRESENT) copy the zip + scripts
+# but still never extract, start Node, wait for livez, or Abort.
+# Do not FileWrite goto-label .cmd scripts here. Do not register logon autostart.
 !macro wails.provisionOpenXYOS
     !insertmacro wails.userLocalAppData
     SetDetailsPrint both
     DetailPrint "$(OPENXYOS_WORKDIR)"
     CreateDirectory "$INSTDIR\openxyos"
-    CreateDirectory "$INSTDIR\openxyos-runtime"
-    CreateDirectory "$R6\FreeOS\openxyos"
-    DetailPrint "$(OPENXYOS_COPY_ZIP)"
-    File "/oname=openxyos-runtime.zip" "${OPENXYOS_RUNTIME_ZIP}"
-    File "provision-openxyos.ps1"
-    File "provision-openxyos.cmd"
-    File "start-sidecar.ps1"
-    File "start-sidecar.cmd"
-    DetailPrint "$(OPENXYOS_PROVISION)"
-    DetailPrint "$(OPENXYOS_PROVISION_DETAIL)"
-    StrCpy $R4 '"$INSTDIR\provision-openxyos.cmd" -ZipPath "$INSTDIR\openxyos-runtime.zip" -InstallDir "$INSTDIR" -LiveDir "$R6\FreeOS\openxyos"'
-    nsExec::Exec $R4
-    Pop $0
-    DetailPrint "$(OPENXYOS_PROVISION_CODE)$0"
-    ${If} $0 == 12
-        DetailPrint "$(OPENXYOS_PROVISION_RETRY)"
-        nsExec::Exec $R4
-        Pop $0
-        DetailPrint "$(OPENXYOS_PROVISION_CODE)$0"
-    ${EndIf}
-    ${If} $0 == 0
-        IfFileExists "$R6\FreeOS\openxyos\.install-ready" 0 openxyosMissingMarker
-        DetailPrint "$(OPENXYOS_PROVISION_OK)"
-        Goto openxyosProvisionDone
-        openxyosMissingMarker:
-        StrCpy $0 13
-    ${EndIf}
-    !insertmacro wails.openxyosFailDetail
-    DetailPrint $R9
-    IfSilent openxyosProvisionSilent openxyosProvisionAsk
-    openxyosProvisionSilent:
-        SetErrorLevel $0
-        Abort
-    openxyosProvisionAsk:
-    MessageBox MB_RETRYCANCEL|MB_ICONSTOP "$(OPENXYOS_PROVISION_FAIL)$\r$\n$\r$\n$R9$\r$\n$\r$\n$(OPENXYOS_FAIL_CODE)$0$\r$\n$(OPENXYOS_FAIL_LOG)" IDRETRY openxyosProvisionRetry
-    SetErrorLevel $0
-    Abort
-    openxyosProvisionRetry:
-    DetailPrint "$(OPENXYOS_PROVISION_RETRY)"
-    nsExec::Exec $R4
-    Pop $0
-    DetailPrint "$(OPENXYOS_PROVISION_CODE)$0"
-    ${If} $0 == 0
-        IfFileExists "$R6\FreeOS\openxyos\.install-ready" openxyosProvisionDone 0
-        StrCpy $0 13
-    ${EndIf}
-    !insertmacro wails.openxyosFailDetail
-    DetailPrint $R9
-    IfSilent openxyosProvisionSilent2 openxyosProvisionFinal
-    openxyosProvisionSilent2:
-        SetErrorLevel $0
-        Abort
-    openxyosProvisionFinal:
-    MessageBox MB_OK|MB_ICONSTOP "$(OPENXYOS_PROVISION_FAIL)$\r$\n$\r$\n$R9$\r$\n$\r$\n$(OPENXYOS_FAIL_CODE)$0$\r$\n$(OPENXYOS_FAIL_LOG)"
-    SetErrorLevel $0
-    Abort
-    openxyosProvisionDone:
+    !ifdef OPENXYOS_RUNTIME_ZIP_PRESENT
+        !if /FileExists "${OPENXYOS_RUNTIME_ZIP}"
+            DetailPrint "$(OPENXYOS_COPY_ZIP)"
+            File "/oname=openxyos-runtime.zip" "${OPENXYOS_RUNTIME_ZIP}"
+            File "provision-openxyos.ps1"
+            File "provision-openxyos.cmd"
+            File "start-sidecar.ps1"
+            File "start-sidecar.cmd"
+            DetailPrint "$(OPENXYOS_OPTIONAL_SKIP)"
+        !else
+            !error "OPENXYOS_RUNTIME_ZIP_PRESENT is set but ${OPENXYOS_RUNTIME_ZIP} is missing"
+        !endif
+    !else
+        DetailPrint "$(OPENXYOS_OPTIONAL_ABSENT)"
+    !endif
     SetDetailsPrint listonly
 !macroend
 

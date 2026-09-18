@@ -18,7 +18,7 @@ tasks:
       - task: "{{OS}}:build"
 
   package:
-    summary: Packages a production build
+    summary: Packages a production build (Windows NSIS is slim unless SHIP_OPENXYOS_RUNTIME=1)
     cmds:
       - task: "{{OS}}:package"
 

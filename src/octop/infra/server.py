@@ -582,33 +582,25 @@ class OctopServer:
             logger.info("organization module enabled (FREEOS_ORG_ENABLE)")
 
     def _ensure_desktop_org_sidecar(self) -> None:
-        """Start local openXYOS FE+BE with the FreeOS host, not only on Organization."""
+        """Optionally start the Node sidecar. Organization itself is in-host."""
+        from octop.modules.org_os.service import org_module_from_paths, org_sidecar_wanted
+
         desktop = (
             (os.environ.get("OCTOP_DESKTOP") or os.environ.get("FREEOS_DESKTOP") or "")
             .strip()
             .lower()
         )
         org_flag = (os.environ.get("FREEOS_ORG_ENABLE") or "").strip().lower()
-        from octop.modules.org_os.sidecar_launch import (
-            ensure_sidecar,
-            find_sidecar_runtime,
-            sidecar_install_ready,
-        )
-
         desktop_on = desktop in {"1", "true", "yes", "on"}
         org_on = org_flag in {"1", "true", "yes", "on"}
-        if (
-            not desktop_on
-            and not org_on
-            and not sidecar_install_ready()
-            and find_sidecar_runtime() is None
-        ):
-            return
-        from octop.modules.org_os.service import org_module_from_paths
-
         service = org_module_from_paths(self.paths)
         if desktop_on or org_on:
             service.enable_from_desktop_env()
+        if not org_sidecar_wanted():
+            logger.info("organization sidecar skipped (in-host org; set FREEOS_ORG_SIDECAR=1)")
+            return
+        from octop.modules.org_os.sidecar_launch import ensure_sidecar
+
         result = ensure_sidecar(service)
         logger.info(
             "organization sidecar ensure started=%s already=%s reachable=%s detail=%s",

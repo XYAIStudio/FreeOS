@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "octop"
-version = "0.0.1"
+version = "0.0.2"
 description = "FreeOS — self-hosted multi-user multi-agent assistant with an optional organization OS module (Octop-compatible package name)"
 readme = "README.md"
 license = { text = "MIT" }

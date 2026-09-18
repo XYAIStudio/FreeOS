@@ -17,6 +17,15 @@ import (
 	"time"
 )
 
+func orgSidecarWanted() bool {
+	switch strings.ToLower(strings.TrimSpace(os.Getenv("FREEOS_ORG_SIDECAR"))) {
+	case "1", "true", "yes", "on":
+		return true
+	default:
+		return false
+	}
+}
+
 func orgSidecarDir(root string) string {
 	return filepath.Join(root, "org-sidecar")
 }
@@ -413,6 +422,9 @@ func startViaWindowsHelper(bundle string) (*exec.Cmd, error) {
 }
 
 func startOrgSidecar(root string, dashboardPort int) (*exec.Cmd, error) {
+	if !orgSidecarWanted() {
+		return nil, nil
+	}
 	bundle := resolveSidecarDir(root)
 	if bundle == "" {
 		work := openxyosUserWorkDir()

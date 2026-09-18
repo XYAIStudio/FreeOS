@@ -191,8 +191,12 @@ func (a *App) boot() {
 	}
 	root := portableDir()
 	openxyosReady := sidecarBundleReady(openxyosUserWorkDir())
-	if _, perr := provisionOpenXYOS(root, locale, a.setStatus); perr != nil {
-		log.Printf("openXYOS provision: %v", perr)
+	if orgSidecarWanted() {
+		if _, perr := provisionOpenXYOS(root, locale, a.setStatus); perr != nil {
+			log.Printf("openXYOS provision: %v", perr)
+		}
+	} else {
+		log.Printf("in-host organization; Node sidecar skipped (set FREEOS_ORG_SIDECAR=1 to enable)")
 	}
 	port := chooseHostPort(s.Port)
 	if port != s.Port {
@@ -202,12 +206,14 @@ func (a *App) boot() {
 	stopOctop(a.cmd)
 	stopOctop(a.sidecar)
 	a.setStatus(desktopText(locale, copyStatusStartingOrg))
-	sidecar, serr := startOrgSidecar(root, port)
-	a.sidecar = sidecar
-	if serr != nil {
-		logStartupError("organization sidecar", serr)
-	} else if sidecar == nil {
-		log.Printf("organization sidecar not bundled under %s", orgSidecarDir(root))
+	if orgSidecarWanted() {
+		sidecar, serr := startOrgSidecar(root, port)
+		a.sidecar = sidecar
+		if serr != nil {
+			logStartupError("organization sidecar", serr)
+		} else if sidecar == nil {
+			log.Printf("organization sidecar not bundled under %s", orgSidecarDir(root))
+		}
 	}
 	cmd, err := startOctop(root, port)
 	a.cmd = cmd
@@ -230,7 +236,7 @@ func (a *App) boot() {
 		showFatalError("FreeOS", formatFatalStartup(locale, err))
 		return
 	}
-	if sidecarReady(root) {
+	if orgSidecarWanted() && sidecarReady(root) {
 		wait := 30 * time.Second
 		if firstLaunch && !openxyosReady {
 			wait = 60 * time.Second

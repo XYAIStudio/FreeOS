@@ -304,6 +304,19 @@ func TestSidecarLiveReadsHealthURL(t *testing.T) {
 	}
 }
 
+func TestStartOrgSidecarSkipsWhenNotOptedIn(t *testing.T) {
+	root := t.TempDir()
+	writeSidecarBundle(t, filepath.Join(root, "org-sidecar"))
+	t.Setenv("FREEOS_ORG_SIDECAR", "")
+	cmd, err := startOrgSidecar(root, 8088)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cmd != nil {
+		t.Fatal("Node sidecar must stay off unless FREEOS_ORG_SIDECAR is set")
+	}
+}
+
 func TestStartOrgSidecarSkipsWhenNoBundle(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)

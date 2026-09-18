@@ -4,7 +4,6 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import OrganizationPage from "./index";
 import { orgModuleApi, type OrgOverview } from "../../api/modules/orgModule";
 import { message } from "../../utils/antdMessage";
-import { tryOpenInOrgBrowser } from "../../utils/orgBrowserHost";
 
 function renderOrg() {
   return render(
@@ -22,11 +21,13 @@ function renderOrg() {
 
 const overview: OrgOverview = {
   enabled: true,
-  sidecar_reachable: true,
-  sidecar_embed_ok: true,
+  runtime: "in_host",
+  sidecar_optional: true,
+  sidecar_reachable: false,
+  sidecar_embed_ok: false,
   sidecar_url: "http://127.0.0.1:3780",
   start_available: false,
-  install_ready: true,
+  install_ready: false,
   start_command: "",
   home: "/tmp",
   last_sync: null,
@@ -41,14 +42,27 @@ const overview: OrgOverview = {
     tasks: 0,
   },
   openxyos: {
-    reachable: true,
+    reachable: false,
     url: "http://127.0.0.1:3780",
-    detail: "ok",
+    detail: "sidecar optional; not configured",
     modules: 4,
     governance: true,
     tenant_id: "1",
     approvals: 0,
   },
+  colleagues: [
+    {
+      slug: "ops-coordinator",
+      name: "Ops",
+      lifecycle: "active",
+      agent_id: "org-ops-coordinator",
+      spawned: true,
+    },
+  ],
+  experts: [
+    { agent_id: "org-ops-coordinator", slug: "ops-coordinator", name: "Ops" },
+  ],
+  org_surfaces: { employees: 1, talent: 0, skills: 2, plugins: 1 },
   last_loop: null,
   notes: [],
   catalog: [
@@ -105,76 +119,64 @@ describe("OrganizationPage", () => {
     vi.mocked(orgModuleApi.startSidecar).mockReset();
     vi.mocked(orgModuleApi.restartSidecar).mockReset();
     vi.mocked(orgModuleApi.probeLivez).mockReset();
-    vi.mocked(orgModuleApi.probeLivez).mockResolvedValue({
-      reachable: true,
-      url: "http://127.0.0.1:3780",
-      detail: "ok",
-    });
     vi.mocked(orgModuleApi.assemble).mockReset();
     vi.mocked(orgModuleApi.pack).mockReset();
+    vi.mocked(orgModuleApi.runLoop).mockReset();
     vi.mocked(message.success).mockReset();
     vi.mocked(message.error).mockReset();
   });
 
-  it("embeds a multi-tab browser for local openXYOS and keeps extras behind drawers", async () => {
+  it("paints the in-host workbench without a 3780 iframe or livez gate", async () => {
     renderOrg();
 
-    await waitFor(() => {
-      expect(screen.getByTestId("org-mini-browser")).toBeInTheDocument();
-    });
-    const frame = screen.getByTestId("org-browser-frame");
-    expect(frame).toHaveAttribute(
-      "src",
-      expect.stringMatching(/^http:\/\/127\.0\.0\.1:3780\/\?freeos_embed=1/),
-    );
-    expect(screen.getByTestId("org-address-bar")).toHaveValue(
-      "http://127.0.0.1:3780/",
-    );
-    expect(screen.getByTestId("org-browser-back")).toBeDisabled();
-    expect(screen.getByTestId("org-browser-forward")).toBeDisabled();
-    expect(screen.getByTestId("org-browser-reload")).toBeEnabled();
-    const restart = screen.getByTestId("org-restart-sidecar");
-    const lastSync = screen.getByTestId("org-last-sync");
     expect(
-      restart.compareDocumentPosition(lastSync) &
-        Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
-    expect(screen.queryByText("organization.openSidecar")).toBeNull();
-    expect(screen.getByTestId("org-download-source")).toHaveTextContent(
-      "organization.downloadSourceBar",
-    );
-
-    expect(screen.queryByText("organization.assembleAction")).toBeNull();
-    expect(screen.queryByText("organization.startSidecarAction")).toBeNull();
-    expect(screen.queryByTestId("org-download-source-drawer")).toBeNull();
-
-    fireEvent.click(screen.getByTestId("org-enable-module"));
-    expect(
-      await screen.findByText("organization.catalogTitle"),
+      await screen.findByTestId("org-native-workbench"),
     ).toBeInTheDocument();
-
-    fireEvent.click(screen.getByTestId("org-manage-os"));
-    expect(
-      await screen.findByText("organization.assembleTitle"),
-    ).toBeInTheDocument();
-    expect(screen.getByText("organization.loopTitle")).toBeInTheDocument();
-    expect(
-      screen.getByTestId("org-download-source-drawer"),
-    ).toBeInTheDocument();
-    expect(screen.queryByTestId("org-preview-blank")).toBeNull();
+    expect(screen.getByTestId("org-runtime-chip")).toHaveTextContent(
+      "organization.inHostReady",
+    );
+    expect(screen.getByText("organization.assembleAction")).toBeInTheDocument();
+    expect(screen.getByText("organization.packAction")).toBeInTheDocument();
+    expect(screen.getByText("organization.loopAction")).toBeInTheDocument();
+    expect(screen.getByTestId("org-colleagues")).toHaveTextContent("Ops");
+    expect(screen.getByTestId("org-surfaces")).toBeInTheDocument();
+    expect(screen.queryByTestId("org-mini-browser")).toBeNull();
+    expect(screen.queryByTestId("org-browser-frame")).toBeNull();
+    expect(screen.queryByTestId("org-sidecar-gate")).toBeNull();
+    expect(screen.queryByTestId("org-restart-sidecar")).toBeNull();
+    expect(screen.queryByTestId("org-restart-overlay")).toBeNull();
+    expect(orgModuleApi.startSidecar).not.toHaveBeenCalled();
+    expect(orgModuleApi.probeLivez).not.toHaveBeenCalled();
   });
 
-  it("downloads latest source from the status bar after picking a folder", async () => {
+  it("does not auto-start or gate login when the optional sidecar is down", async () => {
+    vi.mocked(orgModuleApi.overview).mockResolvedValue({
+      ...overview,
+      sidecar_reachable: false,
+      start_available: true,
+      install_ready: true,
+    });
+    renderOrg();
+    await screen.findByTestId("org-native-workbench");
+    await new Promise((resolve) => setTimeout(resolve, 30));
+    expect(orgModuleApi.startSidecar).not.toHaveBeenCalled();
+    expect(screen.queryByTestId("org-sidecar-gate")).toBeNull();
+    expect(screen.getByText("organization.assembleAction")).toBeInTheDocument();
+  });
+
+  it("keeps sidecar start and source download behind Advanced", async () => {
     pickDesktopFolder.mockResolvedValue("D:\\源码\\openXYOS");
     vi.mocked(orgModuleApi.downloadSource).mockResolvedValue({
       path: "D:\\源码\\openXYOS\\openXYOS-main.zip",
     });
-
     renderOrg();
-    fireEvent.click(await screen.findByTestId("org-download-source"));
+    await screen.findByTestId("org-native-workbench");
+    expect(screen.queryByTestId("org-download-source")).toBeNull();
+    expect(screen.queryByTestId("org-start-sidecar")).toBeNull();
 
+    fireEvent.click(screen.getByTestId("org-advanced-console"));
+    fireEvent.click(await screen.findByTestId("org-download-source"));
     await waitFor(() => {
-      expect(pickDesktopFolder).toHaveBeenCalled();
       expect(orgModuleApi.downloadSource).toHaveBeenCalledWith(
         "D:\\源码\\openXYOS",
       );
@@ -182,272 +184,11 @@ describe("OrganizationPage", () => {
     expect(message.success).toHaveBeenCalledWith(
       "organization.downloadSourceDone",
     );
-    expect(screen.queryByText("organization.assembleTitle")).toBeNull();
-  });
-
-  it("does not download when the folder picker is cancelled", async () => {
-    pickDesktopFolder.mockResolvedValue(null);
-
-    renderOrg();
-    fireEvent.click(await screen.findByTestId("org-download-source"));
-
-    await waitFor(() => {
-      expect(pickDesktopFolder).toHaveBeenCalled();
-    });
-    expect(orgModuleApi.downloadSource).not.toHaveBeenCalled();
-    expect(message.error).not.toHaveBeenCalled();
-  });
-
-  it("opens trapped window.open / host URLs as extra tabs", async () => {
-    renderOrg();
-    await screen.findByTestId("org-mini-browser");
-
-    expect(
-      tryOpenInOrgBrowser("https://github.com/XYAIStudio/openXYOS", "GitHub"),
-    ).toBe(true);
-    await waitFor(() => {
-      expect(screen.getByTestId("org-address-bar")).toHaveValue(
-        "https://github.com/XYAIStudio/openXYOS",
-      );
-    });
-    expect(
-      screen
-        .getAllByTestId("org-browser-frame")
-        .some(
-          (node) =>
-            node.getAttribute("src") ===
-            "https://github.com/XYAIStudio/openXYOS",
-        ),
-    ).toBe(true);
-
-    expect(window.open("https://example.com/docs", "_blank")).toBeNull();
-    await waitFor(() => {
-      expect(screen.getByTestId("org-address-bar")).toHaveValue(
-        "https://example.com/docs",
-      );
-    });
-  });
-
-  it("navigates the active tab from the address bar", async () => {
-    renderOrg();
-    const address = await screen.findByTestId("org-address-bar");
-    fireEvent.change(address, {
-      target: { value: "https://example.com/path" },
-    });
-    fireEvent.submit(address.closest("form") as HTMLFormElement);
-    await waitFor(() => {
-      expect(screen.getByTestId("org-browser-frame")).toHaveAttribute(
-        "src",
-        "https://example.com/path",
-      );
-    });
-    expect(screen.getByTestId("org-browser-back")).toBeEnabled();
-    fireEvent.click(screen.getByTestId("org-browser-back"));
-    await waitFor(() => {
-      expect(screen.getByTestId("org-address-bar")).toHaveValue(
-        "http://127.0.0.1:3780/",
-      );
-    });
-    fireEvent.click(screen.getByTestId("org-browser-reload"));
-    await waitFor(() => {
-      expect(screen.getByTestId("org-browser-frame")).toHaveAttribute(
-        "data-tab-id",
-        "org-home",
-      );
-    });
-  });
-
-  it("restarts openXYOS and returns the embed to the local home page", async () => {
-    vi.mocked(orgModuleApi.restartSidecar).mockImplementation(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 20));
-      return {
-        started: true,
-        already: false,
-        reachable: true,
-        url: "http://127.0.0.1:3780",
-        command: "start-sidecar",
-        detail: "restarted openXYOS frontend and backend",
-        launcher: "",
-      };
-    });
-    renderOrg();
-    const address = await screen.findByTestId("org-address-bar");
-    fireEvent.change(address, {
-      target: { value: "https://example.com/docs" },
-    });
-    fireEvent.submit(address.closest("form") as HTMLFormElement);
-    fireEvent.click(screen.getByTestId("org-restart-sidecar"));
-    const overlay = await screen.findByTestId("org-restart-overlay");
-    expect(overlay).toBeInTheDocument();
-    expect(overlay).toHaveTextContent("organization.restartOverlayTitle");
-    expect(screen.getAllByTestId("org-restart-step")).toHaveLength(5);
-    await waitFor(() => {
-      expect(orgModuleApi.restartSidecar).toHaveBeenCalled();
-    });
-    await waitFor(() => {
-      expect(screen.getByTestId("org-address-bar")).toHaveValue(
-        "http://127.0.0.1:3780/",
-      );
-    });
-    expect(screen.queryByTestId("org-restart-overlay")).toBeNull();
-    expect(message.success).toHaveBeenCalledWith(
-      "organization.restartSidecarDone",
-    );
-  });
-
-  it("gates the local test page when livez is down and prompts restart", async () => {
-    vi.mocked(orgModuleApi.overview).mockResolvedValue({
-      ...overview,
-      sidecar_reachable: false,
-      sidecar_embed_ok: false,
-      start_available: false,
-      install_ready: false,
-    });
-    vi.mocked(orgModuleApi.probeLivez).mockResolvedValue({
-      reachable: false,
-      url: "http://127.0.0.1:3780",
-      detail: "sidecar unreachable",
-    });
-    renderOrg();
-    expect(await screen.findByTestId("org-sidecar-gate")).toBeInTheDocument();
-    expect(screen.getByTestId("org-sidecar-gate")).toHaveTextContent(
-      "organization.previewNeedsRestart",
-    );
-    expect(screen.getByTestId("org-browser-frame")).toHaveAttribute(
-      "src",
-      "about:blank",
-    );
-    expect(screen.getByTestId("org-restart-sidecar")).toBeInTheDocument();
-    vi.mocked(orgModuleApi.restartSidecar).mockImplementation(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 80));
-      return {
-        started: true,
-        already: false,
-        reachable: true,
-        url: "http://127.0.0.1:3780",
-        command: "start-sidecar",
-        detail: "ok",
-        launcher: "",
-      };
-    });
-    fireEvent.click(screen.getByTestId("org-sidecar-gate-restart"));
-    expect(
-      await screen.findByTestId("org-restart-overlay"),
-    ).toBeInTheDocument();
-  });
-
-  it("probes livez before opening a sidecar URL from the address bar", async () => {
-    vi.mocked(orgModuleApi.overview).mockResolvedValue({
-      ...overview,
-      sidecar_reachable: false,
-      start_available: false,
-      install_ready: false,
-    });
-    vi.mocked(orgModuleApi.probeLivez).mockResolvedValue({
-      reachable: false,
-      url: "http://127.0.0.1:3780",
-      detail: "sidecar unreachable",
-    });
-    renderOrg();
-    await screen.findByTestId("org-sidecar-gate");
-    fireEvent.submit(
-      screen.getByTestId("org-address-bar").closest("form") as HTMLFormElement,
-    );
-    await waitFor(() => {
-      expect(orgModuleApi.probeLivez).toHaveBeenCalled();
-    });
-    expect(screen.getByTestId("org-sidecar-gate")).toBeInTheDocument();
-    expect(screen.getByTestId("org-browser-frame")).toHaveAttribute(
-      "src",
-      "about:blank",
-    );
-  });
-
-  it("auto-starts the sidecar when Organization is opened offline", async () => {
-    vi.mocked(orgModuleApi.overview).mockResolvedValue({
-      ...overview,
-      sidecar_reachable: false,
-      sidecar_embed_ok: false,
-      start_available: true,
-    });
-    vi.mocked(orgModuleApi.startSidecar).mockResolvedValue({
-      started: true,
-      already: false,
-      reachable: true,
-      url: "http://127.0.0.1:3780",
-      command: "",
-      detail: "ok",
-      launcher: "",
-    });
-    renderOrg();
-    await waitFor(() => {
-      expect(orgModuleApi.startSidecar).toHaveBeenCalled();
-    });
-  });
-
-  it("surfaces a blank-preview error when livez is up but embed origin fails", async () => {
-    vi.mocked(orgModuleApi.overview).mockResolvedValue({
-      ...overview,
-      sidecar_embed_ok: false,
-    });
-    renderOrg();
-    expect(await screen.findByTestId("org-preview-blank")).toHaveTextContent(
-      "organization.previewBlank",
-    );
-    expect(
-      screen.getByText("organization.sidecarEmbedFailed"),
-    ).toBeInTheDocument();
-  });
-
-  it("shows pack landed counts and opens the employees preview", async () => {
-    vi.mocked(orgModuleApi.overview).mockResolvedValue(overview);
-    vi.mocked(orgModuleApi.pack).mockResolvedValue({
-      pack: {
-        directory: "/tmp/pack",
-        skill_count: 12,
-        plugin_count: 11,
-        mcp_count: 1,
-        agent_count: 2,
-        notes: [],
-      },
-      applied: {
-        pack_dir: "/tmp/pack",
-        mirror_dir: "/tmp/mirror",
-        remote_applied: true,
-        mirrored: true,
-        notes: ["control plane accepted the FreeOS ingest"],
-        tenant_id: 2,
-        preview_path: "/employees",
-        landed: {
-          tenant_id: 2,
-          preview: "/employees",
-          landed: {
-            employees: { created: 2, updated: 0 },
-            talent: { created: 2, updated: 0 },
-            plugins: { created: 11, updated: 0 },
-            skills: { created: 12, updated: 0 },
-            mcp: { created: 1, updated: 0 },
-          },
-        },
-      },
-    });
-
-    renderOrg();
-    fireEvent.click(await screen.findByTestId("org-manage-os"));
-    fireEvent.click(screen.getByTestId("org-pack"));
-
-    await waitFor(() => {
-      expect(screen.getByTestId("org-address-bar")).toHaveValue(
-        "http://127.0.0.1:3780/employees",
-      );
-    });
-    expect(screen.queryByText("organization.assembleTitle")).toBeNull();
-    expect(message.success).toHaveBeenCalledWith("organization.packDone");
   });
 
   it("imports into FreeOS and opens Experts so colleagues are selectable", async () => {
     vi.mocked(orgModuleApi.assemble).mockResolvedValue({
-      sidecar_reachable: true,
+      sidecar_reachable: false,
       employees: ["ops-coordinator"],
       spawned: [
         {
@@ -460,15 +201,73 @@ describe("OrganizationPage", () => {
       skills: ["org-governance"],
       plugins: ["bridge"],
       preview_path: "/experts",
-      notes: ["imported live control-plane export"],
+      notes: [
+        "using in-host org storage and bundled openXYOS blueprint fixtures",
+      ],
     });
 
     renderOrg();
-    fireEvent.click(await screen.findByTestId("org-manage-os"));
-    fireEvent.click(screen.getByTestId("org-assemble"));
+    fireEvent.click(await screen.findByTestId("org-assemble"));
 
     expect(await screen.findByTestId("experts-page")).toBeInTheDocument();
     expect(orgModuleApi.assemble).toHaveBeenCalled();
     expect(message.success).toHaveBeenCalledWith("organization.assembleDone");
+  });
+
+  it("packs to the in-host mirror without opening a 3780 preview", async () => {
+    vi.mocked(orgModuleApi.pack).mockResolvedValue({
+      pack: {
+        directory: "/tmp/pack",
+        skill_count: 12,
+        plugin_count: 11,
+        mcp_count: 1,
+        agent_count: 2,
+        notes: [],
+      },
+      applied: {
+        pack_dir: "/tmp/pack",
+        mirror_dir: "/tmp/mirror",
+        remote_applied: false,
+        mirrored: true,
+        notes: ["OPENXYOS_BASE_URL unset; applied to local mirror only"],
+      },
+    });
+
+    renderOrg();
+    fireEvent.click(await screen.findByTestId("org-pack"));
+
+    expect(await screen.findByTestId("org-last-receipt")).toHaveTextContent(
+      "organization.packLocalDone",
+    );
+    expect(screen.queryByTestId("org-browser-frame")).toBeNull();
+    expect(message.success).toHaveBeenCalledWith("organization.packDone");
+  });
+
+  it("runs the growth loop without requiring sidecar health", async () => {
+    vi.mocked(orgModuleApi.runLoop).mockResolvedValue({
+      ok: true,
+      tenant_id: "1",
+      home: "/tmp",
+      skills: ["org-employees"],
+      employees: ["policy-analyst"],
+      agents: [{ slug: "policy-analyst" }],
+      lifecycle: { active: "active" },
+      pack_dir: "/tmp/pack",
+      mirror_dir: "/tmp/mirror",
+      remote_applied: false,
+      imported_roundtrip: {},
+      governance_blocked: true,
+      governance: {},
+      notes: ["Loop produced colleagues"],
+    });
+
+    renderOrg();
+    fireEvent.click(await screen.findByTestId("org-loop"));
+
+    await waitFor(() => {
+      expect(orgModuleApi.runLoop).toHaveBeenCalled();
+    });
+    expect(message.success).toHaveBeenCalledWith("organization.loopOk");
+    expect(screen.queryByTestId("org-sidecar-gate")).toBeNull();
   });
 });

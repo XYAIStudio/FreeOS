@@ -3,13 +3,12 @@
 from __future__ import annotations
 
 import json
-import time
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
 from octop.modules.org_os.apply.apply import apply_asset_pack, import_applied_surfaces
-from octop.modules.org_os.apply.client import OpenXyosControlClient, resolve_control_plane_url
+from octop.modules.org_os.apply.client import resolve_control_plane_url
 from octop.modules.org_os.assets.importer import import_openxyos_assets
 from octop.modules.org_os.assets.pack import publish_asset_pack
 from octop.modules.org_os.governance.interceptor import (
@@ -69,17 +68,6 @@ class LoopProof:
         }
 
 
-def _wait_control_plane(url: str, *, home: Path, attempts: int = 12) -> bool:
-    if not url:
-        return False
-    client = OpenXyosControlClient(url, home=home, timeout=2.0, retries=1)
-    for _ in range(max(attempts, 1)):
-        if client.get_json("/api/health/livez") is not None or client.bridge_ready():
-            return True
-        time.sleep(0.5)
-    return False
-
-
 def _promote(store: LifecycleStore, slug: str) -> tuple[dict[str, str], list[str]]:
     """Walk *slug* toward ``active`` along allowed edges only.
 
@@ -137,9 +125,10 @@ def run_growth_loop(
 ) -> LoopProof:
     """Run the finished self-growth loop against *home*.
 
-    Uses bundled fixtures when live openXYOS is down. When
-    ``OPENXYOS_BASE_URL`` (or *sidecar_url*) is set, outbound packs are
-    POSTed to the real control plane as well as the durable local mirror.
+    Uses bundled fixtures and the in-host org registry. When
+    ``OPENXYOS_BASE_URL`` (or an explicit *sidecar_url*) is set, outbound
+    packs are also POSTed to that optional control plane. The loop never
+    starts or waits for a local Node sidecar.
     """
     home = Path(home)
     home.mkdir(parents=True, exist_ok=True)
@@ -153,19 +142,6 @@ def run_growth_loop(
     if not blueprint.is_file():
         raise FileNotFoundError(f"blueprint fixture missing: {blueprint}")
     control_url = resolve_control_plane_url(sidecar_url)
-    if control_url:
-        _wait_control_plane(control_url, home=home, attempts=8)
-    else:
-        health = service.probe_sidecar(timeout=0.4)
-        if health.reachable:
-            control_url = health.url
-        else:
-            from octop.modules.org_os.sidecar_launch import ensure_sidecar, sidecar_can_start
-
-            if sidecar_can_start():
-                started = ensure_sidecar(service, wait=12.0)
-                if started.reachable:
-                    control_url = started.url or service.sidecar_url()
 
     imported = import_openxyos_assets(
         home,

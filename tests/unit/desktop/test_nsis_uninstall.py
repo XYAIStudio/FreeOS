@@ -10,8 +10,6 @@ NSH = REPO / "desktop" / "src" / "build" / "windows" / "nsis" / "wails_tools.nsh
 DESKTOP_README = REPO / "desktop" / "README.md"
 ORG_PAGE = REPO / "dashboard" / "src" / "pages" / "Organization" / "index.tsx"
 ORG_BROWSER = REPO / "dashboard" / "src" / "pages" / "Organization" / "OrgMiniBrowser.tsx"
-ORG_TABS = REPO / "dashboard" / "src" / "pages" / "Organization" / "orgBrowser.ts"
-OPENURL_GO = REPO / "desktop" / "src" / "openurl.go"
 
 
 def _uninstall_section(text: str) -> str:
@@ -147,20 +145,26 @@ def test_nsis_provisions_openxyos_runtime() -> None:
     assert "!insertmacro wails.provisionOpenXYOS" in nsh
     assert 'File "/oname=openxyos-runtime.zip"' in nsh
     assert r"$INSTDIR\openxyos" in nsh
-    assert r"$INSTDIR\openxyos-runtime" in nsh
-    assert r"$R6\FreeOS\openxyos" in nsh
+    assert "OPENXYOS_RUNTIME_ZIP_PRESENT" in nsh
     assert "ReadEnvStr $R6 LOCALAPPDATA" in nsh
-    assert "http://127.0.0.1:3780" in nsi
     assert "LangString OPENXYOS_WORKDIR ${LANG_SIMPCHINESE}" in nsi
-    assert "创建 openXYOS 工作目录" in nsi
+    assert "组织能力在 FreeOS 宿主内运行" in nsi
     assert "openXYOS 运行包" in nsi
+    present_gate = nsh[
+        nsh.index("!ifndef OPENXYOS_RUNTIME_ZIP") : nsh.index("!ifndef REQUEST_EXECUTION_LEVEL")
+    ]
+    assert "!if /FileExists" not in present_gate
+    assert "!define OPENXYOS_RUNTIME_ZIP_PRESENT" not in present_gate
     task = (REPO / "desktop" / "src" / "build" / "windows" / "Taskfile.yml").read_text(
         encoding="utf-8"
     )
     assert "stage:openxyos-runtime" in task
+    assert "maybe-stage:openxyos-runtime" in task
+    assert "SHIP_OPENXYOS_RUNTIME" in task
     assert "stage_openxyos_runtime.py" in task
     package = (REPO / "desktop" / "portable" / "package.sh").read_text(encoding="utf-8")
     assert "openXYOS frontend missing" in package
+    assert "SHIP_OPENXYOS_RUNTIME" in package
 
 
 def _nsis_filewrite_argc(line: str) -> int:
@@ -205,7 +209,7 @@ def test_nsis_filewrite_is_exactly_two_args() -> None:
 
 
 def test_nsis_runs_openxyos_provisioner_subprocess() -> None:
-    """Parent copies a real provisioner and nsExecs it; livez failure aborts."""
+    """Setup copies an optional payload and never aborts on livez or a missing zip."""
     nsi = NSI.read_text(encoding="utf-8-sig")
     nsh = NSH.read_text(encoding="utf-8")
     provision = nsh[
@@ -218,36 +222,27 @@ def test_nsis_runs_openxyos_provisioner_subprocess() -> None:
     assert 'File "provision-openxyos.ps1"' in provision
     assert 'File "provision-openxyos.cmd"' in provision
     assert 'File "start-sidecar.ps1"' in provision
-    assert "nsExec::Exec $R4" in provision
+    assert "nsExec::Exec $R4" not in provision
     assert "nsExec::ExecToLog $R4" not in provision
-    assert "OPENXYOS_PROVISION_DETAIL" in provision
-    assert r"$INSTDIR\openxyos-runtime.zip" in provision
-    assert r"$R6\FreeOS\openxyos" in provision
-    # Cleanup after success lives in the provisioner, not NSIS (failed
-    # provision must keep the zip / openxyos-runtime folder for debug).
-    assert 'Delete "$INSTDIR\\openxyos-runtime.zip"' not in provision
-    assert 'RMDir /r "$INSTDIR\\openxyos-runtime"' not in provision
-    assert "Pop $0" in provision
-    assert "Abort" in provision
-    assert ".install-ready" in provision
-    assert "OPENXYOS_FAIL_START" in nsh
-    assert "OPENXYOS_FAIL_LIVEZ" in nsh
-    assert "start.log" in nsi
-    assert "LangString OPENXYOS_PROVISION ${LANG_SIMPCHINESE}" in nsi
-    assert "LangString OPENXYOS_PROVISION_DETAIL ${LANG_SIMPCHINESE}" in nsi
-    assert "provision.log（UTF-8）" in nsi
-    assert "子进程" in nsi
-    assert "OPENXYOS_PROBE_WARN" not in nsi
-    assert "安装将继续" not in nsi
+    assert "Abort" not in provision
+    assert ".install-ready" not in provision
+    assert "OPENXYOS_OPTIONAL_SKIP" in provision
+    assert "OPENXYOS_OPTIONAL_ABSENT" in provision
+    assert 'File "/oname=openxyos-runtime.zip"' in provision
+    assert "OPENXYOS_RUNTIME_ZIP_PRESENT is set but" in provision
+    assert "openxyos-runtime.zip missing" not in nsh
+    assert "安装继续" in nsi
+    assert "Setup continues" in nsi
     assert "开机自启" not in nsi
     assert "PersistOpenXYOS" not in nsi
     assert "PersistOpenXYOS" not in nsh
     assert "Call PersistOpenXYOS" not in nsh
-    assert "openxyos-runtime.zip missing" in nsh
-    assert "!error" in nsh
     workflow = (REPO / ".github" / "workflows" / "octop-desktop.yml").read_text(encoding="utf-8")
-    assert "org-sidecar/openxyos/dist/index.html" in workflow
-    assert "org-sidecar/openxyos/backend/server.ts" in workflow
+    assert 'SKIP_ORG_SIDECAR: "1"' in workflow
+    assert "SHIP_OPENXYOS_RUNTIME=0" in workflow
+    assert "must not embed org-sidecar" in workflow
+    assert "org-sidecar/openxyos/dist/index.html" not in workflow
+    assert "org-sidecar/openxyos/backend/server.ts" not in workflow
 
 
 def test_desktop_readme_documents_uninstall_keep_vs_remove() -> None:
@@ -268,7 +263,23 @@ def test_desktop_readme_documents_uninstall_keep_vs_remove() -> None:
     assert "tar.exe" in text
     assert "README-only" in text
     assert "folder picker" in text
-    assert "install-time" in text.lower() or "during Setup" in text or "安装期" in text
+    assert "FREEOS_ORG_SIDECAR=1" in text
+    assert "SHIP_OPENXYOS_RUNTIME=1" in text
+    assert "in-host" in text.lower() or "in-host" in text
+    assert "does not extract" in text.lower() or "does not" in text.lower()
+
+
+def test_desktop_metadata_is_single_runtime() -> None:
+    config = (REPO / "desktop" / "src" / "build" / "config.yml").read_text(encoding="utf-8")
+    info = (REPO / "desktop" / "src" / "build" / "windows" / "info.json").read_text(
+        encoding="utf-8"
+    )
+    assert "in-host organization" in config
+    assert "FREEOS_ORG_SIDECAR=1" in config
+    assert "openXYOS sidecar" not in config
+    assert "Octop shell + openXYOS" not in config
+    assert "Octop shell + openXYOS" not in info
+    assert "in-host organization" in info
 
 
 def _filewrite_payloads(block: str) -> list[str]:
@@ -324,38 +335,29 @@ def test_nsis_does_not_register_openxyos_logon_autostart() -> None:
 def test_organization_embeds_local_openxyos_url() -> None:
     page = ORG_PAGE.read_text(encoding="utf-8")
     browser = ORG_BROWSER.read_text(encoding="utf-8")
-    tabs = ORG_TABS.read_text(encoding="utf-8")
-    openurl = OPENURL_GO.read_text(encoding="utf-8")
     zh = (REPO / "dashboard" / "src" / "locales" / "zh.json").read_text(encoding="utf-8")
+    assert 'data-testid="org-native-workbench"' in page
+    assert 'data-testid="org-assemble"' in page
+    assert 'data-testid="org-pack"' in page
+    assert 'data-testid="org-loop"' in page
+    assert 'data-testid="org-colleagues"' in page
+    assert "org-mini-browser" not in page
+    assert "org-sidecar-gate" not in page
+    assert "org-restart-sidecar" not in page
+    assert "restartSidecar" not in page
+    assert "startSidecar" in page
+    assert 'data-testid="org-advanced-console"' in page
     assert "window.prompt" not in page
     assert "pickDesktopFolder" in page
-    assert "canPickDesktopFolder" in page
     assert "resolveOpenxyosSourceDest" in page
     assert 'data-testid="org-download-source"' in page
-    assert "void downloadSource()" in page
-    assert "http://127.0.0.1:3780" in tabs
-    assert "DEFAULT_ORG_URL" in page
-    assert "<iframe" in browser
-    assert "org-address-bar" in browser
-    assert "org-browser-back" in browser
-    assert "org-browser-forward" in browser
-    assert "org-browser-reload" in browser
-    assert "org-mini-browser" in browser
-    assert 'data-testid="org-restart-sidecar"' in page
-    assert "restartSidecar" in page
-    assert "organization.openSidecar" not in page
-    assert "organization.openSidecar" not in browser
     assert "ExternalLink" not in page
     assert 'target="_blank"' not in page
-    assert 'target="_blank"' not in browser
-    assert "onClick={() => void startSidecar()}" not in page
-    assert "__FREEOS_ORG_OPEN_TAB__" in openurl
-    assert "installOrgPageWindowTrap" in page
-    assert "registerOrgBrowserHost" in page
+    assert "org-mini-browser" in browser
     org = zh[zh.index('"organization"') : zh.index('"systemSettings"')]
     assert "启动边车" not in org
     assert "重试启动" not in org
-    assert "正在打开本机 openXYOS" in org
+    assert "宿主内组织已就绪" in org
 
 
 def test_windows_folder_picker_emits_utf8_base64() -> None:

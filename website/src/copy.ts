@@ -4,11 +4,11 @@ export const LINKS = {
   site: "https://freeos.cnxy.tech",
   github: "https://github.com/XYAIStudio/FreeOS",
   releases: "https://github.com/XYAIStudio/FreeOS/releases/latest",
-  releaseTag: "https://github.com/XYAIStudio/FreeOS/releases/tag/v0.0.1",
+  releaseTag: "https://github.com/XYAIStudio/FreeOS/releases/tag/v0.0.2",
   windowsAmd64:
-    "https://github.com/XYAIStudio/FreeOS/releases/download/v0.0.1/FreeOS-desktop-windows-amd64-0.0.1.exe",
+    "https://github.com/XYAIStudio/FreeOS/releases/download/v0.0.2/FreeOS-desktop-windows-amd64-0.0.2.exe",
   windowsArm64:
-    "https://github.com/XYAIStudio/FreeOS/releases/download/v0.0.1/FreeOS-desktop-windows-arm64-0.0.1.exe",
+    "https://github.com/XYAIStudio/FreeOS/releases/download/v0.0.2/FreeOS-desktop-windows-arm64-0.0.2.exe",
   openxyos: "https://github.com/XYAIStudio/openXYOS",
   openxyosSite: "https://openxyos.cnxy.tech/?lang=zh-CN",
   octopUpstream: "https://github.com/TencentCloud/Octop",
@@ -42,7 +42,7 @@ export const copy = {
     manifesto: "不是再装一个聊天壳，而是让组织自己长出下一位同事。",
     brandAlt: "FreeOS 圆形标志：灰环、黄绿红勾玉、蓝色水滴",
     hero: {
-      eyebrow: "FreeOS · 开源 · 自托管 · v0.0.1",
+      eyebrow: "FreeOS · 开源 · 自托管 · v0.0.2",
       title: "FreeOS",
       headline: ["让个人智能伙伴", "长成可治理的组织系统"],
       promise: "懂你、帮你、陪你成长的智能伙伴",
@@ -118,7 +118,7 @@ export const copy = {
       allReleases: "查看全部 Releases",
       stepsTitle: "四步开始",
       steps: [
-        "打开 v0.0.1 Release，下载 amd64 或 arm64 安装包。",
+        "打开 v0.0.2 Release，下载 amd64 或 arm64 安装包。",
         "双击安装。程序会写入「程序文件」，并创建开始菜单与桌面快捷方式。",
         "打开 FreeOS。解压完成后直接进入可用会话——先聊，不必先登录。",
         "保存、导出或发布到账号时再注册。侧栏 Organization 默认打开。",
@@ -174,7 +174,7 @@ export const copy = {
     cta: {
       title: "在自己的电脑上，养一支会成长的 AI 队伍",
       lead: "从 freeos.cnxy.tech 了解产品，到 GitHub 下载安装包，或从源码跑通 org loop。每一步都看得见、验得过、可决定。",
-      download: "下载 v0.0.1",
+      download: "下载 v0.0.2",
       github: "Star / Fork",
       openxyos: "了解 openXYOS",
     },
@@ -219,7 +219,7 @@ export const copy = {
     manifesto: "Not another chat shell — an organization that grows its next colleague.",
     brandAlt: "FreeOS circular mark: gray ring, yellow green red magatama, blue teardrop",
     hero: {
-      eyebrow: "FreeOS · Open source · Self-hosted · v0.0.1",
+      eyebrow: "FreeOS · Open source · Self-hosted · v0.0.2",
       title: "FreeOS",
       headline: ["Grow a personal partner", "into a governed organization OS"],
       promise: "Understands you, helps you, grows with you",
@@ -295,7 +295,7 @@ export const copy = {
       allReleases: "All releases",
       stepsTitle: "Four steps",
       steps: [
-        "Open the v0.0.1 release and download the amd64 or arm64 installer.",
+        "Open the v0.0.2 release and download the amd64 or arm64 installer.",
         "Run it. Files land in Program Files, with Start Menu and desktop shortcuts.",
         "Open FreeOS. After unpacking you land in a usable session — chat first, no login.",
         "Register only when you save, export, or publish to an account. Organization is on by default.",
@@ -351,7 +351,7 @@ export const copy = {
     cta: {
       title: "Grow an AI workforce on your own computer",
       lead: "Read the product at freeos.cnxy.tech, download from GitHub, or run the org loop from source. Visible, verifiable, decidable at every step.",
-      download: "Download v0.0.1",
+      download: "Download v0.0.2",
       github: "Star / Fork",
       openxyos: "About openXYOS",
     },

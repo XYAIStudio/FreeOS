@@ -8,6 +8,7 @@
 
 ### 修复
 
+
 - Windows 安装预配不再把 Node 工作目录选到残留的嵌套 `openxyos\\openxyos`：顶层已有 `backend-dist/server.js` 与 `dist/index.html` 时必须用 live 根。嵌套 cwd 会让 `node backend-dist/server.js` 立刻退出且 stdout/stderr 为空，安装空等 90s 后以退出码 12 失败。`start-sidecar.ps1` / 预配 / 桌面 Go / Python 启动路径统一按此选择 cwd；每次启动截断 `start.log`；Shell.Application 若未刷新日志则改走 explorer / Start-Process，Node fail-fast 不再伪装成 livez 超时。
 - Windows 安装详情不再把 openXYOS 预配的 UTF-8 Node/PowerShell 控制台（`[Error] POST /api/auth`、`[seed]`、中文 Server/WebSocket 状态）按系统 ANSI/GBK 打成乱码。NSIS 只用 `nsExec::Exec` 等退出码，详情页只显示本地化步骤结果；完整日志写入 `%LOCALAPPDATA%\\FreeOS\\openxyos\\provision.log` / `start.log`（UTF-8）。解压前停止并等待旧的 FreeOS openXYOS Node 退出；livez 通过即成功，不把启动期 auth 日志当失败。
 - 组织页互生长通道两端都落到可选用状态：推送到 openXYOS 时员工/人才写成列表页能看到的 `active` / `internal` / `available`；从 openXYOS 回流时即使没有技能字段也会登记为同事，技能/插件/MCP 写入 `org-skills` / `org-plugins` / `org-mcps`，并把聊天专家挂到当前用户（修复 `user_id=NULL` 导致「专家」页看不见）。导入后跳到「专家」页，推送/循环后关闭管理抽屉并刷新预览。
@@ -97,11 +98,25 @@
 - First launch on desktop / loopback opens a local guest session — no login wall. Register or sign in only when saving, exporting, or publishing to an account.
 - Login, splash, favicons, and desktop icons use the circular XYAI mark. Product version remains 0.0.1.
 
+## [0.0.2] - 2026-09-18
+
+当前 FreeOS 产品版本，与 0.0.1 边车时代 Windows 安装包区分。`1.0.0` 对本阶段过早；后续按 [semver](https://semver.org/spec/v2.0.0.html) 随产品成熟度递增。规范来源是 `pyproject.toml`（同步 `octop.__version__`、桌面 / NSIS / FnOS 回退值，以及 CI 产物名）。发布工作流需要标签时使用 `v0.0.2`；不重写已推送的历史 tag。
+
+命令核对：`uv run freeos --version` 与 `uv run python -c "import octop; print(octop.__version__)"` 均应输出 `0.0.2`。
+
+### 变更
+
+- 桌面单一运行时：组织控制面能力在 FreeOS/Octop Python 宿主内运行（`org_os` / `/api/org-module/*` / 组织页原生工作台）。完整 openXYOS Node（3780）改为可选导出/同步，不再是安装或首屏的硬依赖。
+- 组织页默认不再嵌入 `127.0.0.1:3780`，也不再以 livez /「重启边车」挡住登录或首屏。互生长（导入 / 推送 / 循环）走宿主内镜像与同事/专家列表。
+- Windows 安装不再解压或启动 `openxyos-runtime`，也不再因 livez 失败中止安装。桌面启动默认不设置 `OPENXYOS_BASE_URL`，不拉起 Node；需要时设 `FREEOS_ORG_SIDECAR=1`。
+- `freeos org loop run` 不再 `ensure_sidecar` 或空等 3780。未配置边车时只写 `{FREEOS_HOME}/openxyos-mirror/` 与生命周期登记。
+- 产品版本从 `0.0.1` 升到 `0.0.2`，安装包 / NSIS DisplayVersion / `octop.__version__` 同步，便于与边车时代构建区分。后续 GitHub Release 标签为 `v0.0.2`。
+- 默认 Windows NSIS / 绿色便携包不再打入 `openxyos-runtime.zip` 或 `org-sidecar`（约 500MB Node 运行包）。`OPENXYOS_RUNTIME_ZIP_PRESENT` 默认关闭；仅 `SHIP_OPENXYOS_RUNTIME=1` 的构建才带边车。
+
 ## [0.0.1] - 2026-09-15
 
-当前 FreeOS 产品版本。`1.0.0` 对本阶段过早；后续按 [semver](https://semver.org/spec/v2.0.0.html) 随产品成熟度递增。规范来源是 `pyproject.toml`（同步 `octop.__version__`、桌面 / NSIS / FnOS 回退值，以及 CI 产物名）。发布工作流需要标签时使用 `v0.0.1`；不重写已推送的历史 tag。
+首个 FreeOS 产品版本（桌面默认拉起本机 openXYOS Node 边车）。后续版本见 [0.0.2]。规范来源是 `pyproject.toml`。历史发布标签为 `v0.0.1`；不重写已推送的历史 tag。
 
-命令核对：`uv run freeos --version` 与 `uv run python -c "import octop; print(octop.__version__)"` 均应输出 `0.0.1`。
 
 ### 新增
 

@@ -139,6 +139,7 @@ def test_probe_sidecar_livez(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) ->
             assert url.endswith("/api/health/livez")
             return _Resp()
 
+    monkeypatch.setenv("FREEOS_ORG_SIDECAR_URL", "http://127.0.0.1:3780")
     monkeypatch.setattr(httpx, "Client", _Client)
     service = OrgModuleService(config_path=tmp_path / "config.json", home=tmp_path)
     health = service.probe_sidecar()
@@ -169,6 +170,7 @@ def test_probe_sidecar_embed_rejects_self_origin_500(
             assert headers["Origin"] == "http://127.0.0.1:3780"
             return _Resp(500)
 
+    monkeypatch.setenv("FREEOS_ORG_SIDECAR_URL", "http://127.0.0.1:3780")
     monkeypatch.setattr(httpx, "Client", _Client)
     service = OrgModuleService(config_path=tmp_path / "config.json", home=tmp_path)
     assert service.probe_sidecar_embed() is False
@@ -193,6 +195,7 @@ def test_probe_sidecar_embed_allows_self_origin(
         def get(self, url: str, headers: dict[str, str] | None = None) -> _Resp:
             return _Resp()
 
+    monkeypatch.setenv("FREEOS_ORG_SIDECAR_URL", "http://127.0.0.1:3780")
     monkeypatch.setattr(httpx, "Client", _Client)
     service = OrgModuleService(config_path=tmp_path / "config.json", home=tmp_path)
     assert service.probe_sidecar_embed() is True
@@ -247,7 +250,52 @@ def test_overview_reports_real_empty_counts(tmp_path: Path) -> None:
     assert payload["sidecar_embed_ok"] is False
     assert payload["install_ready"] is False
     assert payload["last_loop"] is None
-    assert any("FreeOS does the work" in note for note in payload["notes"])
+    assert payload["runtime"] == "in_host"
+    assert payload["sidecar_optional"] is True
+    assert payload["colleagues"] == []
+    assert payload["experts"] == []
+    assert payload["org_surfaces"]["employees"] == 0
+    assert any(
+        "in-host" in note.lower() or "FreeOS does the work" in note for note in payload["notes"]
+    )
+    assert not any("start it to sync" in note for note in payload["notes"])
+
+
+def test_probe_sidecar_skips_default_3780_without_opt_in(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def _boom(*args: object, **kwargs: object) -> None:
+        raise AssertionError("must not probe implicit 3780")
+
+    monkeypatch.delenv("FREEOS_ORG_SIDECAR_URL", raising=False)
+    monkeypatch.delenv("OPENXYOS_BASE_URL", raising=False)
+    monkeypatch.delenv("FREEOS_ORG_SIDECAR", raising=False)
+    monkeypatch.setattr(httpx, "Client", _boom)
+    service = OrgModuleService(config_path=tmp_path / "config.json", home=tmp_path)
+    health = service.probe_sidecar(timeout=0.2)
+    assert health.reachable is False
+    assert health.detail == "sidecar optional; not configured"
+    assert service.explicit_sidecar_url() == ""
+
+
+def test_overview_lists_in_host_colleagues_after_assemble(tmp_path: Path) -> None:
+    from octop.modules.org_os.empower import assemble_from_blueprint, pack_to_openxyos
+    from octop.modules.org_os.overview import build_overview
+
+    service = OrgModuleService(config_path=tmp_path / "config.json", home=tmp_path)
+    assembled = assemble_from_blueprint(service)
+    packed = pack_to_openxyos(service)
+    snapshot = build_overview(service)
+    payload = snapshot.to_dict()
+    slugs = {row["slug"] for row in payload["colleagues"]}
+    assert slugs
+    assert slugs <= set(assembled["employees"])
+    assert any(row["spawned"] for row in payload["colleagues"])
+    assert payload["experts"]
+    assert payload["org_surfaces"]["employees"] >= 1
+    assert packed["applied"]["mirrored"] is True
+    assert packed["applied"]["remote_applied"] is False
+    assert payload["sidecar_reachable"] is False
 
 
 def test_assemble_from_bundled_blueprint(tmp_path: Path) -> None:

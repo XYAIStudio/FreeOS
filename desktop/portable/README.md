@@ -1,6 +1,6 @@
 # FreeOS 绿色便携包（多平台）
 
-解压即用：内置便携 CPython + FreeOS 宿主 + Node/openXYOS 组织边车，通过 `start.sh` / `start.bat` 启动。  
+解压即用：内置便携 CPython + FreeOS 宿主（组织能力在宿主内）。Node/openXYOS 边车可选（`FREEOS_ORG_SIDECAR=1`），通过 `start.sh` / `start.bat` 启动。  
 **不依赖**系统 Python / Node。单独解压绿包时用浏览器打开 Dashboard；完整「安装即用」产品是 Wails NSIS 安装包。  
 首启走正常 setup wizard。
 
@@ -35,7 +35,7 @@ make -f desktop/portable/Makefile green
 FreeOS-<plat>/
   runtime/       # python-build-standalone
   packages/      # FreeOS 宿主 + 依赖（site-packages，可搬迁）
-  org-sidecar/   # 内置 Node + 已构建的 openXYOS
+  org-sidecar/   # 可选；默认不打。SHIP_OPENXYOS_RUNTIME=1 才带 Node + openXYOS
   launch.py      # 启动引导（site.addsitedir / Windows pywin32）
   start.sh       # macOS / Linux
   start.bat      # Windows

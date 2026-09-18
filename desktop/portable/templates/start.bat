@@ -69,8 +69,6 @@ exit /b 0
 
 :run
 if not defined FREEOS_ORG_ENABLE set "FREEOS_ORG_ENABLE=1"
-if not defined FREEOS_ORG_SIDECAR_URL set "FREEOS_ORG_SIDECAR_URL=http://127.0.0.1:3780"
-if not defined OPENXYOS_BASE_URL set "OPENXYOS_BASE_URL=%FREEOS_ORG_SIDECAR_URL%"
 if not exist "%FREEOS_HOME%" mkdir "%FREEOS_HOME%"
 
 set "PY=%ROOT%\runtime\python.exe"
@@ -90,10 +88,20 @@ set "PYTHONUTF8=1"
 set "PYTHONIOENCODING=utf-8"
 set "PYTHONPATH="
 
+if /I "%FREEOS_ORG_SIDECAR%"=="1" goto startSidecar
+if /I "%FREEOS_ORG_SIDECAR%"=="true" goto startSidecar
+if /I "%FREEOS_ORG_SIDECAR%"=="yes" goto startSidecar
+if /I "%FREEOS_ORG_SIDECAR%"=="on" goto startSidecar
+echo [freeos] organization is in-host (set FREEOS_ORG_SIDECAR=1 for the Node sidecar)
+goto afterSidecar
+:startSidecar
+if not defined FREEOS_ORG_SIDECAR_URL set "FREEOS_ORG_SIDECAR_URL=http://127.0.0.1:3780"
+if not defined OPENXYOS_BASE_URL set "OPENXYOS_BASE_URL=%FREEOS_ORG_SIDECAR_URL%"
 if exist "%ROOT%\org-sidecar\start-sidecar.bat" (
-  echo [freeos] organization sidecar → %FREEOS_ORG_SIDECAR_URL%
+  echo [freeos] optional organization sidecar → %FREEOS_ORG_SIDECAR_URL%
   start "" /B "%ROOT%\org-sidecar\start-sidecar.bat"
 )
+:afterSidecar
 
 echo [freeos] home=%FREEOS_HOME%
 echo [freeos] http://%HOST%:%PORT%

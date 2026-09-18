@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button, Drawer, Input, Space, Switch, Tag } from "antd";
 import {
@@ -7,7 +7,6 @@ import {
   Download,
   Package,
   Play,
-  RefreshCw,
   Settings2,
   Shield,
   Users,
@@ -31,40 +30,10 @@ import {
 } from "../../utils/desktopFolder";
 import { message } from "../../utils/antdMessage";
 import { resolveOpenxyosSourceDest } from "./pickSourceDest";
-import { sidecarRecoverPhase, shouldShowPreviewBlank } from "./sidecarRecover";
-import { confirmSidecarLivez, sidecarPreviewGate } from "./sidecarLivez";
-import OrgMiniBrowser from "./OrgMiniBrowser";
-import OrgRestartOverlay from "./OrgRestartOverlay";
-import {
-  DEFAULT_ORG_URL,
-  closeOrgTab,
-  createHomeTab,
-  goBackOrgTab,
-  goForwardOrgTab,
-  isSidecarOriginUrl,
-  navigateOrgTab,
-  normalizeOrgUrl,
-  openOrgTab,
-  parseOrgNavigatedMessage,
-  parseOrgOpenTabMessage,
-  reloadOrgTab,
-  sidecarOriginOf,
-  tabTitleFromUrl,
-  type OrgBrowserTab,
-} from "./orgBrowser";
-import { installOrgPageWindowTrap } from "./orgPageWindowTrap";
-import { registerOrgBrowserHost } from "../../utils/orgBrowserHost";
 import styles from "./Organization.module.less";
 
-type ActionKey =
-  | "assemble"
-  | "pack"
-  | "loop"
-  | "sidecar"
-  | "restart"
-  | "produce"
-  | null;
-type DrawerKey = "module" | "manage" | null;
+type ActionKey = "assemble" | "pack" | "loop" | "sidecar" | "produce" | null;
+type DrawerKey = "module" | "advanced" | null;
 
 type LastReceipt = {
   kind: "assemble" | "pack" | "loop";
@@ -123,51 +92,6 @@ export default function OrganizationPage() {
   const [produceName, setProduceName] = useState("");
   const [produceIma, setProduceIma] = useState("");
   const [landed, setLanded] = useState<Record<string, unknown> | null>(null);
-  const autoStartRef = useRef(false);
-  const iframeRefs = useRef<Record<string, HTMLIFrameElement | null>>({});
-  const livezOkRef = useRef(false);
-  const [previewNonce, setPreviewNonce] = useState("");
-  const [livezOk, setLivezOk] = useState(false);
-  const [autoStarting, setAutoStarting] = useState(false);
-  const [autoStartFailed, setAutoStartFailed] = useState(false);
-  const [restartFinished, setRestartFinished] = useState(false);
-  const [openBlocked, setOpenBlocked] = useState(false);
-  const homeTitle = t("organization.homeTabTitle");
-  const [tabs, setTabs] = useState<OrgBrowserTab[]>(() => [
-    createHomeTab(DEFAULT_ORG_URL, homeTitle),
-  ]);
-  const [activeId, setActiveId] = useState("org-home");
-  const [addressValue, setAddressValue] = useState(DEFAULT_ORG_URL);
-
-  const showPreview = useCallback(
-    (path: string) => {
-      const dest = normalizeOrgUrl(
-        `${(overview?.sidecar_url || DEFAULT_ORG_URL).replace(/\/$/, "")}${
-          path.startsWith("/") ? path : `/${path}`
-        }`,
-      );
-      const origin = sidecarOriginOf(
-        (overview?.sidecar_url || DEFAULT_ORG_URL).replace(/\/$/, ""),
-      );
-      if (isSidecarOriginUrl(dest, origin) && !livezOkRef.current) {
-        void confirmSidecarLivez({
-          origin,
-          apiProbe: orgModuleApi.probeLivez,
-        }).then((ok) => {
-          setLivezOk(ok);
-          livezOkRef.current = ok;
-          if (!ok) setOpenBlocked(true);
-        });
-      }
-      setTabs((current) =>
-        navigateOrgTab(current, "org-home", dest, homeTitle),
-      );
-      setActiveId("org-home");
-      setAddressValue(dest);
-      setPreviewNonce(String(Date.now()));
-    },
-    [homeTitle, overview?.sidecar_url],
-  );
 
   const applyOverview = useCallback(
     async (quiet = false) => {
@@ -175,9 +99,6 @@ export default function OrganizationPage() {
       try {
         const next = await orgModuleApi.overview();
         setOverview(next);
-        setLivezOk(Boolean(next.sidecar_reachable));
-        livezOkRef.current = Boolean(next.sidecar_reachable);
-        if (next.sidecar_reachable) setOpenBlocked(false);
         if (next.module_toggles) setModuleToggles(next.module_toggles);
         const proof = next.last_loop;
         if (proof && typeof proof === "object" && proof.landed) {
@@ -198,43 +119,11 @@ export default function OrganizationPage() {
     [t],
   );
 
-  const load = useCallback(async () => {
-    await applyOverview(false);
+  useEffect(() => {
+    void applyOverview(false);
   }, [applyOverview]);
 
-  useEffect(() => {
-    void load();
-  }, [load]);
-
-  useEffect(() => {
-    if (overview?.sidecar_reachable) return;
-    const id = window.setInterval(() => {
-      void applyOverview(true);
-    }, 4000);
-    return () => window.clearInterval(id);
-  }, [applyOverview, overview?.sidecar_reachable]);
-
-  const sidecarUp = Boolean(overview?.sidecar_reachable) && livezOk;
-  const embedOk = overview?.sidecar_embed_ok;
-  const previewBlank = shouldShowPreviewBlank({
-    sidecarUp,
-    embedOk,
-  });
-  const recoverPhase = sidecarRecoverPhase({
-    sidecarUp,
-    installReady: Boolean(overview?.install_ready),
-    startAvailable: Boolean(overview?.start_available),
-    autoStarting,
-    autoStartFailed,
-  });
-  const previewGate = sidecarPreviewGate({
-    livezOk: sidecarUp,
-    restarting: busy === "restart",
-  });
-  const showRestartGate =
-    Boolean(overview) &&
-    previewGate === "needsRestart" &&
-    (openBlocked || recoverPhase === "needsRestart");
+  const sidecarUp = Boolean(overview?.sidecar_reachable);
   const firstRun = useMemo(() => {
     if (!overview) return false;
     return (
@@ -261,15 +150,6 @@ export default function OrganizationPage() {
     }
   };
 
-  const waitForSidecar = async () => {
-    for (let i = 0; i < 30; i += 1) {
-      const next = await applyOverview(true);
-      if (next?.sidecar_reachable) return next;
-      await new Promise((resolve) => window.setTimeout(resolve, 1000));
-    }
-    return applyOverview(true);
-  };
-
   const runAction = async (
     key: Exclude<ActionKey, null>,
     fn: () => Promise<void>,
@@ -277,7 +157,7 @@ export default function OrganizationPage() {
     setBusy(key);
     try {
       await fn();
-      if (key !== "sidecar" && key !== "restart") {
+      if (key !== "sidecar") {
         await applyOverview(false);
       }
     } catch (err) {
@@ -291,45 +171,10 @@ export default function OrganizationPage() {
 
   const startSidecar = () =>
     runAction("sidecar", async () => {
-      setAutoStarting(true);
-      setAutoStartFailed(false);
-      try {
-        const result = await orgModuleApi.startSidecar();
-        setLastActionNotes([result.detail, result.command].filter(Boolean));
-        const next = result.reachable
-          ? await applyOverview(true)
-          : await waitForSidecar();
-        if (next?.sidecar_reachable) {
-          setAutoStartFailed(false);
-          return;
-        }
-        setAutoStartFailed(true);
-      } catch {
-        setAutoStartFailed(true);
-      } finally {
-        setAutoStarting(false);
-      }
+      const result = await orgModuleApi.startSidecar();
+      setLastActionNotes([result.detail, result.command].filter(Boolean));
+      await applyOverview(true);
     });
-
-  const canSilentStart = Boolean(
-    overview?.start_available || overview?.install_ready,
-  );
-
-  useEffect(() => {
-    if (autoStartRef.current) return;
-    if (!overview) return;
-    const embedBroken =
-      overview.sidecar_reachable && overview.sidecar_embed_ok === false;
-    if (overview.sidecar_reachable && !embedBroken) return;
-    if (!embedBroken && !canSilentStart) return;
-    autoStartRef.current = true;
-    void startSidecar();
-  }, [
-    canSilentStart,
-    overview,
-    overview?.sidecar_reachable,
-    overview?.sidecar_embed_ok,
-  ]);
 
   const toggleModule = async (key: string, enabled: boolean) => {
     const next = { ...moduleToggles, [key]: enabled };
@@ -448,9 +293,8 @@ export default function OrganizationPage() {
               skills: landedCount(result.applied.landed, "skills"),
               plugins: landedCount(result.applied.landed, "plugins"),
             }),
-            t("organization.packPreviewEmployees"),
           ]
-        : [];
+        : [t("organization.packLocalDone")];
       setLastActionNotes([
         ...result.pack.notes,
         ...result.applied.notes,
@@ -462,9 +306,6 @@ export default function OrganizationPage() {
       });
       setDrawer(null);
       await applyOverview(true);
-      if (result.applied.remote_applied) {
-        showPreview(result.applied.preview_path || "/employees");
-      }
       message.success(t("organization.packDone"));
     });
 
@@ -481,25 +322,11 @@ export default function OrganizationPage() {
           `${t("organization.timelineRemote")}: ${flagLabel(
             Boolean(proof.remote_applied),
           )}`,
-          ...(proof.remote_applied
-            ? [
-                t("organization.packLanded", {
-                  tenant: landedTenant(proof.landed),
-                  employees: landedCount(proof.landed, "employees"),
-                  talent: landedCount(proof.landed, "talent"),
-                  skills: landedCount(proof.landed, "skills"),
-                  plugins: landedCount(proof.landed, "plugins"),
-                }),
-                t("organization.packPreviewEmployees"),
-              ]
-            : []),
+          t("organization.packLocalDone"),
         ],
       });
       setDrawer(null);
       await applyOverview(true);
-      if (proof.remote_applied) {
-        showPreview("/employees");
-      }
       message.success(
         proof.ok ? t("organization.loopOk") : t("organization.loopPartial"),
       );
@@ -514,8 +341,8 @@ export default function OrganizationPage() {
       ? t("organization.progressLoop")
       : busy === "produce"
       ? t("organization.progressProduce")
-      : busy === "restart"
-      ? t("organization.restartingSidecar")
+      : busy === "sidecar"
+      ? t("organization.autoStartingSidecar")
       : null;
 
   const lastLoop = (loopProof ?? overview?.last_loop) as OrgLoopProof | null;
@@ -523,209 +350,8 @@ export default function OrganizationPage() {
     ? formatServerIsoDateTime(overview.last_sync, timeZone)
     : t("organization.neverSynced");
   const catalog = overview?.catalog ?? [];
-  const disabledKeys = useMemo(
-    () =>
-      catalog
-        .filter((row) => moduleToggles[row.key] === false)
-        .map((row) => row.key),
-    [catalog, moduleToggles],
-  );
-  const localConsoleUrl = (overview?.sidecar_url || DEFAULT_ORG_URL).replace(
-    /\/$/,
-    "",
-  );
-  const sidecarOrigin = sidecarOriginOf(localConsoleUrl);
-
-  const confirmLivez = useCallback(async (): Promise<boolean> => {
-    const origin = sidecarOriginOf(
-      (overview?.sidecar_url || DEFAULT_ORG_URL).replace(/\/$/, ""),
-    );
-    const ok = await confirmSidecarLivez({
-      origin,
-      apiProbe: orgModuleApi.probeLivez,
-    });
-    setLivezOk(ok);
-    livezOkRef.current = ok;
-    if (ok) setOpenBlocked(false);
-    return ok;
-  }, [overview?.sidecar_url]);
-
-  const openTab = useCallback(
-    (raw: string, title?: string, reuse = true) => {
-      const url = normalizeOrgUrl(raw);
-      const origin = sidecarOriginOf(
-        (overview?.sidecar_url || DEFAULT_ORG_URL).replace(/\/$/, ""),
-      );
-      if (isSidecarOriginUrl(url, origin) && !livezOkRef.current) {
-        void confirmLivez().then((ok) => {
-          if (!ok) setOpenBlocked(true);
-        });
-      }
-      const label = title || tabTitleFromUrl(url, homeTitle);
-      let nextActive = "";
-      let nextAddress = url;
-      setTabs((current) => {
-        const next = openOrgTab(current, url, label, reuse);
-        nextActive = next.activeId;
-        nextAddress =
-          next.tabs.find((tab) => tab.id === next.activeId)?.url ?? url;
-        return next.tabs;
-      });
-      if (nextActive) setActiveId(nextActive);
-      setAddressValue(nextAddress);
-      return true;
-    },
-    [confirmLivez, homeTitle, overview?.sidecar_url],
-  );
-
-  const submitAddress = useCallback(() => {
-    const url = normalizeOrgUrl(addressValue, localConsoleUrl + "/");
-    if (isSidecarOriginUrl(url, sidecarOrigin) && !livezOkRef.current) {
-      void confirmLivez().then((ok) => {
-        if (!ok) setOpenBlocked(true);
-      });
-    }
-    setTabs((current) =>
-      navigateOrgTab(current, activeId, url, tabTitleFromUrl(url, homeTitle)),
-    );
-    setAddressValue(url);
-  }, [
-    activeId,
-    addressValue,
-    confirmLivez,
-    homeTitle,
-    localConsoleUrl,
-    sidecarOrigin,
-  ]);
-
-  const goHomeAfterRestart = useCallback(() => {
-    const home = normalizeOrgUrl(localConsoleUrl + "/");
-    setTabs([createHomeTab(home, homeTitle)]);
-    setActiveId("org-home");
-    setAddressValue(home);
-    setPreviewNonce(String(Date.now()));
-  }, [homeTitle, localConsoleUrl]);
-
-  const onBrowserBack = useCallback(() => {
-    setTabs((current) => {
-      const next = goBackOrgTab(current, activeId, homeTitle);
-      const url = next.find((tab) => tab.id === activeId)?.url;
-      if (url) setAddressValue(url);
-      return next;
-    });
-  }, [activeId, homeTitle]);
-
-  const onBrowserForward = useCallback(() => {
-    setTabs((current) => {
-      const next = goForwardOrgTab(current, activeId, homeTitle);
-      const url = next.find((tab) => tab.id === activeId)?.url;
-      if (url) setAddressValue(url);
-      return next;
-    });
-  }, [activeId, homeTitle]);
-
-  const onBrowserReload = useCallback(() => {
-    const tab = tabs.find((row) => row.id === activeId);
-    if (
-      tab &&
-      isSidecarOriginUrl(tab.url, sidecarOrigin) &&
-      !livezOkRef.current
-    ) {
-      void confirmLivez().then((ok) => {
-        if (!ok) setOpenBlocked(true);
-      });
-      return;
-    }
-    setTabs((current) => reloadOrgTab(current, activeId));
-  }, [activeId, confirmLivez, sidecarOrigin, tabs]);
-
-  const restartSidecar = () =>
-    runAction("restart", async () => {
-      setRestartFinished(false);
-      setOpenBlocked(false);
-      const result = await orgModuleApi.restartSidecar();
-      setLastActionNotes([result.detail, result.command].filter(Boolean));
-      const next = result.reachable
-        ? await applyOverview(true)
-        : await waitForSidecar();
-      if (next?.sidecar_reachable) {
-        setRestartFinished(true);
-        await new Promise((resolve) => window.setTimeout(resolve, 600));
-        goHomeAfterRestart();
-        message.success(t("organization.restartSidecarDone"));
-        return;
-      }
-      message.error(
-        t("organization.restartSidecarFailed", {
-          detail: result.detail || t("organization.actionFailed"),
-        }),
-      );
-    });
-
-  const pushTogglesToPreview = useCallback(() => {
-    for (const frame of Object.values(iframeRefs.current)) {
-      frame?.contentWindow?.postMessage(
-        { type: "freeos:module-toggles", disabled: disabledKeys },
-        "*",
-      );
-    }
-  }, [disabledKeys]);
-
-  useEffect(() => {
-    pushTogglesToPreview();
-  }, [pushTogglesToPreview]);
-
-  useEffect(() => {
-    const home = normalizeOrgUrl(localConsoleUrl + "/");
-    setTabs((current) => {
-      const existing = current.find((tab) => tab.id === "org-home");
-      if (!existing || existing.url === home) return current;
-      if (existing.url !== DEFAULT_ORG_URL) return current;
-      return navigateOrgTab(current, "org-home", home, homeTitle);
-    });
-    setAddressValue((current) =>
-      current === DEFAULT_ORG_URL ? home : current,
-    );
-  }, [homeTitle, localConsoleUrl]);
-
-  useEffect(() => {
-    const onMessage = (event: MessageEvent) => {
-      const opened = parseOrgOpenTabMessage(event.data);
-      if (opened) {
-        openTab(opened.url, opened.title);
-        return;
-      }
-      const navigated = parseOrgNavigatedMessage(event.data);
-      if (!navigated) return;
-      setTabs((current) =>
-        navigateOrgTab(
-          current,
-          activeId,
-          navigated.url,
-          navigated.title || tabTitleFromUrl(navigated.url, homeTitle),
-          false,
-        ),
-      );
-      setAddressValue(navigated.url);
-    };
-    window.addEventListener("message", onMessage);
-    return () => window.removeEventListener("message", onMessage);
-  }, [activeId, homeTitle, openTab]);
-
-  useEffect(() => {
-    const stopHost = registerOrgBrowserHost(openTab);
-    const stopTrap = installOrgPageWindowTrap();
-    return () => {
-      stopTrap();
-      stopHost();
-    };
-  }, [openTab]);
-
-  useEffect(() => {
-    if (sidecarUp) {
-      setPreviewNonce((current) => current || String(Date.now()));
-    }
-  }, [sidecarUp]);
+  const colleagues = overview?.colleagues ?? [];
+  const orgSurfaces = overview?.org_surfaces;
 
   return (
     <PageShell title={t("organization.title")} fill>
@@ -738,42 +364,19 @@ export default function OrganizationPage() {
             <span className={styles.chip}>
               {overview?.enabled ? t("organization.on") : t("organization.off")}
             </span>
-            <span className={styles.chip}>
-              {previewBlank
-                ? t("organization.sidecarEmbedFailed")
-                : sidecarUp
-                ? t("organization.sidecarUp")
-                : t("organization.sidecarOpening")}
+            <span className={styles.chip} data-testid="org-runtime-chip">
+              {t("organization.inHostReady")}
             </span>
-            <Button
-              size="small"
-              className={`${styles.restartBtn} ${
-                showRestartGate ? styles.restartBtnPulse : ""
-              }`}
-              icon={<RefreshCw size={13} />}
-              loading={busy === "restart"}
-              disabled={busy !== null && busy !== "restart"}
-              onClick={() => void restartSidecar()}
-              data-testid="org-restart-sidecar"
-              title={t("organization.restartSidecar")}
-            >
-              {t("organization.restartSidecar")}
-            </Button>
+            <span className={styles.chip}>
+              {sidecarUp
+                ? t("organization.sidecarUp")
+                : t("organization.sidecarOptionalChip")}
+            </span>
             <span className={styles.chip} data-testid="org-last-sync">
               {t("organization.lastSync")}: {lastSync}
             </span>
           </div>
           <div className={styles.statusActions}>
-            <Button
-              type="primary"
-              icon={<Download size={14} />}
-              loading={downloading || pickingFolder}
-              onClick={() => void downloadSource()}
-              data-testid="org-download-source"
-              title={t("organization.downloadSource")}
-            >
-              {t("organization.downloadSourceBar")}
-            </Button>
             <Button
               type="default"
               onClick={() => setDrawer("module")}
@@ -784,127 +387,15 @@ export default function OrganizationPage() {
             <Button
               type="default"
               icon={<Settings2 size={14} />}
-              onClick={() => setDrawer("manage")}
-              data-testid="org-manage-os"
+              onClick={() => setDrawer("advanced")}
+              data-testid="org-advanced-console"
             >
-              {t("organization.manageOs")}
+              {t("organization.advancedConsole")}
             </Button>
           </div>
         </section>
 
-        <OrgMiniBrowser
-          tabs={tabs}
-          activeId={activeId}
-          addressValue={addressValue}
-          sidecarOrigin={sidecarOrigin}
-          disabledKeys={disabledKeys}
-          previewNonce={previewNonce}
-          sidecarUp={sidecarUp}
-          livezOk={livezOk}
-          previewBlank={previewBlank}
-          recoverPhase={recoverPhase}
-          iframeRefs={iframeRefs}
-          onAddressChange={setAddressValue}
-          onAddressSubmit={submitAddress}
-          onSelectTab={(id) => {
-            setActiveId(id);
-            const tab = tabs.find((row) => row.id === id);
-            if (tab) setAddressValue(tab.url);
-          }}
-          onCloseTab={(id) => {
-            let nextActive = activeId;
-            let nextAddress = addressValue;
-            setTabs((current) => {
-              const next = closeOrgTab(current, activeId, id);
-              nextActive = next.activeId;
-              nextAddress =
-                next.tabs.find((row) => row.id === next.activeId)?.url ??
-                addressValue;
-              return next.tabs;
-            });
-            setActiveId(nextActive);
-            setAddressValue(nextAddress);
-          }}
-          onNewTab={() => openTab(localConsoleUrl + "/", homeTitle, false)}
-          onBack={onBrowserBack}
-          onForward={onBrowserForward}
-          onReload={onBrowserReload}
-          onFrameLoad={pushTogglesToPreview}
-        />
-        {(busy === "restart" || showRestartGate) && (
-          <OrgRestartOverlay
-            mode={busy === "restart" ? "restarting" : "needsRestart"}
-            finished={restartFinished}
-            onRestart={() => void restartSidecar()}
-          />
-        )}
-      </div>
-
-      <Drawer
-        title={t("organization.moduleDrawerTitle")}
-        open={drawer === "module"}
-        onClose={() => setDrawer(null)}
-        width={480}
-        destroyOnHidden
-      >
-        <div className={styles.drawerBody}>
-          <div className={styles.moduleToggle}>
-            <Building2 size={18} />
-            <span>{t("organization.toggleLabel")}</span>
-            <Switch
-              checked={Boolean(overview?.enabled)}
-              loading={saving || loading}
-              onChange={(checked) => void toggle(checked)}
-            />
-          </div>
-          <p className={styles.catalogDesc}>{t("organization.glossary")}</p>
-          <section>
-            <p className={styles.timelineTitle}>
-              {t("organization.catalogTitle")}
-            </p>
-            <p className={styles.catalogDesc} style={{ marginBottom: 12 }}>
-              {t("organization.catalogToggleHint")}
-            </p>
-            <div className={styles.catalog}>
-              {catalog.map((row) => (
-                <article key={row.key} className={styles.catalogItem}>
-                  <p className={styles.catalogName}>
-                    {isZh ? row.label_zh : row.label}{" "}
-                    <Tag>
-                      {row.locked
-                        ? t("organization.locked")
-                        : moduleToggles[row.key] === false
-                        ? t("organization.catalogDisabled")
-                        : t("organization.catalogEnabled")}
-                    </Tag>
-                  </p>
-                  <p className={styles.catalogDesc}>
-                    {isZh ? row.description_zh : row.description}
-                  </p>
-                  {!row.locked && (
-                    <Switch
-                      size="small"
-                      checked={moduleToggles[row.key] !== false}
-                      onChange={(checked) =>
-                        void toggleModule(row.key, checked)
-                      }
-                    />
-                  )}
-                </article>
-              ))}
-            </div>
-          </section>
-        </div>
-      </Drawer>
-
-      <Drawer
-        title={t("organization.manageDrawerTitle")}
-        open={drawer === "manage"}
-        onClose={() => setDrawer(null)}
-        width={720}
-        destroyOnHidden
-      >
-        <div className={styles.drawerBody}>
+        <div className={styles.workbench} data-testid="org-native-workbench">
           <p className={styles.heroStory}>{t("organization.heroStory")}</p>
           <p className={styles.heroStory}>{t("organization.glossary")}</p>
 
@@ -984,7 +475,9 @@ export default function OrganizationPage() {
                   <p className={styles.planeLabel}>
                     {t("organization.controlPlane")}
                   </p>
-                  <h2 className={styles.planeTitle}>openXYOS</h2>
+                  <h2 className={styles.planeTitle}>
+                    {t("organization.runtimeInHost")}
+                  </h2>
                 </div>
                 <Shield size={22} />
               </div>
@@ -1009,9 +502,7 @@ export default function OrganizationPage() {
                 </div>
                 <div className={styles.metric}>
                   <span className={styles.metricValue}>
-                    {sidecarUp
-                      ? t("organization.sidecarUp")
-                      : t("organization.sidecarOpening")}
+                    {t("organization.inHostReady")}
                   </span>
                   <span className={styles.metricLabel}>
                     {t("organization.metricHealth")}
@@ -1027,6 +518,87 @@ export default function OrganizationPage() {
                 </div>
               </div>
             </article>
+          </section>
+
+          <section data-testid="org-colleagues">
+            <p className={styles.timelineTitle}>
+              {t("organization.colleaguesTitle")}
+            </p>
+            <p className={styles.catalogDesc}>
+              {t("organization.expertsHint")}
+            </p>
+            {colleagues.length ? (
+              <ul className={styles.colleagueList}>
+                {colleagues.map((row) => (
+                  <li key={row.slug} className={styles.colleagueRow}>
+                    <div>
+                      <p className={styles.colleagueName}>{row.name}</p>
+                      <p className={styles.colleagueMeta}>
+                        {row.slug} · {t("organization.colleagueLifecycle")}:{" "}
+                        {row.lifecycle}
+                        {row.agent_id ? ` · ${row.agent_id}` : ""}
+                      </p>
+                    </div>
+                    <Tag>
+                      {row.spawned
+                        ? t("organization.catalogEnabled")
+                        : t("organization.catalogDisabled")}
+                    </Tag>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className={styles.catalogDesc}>
+                {t("organization.colleaguesEmpty")}
+              </p>
+            )}
+            <Button
+              style={{ marginTop: 12 }}
+              onClick={() => navigate("/experts")}
+              data-testid="org-open-experts"
+            >
+              {t("organization.openExperts")}
+            </Button>
+          </section>
+
+          <section data-testid="org-surfaces">
+            <p className={styles.timelineTitle}>
+              {t("organization.orgSurfacesTitle")}
+            </p>
+            <div className={styles.metrics}>
+              <div className={styles.metric}>
+                <span className={styles.metricValue}>
+                  {metric(orgSurfaces?.employees)}
+                </span>
+                <span className={styles.metricLabel}>
+                  {t("organization.surfaceEmployees")}
+                </span>
+              </div>
+              <div className={styles.metric}>
+                <span className={styles.metricValue}>
+                  {metric(orgSurfaces?.talent)}
+                </span>
+                <span className={styles.metricLabel}>
+                  {t("organization.surfaceTalent")}
+                </span>
+              </div>
+              <div className={styles.metric}>
+                <span className={styles.metricValue}>
+                  {metric(orgSurfaces?.skills)}
+                </span>
+                <span className={styles.metricLabel}>
+                  {t("organization.metricSkills")}
+                </span>
+              </div>
+              <div className={styles.metric}>
+                <span className={styles.metricValue}>
+                  {metric(orgSurfaces?.plugins)}
+                </span>
+                <span className={styles.metricLabel}>
+                  {t("organization.surfacePlugins")}
+                </span>
+              </div>
+            </div>
           </section>
 
           {progressLabel && (
@@ -1169,45 +741,115 @@ export default function OrganizationPage() {
             )}
           </section>
 
-          <section className={styles.timeline}>
-            <p className={styles.timelineTitle}>
-              {t("organization.landedTitle")}
-            </p>
-            {landed ? (
+          {landed ? (
+            <section className={styles.timeline}>
+              <p className={styles.timelineTitle}>
+                {t("organization.landedTitle")}
+              </p>
               <pre className={styles.catalogDesc}>
                 {JSON.stringify(landed, null, 2)}
               </pre>
-            ) : (
-              <p>{t("organization.landedEmpty")}</p>
-            )}
-          </section>
-
-          {(sidecarUp || overview?.enabled) && (
-            <section className={styles.timeline}>
-              <p className={styles.timelineTitle}>
-                {t("organization.downloadSource")}
-              </p>
-              <p className={styles.catalogDesc}>
-                {t("organization.downloadSourceHint")}
-              </p>
-              <Space wrap style={{ marginTop: 12 }}>
-                {!canPickDesktopFolder() && (
-                  <Input
-                    value={sourceDest}
-                    onChange={(event) => setSourceDest(event.target.value)}
-                    placeholder={t("organization.downloadSourceDest")}
-                    style={{ minWidth: 280 }}
-                  />
-                )}
-                <Button
-                  loading={downloading || pickingFolder}
-                  onClick={() => void downloadSource()}
-                  data-testid="org-download-source-drawer"
-                >
-                  {t("organization.downloadSource")}
-                </Button>
-              </Space>
             </section>
+          ) : null}
+
+          <section>
+            <p className={styles.timelineTitle}>
+              {t("organization.catalogTitle")}
+            </p>
+            <p className={styles.catalogDesc}>
+              {t("organization.catalogToggleHint")}
+            </p>
+            <div className={styles.catalog}>
+              {catalog.map((row) => (
+                <article key={row.key} className={styles.catalogItem}>
+                  <p className={styles.catalogName}>
+                    {isZh ? row.label_zh : row.label}{" "}
+                    <Tag>
+                      {row.locked
+                        ? t("organization.locked")
+                        : moduleToggles[row.key] === false
+                        ? t("organization.catalogDisabled")
+                        : t("organization.catalogEnabled")}
+                    </Tag>
+                  </p>
+                  <p className={styles.catalogDesc}>
+                    {isZh ? row.description_zh : row.description}
+                  </p>
+                  {!row.locked && (
+                    <Switch
+                      size="small"
+                      checked={moduleToggles[row.key] !== false}
+                      onChange={(checked) =>
+                        void toggleModule(row.key, checked)
+                      }
+                    />
+                  )}
+                </article>
+              ))}
+            </div>
+          </section>
+        </div>
+      </div>
+
+      <Drawer
+        title={t("organization.moduleDrawerTitle")}
+        open={drawer === "module"}
+        onClose={() => setDrawer(null)}
+        width={480}
+        destroyOnHidden
+      >
+        <div className={styles.drawerBody}>
+          <div className={styles.moduleToggle}>
+            <Building2 size={18} />
+            <span>{t("organization.toggleLabel")}</span>
+            <Switch
+              checked={Boolean(overview?.enabled)}
+              loading={saving || loading}
+              onChange={(checked) => void toggle(checked)}
+            />
+          </div>
+          <p className={styles.catalogDesc}>{t("organization.glossary")}</p>
+        </div>
+      </Drawer>
+
+      <Drawer
+        title={t("organization.advancedConsole")}
+        open={drawer === "advanced"}
+        onClose={() => setDrawer(null)}
+        width={560}
+        destroyOnHidden
+      >
+        <div className={styles.drawerBody}>
+          <p className={styles.heroStory}>
+            {t("organization.sidecarAdvancedHint")}
+          </p>
+          <p className={styles.catalogDesc}>
+            {overview?.sidecar_url || "http://127.0.0.1:3780"}
+          </p>
+          <Space wrap>
+            <Button
+              loading={busy === "sidecar"}
+              disabled={busy !== null && busy !== "sidecar"}
+              onClick={() => void startSidecar()}
+              data-testid="org-start-sidecar"
+            >
+              {t("organization.startSidecarAction")}
+            </Button>
+            <Button
+              icon={<Download size={14} />}
+              loading={downloading || pickingFolder}
+              onClick={() => void downloadSource()}
+              data-testid="org-download-source"
+            >
+              {t("organization.downloadSource")}
+            </Button>
+          </Space>
+          {!canPickDesktopFolder() && (
+            <Input
+              value={sourceDest}
+              onChange={(event) => setSourceDest(event.target.value)}
+              placeholder={t("organization.downloadSourceDest")}
+            />
           )}
         </div>
       </Drawer>
