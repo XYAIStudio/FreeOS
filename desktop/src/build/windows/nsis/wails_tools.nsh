@@ -150,8 +150,11 @@ RequestExecutionLevel "${REQUEST_EXECUTION_LEVEL}"
 # parent waits for exit 0. Child stdout is discarded (cmd >nul) so
 # UTF-8 Node/PowerShell logs do not mojibake in the ANSI detail list.
 # Localized DetailPrint LangStrings are the only NSIS-visible progress.
-# The child extracts with tar.exe, starts FE/BE at medium IL, waits for
-# livez, and writes .install-ready only when healthy. Do not FileWrite
+# The child extracts the runtime zip ONCE with tar.exe into
+# %LOCALAPPDATA%\FreeOS\openxyos (staging then one move). $INSTDIR\openxyos
+# and $INSTDIR\openxyos-runtime stay empty README stubs, not full copies.
+# It starts FE/BE at medium IL, waits for livez, and writes .install-ready
+# only when healthy and start.pid is still alive. Do not FileWrite
 # goto-label .cmd scripts here. Do not register logon autostart.
 !macro wails.provisionOpenXYOS
     !insertmacro wails.userLocalAppData

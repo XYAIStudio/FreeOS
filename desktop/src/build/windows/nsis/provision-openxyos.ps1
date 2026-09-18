@@ -1,7 +1,11 @@
 # Install-time openXYOS provisioner (child process of the FreeOS NSIS Setup).
 # Stop owned FreeOS openXYOS Node (start.pid / live+install paths only),
-# extract to a LocalAppData temp dir, heal into $LiveDir, start once at
-# medium IL, wait livez, write .install-ready.
+# extract the runtime zip ONCE (staging under LocalAppData, then one move
+# into $LiveDir). Do not also extract full copies into $InstallDir\openxyos
+# or $InstallDir\openxyos-runtime — those stay README stubs only.
+# Heal nested openxyos\openxyos into a canonical top-level tree and delete
+# the leftover nested payload. Start once at medium IL, wait livez, write
+# .install-ready only when livez is healthy AND start.pid is still alive.
 # Exit 0 only when http://127.0.0.1:3780/api/health/livez is healthy.
 # Full logs stay UTF-8 in %LOCALAPPDATA%\FreeOS\openxyos\provision.log and
 # start.log. Host/NSIS detail gets OEM-safe (ACP/GBK) short status only —
@@ -195,15 +199,39 @@ function Repair-OpenXYOSLayout {
         Write-ProvLog "Normalizing nested backend $nestedBe -> $Root"
         Copy-OpenXYOSTree (Join-Path $Root 'openxyos') $Root
     }
-    if (Test-OpenXYOSLayout $Root) { return $true }
+    if (Test-OpenXYOSLayout $Root) {
+        Remove-OpenXYOSNestedLeftover $Root
+        return $true
+    }
     $found = Find-OpenXYOSBundleRoot $Root
     if (-not $found) { return $false }
     $fullFound = [IO.Path]::GetFullPath($found)
     $fullRoot = [IO.Path]::GetFullPath($Root)
-    if ($fullFound -eq $fullRoot) { return $true }
+    if ($fullFound -eq $fullRoot) {
+        Remove-OpenXYOSNestedLeftover $Root
+        return $true
+    }
     Write-ProvLog "Normalizing nested layout $found -> $Root"
     Copy-OpenXYOSTree $found $Root
-    return (Test-OpenXYOSLayout $Root)
+    $ok = Test-OpenXYOSLayout $Root
+    if ($ok) { Remove-OpenXYOSNestedLeftover $Root }
+    return $ok
+}
+
+# After flatten, leftover openxyos\openxyos still confuses cwd. Drop it
+# only when the top-level tree already has dist + backend-dist.
+function Remove-OpenXYOSNestedLeftover {
+    param([string]$Root)
+    if (-not (Test-OpenXYOSAppReady $Root)) { return }
+    $nested = Join-Path $Root 'openxyos'
+    if (-not (Test-Path -LiteralPath $nested)) { return }
+    $nestedFe = Join-Path $nested 'dist\index.html'
+    $nestedBe = Join-Path $nested 'backend-dist\server.js'
+    if (-not ((Test-Path -LiteralPath $nestedFe) -or (Test-Path -LiteralPath $nestedBe))) {
+        return
+    }
+    Write-ProvLog "Removing leftover nested payload $nested"
+    Remove-Item -LiteralPath $nested -Recurse -Force -ErrorAction SilentlyContinue
 }
 
 function Get-OpenXYOSAppDirs {
@@ -341,15 +369,16 @@ function Read-OpenXYOSPidFile {
     return 0
 }
 
-function Test-OpenXYOSNodeAlive {
+function Test-OpenXYOSPidAlive {
     $nid = Read-OpenXYOSPidFile $LiveDir
-    if ($nid -gt 0) {
-        $p = Get-Process -Id $nid -ErrorAction SilentlyContinue
-        if ($p -and -not $p.HasExited) { return $true }
-    }
-    $nodes = Get-Process -Name node -ErrorAction SilentlyContinue
-    if ($nodes) { return $true }
-    return $false
+    if ($nid -le 0) { return $false }
+    $p = Get-Process -Id $nid -ErrorAction SilentlyContinue
+    return ($p -and -not $p.HasExited)
+}
+
+function Test-OpenXYOSNodeAlive {
+    if (Test-OpenXYOSPidAlive) { return $true }
+    return (Test-OpenXYOSOwnNode)
 }
 
 function Get-StartLogStamp {
@@ -366,20 +395,35 @@ function Test-StartLogShowsFailFast {
     return ($text -match 'node exited .+ \(fail-fast\)')
 }
 
+function Test-StartLogsEmpty {
+    $out = Join-Path $LiveDir 'start.out.log'
+    $err = Join-Path $LiveDir 'start.err.log'
+    $outEmpty = (-not (Test-Path -LiteralPath $out)) -or ((Get-Item -LiteralPath $out).Length -eq 0)
+    $errEmpty = (-not (Test-Path -LiteralPath $err)) -or ((Get-Item -LiteralPath $err).Length -eq 0)
+    return ($outEmpty -and $errEmpty)
+}
+
+function Test-StartClaimUnreliable {
+    if (Test-StartLogShowsFailFast) { return $true }
+    if (Test-StartLogsEmpty -and -not (Test-OpenXYOSPidAlive) -and -not (Test-OpenXYOSLivez)) {
+        return $true
+    }
+    if (Test-OpenXYOSLivez -and (Test-OpenXYOSPidAlive -or (Test-OpenXYOSOwnNode))) {
+        return $false
+    }
+    if (Test-OpenXYOSPidAlive) { return $false }
+    return $true
+}
+
 function Wait-OpenXYOSStartEvidence {
     param($BeforeUtc, [int]$Seconds = 12)
+    # Do not treat a mere start.log rewrite (JWT/layout banner) as success.
+    # That races Shell.Application "started" against a process that then
+    # fail-fasts with empty stdout/stderr.
     for ($i = 0; $i -lt $Seconds; $i++) {
-        if (Test-OpenXYOSLivez) { return $true }
-        $nid = Read-OpenXYOSPidFile $LiveDir
-        if ($nid -gt 0) {
-            $p = Get-Process -Id $nid -ErrorAction SilentlyContinue
-            if ($p -and -not $p.HasExited) { return $true }
-        }
-        $log = Join-Path $LiveDir 'start.log'
-        if (Test-Path -LiteralPath $log) {
-            $stamp = (Get-Item -LiteralPath $log).LastWriteTimeUtc
-            if ($null -eq $BeforeUtc -or $stamp -gt $BeforeUtc) { return $true }
-        }
+        if (Test-OpenXYOSOwnLivez -and (Test-OpenXYOSPidAlive)) { return $true }
+        if (Test-StartLogShowsFailFast) { return $true }
+        if (Test-OpenXYOSPidAlive) { return $true }
         Start-Sleep -Seconds 1
     }
     return $false
@@ -390,7 +434,7 @@ function Wait-OpenXYOSLivez {
     # Success is livez only. Transient Node console (auth probe, seed banner,
     # websocket status) is startup noise — not a provision failure.
     for ($i = 0; $i -lt $Seconds; $i++) {
-        if (Test-OpenXYOSLivez) { return $true }
+        if (Test-OpenXYOSOwnLivez -and (Test-OpenXYOSPidAlive -or (Test-OpenXYOSOwnNode))) { return $true }
         if (Test-StartLogShowsFailFast) {
             Write-ProvLog 'Node exited fail-fast during livez wait (see start.log cwd)'
             Write-StartLogExcerpt
@@ -425,13 +469,14 @@ function Start-OpenXYOSUnelevated {
         $shell.ShellExecute($pwsh, $arg, $Dir, 'open', 0)
         Write-ProvLog 'Started FE/BE via Shell.Application (IShellDispatch2 / medium IL)'
         if (Wait-OpenXYOSStartEvidence $before 12) {
-            if (Test-StartLogShowsFailFast) {
-                Write-ProvLog 'start helper ran but Node exited fail-fast'
-                return $false
+            if (Test-StartClaimUnreliable) {
+                Write-ProvLog 'Shell.Application 声称已启动，但 start.log 显示 fail-fast 或日志为空；改走直接启动'
+            } else {
+                return $true
             }
-            return $true
+        } else {
+            Write-ProvLog 'Shell.Application produced no fresh start.pid/livez'
         }
-        Write-ProvLog 'Shell.Application produced no fresh start.log/pid/livez'
     } catch {
         Write-ProvLog "Shell.Application failed: $($_.Exception.Message)"
     }
@@ -443,13 +488,14 @@ function Start-OpenXYOSUnelevated {
             Start-Process -FilePath $explorer -ArgumentList "`"$cmd`""
             Write-ProvLog 'Started FE/BE via explorer.exe (medium IL fallback)'
             if (Wait-OpenXYOSStartEvidence $before 12) {
-                if (Test-StartLogShowsFailFast) {
-                    Write-ProvLog 'explorer start helper ran but Node exited fail-fast'
-                    return $false
+                if (Test-StartClaimUnreliable) {
+                    Write-ProvLog 'explorer 声称已启动，但 start.log 显示 fail-fast 或日志为空；改走直接启动'
+                } else {
+                    return $true
                 }
-                return $true
+            } else {
+                Write-ProvLog 'explorer fallback produced no fresh start.pid/livez'
             }
-            Write-ProvLog 'explorer fallback produced no fresh start.log/pid/livez'
         } catch {
             Write-ProvLog "explorer fallback failed: $($_.Exception.Message)"
         }
@@ -459,13 +505,13 @@ function Start-OpenXYOSUnelevated {
         Start-Process -FilePath $pwsh -ArgumentList $arg -WorkingDirectory $Dir -WindowStyle Hidden
         Write-ProvLog 'Started FE/BE via Start-Process (direct powershell fallback)'
         if (Wait-OpenXYOSStartEvidence $before 12) {
-            if (Test-StartLogShowsFailFast) {
-                Write-ProvLog 'direct start helper ran but Node exited fail-fast'
+            if (Test-StartClaimUnreliable) {
+                Write-ProvLog '直接启动后 Node fail-fast 或日志为空'
                 return $false
             }
             return $true
         }
-        Write-ProvLog 'direct Start-Process produced no fresh start.log/pid/livez'
+        Write-ProvLog 'direct Start-Process produced no fresh start.pid/livez'
     } catch {
         Write-ProvLog "direct Start-Process failed: $($_.Exception.Message)"
     }
@@ -694,15 +740,21 @@ function Invoke-TarExtract {
     }
     New-Item -ItemType Directory -Force -Path $Dest | Out-Null
     $null = Repair-OpenXYOSLayout $extractDir
+    Remove-OpenXYOSNestedLeftover $extractDir
     $tempOk = Test-OpenXYOSLayout $extractDir
     if ($tempOk) {
         Clear-OpenXYOSPayload $Dest
-        Copy-OpenXYOSTree $extractDir $Dest
+        Write-ProvLog "moving staging $extractDir -> $Dest (single extract)"
+        if (-not (Move-OpenXYOSTree $extractDir $Dest)) {
+            Write-ProvLog "move failed; copying staging into $Dest"
+            Copy-OpenXYOSTree $extractDir $Dest
+        }
     } elseif (Test-Path -LiteralPath $extractDir) {
         Write-ProvLog "temp extract layout incomplete; merging into $Dest"
         Copy-OpenXYOSTree $extractDir $Dest
     }
     $null = Repair-OpenXYOSLayout $Dest
+    Remove-OpenXYOSNestedLeftover $Dest
     $ok = Test-OpenXYOSLayout $Dest
     if ($ok -and $code -ne 0) {
         Write-ProvLog "tar returned $code but layout is complete; treating extract as success"
@@ -712,6 +764,25 @@ function Invoke-TarExtract {
     }
     Remove-Item -LiteralPath $extractDir -Recurse -Force -ErrorAction SilentlyContinue
     return $ok
+}
+
+function Move-OpenXYOSTree {
+    param([string]$Src, [string]$Dest)
+    if (-not (Test-Path -LiteralPath $Src)) { return $false }
+    New-Item -ItemType Directory -Force -Path $Dest | Out-Null
+    try {
+        Get-ChildItem -LiteralPath $Src -Force -ErrorAction Stop | ForEach-Object {
+            $target = Join-Path $Dest $_.Name
+            if (Test-Path -LiteralPath $target) {
+                Remove-Item -LiteralPath $target -Recurse -Force -ErrorAction Stop
+            }
+            Move-Item -LiteralPath $_.FullName -Destination $target -Force -ErrorAction Stop
+        }
+        return $true
+    } catch {
+        Write-ProvLog "Move-OpenXYOSTree failed: $($_.Exception.Message)"
+        return $false
+    }
 }
 
 function Test-SamePath {
@@ -783,7 +854,21 @@ function Remove-OpenXYOSStaging {
     }
 }
 
+function Test-OpenXYOSInstallReady {
+    if (-not (Test-OpenXYOSLivez)) { return $false }
+    if (Test-StartLogShowsFailFast -and -not (Test-OpenXYOSPidAlive) -and -not (Test-OpenXYOSOwnNode)) {
+        return $false
+    }
+    if (Test-OpenXYOSPidAlive) { return $true }
+    return (Test-OpenXYOSOwnNode)
+}
+
 function Complete-OpenXYOSSuccess {
+    if (-not (Test-OpenXYOSInstallReady)) {
+        Write-ProvLog '拒绝写入 .install-ready：livez 未通过或 start.pid 进程已退出。请查看 start.log。'
+        Write-StartLogExcerpt
+        exit 10
+    }
     if (-not (Write-InstallReady $LiveDir)) {
         exit 13
     }
@@ -826,28 +911,23 @@ if (-not (Test-Path -LiteralPath $tar)) {
 Stop-OpenXYOSLockedProcesses
 
 if (-not (Invoke-TarExtract -Tar $tar -Zip $ZipPath -Dest $LiveDir)) {
-    Write-ProvLog 'extract into live dir returned incomplete layout (will try backup heal)'
+    Write-ProvLog 'extract into live dir returned incomplete layout'
 }
 
 $backupRuntime = Join-Path $InstallDir 'openxyos-runtime'
 $backupOpen = Join-Path $InstallDir 'openxyos'
-foreach ($backup in @($backupRuntime, $backupOpen)) {
-    if (-not (Test-OpenXYOSLayout $backup)) {
-        if (-not (Invoke-TarExtract -Tar $tar -Zip $ZipPath -Dest $backup)) {
-            Write-ProvLog "backup extract skipped/failed: $backup"
-        }
-    }
-}
-
+# Single zip extract only (into $LiveDir). $INSTDIR copies stay README stubs
+# unless a leftover full tree from a previous install can heal the live dir.
 if (-not (Test-OpenXYOSLayout $LiveDir)) {
     foreach ($backup in @($backupRuntime, $backupOpen)) {
         if (Test-OpenXYOSLayout $backup) {
-            Write-ProvLog "Healing live dir from $backup"
+            Write-ProvLog "Healing live dir from leftover $backup (no zip extract)"
             Copy-OpenXYOSTree $backup $LiveDir
             break
         }
     }
     $null = Repair-OpenXYOSLayout $LiveDir
+    Remove-OpenXYOSNestedLeftover $LiveDir
 }
 
 if (-not (Test-OpenXYOSLayout $LiveDir)) {
@@ -891,13 +971,21 @@ if (-not (Test-OpenXYOSCompiledSql $LiveDir)) {
 $readme = @(
     'FreeOS local openXYOS environment'
     "Live workdir (writable): $LiveDir"
-    "Install copy: $backupOpen"
+    'Install dir copies are README stubs only (runtime lives in LocalAppData).'
     'URL: http://127.0.0.1:3780'
 ) -join "`r`n"
 Set-Content -LiteralPath (Join-Path $LiveDir 'README.txt') -Value $readme -Encoding ASCII
-try {
-    Set-Content -LiteralPath (Join-Path $backupOpen 'README.txt') -Value $readme -Encoding ASCII
-} catch {
+$stub = @(
+    'FreeOS openXYOS install stub (not a runtime copy).'
+    "Live workdir: $LiveDir"
+    'URL: http://127.0.0.1:3780'
+) -join "`r`n"
+foreach ($stubDir in @($backupOpen, $backupRuntime)) {
+    try {
+        New-Item -ItemType Directory -Force -Path $stubDir | Out-Null
+        Set-Content -LiteralPath (Join-Path $stubDir 'README.txt') -Value $stub -Encoding ASCII
+    } catch {
+    }
 }
 
 if ($env:USERNAME) {
@@ -915,7 +1003,7 @@ if (Test-OpenXYOSOwnLivez) {
 }
 
 if (-not (Start-OpenXYOSUnelevated $LiveDir)) {
-    Write-ProvLog 'failed to launch FE/BE at medium integrity'
+    Write-ProvLog '无法启动 openXYOS：Node 已退出且未留下可用日志。未写入 .install-ready。请查看 start.log 与 provision.log。'
     Write-StartLogExcerpt
     exit 10
 }
