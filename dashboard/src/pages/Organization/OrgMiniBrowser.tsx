@@ -10,6 +10,7 @@ import {
   iframeSandboxFor,
   type OrgBrowserTab,
 } from "./orgBrowser";
+import { shouldLoadSidecarFrame } from "./sidecarLivez";
 import styles from "./Organization.module.less";
 
 type OrgMiniBrowserProps = {
@@ -20,7 +21,9 @@ type OrgMiniBrowserProps = {
   disabledKeys: string[];
   previewNonce: string;
   sidecarUp: boolean;
+  livezOk: boolean;
   previewBlank: boolean;
+  recoverPhase: "hidden" | "opening" | "needsRestart";
   iframeRefs: MutableRefObject<Record<string, HTMLIFrameElement | null>>;
   onAddressChange: (value: string) => void;
   onAddressSubmit: () => void;
@@ -41,7 +44,9 @@ export default function OrgMiniBrowser({
   disabledKeys,
   previewNonce,
   sidecarUp,
+  livezOk,
   previewBlank,
+  recoverPhase,
   iframeRefs,
   onAddressChange,
   onAddressSubmit,
@@ -124,7 +129,7 @@ export default function OrgMiniBrowser({
         </Button>
       </form>
       <div className={styles.embedPane}>
-        {!sidecarUp && (
+        {recoverPhase === "opening" && (
           <div className={styles.previewOffline}>
             {t("organization.previewOffline")}
           </div>
@@ -135,11 +140,18 @@ export default function OrgMiniBrowser({
           </div>
         )}
         {tabs.map((tab) => {
-          const src = buildEmbedSrc(tab.srcUrl, {
+          const allowFrame = shouldLoadSidecarFrame({
+            url: tab.srcUrl,
             sidecarOrigin,
-            disabledKeys,
-            nonce: previewNonce,
+            livezOk: livezOk && sidecarUp,
           });
+          const src = allowFrame
+            ? buildEmbedSrc(tab.srcUrl, {
+                sidecarOrigin,
+                disabledKeys,
+                nonce: previewNonce,
+              })
+            : "about:blank";
           const active = tab.id === activeId;
           return (
             <iframe
@@ -155,7 +167,11 @@ export default function OrgMiniBrowser({
               data-testid="org-browser-frame"
               data-active={active ? "true" : "false"}
               data-tab-id={tab.id}
-              sandbox={iframeSandboxFor(src, sidecarOrigin)}
+              sandbox={
+                allowFrame
+                  ? iframeSandboxFor(src, sidecarOrigin)
+                  : "allow-same-origin"
+              }
               allow="clipboard-read; clipboard-write"
               onLoad={onFrameLoad}
             />

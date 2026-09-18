@@ -14,7 +14,7 @@ describe("sidecarRecoverPhase", () => {
     ).toBe("hidden");
   });
 
-  it("never returns a recover/start-CTA phase", () => {
+  it("prompts restart when livez is down and auto-start is not in flight", () => {
     expect(
       sidecarRecoverPhase({
         sidecarUp: false,
@@ -23,7 +23,7 @@ describe("sidecarRecoverPhase", () => {
         autoStarting: false,
         autoStartFailed: false,
       }),
-    ).toBe("opening");
+    ).toBe("needsRestart");
     expect(
       sidecarRecoverPhase({
         sidecarUp: false,
@@ -32,13 +32,25 @@ describe("sidecarRecoverPhase", () => {
         autoStarting: false,
         autoStartFailed: true,
       }),
-    ).toBe("opening");
+    ).toBe("needsRestart");
     expect(
       sidecarRecoverPhase({
         sidecarUp: false,
         installReady: false,
         startAvailable: false,
         autoStarting: false,
+        autoStartFailed: false,
+      }),
+    ).toBe("needsRestart");
+  });
+
+  it("keeps the opening phase while a silent auto-start is running", () => {
+    expect(
+      sidecarRecoverPhase({
+        sidecarUp: false,
+        installReady: true,
+        startAvailable: true,
+        autoStarting: true,
         autoStartFailed: false,
       }),
     ).toBe("opening");

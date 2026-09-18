@@ -111,6 +111,13 @@ def test_probe_sidecar_unreachable(tmp_path: Path) -> None:
     assert health.url == DEFAULT_SIDECAR_URL
 
 
+def test_sidecar_livez_route_is_registered() -> None:
+    from octop.api.routers.org_module import router
+
+    paths = {getattr(route, "path", "") for route in router.routes}
+    assert "/sidecar/livez" in paths
+
+
 def test_probe_sidecar_livez(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     class _Resp:
         status_code = 200
