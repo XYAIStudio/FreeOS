@@ -48,14 +48,30 @@ func TestHostLaunchEnvSetsFreeosHomeAndOrgEnable(t *testing.T) {
 	if env["FREEOS_ORG_ENABLE"] != "1" {
 		t.Fatalf("org enable: %+v", env)
 	}
-	if env["FREEOS_ORG_SIDECAR_URL"] != "http://127.0.0.1:3780" {
-		t.Fatalf("sidecar url: %+v", env)
+	if _, ok := env["FREEOS_ORG_SIDECAR_URL"]; ok {
+		t.Fatalf("sidecar url must stay unset by default: %+v", env)
+	}
+	if _, ok := env["OPENXYOS_BASE_URL"]; ok {
+		t.Fatalf("OPENXYOS_BASE_URL must stay unset by default: %+v", env)
 	}
 	if env["OCTOP_DESKTOP"] != "1" || env["FREEOS_DESKTOP"] != "1" {
 		t.Fatalf("desktop flags: %+v", env)
 	}
 	if env["PYTHONUTF8"] != "1" || env["PYTHONIOENCODING"] != "utf-8" {
 		t.Fatalf("utf8 env: %+v", env)
+	}
+}
+
+func TestHostLaunchEnvSidecarOptIn(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("FREEOS_HOME", home)
+	t.Setenv("FREEOS_ORG_SIDECAR", "1")
+	env := hostLaunchEnv(filepath.Join(home, "portable"), 8088)
+	if env["FREEOS_ORG_SIDECAR_URL"] != "http://127.0.0.1:3780" {
+		t.Fatalf("sidecar url: %+v", env)
+	}
+	if env["OPENXYOS_BASE_URL"] != "http://127.0.0.1:3780" {
+		t.Fatalf("openxyos url: %+v", env)
 	}
 }
 

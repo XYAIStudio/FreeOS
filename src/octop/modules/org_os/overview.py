@@ -8,6 +8,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from octop.modules.org_os.apply.client import mirror_root
 from octop.modules.org_os.catalog import OPENXYOS_MODULES, catalog_keys
 from octop.modules.org_os.lifecycle.store import LifecycleStore
 from octop.modules.org_os.runtime.spawn import list_spawned_agents
@@ -25,6 +26,54 @@ def _count_skill_dirs(home: Path) -> int:
     if not root.is_dir():
         return 0
     return sum(1 for child in root.iterdir() if child.is_dir() and (child / "SKILL.md").is_file())
+
+
+def _list_len(doc: Any, key: str) -> int:
+    if isinstance(doc, dict) and isinstance(doc.get(key), list):
+        return len(doc[key])
+    if isinstance(doc, list):
+        return len(doc)
+    return 0
+
+
+def _mirror_surfaces(home: Path, tenant_id: str) -> dict[str, int]:
+    root = mirror_root(home, tenant_id)
+    counts = {"employees": 0, "talent": 0, "skills": 0, "plugins": 0}
+    if not root.is_dir():
+        return counts
+    mapping = {
+        "employees": ("employees.json", "employees"),
+        "talent": ("talent.json", "talent"),
+        "skills": ("skills.json", "skills"),
+        "plugins": ("plugins.json", "plugins"),
+    }
+    for surface, (name, key) in mapping.items():
+        path = root / name
+        if not path.is_file():
+            continue
+        try:
+            raw = json.loads(path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError:
+            continue
+        counts[surface] = _list_len(raw, key)
+    return counts
+
+
+def _colleague_rows(home: Path, tenant_id: str) -> list[dict[str, Any]]:
+    spawned = {row.slug: row for row in list_spawned_agents(home)}
+    rows: list[dict[str, Any]] = []
+    for rec in LifecycleStore(home, tenant_id).list():
+        agent = spawned.get(rec.slug)
+        rows.append(
+            {
+                "slug": rec.slug,
+                "name": rec.name or rec.slug,
+                "lifecycle": rec.lifecycle,
+                "agent_id": rec.agent_id or (agent.agent_id if agent else ""),
+                "spawned": agent is not None or bool(rec.agent_id),
+            }
+        )
+    return rows
 
 
 def _read_loop_proof(home: Path) -> dict[str, Any] | None:
@@ -56,10 +105,17 @@ class DualLoopOverview:
     openxyos: dict[str, Any]
     last_loop: dict[str, Any] | None = None
     notes: list[str] = field(default_factory=list)
+    runtime: str = "in_host"
+    sidecar_optional: bool = True
+    colleagues: list[dict[str, Any]] = field(default_factory=list)
+    experts: list[dict[str, Any]] = field(default_factory=list)
+    org_surfaces: dict[str, int] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         return {
             "enabled": self.enabled,
+            "runtime": self.runtime,
+            "sidecar_optional": self.sidecar_optional,
             "sidecar_reachable": self.sidecar_reachable,
             "sidecar_embed_ok": self.sidecar_embed_ok,
             "sidecar_url": self.sidecar_url,
@@ -70,6 +126,9 @@ class DualLoopOverview:
             "last_sync": self.last_sync,
             "freeos": dict(self.freeos),
             "openxyos": dict(self.openxyos),
+            "colleagues": list(self.colleagues),
+            "experts": list(self.experts),
+            "org_surfaces": dict(self.org_surfaces),
             "last_loop": self.last_loop,
             "notes": list(self.notes),
             "catalog": list(OPENXYOS_MODULES),
@@ -90,6 +149,8 @@ def build_overview(
     tid = service.tenant_id() or "default"
     colleagues = LifecycleStore(service.home, tid).list()
     spawned = list_spawned_agents(service.home)
+    colleague_rows = _colleague_rows(service.home, tid)
+    org_surfaces = _mirror_surfaces(service.home, tid)
     org_skills = _count_skill_dirs(service.home)
     proof = _read_loop_proof(service.home)
     last_sync = None
@@ -122,7 +183,8 @@ def build_overview(
         "approvals": 0,
     }
     notes = [
-        "FreeOS does the work. openXYOS owns organization and governance.",
+        "Organization runs in the FreeOS Python host. The Node sidecar is optional.",
+        "FreeOS does the work. Organization capabilities (catalog, employees, growth loop) live in-host.",
         "Data plane: colleagues / experts / skills / MCP / tasks. Control plane: department employees / blueprints / modules / governance.",
     ]
     embed_ok = False
@@ -131,15 +193,14 @@ def build_overview(
             embed_ok = service.probe_sidecar_embed()
         except Exception:
             embed_ok = True
-    if not status.sidecar.reachable:
-        if install_ready:
+        if not embed_ok:
             notes.append(
-                "openXYOS sidecar is offline — reconnecting the install-time local console."
+                "Optional openXYOS console is up but the embed origin is blocked (advanced preview)."
             )
-        else:
-            notes.append("openXYOS sidecar is offline — start it to sync blueprints and approvals.")
-    elif not embed_ok:
-        notes.append("openXYOS livez is up but the embed origin is blocked (blank preview).")
+    elif service.explicit_sidecar_url():
+        notes.append(
+            "Optional openXYOS sidecar is offline — in-host org storage and the growth loop still work."
+        )
     return DualLoopOverview(
         enabled=status.enabled,
         sidecar_reachable=status.sidecar.reachable,
@@ -154,4 +215,14 @@ def build_overview(
         openxyos=openxyos,
         last_loop=proof,
         notes=notes,
+        colleagues=colleague_rows,
+        experts=[
+            {
+                "agent_id": row.agent_id,
+                "slug": row.slug,
+                "name": row.name,
+            }
+            for row in spawned
+        ],
+        org_surfaces=org_surfaces,
     )

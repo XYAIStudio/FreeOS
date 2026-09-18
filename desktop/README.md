@@ -1,8 +1,8 @@
 # FreeOS desktop (Wails v3 + green portable)
 
 Windows end-user product: **download the NSIS `.exe` → install → open FreeOS**
-(Octop host shell + bundled openXYOS organization console). This is **not**
-`src/octop/infra/desktop` (remote desktop streaming).
+(Octop host shell + in-host Organization). The full openXYOS Node stack is
+**optional**. This is **not** `src/octop/infra/desktop` (remote desktop streaming).
 
 | Path | Role |
 |------|------|
@@ -21,32 +21,15 @@ Same precedence as the FreeOS CLI/server:
 5. new installs → `~/.freeos`
 
 - Green runtime extract → `{home}/portable/`
-- Organization sidecar data → `{home}/org-os/`
-- Local openXYOS workdir (FE+BE) → `%LOCALAPPDATA%\FreeOS\openxyos` on Windows,
-  else `{home}/openxyos`. During Setup the FreeOS installer `nsExec`s a
-  shipped **provisioner subprocess** (`provision-openxyos.ps1`) that expands
-  `openxyos-runtime.zip` with `tar.exe` into that live workdir (and keeps
-  `$INSTDIR\openxyos` as a sealed copy; the `openxyos-runtime` zip and folder
-  are deleted after a successful provision), starts FE/BE
-  at medium integrity (Node inherits `CORS_ORIGIN` / `NODE_ENV`; stdout/stderr
-  go to UTF-8 `start.log`), and writes `.install-ready` only after
-  `http://127.0.0.1:3780/api/health/livez` is healthy. The Setup detail list
-  shows localized step results only (`nsExec::Exec`, not `ExecToLog`); full
-  PowerShell/Node console stays in `%LOCALAPPDATA%\FreeOS\openxyos\provision.log`
-  and `start.log` so UTF-8 Chinese is not misread as GBK. Before extract it
-  stops only FreeOS openXYOS Node (`start.pid` / live and `$INSTDIR\openxyos`
-  paths) and waits until that owned process is gone. After extract+heal, Node
-  starts with cwd at the live root when `backend-dist/server.js` and
-  `dist/index.html` exist there (a leftover nested `openxyos\openxyos` tree
-  must not win — that cwd exits immediately with an empty console). It unpacks into a LocalAppData
-  temp dir, logs tar stderr to `provision.log`, and treats a non-zero tar as
-  success when the layout heals. Transient `[Error] POST /api/auth` / `[seed]`
-  lines in `start.log` are not a provision failure when livez is healthy. If
-  Node dies before livez, the provisioner exits 10 with a `start.log` excerpt
-  in `provision.log` instead of waiting out a livez timeout. A failed
-  subprocess is a failed install step (retry the provisioner). There is no
-  Windows logon autostart: when FreeOS starts later, it brings local
-  openXYOS up with it. Organization embeds `http://127.0.0.1:3780` directly.
+- Organization data (in-host) → `{home}/tenants/`, `{home}/openxyos-mirror/`, `{home}/org-skills/`
+- Optional openXYOS Node sidecar data → `{home}/org-os/`
+- Optional local openXYOS workdir (FE+BE) → `%LOCALAPPDATA%\FreeOS\openxyos` on Windows,
+  else `{home}/openxyos`. **Setup does not extract or start this stack.**
+  A package may still copy `openxyos-runtime.zip` plus `provision-openxyos.ps1`
+  / `start-sidecar.ps1` for later `FREEOS_ORG_SIDECAR=1` use. Missing zip,
+  tar.exe, or `http://127.0.0.1:3780/api/health/livez` must not fail install.
+  There is no Windows logon autostart. Organization first paint is the
+  FreeOS-native page (`/api/org-module/*`), not an iframe of 3780.
 - Shell prefs → `{home}/desktop-settings.json`
 
 ## Windows install finish
@@ -58,38 +41,19 @@ unelevated explorer token so the first run does not stamp `%USERPROFILE%\.freeos
 as High integrity. Uncheck to skip. Chinese installer strings are compiled
 with `makensis -INPUTCHARSET UTF8` from a UTF-8 BOM `project.nsi`.
 
-The install log is no longer only `FreeOS.exe` + shortcuts. A healthy package
-also copies `openxyos-runtime.zip` plus the provisioner (`provision-openxyos.ps1`
-/ `.cmd`, `start-sidecar.ps1` / `.cmd`). Setup **nsExecs that provisioner as
-a child process** (`nsExec::Exec`, stdout discarded) and waits for exit 0.
-The child extracts with Windows
-`tar.exe` (quoted paths, so `Program Files` works) into a LocalAppData
-temp dir, then heals that tree into `%LOCALAPPDATA%\FreeOS\openxyos` after
-stopping only the FreeOS openXYOS Node that would lock those files and
-waiting until it is gone. tar
-stdout/stderr go to UTF-8 `provision.log`, not the NSIS detail list. A non-zero tar is not exit 3 when the
-layout is complete after heal. It then starts Node at medium integrity
-(IShellDispatch2 — never High-IL Node from the elevated installer), waits
-for livez, and writes `.install-ready` only when healthy. `$INSTDIR\openxyos`
-is the sealed install copy. After success the provisioner removes
-`$INSTDIR\openxyos-runtime.zip` (and similarly named archives) plus the
-`$INSTDIR\openxyos-runtime` folder, and a sibling `openxyos-runtime` under
-`%LOCALAPPDATA%\FreeOS` if one was staged there. A failed provision leaves
-those artifacts for debugging. A README-only tree or a
-failed health check is a provision failure, not a skipped success. Setup does
+A healthy package is **FreeOS.exe + the Python host**. An optional
+`openxyos-runtime.zip` (plus `provision-openxyos.ps1` / `start-sidecar.ps1`)
+may be copied for advanced Node export/sync. Setup **does not** `nsExec` the
+provisioner, extract with `tar.exe`, start Node, or wait for livez. A
+README-only or missing runtime tree is not an install failure. Setup does
 **not** register HKCU Run or a logon scheduled task.
 
-Why LocalAppData, written by an elevated installer: `$INSTDIR` is typically
-`C:\Program Files\FreeOS`, which a later unelevated `FreeOS.exe` cannot
-mutate. The app’s live root is `%LOCALAPPDATA%\FreeOS\openxyos`. Setup
-reads the installing user’s `LOCALAPPDATA` environment variable (not NSIS
-`$LOCALAPPDATA` after `SetShellVarContext all`, which is ProgramData) and
-writes the complete FE+BE there so first launch does not pay a copy/unpack
-cost. Organization then embeds `http://127.0.0.1:3780` directly.
-Downloading the latest openXYOS source uses the same
-native folder picker as the project workdir (any drive), not a typed path only.
+Organization uses the in-host `/api/org-module/*` surfaces. Downloading the
+latest openXYOS source (advanced) uses the same native folder picker as the
+project workdir (any drive), not a typed path only.
 
-Override the workdir with `FREEOS_OPENXYOS_HOME`.
+Override an optional sidecar workdir with `FREEOS_OPENXYOS_HOME`. Opt in with
+`FREEOS_ORG_SIDECAR=1`.
 
 ## Windows uninstall
 
@@ -97,9 +61,9 @@ The NSIS uninstaller (Settings → Apps, or `uninstall.exe` in the install
 folder) removes program-owned files. If FreeOS (or its host / org-sidecar)
 is still running, it **asks** before continuing (Chinese / English). Cancel
 aborts uninstall and leaves processes running. Confirm closes them
-(graceful, then force) and then wipes the install directory. Version stays
-`0.0.1`; rebuilds replace the existing GitHub Release `v0.0.1` assets
-rather than cutting a new tag.
+(graceful, then force) and then wipes the install directory. Product
+version is `0.0.2`; ship artifacts as `v0.0.2` rather than overwriting
+the sidecar-era `v0.0.1` Windows builds.
 
 **Removes**
 
@@ -130,19 +94,14 @@ would treat that tree as program files (unless it is named `User Data` /
 
 On first open the shell:
 
-1. Extracts the bundled portable **Python host** (the openXYOS FE+BE tree
-   was already written to `%LOCALAPPDATA%\FreeOS\openxyos` during Setup).
-2. If that live workdir is already complete, skips any copy/unpack. A
-   copy from `$INSTDIR` / `portable/org-sidecar` is heal-only (other
-   Windows users, or a tree that Setup never populated).
-3. If `http://127.0.0.1:3780/api/health/livez` is already up from Setup,
-   attaches to it. Otherwise FreeOS starts local openXYOS from the live
-   workdir and waits until livez responds. There is no logon autostart.
-4. Starts the FreeOS host with `FREEOS_HOME`, `FREEOS_ORG_ENABLE=1`, and
-   `FREEOS_OPENXYOS_HOME`.
-5. Opens the desktop window on the host UI with a local guest session (no
-   login wall). Chat and **Organization** are both available — no separate
-   Node install. Register or sign in later when a save needs an account.
+1. Extracts the bundled portable **Python host**.
+2. Does **not** extract or start `openxyos-runtime` unless `FREEOS_ORG_SIDECAR=1`.
+3. Starts the FreeOS host with `FREEOS_HOME` and `FREEOS_ORG_ENABLE=1`.
+   It does not set `OPENXYOS_BASE_URL` / `FREEOS_ORG_SIDECAR_URL` by default.
+4. Opens the desktop window on the host UI with a local guest session (no
+   login wall). Chat and **Organization** are both available in-host — no
+   Node process on 3780 is required. Register or sign in later when a save
+   needs an account.
 
 ## Build green zip
 
@@ -152,7 +111,9 @@ From repo root (needs Node 20+ so openXYOS can be built into the zip):
 make -f desktop/portable/Makefile green
 ```
 
-Skip the sidecar only when debugging the Python runtime: `SKIP_ORG_SIDECAR=1`.
+The Node sidecar is optional. Package it with the green zip when you want
+advanced export/sync; skip it with `SKIP_ORG_SIDECAR=1`. Desktop/runtime
+never requires it for Organization.
 
 CI: `.github/workflows/octop-desktop.yml` (**name:** FreeOS Desktop Package)
 builds native platform/arch variants. `v*` tags and `workflow_dispatch`

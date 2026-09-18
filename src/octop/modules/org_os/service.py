@@ -19,6 +19,13 @@ logger = logging.getLogger(__name__)
 ORG_PLUGIN_ID = "org-os"
 DEFAULT_SIDECAR_URL = "http://127.0.0.1:3780"
 _CONFIG_SECTION = "org_os"
+_SIDECAR_OPT_IN = {"1", "true", "yes", "on"}
+
+
+def org_sidecar_wanted() -> bool:
+    """True only when the operator explicitly opts into the Node sidecar."""
+    flag = os.environ.get("FREEOS_ORG_SIDECAR", "").strip().lower()
+    return flag in _SIDECAR_OPT_IN
 
 
 @dataclass(frozen=True)
@@ -100,14 +107,27 @@ class OrgModuleService:
         return False
 
     def sidecar_url(self) -> str:
-        env = os.environ.get("FREEOS_ORG_SIDECAR_URL", "").strip()
-        if env:
-            return normalize_sidecar_url(env)
+        explicit = self.explicit_sidecar_url()
+        return explicit or DEFAULT_SIDECAR_URL
+
+    def explicit_sidecar_url(self) -> str:
+        """Return a configured sidecar origin, or empty when the Node stack is optional.
+
+        The implicit ``http://127.0.0.1:3780`` default is display-only. Growth
+        loop / apply must not treat that fallback as a required control plane.
+        """
+        for key in ("OPENXYOS_BASE_URL", "FREEOS_ORG_SIDECAR_URL"):
+            env = os.environ.get(key, "").strip()
+            if env:
+                return normalize_sidecar_url(env)
         section = self._section()
         raw = section.get("sidecar_url")
         if isinstance(raw, str) and raw.strip():
-            return normalize_sidecar_url(raw)
-        return DEFAULT_SIDECAR_URL
+            cleaned = normalize_sidecar_url(raw)
+            if cleaned == DEFAULT_SIDECAR_URL and not org_sidecar_wanted():
+                return ""
+            return cleaned
+        return ""
 
     def tenant_id(self) -> str:
         env = os.environ.get("FREEOS_ORG_TENANT_ID", "").strip()
@@ -184,7 +204,13 @@ class OrgModuleService:
         _write_json(self.config_path, data)
 
     def probe_sidecar(self, timeout: float = 2.0) -> SidecarHealth:
-        url = self.sidecar_url()
+        url = self.explicit_sidecar_url()
+        if not url:
+            return SidecarHealth(
+                reachable=False,
+                url=DEFAULT_SIDECAR_URL,
+                detail="sidecar optional; not configured",
+            )
         livez = f"{url}/api/health/livez"
         try:
             with httpx.Client(timeout=timeout, follow_redirects=True) as client:
@@ -218,7 +244,9 @@ class OrgModuleService:
         CORS whitelist answers those with HTTP 500 while livez (no Origin)
         still looks healthy — the Organization iframe stays white.
         """
-        url = self.sidecar_url()
+        url = self.explicit_sidecar_url()
+        if not url:
+            return False
         origin = url.rstrip("/")
         try:
             with httpx.Client(timeout=timeout, follow_redirects=True) as client:
@@ -234,19 +262,20 @@ class OrgModuleService:
         sidecar = self.probe_sidecar()
         enabled = self.is_enabled()
         notes = [
+            "Organization capabilities run in the FreeOS Python host.",
             "Host identity stays in FreeOS (JWT users under the platform home).",
-            "openXYOS is the control plane; FreeOS is the data plane. "
+            "The optional openXYOS Node stack is for export/sync/advanced deploy, "
+            "not required for Organization or the growth loop.",
             "Do not replace the FreeOS agent runtime with openXYOS chat.",
-            "Proxy forwards X-FreeOS-User* and X-FreeOS-Tenant-Id; sign in to "
-            "the sidecar separately for mutating org routes.",
             "Plugin id org-os is seeded disabled; enable it here or via "
             "Admin → Plugins / `freeos org enable`.",
             "Run the finished loop with `freeos org loop run`.",
         ]
-        if not sidecar.reachable and enabled:
+        if sidecar.reachable:
+            notes.append(f"Optional Node sidecar is reachable at {sidecar.url}.")
+        elif self.explicit_sidecar_url():
             notes.append(
-                f"Sidecar is off. Start it with: bash scripts/run-org-sidecar.sh "
-                f"(listens on {sidecar.url})."
+                f"Optional sidecar at {sidecar.url} is offline; in-host org storage is used."
             )
         return OrgModuleStatus(
             enabled=enabled,

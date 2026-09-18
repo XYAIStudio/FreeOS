@@ -39,6 +39,25 @@ def _walk(store: LifecycleStore, slug: str, *states: str) -> None:
         transition(store, slug, state)
 
 
+def test_growth_loop_does_not_require_node_sidecar(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from octop.modules.org_os import sidecar_launch
+
+    def _boom(*_args: object, **_kwargs: object) -> None:
+        raise AssertionError("growth loop must not start the Node sidecar")
+
+    monkeypatch.delenv("OPENXYOS_BASE_URL", raising=False)
+    monkeypatch.delenv("FREEOS_ORG_SIDECAR_URL", raising=False)
+    monkeypatch.delenv("FREEOS_ORG_SIDECAR", raising=False)
+    monkeypatch.setattr(sidecar_launch, "ensure_sidecar", _boom)
+    proof = run_growth_loop(tmp_path, tenant_id="loop")
+    assert proof.ok is True
+    assert proof.remote_applied is False
+    assert (tmp_path / "openxyos-mirror" / "loop" / "employees.json").is_file()
+    assert (tmp_path / "org-agents" / "registry.json").is_file()
+
+
 def test_growth_loop_with_fixtures(tmp_path: Path) -> None:
     proof = run_growth_loop(tmp_path, tenant_id="loop")
     assert proof.ok is True

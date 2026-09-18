@@ -46,36 +46,38 @@ See [NOTICE](../NOTICE) and `modules/openxyos/TRADEMARKS.md`.
 
 ## Running topology
 
+Desktop keeps **one** resident runtime: the FreeOS/Octop Python host.
+Organization control-plane capabilities (`org_os`, `/api/org-module/*`,
+the Organization page) live in that host. The full openXYOS Node stack on
+`127.0.0.1:3780` is **optional** (export / sync / advanced deploy). It is
+not required to install FreeOS, open Organization, or run
+`freeos org loop run`.
+
 The host inserts governance in front of high-risk data-plane tools,
-generates module skills that call sidecar `/api/*` with tenant headers,
-compiles blueprints into chat-usable colleagues, and applies asset packs
-onto openXYOS-shaped surfaces.
+generates module skills, compiles blueprints into chat-usable colleagues,
+and applies asset packs onto openXYOS-shaped **in-host** surfaces
+(`{FREEOS_HOME}/openxyos-mirror/`, lifecycle registry, org-skills).
 
 ```
                  ┌─────────────────────────────────────────────┐
   Browser / IM   │ FreeOS dashboard + Octop IM channels         │
-                 │  /organization · /approve · /pending         │
+                 │  /organization (native) · /experts · /approve│
                  └───────────────┬─────────────────────────────┘
                                  │ JWT / IM session
                  ┌───────────────▼─────────────────────────────┐
   Host           │ FastAPI  src/octop/api/app.py                │
-  (data plane)   │  /api/* Octop routers                        │
-                 │  /api/org-module/status|catalog|PATCH        │
-                 │  /api/org-module/governance/*                │
-                 │  /api/org-module/skills/*                    │
-                 │  /api/org-module/sidecar/*  (BFF proxy)      │
-                 │  PluginManager + bundled org-os              │
-                 │  xyos-governance-mcp (stdio MCP)             │
+  (single runtime)│ /api/* Octop routers                        │
+                 │  /api/org-module/status|catalog|overview     │
+                 │  /api/org-module/assemble|pack|loop|produce  │
+                 │  /api/org-module/employees|assets|governance │
+                 │  in-host org storage + xyos-governance-mcp   │
                  └───────┬───────────────────┬─────────────────┘
-                         │ HTTP              │ durable pause
-                         │ X-FreeOS-User*    │ ~/.freeos/governance/
-                         │ X-FreeOS-Tenant-Id│
+                         │ optional HTTP     │ durable pause
+                         │ if opted in       │ ~/.freeos/governance/
                  ┌───────▼─────────┐   ┌─────▼─────────────────┐
-  Sidecar        │ openXYOS :3780  │   │ Pause + audit JSONL   │
-  (control plane)│ /api/governance │   │ Human must approve    │
-                 │ /api/module-…   │   │ before execute=true   │
-                 │ own SQL.js/PG   │   └───────────────────────┘
-                 └─────────────────┘
+  Optional       │ openXYOS :3780  │   │ Pause + audit JSONL   │
+  Node sidecar   │ export / sync   │   │ Human must approve    │
+                 └─────────────────┘   └───────────────────────┘
 ```
 
 **Why this topology for 2 + 3**

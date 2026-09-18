@@ -78,6 +78,6 @@ website/dist/
 ## 内容边界
 
 - 产品事实以仓库 `README.md`、`docs/architecture-integration.md`、`docs/asset-loop.md` 为准。
-- Windows 安装包指向 [v0.0.1 Release](https://github.com/XYAIStudio/FreeOS/releases/tag/v0.0.1)。
+- Windows 安装包指向 [v0.0.2 Release](https://github.com/XYAIStudio/FreeOS/releases/tag/v0.0.2)。
 - 页脚按 `NOTICE` 致谢 Octop（MIT）与 openXYOS（Apache-2.0），不主张上游商标从属。
 - 视觉节奏参考 XYAI Labs 公开站的章节编号与玻璃质感，文案仍是 FreeOS 产品自己的话。

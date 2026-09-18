@@ -125,7 +125,7 @@ func shouldReplacePortable(root string) bool {
 		return true
 	}
 	// Keep a newer in-app FreeOS portable over an older bundled zip.
-	// Do not keep Octop 0.9 / 1.0 leftovers — FreeOS is 0.0.1 and must replace them.
+	// Do not keep Octop 0.9 / 1.0 leftovers — FreeOS is 0.0.2 and must replace them.
 	if currentVersion != "" && bundledVersion != "" &&
 		compareVersions(bundledVersion, currentVersion) < 0 &&
 		!isOctopLineageRuntime(root) {

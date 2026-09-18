@@ -49,8 +49,24 @@ export interface OrgControlPlane {
   approvals: number;
 }
 
+export interface OrgColleague {
+  slug: string;
+  name: string;
+  lifecycle: string;
+  agent_id: string;
+  spawned: boolean;
+}
+
+export interface OrgExpert {
+  agent_id: string;
+  slug: string;
+  name: string;
+}
+
 export interface OrgOverview {
   enabled: boolean;
+  runtime?: "in_host" | string;
+  sidecar_optional?: boolean;
   sidecar_reachable: boolean;
   sidecar_embed_ok?: boolean;
   sidecar_url: string;
@@ -61,6 +77,14 @@ export interface OrgOverview {
   last_sync: string | null;
   freeos: OrgPlaneCounts;
   openxyos: OrgControlPlane;
+  colleagues?: OrgColleague[];
+  experts?: OrgExpert[];
+  org_surfaces?: {
+    employees: number;
+    talent: number;
+    skills: number;
+    plugins: number;
+  };
   last_loop: Record<string, unknown> | null;
   notes: string[];
   catalog: OrgCapability[];

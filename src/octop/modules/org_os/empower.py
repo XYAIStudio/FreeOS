@@ -76,7 +76,7 @@ def assemble_from_blueprint(
         notes.extend(inbound.notes)
         notes.append("imported openXYOS catalog/policies from the live sidecar")
     else:
-        notes.append("sidecar offline; compiling bundled openXYOS blueprint fixtures")
+        notes.append("using in-host org storage and bundled openXYOS blueprint fixtures")
 
     store = LifecycleStore(service.home, tid)
     paths = [blueprint_fixture(), *extra_blueprint_fixtures()]
@@ -85,7 +85,7 @@ def assemble_from_blueprint(
             path,
             home=service.home,
             tenant_id=tid,
-            sidecar_url=service.sidecar_url(),
+            sidecar_url=service.explicit_sidecar_url(),
         )
         register_compiled(
             store,
@@ -196,7 +196,7 @@ def produce_from_corpus(
         },
         home=service.home,
         tenant_id=tid,
-        sidecar_url=service.sidecar_url(),
+        sidecar_url=service.explicit_sidecar_url(),
     )
     store = LifecycleStore(service.home, tid)
     register_compiled(

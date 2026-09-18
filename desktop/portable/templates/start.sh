@@ -58,8 +58,6 @@ done
 
 export FREEOS_HOME OCTOP_HOME
 export FREEOS_ORG_ENABLE="${FREEOS_ORG_ENABLE:-1}"
-export FREEOS_ORG_SIDECAR_URL="${FREEOS_ORG_SIDECAR_URL:-http://127.0.0.1:3780}"
-export OPENXYOS_BASE_URL="${OPENXYOS_BASE_URL:-${FREEOS_ORG_SIDECAR_URL}}"
 mkdir -p "$FREEOS_HOME"
 
 PY=""
@@ -78,10 +76,19 @@ export PYTHONUTF8=1
 export PYTHONIOENCODING=utf-8
 unset PYTHONPATH || true
 
-if [[ -x "${ROOT}/org-sidecar/start-sidecar.sh" ]]; then
-  echo "[freeos] organization sidecar → ${FREEOS_ORG_SIDECAR_URL}"
-  "${ROOT}/org-sidecar/start-sidecar.sh" &
-fi
+case "${FREEOS_ORG_SIDECAR:-}" in
+  1|true|yes|on)
+    export FREEOS_ORG_SIDECAR_URL="${FREEOS_ORG_SIDECAR_URL:-http://127.0.0.1:3780}"
+    export OPENXYOS_BASE_URL="${OPENXYOS_BASE_URL:-${FREEOS_ORG_SIDECAR_URL}}"
+    if [[ -x "${ROOT}/org-sidecar/start-sidecar.sh" ]]; then
+      echo "[freeos] optional organization sidecar → ${FREEOS_ORG_SIDECAR_URL}"
+      "${ROOT}/org-sidecar/start-sidecar.sh" &
+    fi
+    ;;
+  *)
+    echo "[freeos] organization is in-host (set FREEOS_ORG_SIDECAR=1 for the Node sidecar)"
+    ;;
+esac
 
 echo "[freeos] home=${FREEOS_HOME}"
 echo "[freeos] http://${HOST}:${PORT}"

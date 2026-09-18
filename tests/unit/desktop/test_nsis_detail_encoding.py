@@ -102,11 +102,11 @@ def test_nsis_provision_does_not_exec_to_log() -> None:
     provision = nsh[
         nsh.index("!macro wails.provisionOpenXYOS") : nsh.index("!macro wails.openxyosFailDetail")
     ]
-    assert "nsExec::Exec $R4" in provision
+    assert "nsExec::Exec $R4" not in provision
     assert "ExecToLog" not in provision
-    assert provision.count("nsExec::Exec $R4") == 3
+    assert "Abort" not in provision
     cmd = PROVISION_CMD.read_text(encoding="utf-8")
     assert ">nul" in cmd
     nsi = NSI.read_text(encoding="utf-8-sig")
-    assert "OPENXYOS_PROVISION_DETAIL" in nsi
-    assert "UTF-8" in nsi
+    assert "OPENXYOS_OPTIONAL_SKIP" in nsi
+    assert "Setup continues" in nsi

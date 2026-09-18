@@ -8,7 +8,7 @@
 
 <p align="center">
   <a href="https://www.python.org/downloads/"><img alt="Python 3.12+" src="https://img.shields.io/badge/python-3.12%2B-blue?logo=python&logoColor=white" /></a>
-  <a href="https://github.com/XYAIStudio/FreeOS/releases"><img alt="Version" src="https://img.shields.io/badge/version-0.0.1-orange" /></a>
+  <a href="https://github.com/XYAIStudio/FreeOS/releases"><img alt="Version" src="https://img.shields.io/badge/version-0.0.2-orange" /></a>
   <a href="LICENSE"><img alt="License: MIT + Apache-2.0" src="https://img.shields.io/badge/license-MIT%20%2B%20Apache--2.0-green" /></a>
 </p>
 
@@ -62,7 +62,7 @@ Operator detail: [docs/asset-loop.md](docs/asset-loop.md).
    `FreeOS-desktop-windows-arm64-<version>.exe`（ARM 电脑）。
 2. 双击安装包。安装程序会放到「程序文件」并创建开始菜单和桌面快捷方式。
 3. 打开 **FreeOS**。第一次启动会解压内置运行环境（可能要一两分钟），然后直接进入可用会话，无需先登录。
-4. 保存、导出或发布到账号时再注册或登录。组织控制台（openXYOS）已随安装包内置，无需再装 Node；侧栏 **Organization** 默认打开。
+4. 保存、导出或发布到账号时再注册或登录。侧栏 **Organization** 使用宿主内组织能力，不必再装 Node，也不依赖本机 `127.0.0.1:3780`。完整 openXYOS Node 栈是可选项（导出/同步/高级部署）。
 
 数据目录默认是 `%USERPROFILE%\.freeos`（可用环境变量 `FREEOS_HOME` 改）。旧版 Octop 的 `~/.octop` 仍会被识别。卸载安装包会清空安装目录（默认为 `Program Files\FreeOS`）并删除快捷方式，但**不会**删除该用户数据目录；详见 [desktop/README.md](desktop/README.md#windows-uninstall)。
 
@@ -71,7 +71,7 @@ Operator detail: [docs/asset-loop.md](docs/asset-loop.md).
 ### Prerequisites
 
 - Python 3.12+ (the project uses [uv](https://docs.astral.sh/uv/))
-- Node.js 20.19+ only if you start the organization sidecar from source, or rebuild the dashboard. The Windows installer already bundles Node + openXYOS.
+- Node.js 20.19+ only if you opt into the organization sidecar (`FREEOS_ORG_SIDECAR=1`) from source, or rebuild the dashboard. A fresh FreeOS install does not need Node.
 
 ### From this repository
 
@@ -112,22 +112,25 @@ Full host suite: `uv run pytest` / `make test-fast` (needs the usual extra servi
 
 ## Enable the organization module
 
-The host stays Python. openXYOS stays a TypeScript sidecar under `modules/openxyos/`. Toggle it from any of:
+The host stays Python. Organization first paint is the native dashboard page
+plus `/api/org-module/*` (catalog, ingest/import, growth loop, employees).
+The TypeScript sidecar under `modules/openxyos/` is optional.
 
 | Surface | Action |
 |---|---|
-| Dashboard | Sidebar → **Organization** → enable switch |
-| CLI | `uv run freeos org enable` · `uv run freeos org status` |
+| Dashboard | Sidebar → **Organization** (in-host workbench) |
+| CLI | `uv run freeos org enable` · `uv run freeos org status` · `uv run freeos org loop run` |
 | Plugin | Admin → Plugins → **Organization OS** (`org-os`) |
 | API | `PATCH /api/org-module` with `{ "enabled": true }` |
 
-Then start the sidecar (Node 20+):
+Optional Node sidecar (export/sync/advanced deploy only):
 
 ```bash
-bash scripts/run-org-sidecar.sh
+FREEOS_ORG_SIDECAR=1 bash scripts/run-org-sidecar.sh
 ```
 
-Default origin: `http://127.0.0.1:3780` (`FREEOS_ORG_SIDECAR_URL` / `OPENXYOS_BASE_URL` / `FREEOS_ORG_SIDECAR_PORT` to override). When `/api/health/livez` succeeds, `/organization` embeds the org console and `/api/org-module/sidecar/*` proxies to it.
+Default origin if opted in: `http://127.0.0.1:3780`. Organization and
+`freeos org loop run` do **not** wait for `/api/health/livez`.
 
 **Auth:** FreeOS JWT users and openXYOS tenants are separate. The proxy forwards `X-FreeOS-User*` and `X-FreeOS-Tenant-Id`. One tenant = one workspace/sandbox — not prompt isolation.
 
