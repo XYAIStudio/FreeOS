@@ -8,6 +8,7 @@ import "../openxyos.css";
 import HeroWaterScene from "../components/HeroWaterScene";
 import AgentJourneyDemo from "../components/AgentJourneyDemo";
 import { LanguageToggle, useLocale } from "../i18n";
+import { XYAI_MASCOT_SRC } from "../brandAssets";
 
 const GITHUB_URL = (import.meta.env.VITE_GITHUB_URL as string | undefined)?.trim() || "https://github.com/XYAIStudio/openXYOS";
 const CAPABILITIES = [
@@ -442,7 +443,7 @@ export default function OpenHomePage() {
           <div className="ox-meta"><span><Check size={13}/> Apache-2.0</span><span><Check size={13}/> {tx("TypeScript 全栈", "TypeScript full stack")}</span><span><Check size={13}/> {tx("核心无私有依赖", "No private core dependencies")}</span></div>
         </div>
         <div className="ox-console">
-          <figure className="ox-mascot"><img src="/assets/xyai-mascot.webp" alt={tx("腹部带有 XYAI 标志的卡通智能助手", "XYAI assistant mascot with a chest logo")} width="820" height="931" fetchPriority="high"/></figure>
+          <figure className="ox-mascot"><img src={XYAI_MASCOT_SRC} alt={tx("腹部带有 XYAI 标志的卡通智能助手", "XYAI assistant mascot with a chest logo")} width="820" height="931" fetchPriority="high"/></figure>
           <header><div><i/><i/><i/></div><span><Terminal size={13}/> openxyos / quick-start</span><Braces size={15}/></header>
           <div className="ox-terminal"><p><b>$</b> npm ci</p><p><b>$</b> npm run dev</p><hr/><p className="dim">✓ tenant isolation ready</p><p className="dim">✓ organization graph mounted</p><p className="dim">✓ agent governance online</p><p className="ready"><Sparkles size={14}/> openXYOS is running</p><button onClick={() => void copyInstall()}><Copy size={13}/> {copied ? tx("已复制", "Copied") : tx("复制命令", "Copy command")}</button></div>
           <footer><span>{tx("组织", "Organization")}</span><i/><span>{tx("智能体", "Agents")}</span><i/><span>{tx("协作", "Collaboration")}</span><i/><span>{tx("审计", "Audit")}</span></footer>

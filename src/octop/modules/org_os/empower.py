@@ -53,7 +53,9 @@ def _corpus_excerpts(dest_s: str) -> list[dict[str, str]]:
     return references
 
 
-def assemble_from_blueprint(service: OrgModuleService) -> dict[str, Any]:
+def assemble_from_blueprint(
+    service: OrgModuleService, *, owner_user_id: int | None = None
+) -> dict[str, Any]:
     """Import control-plane catalog/policies (when live) and compile real blueprints."""
     tid = service.tenant_id() or "default"
     sidecar = service.probe_sidecar()
@@ -67,6 +69,7 @@ def assemble_from_blueprint(service: OrgModuleService) -> dict[str, Any]:
             sidecar_url=service.sidecar_url(),
             catalog=True,
             from_sidecar=True,
+            owner_user_id=owner_user_id,
         )
         imported = inbound.to_dict()
         employees.extend(inbound.employees)
@@ -99,12 +102,19 @@ def assemble_from_blueprint(service: OrgModuleService) -> dict[str, Any]:
     for record in store.list():
         if record.slug in already:
             continue
-        spawned.append(spawn_colleague_agent(service.home, record).to_dict())
+        spawned.append(
+            spawn_colleague_agent(service.home, record, owner_user_id=owner_user_id).to_dict()
+        )
+    imported_skills = list(imported.get("skills") or []) if isinstance(imported, dict) else []
+    imported_plugins = list(imported.get("plugins") or []) if isinstance(imported, dict) else []
     return {
         "sidecar_reachable": sidecar.reachable,
         "employees": list(dict.fromkeys(employees)),
         "spawned": spawned,
         "imported": imported,
+        "skills": imported_skills,
+        "plugins": imported_plugins,
+        "preview_path": "/experts",
         "notes": notes,
     }
 
@@ -129,6 +139,7 @@ def produce_from_corpus(
     distill_path: str = "",
     ima_url: str = "",
     name: str = "",
+    owner_user_id: int | None = None,
 ) -> dict[str, Any]:
     """Build an expert / assistant from a local/cloud knowledge mount (ima pointer OK)."""
     from octop.infra.knowledge.local_mount import (
@@ -198,7 +209,7 @@ def produce_from_corpus(
     record = store.get(compiled.slug)
     if record is None:
         raise RuntimeError(f"failed to register expert {compiled.slug}")
-    spawned = spawn_colleague_agent(service.home, record)
+    spawned = spawn_colleague_agent(service.home, record, owner_user_id=owner_user_id)
     notes.append(f"compiled blueprint → {compiled.workspace}")
     notes.append(f"spawned FreeOS assistant {spawned.agent_id}")
     return {
@@ -207,5 +218,6 @@ def produce_from_corpus(
         "distill_path": dest_s,
         "copied": copied,
         "spawned": spawned.to_dict(),
+        "preview_path": "/experts",
         "notes": notes,
     }

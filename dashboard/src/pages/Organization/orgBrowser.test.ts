@@ -2,14 +2,19 @@ import { describe, expect, it } from "vitest";
 import {
   DEFAULT_ORG_URL,
   buildEmbedSrc,
+  canGoBack,
+  canGoForward,
   closeOrgTab,
   createHomeTab,
+  goBackOrgTab,
+  goForwardOrgTab,
   iframeSandboxFor,
   navigateOrgTab,
   normalizeOrgUrl,
   openOrgTab,
   parseOrgNavigatedMessage,
   parseOrgOpenTabMessage,
+  reloadOrgTab,
   sidecarOriginOf,
   stripEmbedParams,
   tabTitleFromUrl,
@@ -93,6 +98,23 @@ describe("org tab helpers", () => {
     expect(next[0]?.url).toBe("http://127.0.0.1:3780/employees");
     expect(next[0]?.srcUrl).toBe(DEFAULT_ORG_URL);
     expect(next[0]?.title).toBe("Employees");
+  });
+
+  it("tracks back / forward / reload on the active tab", () => {
+    const home = createHomeTab(DEFAULT_ORG_URL, "openXYOS");
+    const employees = "http://127.0.0.1:3780/employees";
+    const next = navigateOrgTab([home], "org-home", employees, "Employees");
+    expect(canGoBack(next[0])).toBe(true);
+    expect(canGoForward(next[0])).toBe(false);
+    const back = goBackOrgTab(next, "org-home", "openXYOS");
+    expect(back[0]?.url).toBe(DEFAULT_ORG_URL);
+    expect(back[0]?.srcUrl).toBe(DEFAULT_ORG_URL);
+    expect(canGoForward(back[0])).toBe(true);
+    const forward = goForwardOrgTab(back, "org-home", "openXYOS");
+    expect(forward[0]?.url).toBe(employees);
+    const reloaded = reloadOrgTab(forward, "org-home");
+    expect(reloaded[0]?.reloadSeq).toBe(1);
+    expect(reloaded[0]?.srcUrl).toBe(employees);
   });
 
   it("closes a tab and activates a neighbor", () => {

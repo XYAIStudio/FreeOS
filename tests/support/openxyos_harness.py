@@ -15,6 +15,7 @@ class ControlPlaneState:
         self.talent: list[dict[str, Any]] = []
         self.plugins: list[dict[str, Any]] = []
         self.skills: list[dict[str, Any]] = []
+        self.mcp: list[dict[str, Any]] = []
         self.module_settings: dict[str, Any] = {}
         self.ingest_token: str = ""
         self.ingested: dict[str, Any] = {}
@@ -101,11 +102,13 @@ def start_control_plane(state: ControlPlaneState | None = None) -> tuple[str, Th
                             "talent": store.talent,
                             "plugins": store.plugins,
                             "skills": store.skills,
+                            "mcp": store.mcp,
                             "counts": {
                                 "employees": len(store.employees),
                                 "talent": len(store.talent),
                                 "plugins": len(store.plugins),
                                 "skills": len(store.skills),
+                                "mcp": len(store.mcp),
                             },
                         },
                     },
@@ -157,6 +160,8 @@ def start_control_plane(state: ControlPlaneState | None = None) -> tuple[str, Th
                         store.skills.extend(
                             item for item in payload["skills"] if isinstance(item, dict)
                         )
+                    if isinstance(payload.get("mcp"), list):
+                        store.mcp.extend(item for item in payload["mcp"] if isinstance(item, dict))
                 self._json(
                     200,
                     {

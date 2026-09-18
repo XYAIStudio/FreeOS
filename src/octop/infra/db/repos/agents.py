@@ -179,11 +179,19 @@ class AgentRepo:
                 (bool_int(shared), now_ts(), agent_id),
             )
 
+    def assign_owner_if_missing(self, agent_id: str, user_id: int) -> None:
+        with self._db.transaction() as conn:
+            conn.execute(
+                "UPDATE agents SET user_id = ?, updated_at = ? "
+                "WHERE agent_id = ? AND user_id IS NULL",
+                (user_id, now_ts(), agent_id),
+            )
+
     def list_shared(self, *, exclude_user_id: int | None = None) -> list[AgentRow]:
         sql = "SELECT * FROM agents WHERE is_shared = 1 AND enabled = 1"
         params: list[object] = []
         if exclude_user_id is not None:
-            sql += " AND user_id != ?"
+            sql += " AND (user_id IS NULL OR user_id != ?)"
             params.append(exclude_user_id)
         sql += " ORDER BY created_at ASC, id ASC"
         with self._db.connect() as conn:

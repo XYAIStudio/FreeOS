@@ -201,14 +201,12 @@ func (a *App) boot() {
 	a.mu.Lock()
 	stopOctop(a.cmd)
 	stopOctop(a.sidecar)
-	if sidecarReady(root) {
-		a.setStatus(desktopText(locale, copyStatusStartingOrg))
-		sidecar, serr := startOrgSidecar(root, port)
-		a.sidecar = sidecar
-		if serr != nil {
-			logStartupError("organization sidecar", serr)
-		}
-	} else {
+	a.setStatus(desktopText(locale, copyStatusStartingOrg))
+	sidecar, serr := startOrgSidecar(root, port)
+	a.sidecar = sidecar
+	if serr != nil {
+		logStartupError("organization sidecar", serr)
+	} else if sidecar == nil {
 		log.Printf("organization sidecar not bundled under %s", orgSidecarDir(root))
 	}
 	cmd, err := startOctop(root, port)
@@ -233,9 +231,9 @@ func (a *App) boot() {
 		return
 	}
 	if sidecarReady(root) {
-		wait := 20 * time.Second
+		wait := 30 * time.Second
 		if firstLaunch && !openxyosReady {
-			wait = 45 * time.Second
+			wait = 60 * time.Second
 		}
 		if err := waitSidecarLive(wait); err != nil {
 			log.Printf("organization sidecar not live yet: %v", err)

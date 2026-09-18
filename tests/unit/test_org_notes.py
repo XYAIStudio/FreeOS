@@ -13,6 +13,7 @@ def test_localize_loop_notes_zh() -> None:
             "skipped promotion for ops-coordinator: already active",
             "skipped illegal transition for policy-analyst: cannot move active → market",
             "Assets are visible on the logged-in tenant's Employees, Talent, Skills, and Plugins lists.",
+            "imported openXYOS skill org-governance",
         ],
         "zh",
     )
@@ -25,6 +26,7 @@ def test_localize_loop_notes_zh() -> None:
     assert "ops-coordinator" in notes[6] and "active" in notes[6]
     assert "policy-analyst" in notes[7] and "market" in notes[7]
     assert "当前登录租户" in notes[8]
+    assert "org-governance" in notes[9]
 
 
 def test_localize_unknown_note_passthrough() -> None:

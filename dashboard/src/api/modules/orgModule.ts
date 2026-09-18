@@ -82,6 +82,9 @@ export interface OrgAssembleResult {
   employees: string[];
   spawned: Array<{ agent_id: string; slug: string; name: string }>;
   imported: Record<string, unknown> | null;
+  skills?: string[];
+  plugins?: string[];
+  preview_path?: string;
   notes: string[];
 }
 
@@ -146,6 +149,8 @@ export const orgModuleApi = {
     }),
   startSidecar: () =>
     request<OrgSidecarStart>("/org-module/sidecar/start", { method: "POST" }),
+  restartSidecar: () =>
+    request<OrgSidecarStart>("/org-module/sidecar/restart", { method: "POST" }),
   assemble: () =>
     request<OrgAssembleResult>("/org-module/assemble", { method: "POST" }),
   produce: (body: {

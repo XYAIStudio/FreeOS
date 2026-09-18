@@ -165,6 +165,24 @@ app.use(cookieParser(cookieSecret));
     app.use(express.static(distPath));
   }
 
+  const brandAssetNames = new Set([
+    "xyai-mascot.webp",
+    "xyos-water-logo.png",
+    "openxyos-agent-journey-demo.png",
+  ]);
+  app.get("/assets/:file", (req, res, next) => {
+    const name = path.basename(String(req.params.file || ""));
+    if (!brandAssetNames.has(name)) return next();
+    const candidates = [
+      path.join(distPath, "assets", name),
+      path.join(__dirname, "../frontend/public/assets", name),
+      path.join(__dirname, "../public/assets", name),
+    ];
+    const found = candidates.find((candidate) => fs.existsSync(candidate));
+    if (!found) return next();
+    return res.sendFile(found);
+  });
+
   // 知识库上传文件静态服务
   const uploadPath = path.join(__dirname, "../uploads");
   if (!fs.existsSync(uploadPath)) fs.mkdirSync(uploadPath, { recursive: true });

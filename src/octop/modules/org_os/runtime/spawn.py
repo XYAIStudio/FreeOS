@@ -100,7 +100,24 @@ def _copy_skills_to_packages(home: Path, agent_id: str, workspace: Path) -> tupl
     return package_id if count else "", count
 
 
-def _persist_agent_row(home: Path, spawned: SpawnedAgent) -> bool:
+def _resolve_owner_user_id(services: Any, owner_user_id: int | None) -> int | None:
+    if owner_user_id is not None and int(owner_user_id) > 0:
+        return int(owner_user_id)
+    try:
+        users = services.user_repo.list(include_disabled=False)
+    except Exception:
+        return None
+    for row in users:
+        if str(getattr(row, "role", "") or "") == "admin":
+            return int(row.id)
+    if users:
+        return int(users[0].id)
+    return None
+
+
+def _persist_agent_row(
+    home: Path, spawned: SpawnedAgent, *, owner_user_id: int | None = None
+) -> bool:
     """Insert/update the host agents table so the colleague appears in FreeOS chat."""
     try:
         from octop.cli.support.db import open_cli_services
@@ -121,6 +138,7 @@ def _persist_agent_row(home: Path, spawned: SpawnedAgent) -> bool:
         with open_cli_services(home) as services:
             repo = services.agent_repo
             existing = repo.get(spawned.agent_id)
+            owner_id = _resolve_owner_user_id(services, owner_user_id)
             skill_ids = (
                 dump_skill_package_ids([spawned.skill_package_id])
                 if spawned.skill_package_id
@@ -129,7 +147,7 @@ def _persist_agent_row(home: Path, spawned: SpawnedAgent) -> bool:
             if existing is None:
                 repo.create(
                     agent_id=spawned.agent_id,
-                    user_id=None,
+                    user_id=owner_id,
                     name=spawned.name,
                     description=f"FreeOS digital colleague `{spawned.slug}`",
                     system_prompt=spawned.system_prompt,
@@ -149,6 +167,8 @@ def _persist_agent_row(home: Path, spawned: SpawnedAgent) -> bool:
                     system_prompt=spawned.system_prompt,
                     skill_package_ids=skill_ids,
                 )
+                if existing.user_id is None and owner_id is not None:
+                    repo.assign_owner_if_missing(spawned.agent_id, owner_id)
             if spawned.skill_package_id and hasattr(services, "skill_package_repo"):
                 pkg_repo = services.skill_package_repo
                 if pkg_repo.get(spawned.skill_package_id) is None:
@@ -174,6 +194,7 @@ def spawn_colleague_agent(
     record: ColleagueRecord,
     *,
     agent_id: str = "",
+    owner_user_id: int | None = None,
 ) -> SpawnedAgent:
     """Create a FreeOS agent from a compiled colleague workspace.
 
@@ -194,7 +215,7 @@ def spawn_colleague_agent(
         skill_count=skill_count,
         notes=["Registered for FreeOS chat. Governance middleware gates high-risk tools."],
     )
-    persisted = _persist_agent_row(home, spawned)
+    persisted = _persist_agent_row(home, spawned, owner_user_id=owner_user_id)
     spawned.persisted_to_db = persisted
     if persisted:
         spawned.notes.append("Inserted into FreeOS agents table (octop.db).")

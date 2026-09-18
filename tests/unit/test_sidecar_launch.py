@@ -115,6 +115,75 @@ def test_start_sidecar_restarts_when_embed_blocked(
     assert result.detail == "no bundled sidecar runtime"
 
 
+def test_restart_sidecar_stops_then_starts(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    from octop.modules.org_os import sidecar_launch
+
+    service = OrgModuleService(config_path=tmp_path / "config.json", home=tmp_path)
+    live = tmp_path / "live"
+    live.mkdir()
+    stopped: list[Path] = []
+    monkeypatch.setattr(sidecar_launch, "sidecar_runtime_root", lambda: live)
+    monkeypatch.setattr(sidecar_launch, "heal_openxyos_layout", lambda root: True)
+    monkeypatch.setattr(sidecar_launch, "stop_stale_openxyos", lambda root: stopped.append(root))
+    monkeypatch.setattr(sidecar_launch, "_wait_until_down", lambda service, wait=8.0: None)
+    monkeypatch.setattr(
+        sidecar_launch,
+        "start_sidecar",
+        lambda service, wait=20.0, force=False: sidecar_launch.SidecarStartResult(
+            started=True,
+            already=False,
+            reachable=True,
+            url="http://127.0.0.1:3780",
+            command="start-sidecar",
+            detail="ok",
+            launcher="node",
+        ),
+    )
+    result = sidecar_launch.restart_sidecar(service, wait=0.1)
+    assert stopped == [live]
+    assert result.started is True
+    assert result.reachable is True
+    assert result.detail == "restarted openXYOS frontend and backend"
+
+
+def test_ensure_sidecar_uses_install_ready_helper(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from octop.modules.org_os import sidecar_launch
+    from octop.modules.org_os.service import SidecarHealth
+
+    service = OrgModuleService(config_path=tmp_path / "config.json", home=tmp_path)
+    helper = tmp_path / "start-sidecar.sh"
+    helper.write_text("#!/bin/sh\n", encoding="utf-8")
+    started: list[object] = []
+    monkeypatch.setattr(
+        service,
+        "probe_sidecar",
+        lambda timeout=2.0: SidecarHealth(reachable=False, url="http://127.0.0.1:3780"),
+    )
+    monkeypatch.setattr(sidecar_launch, "find_sidecar_runtime", lambda: None)
+    monkeypatch.setattr(sidecar_launch, "sidecar_install_ready", lambda: True)
+    monkeypatch.setattr(sidecar_launch, "find_sidecar_launcher", lambda: helper)
+    monkeypatch.setattr(
+        sidecar_launch,
+        "start_sidecar",
+        lambda service, wait=8.0, force=False: (
+            started.append(wait)
+            or sidecar_launch.SidecarStartResult(
+                started=True,
+                already=False,
+                reachable=True,
+                url="http://127.0.0.1:3780",
+                command=str(helper),
+                detail="ok",
+            )
+        ),
+    )
+    result = ensure_sidecar(service, wait=0.1)
+    assert started == [0.1]
+    assert result.started is True
+
+
 def test_ensure_sidecar_skips_source_tree_script(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

@@ -10,6 +10,7 @@
  * vertically and horizontally.
  */
 .page {
+  position: relative;
   display: flex;
   flex-direction: column;
   flex: 1;
@@ -57,6 +58,21 @@
   border: 1px solid rgba(255, 255, 255, 0.18);
 }
 
+.restartBtn {
+  height: 26px;
+  padding: 0 10px;
+  font-size: 12px;
+  font-weight: 650;
+  color: #0033ff !important;
+  border-color: transparent !important;
+  background: #fff !important;
+}
+
+.restartBtn:hover {
+  color: #0033ff !important;
+  background: #f4f6ff !important;
+}
+
 .statusActions {
   display: flex;
   flex-wrap: wrap;
@@ -97,6 +113,59 @@
   padding: 6px 10px;
   background: var(--fn-bg-secondary);
   border-bottom: 1px solid var(--fn-border-secondary);
+}
+
+.restartOverlay {
+  position: absolute;
+  inset: 56px 0 0;
+  z-index: 8;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 32px 24px;
+  text-align: center;
+  background: rgba(5, 12, 24, 0.72);
+}
+
+.restartMascot {
+  width: 168px;
+  height: 168px;
+  object-fit: contain;
+  pointer-events: none;
+  animation: orgRestartBob 1.1s ease-in-out infinite;
+}
+
+.restartLabel {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 650;
+  color: #fff;
+}
+
+.restartHint {
+  margin: 0;
+  max-width: 360px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+@keyframes orgRestartBob {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-2deg);
+  }
+  50% {
+    transform: translateY(-10px) rotate(3deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .restartMascot {
+    animation: none;
+  }
 }
 
 .addressBar :global(.ant-input) {

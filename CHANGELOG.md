@@ -8,6 +8,11 @@
 
 ### 修复
 
+- 组织页互生长通道两端都落到可选用状态：推送到 openXYOS 时员工/人才写成列表页能看到的 `active` / `internal` / `available`；从 openXYOS 回流时即使没有技能字段也会登记为同事，技能/插件/MCP 写入 `org-skills` / `org-plugins` / `org-mcps`，并把聊天专家挂到当前用户（修复 `user_id=NULL` 导致「专家」页看不见）。导入后跳到「专家」页，推送/循环后关闭管理抽屉并刷新预览。
+- 组织页内嵌浏览器补上后退 / 前进 / 刷新；openXYOS 首页卡通助手改为打包进前端资源（并保留 `/assets/xyai-mascot.webp` 回退），不再显示破碎图片。
+- 启动 FreeOS 时就会拉起本机 openXYOS 前后端（桌面 `startOrgSidecar` + 主机 `ensure_sidecar`），不必先进入组织页；登录不再因为 3780 未监听而 `Failed to fetch`。
+- 组织页「最近同步」左侧增加「重启 openXYOS 前后端服务」：XYAI 吉祥物动画、真实停启进程，livez 通过后回到本机测试首页。
+
 - 组织页「把 FreeOS 资产推到 openXYOS」不再把行写进 tenant 1 却让嵌入式登录（`demo@demo.com` → tenant 2）看不见。ingest 以当前登录 / 最近登录 / 本地演示租户为准，并把员工/人才写成列表页会显示的状态；打包回执带落地数量，预览跳到员工页。
 - 组织页「运行自增长循环」在员工已是 `active`（或生命周期不允许再跳到 `market`）时不再 500。循环只沿合法边晋升，已到达或非法的步骤记为 skip，接口返回成功的循环证明而不是 `INTERNAL_ERROR`。
 - Windows 覆盖安装时，openXYOS 预配不再因为旧 Node 锁住 `%LOCALAPPDATA%\FreeOS\openxyos` 里的文件、`tar.exe` 返回非 0 就直接退出码 3。安装前只停止 FreeOS 自己的 openXYOS（与启动脚本相同的 `Stop-OpenXYOSNode`：`start.pid` / live 与 `$INSTDIR\openxyos` 路径），先解到 LocalAppData 临时目录再合入工作目录，并把 tar 的 stdout/stderr 写入 `provision.log`。tar 非 0 但布局可修复时记警告并继续；只有 extract+heal 之后布局仍不完整才退出 3。幂等短路要求完整布局、`.install-ready`，以及 3780 上是我们的 FreeOS openXYOS，而不是任意 livez。

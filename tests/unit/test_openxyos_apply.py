@@ -106,6 +106,56 @@ def test_apply_sends_ui_tenant_not_configured_tenant(tmp_path: Path) -> None:
         assert result.landed.get("tenant_id") == 2
         assert result.preview_path == "/employees"
         assert result.landed.get("landed", {}).get("employees", {}).get("created", 0) >= 1
+        employees = state.ingested.get("employees") or []
+        assert employees
+        assert all(item.get("status") == "active" for item in employees)
+        assert all(item.get("employment_category") == "internal" for item in employees)
+        talent = state.ingested.get("talent") or []
+        assert talent
+        assert all(item.get("status") == "available" for item in talent)
+    finally:
+        server.shutdown()
+        server.server_close()
+
+
+def test_import_sidecar_assets_are_selectable_on_freeos(tmp_path: Path) -> None:
+    state = ControlPlaneState()
+    state.employees = [
+        {"name": "Ops Coordinator", "role": "ops", "skills": ""},
+        {"name": "No Skills Bot", "role": "analyst"},
+    ]
+    state.skills = [
+        {"name": "org-governance", "slug": "org-governance", "content": "gate high-risk tools"}
+    ]
+    state.plugins = [{"name": "bridge", "slug": "bridge", "description": "FreeOS bridge"}]
+    state.mcp = [{"name": "xyos-governance-mcp", "slug": "xyos-governance-mcp"}]
+    url, server = start_control_plane(state)
+    try:
+        imported = import_openxyos_assets(
+            tmp_path,
+            tenant_id="acme",
+            sidecar_url=url,
+            from_sidecar=True,
+            spawn_agents=True,
+        )
+        assert "ops-coordinator" in imported.employees
+        assert "no-skills-bot" in imported.employees
+        assert "org-governance" in imported.skills
+        assert (tmp_path / "org-skills" / "org-governance" / "SKILL.md").is_file()
+        assert "bridge" in imported.plugins
+        assert (tmp_path / "org-plugins" / "bridge.json").is_file()
+        assert "xyos-governance-mcp" in imported.mcp
+        assert (tmp_path / "org-mcps" / "xyos-governance-mcp.json").is_file()
+        assert imported.agents
+        pack = publish_asset_pack(
+            tmp_path, tenant_id="acme", out_dir=tmp_path / "asset-packs" / "latest"
+        )
+        result = apply_asset_pack(pack.directory, home=tmp_path, tenant_id="acme", base_url=url)
+        assert result.remote_applied is True
+        pushed = state.ingested.get("employees") or []
+        assert pushed
+        assert all(item.get("status") == "active" for item in pushed)
+        assert all(item.get("employment_category") == "internal" for item in pushed)
     finally:
         server.shutdown()
         server.server_close()

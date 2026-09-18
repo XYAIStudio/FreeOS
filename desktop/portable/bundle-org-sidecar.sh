@@ -288,6 +288,10 @@ copy_openxyos_runtime() {
     mkdir -p "${dest}/backend-dist/migrations"
     cp -a "${dest}/backend/migrations/." "${dest}/backend-dist/migrations/"
   fi
+  if [[ ! -f "${dest}/dist/assets/xyai-mascot.webp" ]]; then
+    echo "[org-sidecar] missing ${dest}/dist/assets/xyai-mascot.webp" >&2
+    exit 1
+  fi
 }
 
 main() {
