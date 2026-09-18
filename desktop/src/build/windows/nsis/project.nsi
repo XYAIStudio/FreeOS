@@ -58,6 +58,8 @@ LangString OPENXYOS_COPY_ZIP ${LANG_SIMPCHINESE} "复制 openXYOS 运行包（�
 LangString OPENXYOS_COPY_ZIP ${LANG_ENGLISH} "Copy the openXYOS runtime payload and provisioner subprocess"
 LangString OPENXYOS_PROVISION ${LANG_SIMPCHINESE} "正在以子进程部署 openXYOS（解压、启动前后端、等待健康检查）"
 LangString OPENXYOS_PROVISION ${LANG_ENGLISH} "Running the openXYOS provisioner subprocess (extract, start FE/BE, wait for health)"
+LangString OPENXYOS_PROVISION_DETAIL ${LANG_SIMPCHINESE} "完整日志：%LOCALAPPDATA%\\FreeOS\\openxyos\\provision.log（UTF-8）；此处只显示步骤结果"
+LangString OPENXYOS_PROVISION_DETAIL ${LANG_ENGLISH} "Full log: %LOCALAPPDATA%\\FreeOS\\openxyos\\provision.log (UTF-8); this list shows step results only"
 LangString OPENXYOS_PROVISION_CODE ${LANG_SIMPCHINESE} "openXYOS 预配子进程退出码 "
 LangString OPENXYOS_PROVISION_CODE ${LANG_ENGLISH} "openXYOS provisioner subprocess exit code "
 LangString OPENXYOS_PROVISION_OK ${LANG_SIMPCHINESE} "本机 openXYOS 已就绪（http://127.0.0.1:3780 健康检查通过）"

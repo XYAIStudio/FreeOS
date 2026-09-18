@@ -146,7 +146,10 @@ RequestExecutionLevel "${REQUEST_EXECUTION_LEVEL}"
 !macroend
 
 # After the FreeOS shell files are copied, run the shipped openXYOS
-# provisioner as a child process (nsExec). The parent waits for exit 0.
+# provisioner as a child process (nsExec::Exec, not ExecToLog). The
+# parent waits for exit 0. Child stdout is discarded (cmd >nul) so
+# UTF-8 Node/PowerShell logs do not mojibake in the ANSI detail list.
+# Localized DetailPrint LangStrings are the only NSIS-visible progress.
 # The child extracts with tar.exe, starts FE/BE at medium IL, waits for
 # livez, and writes .install-ready only when healthy. Do not FileWrite
 # goto-label .cmd scripts here. Do not register logon autostart.
@@ -164,13 +167,14 @@ RequestExecutionLevel "${REQUEST_EXECUTION_LEVEL}"
     File "start-sidecar.ps1"
     File "start-sidecar.cmd"
     DetailPrint "$(OPENXYOS_PROVISION)"
+    DetailPrint "$(OPENXYOS_PROVISION_DETAIL)"
     StrCpy $R4 '"$INSTDIR\provision-openxyos.cmd" -ZipPath "$INSTDIR\openxyos-runtime.zip" -InstallDir "$INSTDIR" -LiveDir "$R6\FreeOS\openxyos"'
-    nsExec::ExecToLog $R4
+    nsExec::Exec $R4
     Pop $0
     DetailPrint "$(OPENXYOS_PROVISION_CODE)$0"
     ${If} $0 == 12
         DetailPrint "$(OPENXYOS_PROVISION_RETRY)"
-        nsExec::ExecToLog $R4
+        nsExec::Exec $R4
         Pop $0
         DetailPrint "$(OPENXYOS_PROVISION_CODE)$0"
     ${EndIf}
@@ -193,7 +197,7 @@ RequestExecutionLevel "${REQUEST_EXECUTION_LEVEL}"
     Abort
     openxyosProvisionRetry:
     DetailPrint "$(OPENXYOS_PROVISION_RETRY)"
-    nsExec::ExecToLog $R4
+    nsExec::Exec $R4
     Pop $0
     DetailPrint "$(OPENXYOS_PROVISION_CODE)$0"
     ${If} $0 == 0

@@ -3,6 +3,10 @@
 # Always stop a previous live-dir Node first so a day-old process cannot
 # keep a stale CORS_ORIGIN (missing http://127.0.0.1:3780) and blank the iframe.
 # Never start Node while this process is elevated (High IL).
+# Node stdout/stderr go only to start.log / start.out.log / start.err.log
+# (UTF-8). Do not Write-Host those lines — NSIS detail treats child stdout
+# as system ANSI (GBK on Chinese Windows) and would show mojibake plus
+# transient [Error] POST /api/auth / [seed] noise.
 $ErrorActionPreference = 'Continue'
 $live = Split-Path -Parent $MyInvocation.MyCommand.Path
 $livez = 'http://127.0.0.1:3780/api/health/livez'

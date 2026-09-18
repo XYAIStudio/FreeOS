@@ -69,6 +69,9 @@ def test_provisioner_starts_medium_integrity_and_requires_livez() -> None:
     assert "Test-OpenXYOSNodeAlive" in text
     assert "Test-OpenXYOSPortListen" in text
     assert "exit 10" in text
+    assert "ConvertTo-NsisOemText" in text
+    assert "Write-ProvHost" in text
+    assert "Test-OpenXYOSTransientConsoleLine" in text
 
 
 def test_start_sidecar_does_not_assign_automatic_home() -> None:
@@ -167,14 +170,15 @@ def test_provisioner_stops_owned_node_before_extract() -> None:
     text = PROVISION_PS1.read_text(encoding="utf-8")
     start = START_PS1.read_text(encoding="utf-8")
     stop_fn = text.index("function Stop-OpenXYOSNode")
+    wait_fn = text.index("function Wait-OpenXYOSOwnedNodeGone")
     wrap_fn = text.index("function Stop-OpenXYOSLockedProcesses")
     extract_fn = text.index("function Invoke-TarExtract")
     main = text.index("# --- main ---")
     stop_call = text.index("Stop-OpenXYOSLockedProcesses", main)
     first_extract = text.index("Invoke-TarExtract", main)
-    assert stop_fn < wrap_fn < extract_fn < main
+    assert stop_fn < wait_fn < wrap_fn < extract_fn < main
     assert stop_call < first_extract
-    node_body = text[stop_fn:wrap_fn]
+    node_body = text[stop_fn:wait_fn]
     wrap_body = text[wrap_fn:extract_fn]
     assert "Stop-OpenXYOSNode" in start
     assert "Stop-OpenXYOSNode" in wrap_body
@@ -190,6 +194,9 @@ def test_provisioner_stops_owned_node_before_extract() -> None:
     assert "$LiveDir" in lock_body
     assert "Stopping FreeOS openXYOS process" in node_body
     assert "stop before extract" in wrap_body
+    assert "Wait-OpenXYOSOwnedNodeGone" in wrap_body
+    assert "Test-OpenXYOSOwnNode" in text[wait_fn:wrap_fn]
+    assert "retrying stop" in wrap_body
     assert "Stop-Process -Name node" not in text
     assert "taskkill" not in node_body.lower()
     # Same owned-path rule as start-sidecar: live node.exe / command line, not every Node.
@@ -200,7 +207,7 @@ def test_provisioner_logs_tar_stderr() -> None:
     text = PROVISION_PS1.read_text(encoding="utf-8")
     body = text[text.index("function Invoke-TarExtract") : text.index("function Test-SamePath")]
     assert "2>&1" in body
-    assert 'Write-ProvLog "tar:' in body or 'Write-ProvLog "tar:' in body
+    assert 'Write-ProvLog -Quiet "tar:' in body
     assert "tar exit" in body
     assert (
         "LOCALAPPDATA"
@@ -263,6 +270,42 @@ def test_provisioner_idempotent_requires_own_layout_not_stray_livez() -> None:
     # A healthy stray listener after extract must not write .install-ready.
     assert "if (Test-OpenXYOSOwnLivez)" in main
     assert "if (Test-OpenXYOSLivez)" not in main[main.index("Install-StartHelpers") :]
+
+
+def test_provisioner_keeps_node_console_out_of_nsis_detail() -> None:
+    text = PROVISION_PS1.read_text(encoding="utf-8")
+    cmd = PROVISION_CMD.read_text(encoding="utf-8")
+    excerpt = text[
+        text.index("function Write-StartLogExcerpt") : text.index(
+            "function Test-OpenXYOSPortListen"
+        )
+    ]
+    assert "Write-ProvLog -Quiet" in excerpt
+    assert "Write-Host" not in excerpt
+    assert "not shown in NSIS" in excerpt
+    tar_body = text[text.index("function Invoke-TarExtract") : text.index("function Test-SamePath")]
+    assert 'Write-ProvLog -Quiet "tar:' in tar_body
+    assert ">nul" in cmd
+    assert "2>&1" in cmd
+
+
+def test_provisioner_ignores_transient_auth_console_noise() -> None:
+    text = PROVISION_PS1.read_text(encoding="utf-8")
+    helper = text[
+        text.index("function Test-OpenXYOSTransientConsoleLine") : text.index(
+            "function Test-OpenXYOSLayout"
+        )
+    ]
+    assert "POST\\s+/api/auth" in helper
+    assert "[seed]" in helper.replace("\\", "")
+    assert "node still running pid=" in helper
+    wait = text[
+        text.index("function Wait-OpenXYOSLivez") : text.index("function Start-OpenXYOSUnelevated")
+    ]
+    assert "Test-OpenXYOSLivez" in wait
+    assert "Test-OpenXYOSTransientConsoleLine" not in wait
+    assert "-match" not in wait
+    assert "startup noise" in wait
 
 
 def test_wrappers_have_no_goto_labels() -> None:
