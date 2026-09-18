@@ -133,6 +133,7 @@ def run_growth_loop(
     policies_path: Path | None = None,
     sidecar_url: str = "",
     config_path: Path | None = None,
+    owner_user_id: int | None = None,
 ) -> LoopProof:
     """Run the finished self-growth loop against *home*.
 
@@ -175,6 +176,7 @@ def run_growth_loop(
         policies_path=policies if policies.is_file() else None,
         from_sidecar=bool(control_url),
         spawn_agents=False,
+        owner_user_id=owner_user_id,
     )
     for extra in extra_blueprint_fixtures():
         more = import_openxyos_assets(
@@ -183,6 +185,7 @@ def run_growth_loop(
             sidecar_url=control_url or service.sidecar_url(),
             blueprint_path=extra,
             spawn_agents=False,
+            owner_user_id=owner_user_id,
         )
         imported.employees.extend(more.employees)
         imported.notes.extend(more.notes)
@@ -198,7 +201,7 @@ def run_growth_loop(
         record = store.get(slug)
         if record is None:
             continue
-        spawned.append(spawn_colleague_agent(home, record))
+        spawned.append(spawn_colleague_agent(home, record, owner_user_id=owner_user_id))
 
     pack = publish_asset_pack(home, tenant_id=tid)
     applied = apply_asset_pack(
@@ -218,6 +221,7 @@ def run_growth_loop(
         catalog=True,
         from_sidecar=bool(roundtrip.get("remote")),
         spawn_agents=True,
+        owner_user_id=owner_user_id,
     )
 
     governance: dict[str, Any] = {}

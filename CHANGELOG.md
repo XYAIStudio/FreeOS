@@ -8,6 +8,7 @@
 
 ### 修复
 
+- 组织页互生长通道两端都落到可选用状态：推送到 openXYOS 时员工/人才写成列表页能看到的 `active` / `internal` / `available`；从 openXYOS 回流时即使没有技能字段也会登记为同事，技能/插件/MCP 写入 `org-skills` / `org-plugins` / `org-mcps`，并把聊天专家挂到当前用户（修复 `user_id=NULL` 导致「专家」页看不见）。导入后跳到「专家」页，推送/循环后关闭管理抽屉并刷新预览。
 - 组织页内嵌浏览器补上后退 / 前进 / 刷新；openXYOS 首页卡通助手改为打包进前端资源（并保留 `/assets/xyai-mascot.webp` 回退），不再显示破碎图片。
 - 启动 FreeOS 时就会拉起本机 openXYOS 前后端（桌面 `startOrgSidecar` + 主机 `ensure_sidecar`），不必先进入组织页；登录不再因为 3780 未监听而 `Failed to fetch`。
 - 组织页「最近同步」左侧增加「重启 openXYOS 前后端服务」：XYAI 吉祥物动画、真实停启进程，livez 通过后回到本机测试首页。

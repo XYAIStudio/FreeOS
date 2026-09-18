@@ -250,6 +250,7 @@ def test_assemble_from_bundled_blueprint(tmp_path: Path) -> None:
     result = assemble_from_blueprint(service)
     assert result["employees"]
     assert result["spawned"]
+    assert result["preview_path"] == "/experts"
     assert result["sidecar_reachable"] is False
     assert any("blueprint" in note for note in result["notes"])
 

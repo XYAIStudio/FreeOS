@@ -141,11 +141,26 @@ def publish_asset_pack(
             except ValueError:
                 continue
 
+    plugins_inbox = home / "org-plugins"
+    if plugins_inbox.is_dir():
+        for child in sorted(plugins_inbox.iterdir()):
+            if not child.is_file() or child.suffix.lower() != ".json":
+                continue
+            _copy_tree(child, dest / "openxyos" / child.name)
+            plugin_count += 1
+
     mcp_spec = {"xyos-governance-mcp": stdio_spec()}
     mcp_path = dest / "mcps" / "xyos-governance-mcp.json"
     mcp_path.write_text(json.dumps(mcp_spec, indent=2) + "\n", encoding="utf-8")
     mcp_count = 1
     _copy_tree(mcp_path, dest / "openxyos" / "xyos-governance-mcp.json")
+    mcps_inbox = home / "org-mcps"
+    if mcps_inbox.is_dir():
+        for child in sorted(mcps_inbox.iterdir()):
+            if not child.is_file() or child.suffix.lower() != ".json":
+                continue
+            _copy_tree(child, dest / "mcps" / child.name)
+            mcp_count += 1
 
     agent_count = 0
     for employee_dir in _iter_employee_dirs(home, tenant_id):
@@ -228,7 +243,7 @@ def publish_asset_pack(
         mcp_count=mcp_count,
         agent_count=agent_count,
         notes=[
-            "Not installed into the sidecar. Review openxyos/ then enable per tenant.",
+            "Assets are visible on the logged-in tenant's Employees, Talent, Skills, and Plugins lists.",
             "One tenant = one workspace; do not unpack this pack into a shared sandbox.",
             "Agent .env values are redacted except tenant/slug/schema keys.",
         ],

@@ -1,9 +1,24 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import OrganizationPage from "./index";
 import { orgModuleApi, type OrgOverview } from "../../api/modules/orgModule";
 import { message } from "../../utils/antdMessage";
 import { tryOpenInOrgBrowser } from "../../utils/orgBrowserHost";
+
+function renderOrg() {
+  return render(
+    <MemoryRouter initialEntries={["/organization"]}>
+      <Routes>
+        <Route path="/organization" element={<OrganizationPage />} />
+        <Route
+          path="/experts"
+          element={<div data-testid="experts-page">experts</div>}
+        />
+      </Routes>
+    </MemoryRouter>,
+  );
+}
 
 const overview: OrgOverview = {
   enabled: true,
@@ -88,13 +103,14 @@ describe("OrganizationPage", () => {
     vi.mocked(orgModuleApi.downloadSource).mockReset();
     vi.mocked(orgModuleApi.startSidecar).mockReset();
     vi.mocked(orgModuleApi.restartSidecar).mockReset();
+    vi.mocked(orgModuleApi.assemble).mockReset();
     vi.mocked(orgModuleApi.pack).mockReset();
     vi.mocked(message.success).mockReset();
     vi.mocked(message.error).mockReset();
   });
 
   it("embeds a multi-tab browser for local openXYOS and keeps extras behind drawers", async () => {
-    render(<OrganizationPage />);
+    renderOrg();
 
     await waitFor(() => {
       expect(screen.getByTestId("org-mini-browser")).toBeInTheDocument();
@@ -147,7 +163,7 @@ describe("OrganizationPage", () => {
       path: "D:\\源码\\openXYOS\\openXYOS-main.zip",
     });
 
-    render(<OrganizationPage />);
+    renderOrg();
     fireEvent.click(await screen.findByTestId("org-download-source"));
 
     await waitFor(() => {
@@ -165,7 +181,7 @@ describe("OrganizationPage", () => {
   it("does not download when the folder picker is cancelled", async () => {
     pickDesktopFolder.mockResolvedValue(null);
 
-    render(<OrganizationPage />);
+    renderOrg();
     fireEvent.click(await screen.findByTestId("org-download-source"));
 
     await waitFor(() => {
@@ -176,7 +192,7 @@ describe("OrganizationPage", () => {
   });
 
   it("opens trapped window.open / host URLs as extra tabs", async () => {
-    render(<OrganizationPage />);
+    renderOrg();
     await screen.findByTestId("org-mini-browser");
 
     expect(
@@ -206,7 +222,7 @@ describe("OrganizationPage", () => {
   });
 
   it("navigates the active tab from the address bar", async () => {
-    render(<OrganizationPage />);
+    renderOrg();
     const address = await screen.findByTestId("org-address-bar");
     fireEvent.change(address, {
       target: { value: "https://example.com/path" },
@@ -247,7 +263,7 @@ describe("OrganizationPage", () => {
         launcher: "",
       };
     });
-    render(<OrganizationPage />);
+    renderOrg();
     const address = await screen.findByTestId("org-address-bar");
     fireEvent.change(address, {
       target: { value: "https://example.com/docs" },
@@ -287,7 +303,7 @@ describe("OrganizationPage", () => {
       detail: "ok",
       launcher: "",
     });
-    render(<OrganizationPage />);
+    renderOrg();
     await waitFor(() => {
       expect(orgModuleApi.startSidecar).toHaveBeenCalled();
     });
@@ -298,7 +314,7 @@ describe("OrganizationPage", () => {
       ...overview,
       sidecar_embed_ok: false,
     });
-    render(<OrganizationPage />);
+    renderOrg();
     expect(await screen.findByTestId("org-preview-blank")).toHaveTextContent(
       "organization.previewBlank",
     );
@@ -340,23 +356,43 @@ describe("OrganizationPage", () => {
       },
     });
 
-    render(<OrganizationPage />);
+    renderOrg();
     fireEvent.click(await screen.findByTestId("org-manage-os"));
-    fireEvent.click(screen.getByText("organization.packAction"));
+    fireEvent.click(screen.getByTestId("org-pack"));
 
-    expect(await screen.findByTestId("org-last-receipt")).toHaveTextContent(
-      "organization.packReceipt",
-    );
-    expect(screen.getByTestId("org-last-receipt")).toHaveTextContent(
-      "organization.packLanded",
-    );
-    expect(screen.getByTestId("org-last-receipt")).toHaveTextContent(
-      "organization.packPreviewEmployees",
-    );
     await waitFor(() => {
       expect(screen.getByTestId("org-address-bar")).toHaveValue(
         "http://127.0.0.1:3780/employees",
       );
     });
+    expect(screen.queryByText("organization.assembleTitle")).toBeNull();
+    expect(message.success).toHaveBeenCalledWith("organization.packDone");
+  });
+
+  it("imports into FreeOS and opens Experts so colleagues are selectable", async () => {
+    vi.mocked(orgModuleApi.assemble).mockResolvedValue({
+      sidecar_reachable: true,
+      employees: ["ops-coordinator"],
+      spawned: [
+        {
+          agent_id: "org-ops-coordinator",
+          slug: "ops-coordinator",
+          name: "Ops",
+        },
+      ],
+      imported: { skills: ["org-governance"], plugins: ["bridge"] },
+      skills: ["org-governance"],
+      plugins: ["bridge"],
+      preview_path: "/experts",
+      notes: ["imported live control-plane export"],
+    });
+
+    renderOrg();
+    fireEvent.click(await screen.findByTestId("org-manage-os"));
+    fireEvent.click(screen.getByTestId("org-assemble"));
+
+    expect(await screen.findByTestId("experts-page")).toBeInTheDocument();
+    expect(orgModuleApi.assemble).toHaveBeenCalled();
+    expect(message.success).toHaveBeenCalledWith("organization.assembleDone");
   });
 });

@@ -751,7 +751,10 @@
       "loop_skip_already": "skipped promotion for {slug}: already {lifecycle}",
       "loop_skip_illegal": "skipped illegal transition for {slug}: cannot move {current} → {target}",
       "loop_skip_unknown": "skipped promotion for {slug}: unknown colleague",
-      "visible_on_ui_tenant": "Assets are visible on the logged-in tenant's Employees, Talent, Skills, and Plugins lists."
+      "visible_on_ui_tenant": "Assets are visible on the logged-in tenant's Employees, Talent, Skills, and Plugins lists.",
+      "imported_skill": "imported openXYOS skill {slug}",
+      "imported_plugin": "imported openXYOS plugin {slug}",
+      "imported_mcp": "imported openXYOS MCP {slug}"
     },
     "sidecar": {
       "already": "sidecar already reachable",

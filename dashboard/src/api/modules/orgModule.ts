@@ -82,6 +82,9 @@ export interface OrgAssembleResult {
   employees: string[];
   spawned: Array<{ agent_id: string; slug: string; name: string }>;
   imported: Record<string, unknown> | null;
+  skills?: string[];
+  plugins?: string[];
+  preview_path?: string;
   notes: string[];
 }
 

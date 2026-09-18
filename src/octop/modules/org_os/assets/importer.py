@@ -24,6 +24,8 @@ class ImportedAssets:
     skills: list[str] = field(default_factory=list)
     employees: list[str] = field(default_factory=list)
     agents: list[str] = field(default_factory=list)
+    plugins: list[str] = field(default_factory=list)
+    mcp: list[str] = field(default_factory=list)
     policies: str = ""
     notes: list[str] = field(default_factory=list)
 
@@ -32,9 +34,17 @@ class ImportedAssets:
             "skills": list(self.skills),
             "employees": list(self.employees),
             "agents": list(self.agents),
+            "plugins": list(self.plugins),
+            "mcp": list(self.mcp),
             "policies": self.policies,
             "notes": list(self.notes),
         }
+
+
+def _safe_slug(raw: str, fallback: str = "imported") -> str:
+    cleaned = "".join(ch if ch.isalnum() or ch in "-_" else "-" for ch in raw.strip().lower())
+    cleaned = cleaned.strip("-")[:64]
+    return cleaned or fallback
 
 
 def _sidecar_get_json(sidecar_url: str, path: str, *, timeout: float = 2.0) -> Any | None:
@@ -58,6 +68,114 @@ def _sidecar_get_json(sidecar_url: str, path: str, *, timeout: float = 2.0) -> A
     return body
 
 
+def _write_org_skill(home: Path, item: dict[str, Any]) -> str:
+    slug = _safe_slug(str(item.get("slug") or item.get("name") or ""))
+    name = str(item.get("name") or slug)
+    dest = home / "org-skills" / slug
+    dest.mkdir(parents=True, exist_ok=True)
+    body = str(item.get("content") or item.get("description") or "").strip()
+    if not body:
+        body = f"Imported from openXYOS as `{name}`."
+    (dest / "SKILL.md").write_text(
+        f"---\nname: {name}\ndescription: Imported from openXYOS\n---\n\n# {name}\n\n{body}\n",
+        encoding="utf-8",
+    )
+    return slug
+
+
+def _write_org_plugin(home: Path, item: dict[str, Any]) -> str:
+    slug = _safe_slug(str(item.get("slug") or item.get("name") or item.get("id") or "plugin"))
+    dest = home / "org-plugins"
+    dest.mkdir(parents=True, exist_ok=True)
+    payload = dict(item)
+    payload.setdefault("slug", slug)
+    payload.setdefault("status", "active")
+    payload.setdefault("source", "openXYOS")
+    (dest / f"{slug}.json").write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    if not str(item.get("content") or "").strip():
+        item = {
+            **item,
+            "content": str(item.get("description") or f"Plugin `{slug}` imported from openXYOS."),
+        }
+    _write_org_skill(home, {**item, "slug": slug, "name": str(item.get("name") or slug)})
+    return slug
+
+
+def _write_org_mcp(home: Path, item: dict[str, Any]) -> str:
+    slug = _safe_slug(str(item.get("slug") or item.get("name") or "mcp"))
+    dest = home / "org-mcps"
+    dest.mkdir(parents=True, exist_ok=True)
+    payload = dict(item)
+    payload.setdefault("slug", slug)
+    payload.setdefault("name", slug)
+    (dest / f"{slug}.json").write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    return slug
+
+
+def _employee_capabilities(item: dict[str, Any]) -> list[str]:
+    raw = item.get("skills") or item.get("capabilities")
+    if isinstance(raw, list):
+        parts = [str(part).strip() for part in raw if str(part).strip()]
+    else:
+        parts = [part.strip() for part in str(raw or "").split(",") if part.strip()]
+    if parts:
+        return parts
+    fallback = str(item.get("role") or item.get("agent_type") or "imported-colleague").strip()
+    return [fallback or "imported-colleague"]
+
+
+def _compile_sidecar_employee(
+    home: Path,
+    item: dict[str, Any],
+    *,
+    tenant_id: str,
+    sidecar_url: str,
+    spawn_agents: bool,
+    owner_user_id: int | None,
+    result: ImportedAssets,
+) -> None:
+    name = str(item.get("name") or item.get("slug") or "").strip()
+    if not name:
+        return
+    capabilities = _employee_capabilities(item)
+    compiled = compile_blueprint(
+        {
+            "schema": "openxyos.agent-blueprint.v1",
+            "name": name,
+            "positioning": str(item.get("description") or item.get("role") or name),
+            "industry": "organization",
+            "capabilities": capabilities,
+        },
+        home=home,
+        tenant_id=tenant_id,
+        sidecar_url=sidecar_url,
+    )
+    store = LifecycleStore(home, tenant_id)
+    register_compiled(
+        store,
+        slug=compiled.slug,
+        name=name,
+        workspace=compiled.workspace,
+        lifecycle="market",
+    )
+    result.employees.append(compiled.slug)
+    result.notes.append(f"compiled blueprint → {compiled.workspace}")
+    if spawn_agents:
+        from octop.modules.org_os.runtime.spawn import spawn_colleague_agent
+
+        record = store.get(compiled.slug)
+        if record is not None:
+            spawned = spawn_colleague_agent(home, record, owner_user_id=owner_user_id)
+            result.agents.append(spawned.agent_id)
+            result.notes.append(f"spawned FreeOS assistant {spawned.agent_id}")
+
+
 def import_openxyos_assets(
     home: Path,
     *,
@@ -68,6 +186,7 @@ def import_openxyos_assets(
     policies_path: Path | None = None,
     from_sidecar: bool = False,
     spawn_agents: bool = True,
+    owner_user_id: int | None = None,
 ) -> ImportedAssets:
     result = ImportedAssets()
     tid = tenant_id or "default"
@@ -95,7 +214,7 @@ def import_openxyos_assets(
 
             record = store.get(compiled.slug)
             if record is not None:
-                spawned = spawn_colleague_agent(home, record)
+                spawned = spawn_colleague_agent(home, record, owner_user_id=owner_user_id)
                 result.agents.append(spawned.agent_id)
                 result.notes.append(f"spawned FreeOS assistant {spawned.agent_id}")
 
@@ -105,52 +224,52 @@ def import_openxyos_assets(
         if isinstance(exported, dict):
             result.notes.append("imported live control-plane export")
             for item in exported.get("employees") or []:
+                if isinstance(item, dict):
+                    _compile_sidecar_employee(
+                        home,
+                        item,
+                        tenant_id=tid,
+                        sidecar_url=sidecar_url,
+                        spawn_agents=spawn_agents,
+                        owner_user_id=owner_user_id,
+                        result=result,
+                    )
+            seen = set(result.employees)
+            for item in exported.get("talent") or []:
                 if not isinstance(item, dict):
                     continue
-                name = str(item.get("name") or "").strip()
-                capabilities = [
-                    part.strip()
-                    for part in str(item.get("skills") or "").split(",")
-                    if part.strip()
-                ]
-                if not name or not capabilities:
+                label = _safe_slug(str(item.get("slug") or item.get("name") or ""))
+                if not label or label in seen:
                     continue
-                compiled = compile_blueprint(
-                    {
-                        "schema": "openxyos.agent-blueprint.v1",
-                        "name": name,
-                        "positioning": str(item.get("description") or item.get("role") or name),
-                        "industry": "organization",
-                        "capabilities": capabilities,
-                    },
-                    home=home,
+                _compile_sidecar_employee(
+                    home,
+                    item,
                     tenant_id=tid,
                     sidecar_url=sidecar_url,
+                    spawn_agents=spawn_agents,
+                    owner_user_id=owner_user_id,
+                    result=result,
                 )
-                store = LifecycleStore(home, tid)
-                register_compiled(
-                    store,
-                    slug=compiled.slug,
-                    name=name,
-                    workspace=compiled.workspace,
-                    lifecycle="draft",
-                )
-                result.employees.append(compiled.slug)
-                result.notes.append(f"compiled blueprint → {compiled.workspace}")
-                if spawn_agents:
-                    from octop.modules.org_os.runtime.spawn import spawn_colleague_agent
-
-                    record = store.get(compiled.slug)
-                    if record is not None:
-                        spawned = spawn_colleague_agent(home, record)
-                        result.agents.append(spawned.agent_id)
-                        result.notes.append(f"spawned FreeOS assistant {spawned.agent_id}")
+                seen.update(result.employees)
             for item in exported.get("skills") or []:
                 if not isinstance(item, dict):
                     continue
-                slug = str(item.get("slug") or item.get("name") or "").strip()
-                if slug:
-                    result.skills.append(slug)
+                slug = _write_org_skill(home, item)
+                result.skills.append(slug)
+                result.notes.append(f"imported openXYOS skill {slug}")
+            for item in exported.get("plugins") or []:
+                if not isinstance(item, dict):
+                    continue
+                slug = _write_org_plugin(home, item)
+                result.plugins.append(slug)
+                result.skills.append(slug)
+                result.notes.append(f"imported openXYOS plugin {slug}")
+            for item in exported.get("mcp") or []:
+                if not isinstance(item, dict):
+                    continue
+                slug = _write_org_mcp(home, item)
+                result.mcp.append(slug)
+                result.notes.append(f"imported openXYOS MCP {slug}")
         elif sidecar_url:
             result.notes.append("sidecar export unreachable; using catalog/blueprint fallback")
 

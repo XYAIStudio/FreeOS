@@ -32,6 +32,26 @@ def _load_json(path_s: str) -> Any:
         return None
 
 
+def _list_visible_employee(item: dict[str, Any]) -> dict[str, Any]:
+    """Force statuses the openXYOS Employees tab actually lists."""
+    out = dict(item)
+    if str(out.get("status") or "").lower() != "inactive":
+        out["status"] = "active"
+    category = str(out.get("employment_category") or "").strip().lower()
+    out["employment_category"] = "reserve" if category == "reserve" else "internal"
+    return out
+
+
+def _list_visible_talent(item: dict[str, Any]) -> dict[str, Any]:
+    """Talent list API only returns ``status='available'``."""
+    out = dict(item)
+    archived = str(out.get("status") or out.get("talent_status") or "").lower() == "archived"
+    if not archived:
+        out["status"] = "available"
+        out["talent_status"] = "available"
+    return out
+
+
 def _items(doc: Any, key: str) -> list[dict[str, Any]]:
     if isinstance(doc, dict) and isinstance(doc.get(key), list):
         return [item for item in doc[key] if isinstance(item, dict)]
@@ -70,12 +90,20 @@ def apply_asset_pack(
     client = OpenXyosControlClient(base_url, headers=headers, home=home)
     employees_s = os.path.realpath(os.path.join(dest_s, "openxyos", "org-employees.publish.json"))
     talent_s = os.path.realpath(os.path.join(dest_s, "openxyos", "org-talent.publish.json"))
-    employees = (
-        _items(_load_json(employees_s), "employees")
-        if employees_s.startswith(dest_s + os.sep)
-        else []
-    )
-    talent = _items(_load_json(talent_s), "talent") if talent_s.startswith(dest_s + os.sep) else []
+    employees = [
+        _list_visible_employee(item)
+        for item in (
+            _items(_load_json(employees_s), "employees")
+            if employees_s.startswith(dest_s + os.sep)
+            else []
+        )
+    ]
+    talent = [
+        _list_visible_talent(item)
+        for item in (
+            _items(_load_json(talent_s), "talent") if talent_s.startswith(dest_s + os.sep) else []
+        )
+    ]
 
     plugins: list[dict[str, Any]] = []
     openxyos_s = os.path.realpath(os.path.join(dest_s, "openxyos"))

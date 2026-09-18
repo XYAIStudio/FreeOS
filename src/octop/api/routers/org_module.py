@@ -157,12 +157,13 @@ async def org_module_restart_sidecar(
 async def org_module_assemble(
     request: Request,
     server: OctopServer = Depends(get_server),
-    _: Any = Depends(require_permission("plugins")),
+    user: Any = Depends(require_permission("plugins")),
 ) -> dict[str, Any]:
     service = _service(server)
     if not service.is_enabled():
         service.set_enabled(True)
-    payload = await asyncio.to_thread(assemble_from_blueprint, service)
+    owner_id = int(getattr(user, "id", 0) or 0) or None
+    payload = await asyncio.to_thread(assemble_from_blueprint, service, owner_user_id=owner_id)
     return localize_mapping(payload, resolve_request_locale(request), "notes")
 
 
@@ -178,11 +179,12 @@ async def org_module_produce(
     request: Request,
     body: OrgProduceBody,
     server: OctopServer = Depends(get_server),
-    _: Any = Depends(require_permission("plugins")),
+    user: Any = Depends(require_permission("plugins")),
 ) -> dict[str, Any]:
     service = _service(server)
     if not service.is_enabled():
         service.set_enabled(True)
+    owner_id = int(getattr(user, "id", 0) or 0) or None
     payload = await asyncio.to_thread(
         produce_from_corpus,
         service,
@@ -190,6 +192,7 @@ async def org_module_produce(
         distill_path=body.distill_path,
         ima_url=body.ima_url,
         name=body.name,
+        owner_user_id=owner_id,
     )
     return localize_mapping(payload, resolve_request_locale(request), "notes")
 
@@ -566,7 +569,7 @@ async def apply_assets(
 async def spawn_employee(
     body: EmployeeSpawnBody,
     server: OctopServer = Depends(get_server),
-    _user: Any = Depends(require_permission("plugins")),
+    user: Any = Depends(require_permission("plugins")),
 ) -> dict[str, Any]:
     from octop.modules.org_os.lifecycle.store import LifecycleStore
     from octop.modules.org_os.runtime.spawn import spawn_colleague_agent
@@ -576,7 +579,8 @@ async def spawn_employee(
     record = LifecycleStore(service.home, tid).get(body.slug)
     if record is None:
         raise HTTPException(status_code=404, detail=f"unknown colleague: {body.slug}")
-    return spawn_colleague_agent(service.home, record).to_dict()
+    owner_id = int(getattr(user, "id", 0) or 0) or None
+    return spawn_colleague_agent(service.home, record, owner_user_id=owner_id).to_dict()
 
 
 @router.post("/loop/run", summary="Run the finished FreeOS self-growth loop")
@@ -584,7 +588,7 @@ async def run_loop(
     request: Request,
     body: LoopRunBody,
     server: OctopServer = Depends(get_server),
-    _user: Any = Depends(require_permission("plugins")),
+    user: Any = Depends(require_permission("plugins")),
 ) -> dict[str, Any]:
     from pathlib import Path
 
@@ -599,6 +603,7 @@ async def run_loop(
             policies_path=Path(body.policies_path) if body.policies_path else None,
             sidecar_url=body.base_url or service.sidecar_url(),
             config_path=service.config_path,
+            owner_user_id=int(getattr(user, "id", 0) or 0) or None,
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc

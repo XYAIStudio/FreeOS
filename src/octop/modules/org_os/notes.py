@@ -234,6 +234,21 @@ _PATTERNS: tuple[tuple[re.Pattern[str], str, tuple[str, ...]], ...] = (
         "org.notes.visible_on_ui_tenant",
         (),
     ),
+    (
+        re.compile(r"^imported openXYOS skill (.+)$"),
+        "org.notes.imported_skill",
+        ("slug",),
+    ),
+    (
+        re.compile(r"^imported openXYOS plugin (.+)$"),
+        "org.notes.imported_plugin",
+        ("slug",),
+    ),
+    (
+        re.compile(r"^imported openXYOS MCP (.+)$"),
+        "org.notes.imported_mcp",
+        ("slug",),
+    ),
 )
 
 

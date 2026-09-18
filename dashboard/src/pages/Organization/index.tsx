@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button, Drawer, Input, Space, Switch, Tag } from "antd";
 import {
   ArrowDownUp,
@@ -100,6 +101,7 @@ function landedTenant(
 
 export default function OrganizationPage() {
   const { t, i18n } = useTranslation();
+  const navigate = useNavigate();
   const isZh = i18n.language?.toLowerCase().startsWith("zh") ?? false;
   const timeZone = useServerTimezone();
   const [overview, setOverview] = useState<OrgOverview | null>(null);
@@ -359,11 +361,15 @@ export default function OrganizationPage() {
           t("organization.assembleReceipt", { count: result.spawned.length }),
           ...names.slice(0, 6),
           t("organization.assembleNext"),
+          t("organization.assemblePreviewExperts"),
         ],
       });
       message.success(
         t("organization.assembleDone", { count: result.spawned.length }),
       );
+      setDrawer(null);
+      await applyOverview(true);
+      navigate(result.preview_path || "/experts");
     });
 
   const produce = () =>
@@ -409,6 +415,8 @@ export default function OrganizationPage() {
         kind: "pack",
         lines: [t("organization.packReceipt"), remote, ...landedLines],
       });
+      setDrawer(null);
+      await applyOverview(true);
       if (result.applied.remote_applied) {
         showPreview(result.applied.preview_path || "/employees");
       }
@@ -442,6 +450,8 @@ export default function OrganizationPage() {
             : []),
         ],
       });
+      setDrawer(null);
+      await applyOverview(true);
       if (proof.remote_applied) {
         showPreview("/employees");
       }
@@ -960,6 +970,7 @@ export default function OrganizationPage() {
                 loading={busy === "assemble"}
                 disabled={busy !== null}
                 onClick={() => void assemble()}
+                data-testid="org-assemble"
               >
                 {t("organization.assembleAction")}
               </Button>
@@ -974,6 +985,7 @@ export default function OrganizationPage() {
                 loading={busy === "pack"}
                 disabled={busy !== null}
                 onClick={() => void packBack()}
+                data-testid="org-pack"
               >
                 {t("organization.packAction")}
               </Button>
@@ -988,6 +1000,7 @@ export default function OrganizationPage() {
                 loading={busy === "loop"}
                 disabled={busy !== null}
                 onClick={() => void runLoop()}
+                data-testid="org-loop"
               >
                 {t("organization.loopAction")}
               </Button>
