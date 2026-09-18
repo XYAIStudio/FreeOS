@@ -131,6 +131,26 @@ function Test-OpenXYOSLayout {
     return (Test-Path -LiteralPath $nested) -or (Test-Path -LiteralPath $flat)
 }
 
+function Test-OpenXYOSAppReady {
+    param([string]$Root)
+    if (-not $Root) { return $false }
+    $fe = Join-Path $Root 'dist\index.html'
+    $be = Join-Path $Root 'backend-dist\server.js'
+    return (Test-Path -LiteralPath $fe) -and (Test-Path -LiteralPath $be)
+}
+
+# Prefer the healed live root. Nested openxyos\openxyos cwd makes Node
+# exit immediately with empty stdout/stderr (livez then times out).
+function Resolve-OpenXYOSAppDir {
+    param([string]$Root)
+    if (Test-OpenXYOSAppReady $Root) { return $Root }
+    $nested = Join-Path $Root 'openxyos'
+    if (Test-OpenXYOSAppReady $nested) { return $nested }
+    $nestedFe = Join-Path $nested 'dist\index.html'
+    if (Test-Path -LiteralPath $nestedFe) { return $nested }
+    return $Root
+}
+
 function Copy-OpenXYOSTree {
     param([string]$Src, [string]$Dest)
     New-Item -ItemType Directory -Force -Path $Dest | Out-Null
@@ -241,10 +261,22 @@ function Repair-OpenXYOSMigrations {
 }
 
 function Test-OpenXYOSLivez {
+    param([switch]$LogError)
+    $url = 'http://127.0.0.1:3780/api/health/livez'
     try {
-        $r = Invoke-WebRequest -UseBasicParsing -TimeoutSec 2 -Uri 'http://127.0.0.1:3780/api/health/livez'
+        $r = Invoke-WebRequest -UseBasicParsing -TimeoutSec 2 -Uri $url
         return ($r.StatusCode -lt 500)
     } catch {
+        if ($LogError) {
+            $detail = $_.Exception.Message
+            try {
+                if ($_.Exception.Response) {
+                    $detail = '{0} HTTP {1}' -f $url, [int]$_.Exception.Response.StatusCode
+                }
+            } catch {
+            }
+            Write-ProvLog "livez probe failed: $detail"
+        }
         return $false
     }
 }
@@ -320,19 +352,59 @@ function Test-OpenXYOSNodeAlive {
     return $false
 }
 
+function Get-StartLogStamp {
+    $p = Join-Path $LiveDir 'start.log'
+    if (-not (Test-Path -LiteralPath $p)) { return $null }
+    return (Get-Item -LiteralPath $p).LastWriteTimeUtc
+}
+
+function Test-StartLogShowsFailFast {
+    $p = Join-Path $LiveDir 'start.log'
+    if (-not (Test-Path -LiteralPath $p)) { return $false }
+    $text = Get-Content -LiteralPath $p -Raw -ErrorAction SilentlyContinue
+    if (-not $text) { return $false }
+    return ($text -match 'node exited .+ \(fail-fast\)')
+}
+
+function Wait-OpenXYOSStartEvidence {
+    param($BeforeUtc, [int]$Seconds = 12)
+    for ($i = 0; $i -lt $Seconds; $i++) {
+        if (Test-OpenXYOSLivez) { return $true }
+        $nid = Read-OpenXYOSPidFile $LiveDir
+        if ($nid -gt 0) {
+            $p = Get-Process -Id $nid -ErrorAction SilentlyContinue
+            if ($p -and -not $p.HasExited) { return $true }
+        }
+        $log = Join-Path $LiveDir 'start.log'
+        if (Test-Path -LiteralPath $log) {
+            $stamp = (Get-Item -LiteralPath $log).LastWriteTimeUtc
+            if ($null -eq $BeforeUtc -or $stamp -gt $BeforeUtc) { return $true }
+        }
+        Start-Sleep -Seconds 1
+    }
+    return $false
+}
+
 function Wait-OpenXYOSLivez {
     param([int]$Seconds)
     # Success is livez only. Transient Node console (auth probe, seed banner,
     # websocket status) is startup noise — not a provision failure.
     for ($i = 0; $i -lt $Seconds; $i++) {
         if (Test-OpenXYOSLivez) { return $true }
+        if (Test-StartLogShowsFailFast) {
+            Write-ProvLog 'Node exited fail-fast during livez wait (see start.log cwd)'
+            Write-StartLogExcerpt
+            exit 10
+        }
         if ($i -ge 8 -and -not (Test-OpenXYOSLivez) -and -not (Test-OpenXYOSPortListen) -and -not (Test-OpenXYOSNodeAlive)) {
             Write-ProvLog 'Node is not running and 3780 is not listening during livez wait'
+            $null = Test-OpenXYOSLivez -LogError
             Write-StartLogExcerpt
             exit 10
         }
         Start-Sleep -Seconds 1
     }
+    $null = Test-OpenXYOSLivez -LogError
     return $false
 }
 
@@ -343,26 +415,59 @@ function Start-OpenXYOSUnelevated {
         Write-ProvLog "start helper missing: $helper"
         return $false
     }
+    $app = Resolve-OpenXYOSAppDir $Dir
+    Write-ProvLog "start cwd=$app (live=$Dir)"
     $pwsh = Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
     $arg = "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$helper`""
+    $before = Get-StartLogStamp
     try {
         $shell = New-Object -ComObject Shell.Application
         $shell.ShellExecute($pwsh, $arg, $Dir, 'open', 0)
         Write-ProvLog 'Started FE/BE via Shell.Application (IShellDispatch2 / medium IL)'
-        return $true
+        if (Wait-OpenXYOSStartEvidence $before 12) {
+            if (Test-StartLogShowsFailFast) {
+                Write-ProvLog 'start helper ran but Node exited fail-fast'
+                return $false
+            }
+            return $true
+        }
+        Write-ProvLog 'Shell.Application produced no fresh start.log/pid/livez'
     } catch {
         Write-ProvLog "Shell.Application failed: $($_.Exception.Message)"
     }
     $cmd = Join-Path $Dir 'start-sidecar.cmd'
     $explorer = Join-Path $env:WINDIR 'explorer.exe'
     if ((Test-Path -LiteralPath $cmd) -and (Test-Path -LiteralPath $explorer)) {
+        $before = Get-StartLogStamp
         try {
             Start-Process -FilePath $explorer -ArgumentList "`"$cmd`""
             Write-ProvLog 'Started FE/BE via explorer.exe (medium IL fallback)'
-            return $true
+            if (Wait-OpenXYOSStartEvidence $before 12) {
+                if (Test-StartLogShowsFailFast) {
+                    Write-ProvLog 'explorer start helper ran but Node exited fail-fast'
+                    return $false
+                }
+                return $true
+            }
+            Write-ProvLog 'explorer fallback produced no fresh start.log/pid/livez'
         } catch {
             Write-ProvLog "explorer fallback failed: $($_.Exception.Message)"
         }
+    }
+    $before = Get-StartLogStamp
+    try {
+        Start-Process -FilePath $pwsh -ArgumentList $arg -WorkingDirectory $Dir -WindowStyle Hidden
+        Write-ProvLog 'Started FE/BE via Start-Process (direct powershell fallback)'
+        if (Wait-OpenXYOSStartEvidence $before 12) {
+            if (Test-StartLogShowsFailFast) {
+                Write-ProvLog 'direct start helper ran but Node exited fail-fast'
+                return $false
+            }
+            return $true
+        }
+        Write-ProvLog 'direct Start-Process produced no fresh start.log/pid/livez'
+    } catch {
+        Write-ProvLog "direct Start-Process failed: $($_.Exception.Message)"
     }
     return $false
 }
@@ -801,6 +906,8 @@ if ($env:USERNAME) {
 }
 
 Install-StartHelpers $LiveDir
+$appDir = Resolve-OpenXYOSAppDir $LiveDir
+Write-ProvLog "canonical openXYOS cwd=$appDir (prefer top-level when backend-dist+dist exist)"
 
 if (Test-OpenXYOSOwnLivez) {
     Write-ProvLog 'livez already healthy after extract'

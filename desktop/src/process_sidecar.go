@@ -41,22 +41,27 @@ func sidecarAppReady(app string) bool {
 	if strings.TrimSpace(app) == "" {
 		return false
 	}
-	if _, err := os.Stat(filepath.Join(app, "backend", "server.ts")); err != nil {
-		return false
-	}
 	if _, err := os.Stat(filepath.Join(app, "dist", "index.html")); err != nil {
 		return false
 	}
-	return true
+	if _, err := os.Stat(filepath.Join(app, "backend-dist", "server.js")); err == nil {
+		return true
+	}
+	if _, err := os.Stat(filepath.Join(app, "backend", "server.ts")); err == nil {
+		return true
+	}
+	return false
 }
 
 func sidecarAppAt(bundle string) string {
+	// Prefer the healed live root. Nested openxyos\openxyos cwd makes
+	// `node backend-dist/server.js` exit immediately with an empty console.
+	if sidecarAppReady(bundle) {
+		return bundle
+	}
 	nested := filepath.Join(bundle, "openxyos")
 	if sidecarAppReady(nested) {
 		return nested
-	}
-	if sidecarAppReady(bundle) {
-		return bundle
 	}
 	return nested
 }

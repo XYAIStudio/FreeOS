@@ -60,6 +60,27 @@ function Find-OpenXYOSBundleRoot {
     return $null
 }
 
+function Test-OpenXYOSAppReady {
+    param([string]$Root)
+    if (-not $Root) { return $false }
+    $fe = Join-Path $Root 'dist\index.html'
+    $be = Join-Path $Root 'backend-dist\server.js'
+    return (Test-Path -LiteralPath $fe) -and (Test-Path -LiteralPath $be)
+}
+
+# After extract+heal both a flat live root and leftover nested openxyos\
+# can exist. Nested cwd makes `node backend-dist/server.js` exit immediately
+# with empty stdout/stderr. Prefer the healed top-level tree.
+function Resolve-OpenXYOSAppDir {
+    param([string]$Root)
+    if (Test-OpenXYOSAppReady $Root) { return $Root }
+    $nested = Join-Path $Root 'openxyos'
+    if (Test-OpenXYOSAppReady $nested) { return $nested }
+    $nestedFe = Join-Path $nested 'dist\index.html'
+    if (Test-Path -LiteralPath $nestedFe) { return $nested }
+    return $Root
+}
+
 function Repair-OpenXYOSLayout {
     param([string]$Root)
     $nestedFe = Join-Path $Root 'openxyos\dist\index.html'
@@ -130,13 +151,49 @@ function Test-IsElevated {
     return $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 }
 
+$startLog = Join-Path $live 'start.log'
+$startOut = Join-Path $live 'start.out.log'
+$startErr = Join-Path $live 'start.err.log'
+$pidFile = Join-Path $live 'start.pid'
+
+function Reset-OpenXYOSStartLogs {
+    foreach ($old in @($startLog, $startOut, $startErr)) {
+        if (Test-Path -LiteralPath $old) {
+            Remove-Item -LiteralPath $old -Force -ErrorAction SilentlyContinue
+        }
+    }
+    @(
+        '{0} start-sidecar begin live={1}' -f (Get-Date -Format o), $live
+    ) | Set-Content -LiteralPath $startLog -Encoding UTF8
+}
+
 if (Test-IsElevated) {
     $pwsh = Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
     $arg = "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$($MyInvocation.MyCommand.Path)`""
+    $before = $null
+    if (Test-Path -LiteralPath $startLog) {
+        $before = (Get-Item -LiteralPath $startLog).LastWriteTimeUtc
+    }
     try {
         $shell = New-Object -ComObject Shell.Application
         $shell.ShellExecute($pwsh, $arg, $live, 'open', 0)
-        exit 0
+        for ($i = 0; $i -lt 10; $i++) {
+            Start-Sleep -Milliseconds 400
+            if (Test-Livez) { exit 0 }
+            if (Test-Path -LiteralPath $pidFile) {
+                $nid = 0
+                $raw = Get-Content -LiteralPath $pidFile -Raw -ErrorAction SilentlyContinue
+                if ($null -ne $raw -and [int]::TryParse($raw.Trim(), [ref]$nid) -and $nid -gt 0) {
+                    $p = Get-Process -Id $nid -ErrorAction SilentlyContinue
+                    if ($p -and -not $p.HasExited) { exit 0 }
+                }
+            }
+            if (Test-Path -LiteralPath $startLog) {
+                $stamp = (Get-Item -LiteralPath $startLog).LastWriteTimeUtc
+                if ($null -eq $before -or $stamp -gt $before) { exit 0 }
+            }
+        }
+        Add-Content -LiteralPath $startLog -Value 'unelevate produced no fresh start.log/pid/livez; continuing in this process' -Encoding UTF8
     } catch {
         Write-Error "cannot unelevate start-sidecar.ps1; refusing High-IL Node"
         exit 10
@@ -144,12 +201,7 @@ if (Test-IsElevated) {
 }
 
 $node = Join-Path $live 'node\node.exe'
-$app = Join-Path $live 'openxyos'
-if (-not (Test-Path -LiteralPath (Join-Path $app 'dist\index.html'))) {
-    if (Test-Path -LiteralPath (Join-Path $live 'dist\index.html')) {
-        $app = $live
-    }
-}
+$app = Resolve-OpenXYOSAppDir $live
 if (-not (Test-Path -LiteralPath $node)) { exit 6 }
 
 # $HOME / $home is a read-only automatic variable in Windows PowerShell.
@@ -210,27 +262,25 @@ if (Test-Path -LiteralPath $compiled) {
 # Launch with ProcessStartInfo.UseShellExecute = $false and copy env onto
 # EnvironmentVariables. Start-Process -FilePath $node with Redirect*/-NoNewWindow
 # is the file-log path (those switches also force UseShellExecute=$false).
-$startLog = Join-Path $live 'start.log'
-$startOut = Join-Path $live 'start.out.log'
-$startErr = Join-Path $live 'start.err.log'
-$pidFile = Join-Path $live 'start.pid'
+Reset-OpenXYOSStartLogs
+$layout = 'nested'
+if ($app -eq $live) { $layout = 'top-level' }
 @(
     '{0} launching node={1}' -f (Get-Date -Format o), $node
     "cwd=$app"
+    "layout=$layout"
+    "live=$live"
     "argv=$($argv -join ' ')"
     "NODE_ENV=$($env:NODE_ENV)"
     "PORT=$($env:PORT)"
+    "JWT_SECRET set=$([bool]$env:JWT_SECRET)"
+    "COOKIE_SECRET set=$([bool]$env:COOKIE_SECRET)"
     "CORS_ORIGIN=$($env:CORS_ORIGIN)"
     "DB_DIALECT=$($env:DB_DIALECT)"
     "DATABASE_PATH=$($env:DATABASE_PATH)"
     "FREEOS_HOME=$($env:FREEOS_HOME)"
     "AIR_GAP_MODE=$($env:AIR_GAP_MODE)"
 ) | Set-Content -LiteralPath $startLog -Encoding UTF8
-foreach ($old in @($startOut, $startErr)) {
-    if (Test-Path -LiteralPath $old) {
-        Remove-Item -LiteralPath $old -Force -ErrorAction SilentlyContinue
-    }
-}
 
 $psi = New-Object System.Diagnostics.ProcessStartInfo
 $psi.UseShellExecute = $false
@@ -308,9 +358,15 @@ if ($proc.WaitForExit(5000)) {
         } catch {
         }
     }
-    Add-Content -LiteralPath $startLog -Value "node exited $($proc.ExitCode) (fail-fast)" -Encoding UTF8
+    Add-Content -LiteralPath $startLog -Value "node exited $($proc.ExitCode) (fail-fast) cwd=$app layout=$layout" -Encoding UTF8
+    if (-not (Test-Path -LiteralPath $startOut) -and -not (Test-Path -LiteralPath $startErr)) {
+        Add-Content -LiteralPath $startLog -Value 'node stdout/stderr empty (typical of nested openxyos\openxyos cwd crash)' -Encoding UTF8
+    }
+    if (($app -ne $live) -and (Test-OpenXYOSAppReady $live)) {
+        Add-Content -LiteralPath $startLog -Value "nested cwd crashed; top-level $live has backend-dist/server.js + dist/index.html" -Encoding UTF8
+    }
     exit 10
 }
 Merge-NodeLogs
-Add-Content -LiteralPath $startLog -Value "node still running pid=$($proc.Id)" -Encoding UTF8
+Add-Content -LiteralPath $startLog -Value "node still running pid=$($proc.Id) cwd=$app layout=$layout" -Encoding UTF8
 exit 0

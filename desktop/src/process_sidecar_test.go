@@ -371,3 +371,23 @@ func TestSidecarNodeArgsPrefersCompiledServer(t *testing.T) {
 		t.Fatalf("compiled args=%v", args)
 	}
 }
+
+func TestSidecarAppAtPrefersTopLevelWhenBothExist(t *testing.T) {
+	root := t.TempDir()
+	writeSidecarBundle(t, root)
+	if err := os.MkdirAll(filepath.Join(root, "backend-dist"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "backend-dist", "server.js"), []byte("ok"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Join(root, "dist"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "dist", "index.html"), []byte("<html></html>"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if got := sidecarAppAt(root); got != root {
+		t.Fatalf("sidecarAppAt=%q want top-level %q", got, root)
+	}
+}

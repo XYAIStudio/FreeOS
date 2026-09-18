@@ -144,7 +144,11 @@ def sidecar_bundle_dir() -> Path | None:
 
 
 def _app_looks_complete(app: Path) -> bool:
-    return (app / "backend" / "server.ts").is_file() and (app / "dist" / "index.html").is_file()
+    if not (app / "dist" / "index.html").is_file():
+        return False
+    return (app / "backend-dist" / "server.js").is_file() or (
+        app / "backend" / "server.ts"
+    ).is_file()
 
 
 def _bundle_looks_complete(path: Path) -> bool:
@@ -217,6 +221,13 @@ def heal_openxyos_layout(root: Path) -> bool:
 
 
 def _sidecar_app_dir(bundled: Path) -> Path:
+    """Prefer the healed live root when FE+BE exist there.
+
+    A leftover nested ``openxyos/openxyos`` tree must not win: Node started
+    from that cwd exits immediately with empty stdout/stderr.
+    """
+    if _app_looks_complete(bundled):
+        return bundled
     nested = bundled / "openxyos"
     if _app_looks_complete(nested):
         return nested

@@ -35,7 +35,10 @@ Same precedence as the FreeOS CLI/server:
   PowerShell/Node console stays in `%LOCALAPPDATA%\FreeOS\openxyos\provision.log`
   and `start.log` so UTF-8 Chinese is not misread as GBK. Before extract it
   stops only FreeOS openXYOS Node (`start.pid` / live and `$INSTDIR\openxyos`
-  paths) and waits until that owned process is gone, unpacks into a LocalAppData
+  paths) and waits until that owned process is gone. After extract+heal, Node
+  starts with cwd at the live root when `backend-dist/server.js` and
+  `dist/index.html` exist there (a leftover nested `openxyos\openxyos` tree
+  must not win — that cwd exits immediately with an empty console). It unpacks into a LocalAppData
   temp dir, logs tar stderr to `provision.log`, and treats a non-zero tar as
   success when the layout heals. Transient `[Error] POST /api/auth` / `[seed]`
   lines in `start.log` are not a provision failure when livez is healthy. If

@@ -85,6 +85,20 @@ def test_start_sidecar_does_not_assign_automatic_home() -> None:
     assert not re.search(r"(?i)\$pid\s*=", text)
 
 
+def resolve_openxyos_app_dir(root: Path) -> Path:
+    """Mirror Resolve-OpenXYOSAppDir: prefer healed top-level over nested."""
+    flat_fe = root / "dist" / "index.html"
+    flat_be = root / "backend-dist" / "server.js"
+    nested = root / "openxyos"
+    if flat_fe.is_file() and flat_be.is_file():
+        return root
+    if (nested / "backend-dist" / "server.js").is_file() or (
+        nested / "dist" / "index.html"
+    ).is_file():
+        return nested
+    return root
+
+
 def test_start_sidecar_stops_stale_node_and_heals_layout() -> None:
     text = START_PS1.read_text(encoding="utf-8")
     assert "Repair-OpenXYOSLayout" in text
@@ -92,8 +106,48 @@ def test_start_sidecar_stops_stale_node_and_heals_layout() -> None:
     assert "start.pid" in text
     assert "openxyos\\dist\\index.html" in text
     assert "backend-dist\\server.js" in text
-    assert "if (Test-Livez) { exit 0 }" not in text
+    before_stop = text.split("Stop-OpenXYOSNode $live", 1)[0]
+    assert "if (Test-Livez) { exit 0 }" not in before_stop
     assert "day-old" in text or "stale" in text.lower()
+
+
+def test_layout_picker_prefers_top_level_when_both_exist(tmp_path: Path) -> None:
+    live = tmp_path / "openxyos"
+    nested = live / "openxyos"
+    for folder in (live, nested):
+        (folder / "dist").mkdir(parents=True)
+        (folder / "backend-dist").mkdir(parents=True)
+        (folder / "dist" / "index.html").write_text("<html></html>", encoding="utf-8")
+        (folder / "backend-dist" / "server.js").write_text("/* compiled */", encoding="utf-8")
+    assert resolve_openxyos_app_dir(live) == live
+    (live / "backend-dist" / "server.js").unlink()
+    assert resolve_openxyos_app_dir(live) == nested
+
+
+def test_start_sidecar_prefers_top_level_app_dir() -> None:
+    start = START_PS1.read_text(encoding="utf-8")
+    text = PROVISION_PS1.read_text(encoding="utf-8")
+    for body in (start, text):
+        assert "function Resolve-OpenXYOSAppDir" in body
+        assert "function Test-OpenXYOSAppReady" in body
+        picker = body[
+            body.index("function Resolve-OpenXYOSAppDir") : body.index(
+                "function Repair-OpenXYOSLayout"
+            )
+        ]
+        assert "Test-OpenXYOSAppReady $Root" in picker
+        assert picker.index("Test-OpenXYOSAppReady $Root") < picker.index(
+            "Test-OpenXYOSAppReady $nested"
+        )
+    assert (
+        "Join-Path $live 'openxyos'" not in start.split("Resolve-OpenXYOSAppDir $live", 1)[1][:200]
+    )
+    assert "layout=$layout" in start
+    assert "JWT_SECRET set=" in start
+    assert "nested openxyos\\openxyos cwd crash" in start or "nested openxyos" in start
+    assert "function Wait-OpenXYOSStartEvidence" in text
+    assert "direct powershell fallback" in text
+    assert "Node exited fail-fast" in text
 
 
 def test_start_sidecar_cors_origin_is_parseorigins_safe() -> None:
@@ -119,7 +173,7 @@ def test_provisioner_fail_fast_when_node_dies() -> None:
     # Dead Node during livez wait is exit 10, not a 90s exit 12.
     dead = text.index("Node is not running and 3780 is not listening")
     exit10 = text.index("exit 10", dead)
-    exit12 = text.index("exit 12")
+    exit12 = text.rindex("exit 12")
     assert exit10 < exit12
     assert "LivezTimeoutSec" in text
 
