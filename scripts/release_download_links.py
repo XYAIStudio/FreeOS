@@ -3,8 +3,8 @@
 Same pattern as clash-verge-rev: interpolate TAG / VERSION into a fixed
 filename table. Do not scrape the assets list.
 
-    python3 scripts/release_download_links.py 0.0.1
-    python3 scripts/release_download_links.py v0.0.1
+    python3 scripts/release_download_links.py 0.0.2
+    python3 scripts/release_download_links.py v0.0.2
 """
 
 from __future__ import annotations

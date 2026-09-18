@@ -30,7 +30,7 @@ on:
         default: true
         type: boolean
       release_tag:
-        description: "GitHub Release tag to attach to (e.g. v0.0.1). Used when not running on a v* ref."
+        description: "GitHub Release tag to attach to (e.g. v0.0.2). Used when not running on a v* ref."
         required: false
         default: ""
         type: string
