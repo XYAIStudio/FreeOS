@@ -111,6 +111,7 @@
 - Windows 安装不再解压或启动 `openxyos-runtime`，也不再因 livez 失败中止安装。桌面启动默认不设置 `OPENXYOS_BASE_URL`，不拉起 Node；需要时设 `FREEOS_ORG_SIDECAR=1`。
 - `freeos org loop run` 不再 `ensure_sidecar` 或空等 3780。未配置边车时只写 `{FREEOS_HOME}/openxyos-mirror/` 与生命周期登记。
 - 产品版本从 `0.0.1` 升到 `0.0.2`，安装包 / NSIS DisplayVersion / `octop.__version__` 同步，便于与边车时代构建区分。后续 GitHub Release 标签为 `v0.0.2`。
+- 默认 Windows NSIS / 绿色便携包不再打入 `openxyos-runtime.zip` 或 `org-sidecar`（约 500MB Node 运行包）。`OPENXYOS_RUNTIME_ZIP_PRESENT` 默认关闭；仅 `SHIP_OPENXYOS_RUNTIME=1` 的构建才带边车。
 
 ## [0.0.1] - 2026-09-15
 

@@ -34,13 +34,12 @@
     !define WAILS_INSTALL_SCOPE "machine"
 !endif
 
-# Optional openXYOS Node runtime. Organization runs in the FreeOS host;
-# the zip is only for advanced export/sync. Missing zip must not fail makensis.
+# Optional openXYOS Node runtime. Organization runs in the FreeOS host.
+# OPENXYOS_RUNTIME_ZIP_PRESENT is OFF by default. A leftover zip on disk
+# must not silently inflate the installer — only opt-in makensis
+# (-DOPENXYOS_RUNTIME_ZIP_PRESENT from SHIP_OPENXYOS_RUNTIME=1) ships it.
 !ifndef OPENXYOS_RUNTIME_ZIP
     !define OPENXYOS_RUNTIME_ZIP "..\openxyos-runtime.zip"
-!endif
-!if /FileExists "${OPENXYOS_RUNTIME_ZIP}"
-    !define OPENXYOS_RUNTIME_ZIP_PRESENT
 !endif
 
 !ifndef REQUEST_EXECUTION_LEVEL
@@ -143,23 +142,27 @@ RequestExecutionLevel "${REQUEST_EXECUTION_LEVEL}"
     ${EndIf}
 !macroend
 
-# Organization is in-host. Setup never extracts or starts openxyos-runtime,
-# never waits for livez, and never Aborts when the optional zip is missing.
-# Scripts stay on disk for FREEOS_ORG_SIDECAR=1 later. Do not FileWrite
-# goto-label .cmd scripts here. Do not register logon autostart.
+# Organization is in-host. Default Setup copies no openxyos-runtime.zip.
+# Opt-in builds (-DOPENXYOS_RUNTIME_ZIP_PRESENT) copy the zip + scripts
+# but still never extract, start Node, wait for livez, or Abort.
+# Do not FileWrite goto-label .cmd scripts here. Do not register logon autostart.
 !macro wails.provisionOpenXYOS
     !insertmacro wails.userLocalAppData
     SetDetailsPrint both
     DetailPrint "$(OPENXYOS_WORKDIR)"
     CreateDirectory "$INSTDIR\openxyos"
     !ifdef OPENXYOS_RUNTIME_ZIP_PRESENT
-        DetailPrint "$(OPENXYOS_COPY_ZIP)"
-        File "/oname=openxyos-runtime.zip" "${OPENXYOS_RUNTIME_ZIP}"
-        File "provision-openxyos.ps1"
-        File "provision-openxyos.cmd"
-        File "start-sidecar.ps1"
-        File "start-sidecar.cmd"
-        DetailPrint "$(OPENXYOS_OPTIONAL_SKIP)"
+        !if /FileExists "${OPENXYOS_RUNTIME_ZIP}"
+            DetailPrint "$(OPENXYOS_COPY_ZIP)"
+            File "/oname=openxyos-runtime.zip" "${OPENXYOS_RUNTIME_ZIP}"
+            File "provision-openxyos.ps1"
+            File "provision-openxyos.cmd"
+            File "start-sidecar.ps1"
+            File "start-sidecar.cmd"
+            DetailPrint "$(OPENXYOS_OPTIONAL_SKIP)"
+        !else
+            !error "OPENXYOS_RUNTIME_ZIP_PRESENT is set but ${OPENXYOS_RUNTIME_ZIP} is missing"
+        !endif
     !else
         DetailPrint "$(OPENXYOS_OPTIONAL_ABSENT)"
     !endif

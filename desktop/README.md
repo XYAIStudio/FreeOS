@@ -25,9 +25,11 @@ Same precedence as the FreeOS CLI/server:
 - Optional openXYOS Node sidecar data → `{home}/org-os/`
 - Optional local openXYOS workdir (FE+BE) → `%LOCALAPPDATA%\FreeOS\openxyos` on Windows,
   else `{home}/openxyos`. **Setup does not extract or start this stack.**
-  A package may still copy `openxyos-runtime.zip` plus `provision-openxyos.ps1`
-  / `start-sidecar.ps1` for later `FREEOS_ORG_SIDECAR=1` use. Missing zip,
-  tar.exe, or `http://127.0.0.1:3780/api/health/livez` must not fail install.
+  Default v0.0.2 installers do **not** copy `openxyos-runtime.zip`.
+  Opt-in builds (`SHIP_OPENXYOS_RUNTIME=1`) may add the zip plus
+  `provision-openxyos.ps1` / `start-sidecar.ps1` for later
+  `FREEOS_ORG_SIDECAR=1` use. Missing zip, tar.exe, or
+  `http://127.0.0.1:3780/api/health/livez` must not fail install.
   There is no Windows logon autostart. Organization first paint is the
   FreeOS-native page (`/api/org-module/*`), not an iframe of 3780.
 - Shell prefs → `{home}/desktop-settings.json`
@@ -41,12 +43,14 @@ unelevated explorer token so the first run does not stamp `%USERPROFILE%\.freeos
 as High integrity. Uncheck to skip. Chinese installer strings are compiled
 with `makensis -INPUTCHARSET UTF8` from a UTF-8 BOM `project.nsi`.
 
-A healthy package is **FreeOS.exe + the Python host**. An optional
-`openxyos-runtime.zip` (plus `provision-openxyos.ps1` / `start-sidecar.ps1`)
-may be copied for advanced Node export/sync. Setup **does not** `nsExec` the
-provisioner, extract with `tar.exe`, start Node, or wait for livez. A
-README-only or missing runtime tree is not an install failure. Setup does
-**not** register HKCU Run or a logon scheduled task.
+A healthy default package is **FreeOS.exe + the Python host** — no
+`openxyos-runtime.zip` (~500MB Node payload). Pass
+`SHIP_OPENXYOS_RUNTIME=1` to `wails3 task package` (and when assembling
+the green zip) to embed the zip plus `provision-openxyos.ps1` /
+`start-sidecar.ps1` for advanced Node export/sync. Setup **does not**
+`nsExec` the provisioner, extract with `tar.exe`, start Node, or wait
+for livez. A README-only or missing runtime tree is not an install
+failure. Setup does **not** register HKCU Run or a logon scheduled task.
 
 Organization uses the in-host `/api/org-module/*` surfaces. Downloading the
 latest openXYOS source (advanced) uses the same native folder picker as the

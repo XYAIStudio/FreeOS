@@ -8,9 +8,9 @@ info:
   companyName: "XYAI Studio"
   productName: "FreeOS"
   productIdentifier: "com.xyaistudio.freeos"
-  description: "FreeOS desktop — Octop shell + openXYOS"
+  description: "FreeOS desktop — Python host with in-host organization"
   copyright: "(c) 2026, XYAI Studio"
-  comments: "Wails v3 + green portable + openXYOS sidecar"
+  comments: "Wails v3 + green portable. Node sidecar optional via FREEOS_ORG_SIDECAR=1."
   version: "0.0.2"
 
 dev_mode:

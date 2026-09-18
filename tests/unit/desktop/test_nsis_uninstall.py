@@ -150,13 +150,21 @@ def test_nsis_provisions_openxyos_runtime() -> None:
     assert "LangString OPENXYOS_WORKDIR ${LANG_SIMPCHINESE}" in nsi
     assert "组织能力在 FreeOS 宿主内运行" in nsi
     assert "openXYOS 运行包" in nsi
+    present_gate = nsh[
+        nsh.index("!ifndef OPENXYOS_RUNTIME_ZIP") : nsh.index("!ifndef REQUEST_EXECUTION_LEVEL")
+    ]
+    assert "!if /FileExists" not in present_gate
+    assert "!define OPENXYOS_RUNTIME_ZIP_PRESENT" not in present_gate
     task = (REPO / "desktop" / "src" / "build" / "windows" / "Taskfile.yml").read_text(
         encoding="utf-8"
     )
     assert "stage:openxyos-runtime" in task
+    assert "maybe-stage:openxyos-runtime" in task
+    assert "SHIP_OPENXYOS_RUNTIME" in task
     assert "stage_openxyos_runtime.py" in task
     package = (REPO / "desktop" / "portable" / "package.sh").read_text(encoding="utf-8")
     assert "openXYOS frontend missing" in package
+    assert "SHIP_OPENXYOS_RUNTIME" in package
 
 
 def _nsis_filewrite_argc(line: str) -> int:
@@ -221,7 +229,7 @@ def test_nsis_runs_openxyos_provisioner_subprocess() -> None:
     assert "OPENXYOS_OPTIONAL_SKIP" in provision
     assert "OPENXYOS_OPTIONAL_ABSENT" in provision
     assert 'File "/oname=openxyos-runtime.zip"' in provision
-    assert "!error" not in nsh or "openxyos-runtime.zip missing" not in nsh
+    assert "OPENXYOS_RUNTIME_ZIP_PRESENT is set but" in provision
     assert "openxyos-runtime.zip missing" not in nsh
     assert "安装继续" in nsi
     assert "Setup continues" in nsi
@@ -230,8 +238,11 @@ def test_nsis_runs_openxyos_provisioner_subprocess() -> None:
     assert "PersistOpenXYOS" not in nsh
     assert "Call PersistOpenXYOS" not in nsh
     workflow = (REPO / ".github" / "workflows" / "octop-desktop.yml").read_text(encoding="utf-8")
-    assert "org-sidecar/openxyos/dist/index.html" in workflow
-    assert "org-sidecar/openxyos/backend/server.ts" in workflow
+    assert 'SKIP_ORG_SIDECAR: "1"' in workflow
+    assert "SHIP_OPENXYOS_RUNTIME=0" in workflow
+    assert "must not embed org-sidecar" in workflow
+    assert "org-sidecar/openxyos/dist/index.html" not in workflow
+    assert "org-sidecar/openxyos/backend/server.ts" not in workflow
 
 
 def test_desktop_readme_documents_uninstall_keep_vs_remove() -> None:
@@ -253,8 +264,22 @@ def test_desktop_readme_documents_uninstall_keep_vs_remove() -> None:
     assert "README-only" in text
     assert "folder picker" in text
     assert "FREEOS_ORG_SIDECAR=1" in text
+    assert "SHIP_OPENXYOS_RUNTIME=1" in text
     assert "in-host" in text.lower() or "in-host" in text
     assert "does not extract" in text.lower() or "does not" in text.lower()
+
+
+def test_desktop_metadata_is_single_runtime() -> None:
+    config = (REPO / "desktop" / "src" / "build" / "config.yml").read_text(encoding="utf-8")
+    info = (REPO / "desktop" / "src" / "build" / "windows" / "info.json").read_text(
+        encoding="utf-8"
+    )
+    assert "in-host organization" in config
+    assert "FREEOS_ORG_SIDECAR=1" in config
+    assert "openXYOS sidecar" not in config
+    assert "Octop shell + openXYOS" not in config
+    assert "Octop shell + openXYOS" not in info
+    assert "in-host organization" in info
 
 
 def _filewrite_payloads(block: str) -> list[str]:

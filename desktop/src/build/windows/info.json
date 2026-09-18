@@ -9,7 +9,7 @@
       "FileDescription": "FreeOS desktop",
       "LegalCopyright": "Copyright © 2026 XYAI Studio",
       "ProductName": "FreeOS",
-      "Comments": "FreeOS desktop — Octop shell + openXYOS"
+      "Comments": "FreeOS desktop — Python host with in-host organization"
     }
   }
 }

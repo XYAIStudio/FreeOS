@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Build one native FreeOS desktop release: Dashboard → portable runtime
-# (including bundled Node + openXYOS) → Wails package.
+# (Python host; Node/openXYOS only if SHIP_OPENXYOS_RUNTIME=1) → Wails package.
 # Run once per native platform; the GitHub Actions matrix runs all six variants.
 set -euo pipefail
 

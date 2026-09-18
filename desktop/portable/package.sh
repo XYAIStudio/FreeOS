@@ -14,7 +14,7 @@
 #   FreeOS-<plat>/
 #     runtime/     portable CPython
 #     packages/    site-packages (uv --target, relocatable)
-#     org-sidecar/ bundled Node + openXYOS (organization console)
+#     org-sidecar/ optional Node + openXYOS (only if SHIP_OPENXYOS_RUNTIME=1)
 #     start.sh / start.bat
 #     README.txt
 #
@@ -241,9 +241,17 @@ assemble_one() {
   cp "${TEMPLATES}/README.txt" "${staging}/README.txt"
   chmod +x "${staging}/start.sh"
 
-  echo "[package] ${plat}: bundling openXYOS sidecar" >&2
+  # Default v0.0.2 portable zip is the Python host only. The Node/openXYOS
+  # sidecar (~500MB) is opt-in: SHIP_OPENXYOS_RUNTIME=1 or SKIP_ORG_SIDECAR=0.
+  if [[ "${SHIP_OPENXYOS_RUNTIME:-0}" == "1" ]]; then
+    SKIP_ORG_SIDECAR=0
+  elif [[ -z "${SKIP_ORG_SIDECAR:-}" ]]; then
+    SKIP_ORG_SIDECAR=1
+  fi
+  export SKIP_ORG_SIDECAR
+  echo "[package] ${plat}: org sidecar (SKIP_ORG_SIDECAR=${SKIP_ORG_SIDECAR})" >&2
   bash "${REPO_ROOT}/desktop/portable/bundle-org-sidecar.sh" "$plat" "$staging"
-  if [[ "${SKIP_ORG_SIDECAR:-0}" != "1" ]]; then
+  if [[ "${SKIP_ORG_SIDECAR}" != "1" ]]; then
     if [[ ! -f "${staging}/org-sidecar/openxyos/dist/index.html" ]]; then
       echo "[package] ERROR: openXYOS frontend missing under ${staging}/org-sidecar/openxyos/dist" >&2
       exit 1

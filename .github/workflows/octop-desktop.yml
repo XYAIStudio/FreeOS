@@ -187,6 +187,9 @@ jobs:
       - name: Assemble green zip
         env:
           GREEN_HOST_PLAT: ${{ matrix.plat }}
+          # Default v0.0.2: Python host only. Set SHIP_OPENXYOS_RUNTIME=1 to
+          # embed Node/openXYOS (~500MB) in the portable zip + NSIS payload.
+          SKIP_ORG_SIDECAR: "1"
         run: |
           set -euo pipefail
           echo "GREEN_HOST_PLAT=${GREEN_HOST_PLAT} RUNNER_ARCH=${RUNNER_ARCH:-} uname=$(uname -ms)"
@@ -220,20 +223,11 @@ jobs:
           PYTHONNOUSERSITE=1 \
             "$py" desktop/portable/verify_imports.py \
               "${verify_args[@]}"
-          if [[ ! -f "${staging}/org-sidecar/openxyos/backend/server.ts" ]]; then
-            echo "org-sidecar missing under ${staging}" >&2
+          if [[ -d "${staging}/org-sidecar" ]]; then
+            echo "default v0.0.2 portable zip must not embed org-sidecar (set SHIP_OPENXYOS_RUNTIME=1 for opt-in builds)" >&2
             exit 1
           fi
-          if [[ ! -f "${staging}/org-sidecar/openxyos/dist/index.html" ]]; then
-            echo "openXYOS frontend missing under ${staging}/org-sidecar/openxyos/dist" >&2
-            exit 1
-          fi
-          if [[ -f "${staging}/org-sidecar/node/node.exe" || -x "${staging}/org-sidecar/node/bin/node" ]]; then
-            echo "org-sidecar Node runtime present"
-          else
-            echo "bundled Node missing under ${staging}/org-sidecar/node" >&2
-            exit 1
-          fi
+          echo "slim portable zip: org-sidecar absent (in-host Organization)"
           # macOS: fail if any native extension linked Homebrew/MacPorts paths.
           if [[ "${{ matrix.plat }}" == darwin-* ]]; then
             REPO_ROOT="$PWD" # shellcheck source=desktop/portable/_common.sh
@@ -268,11 +262,15 @@ jobs:
 
       - name: Package desktop app with bundled portable runtime
         working-directory: desktop/src
+        env:
+          # Slim NSIS: do not pass SHIP_OPENXYOS_RUNTIME=1 (no openxyos-runtime.zip).
+          SHIP_OPENXYOS_RUNTIME: "0"
         run: >-
           wails3 task package
           ARCH=${{ matrix.arch }}
           VERSION=${{ env.OCTOP_VERSION }}
           PORTABLE_ZIP=../portable/release/FreeOS-portable-${{ matrix.plat }}-${{ env.OCTOP_VERSION }}.zip
+          SHIP_OPENXYOS_RUNTIME=0
 
       # archive: false — upload the prebuilt zip as-is. Default archive=true would
       # wrap it again, so Actions UI / "Download artifact" becomes zip-in-zip.

@@ -35,7 +35,7 @@ make -f desktop/portable/Makefile green
 FreeOS-<plat>/
   runtime/       # python-build-standalone
   packages/      # FreeOS 宿主 + 依赖（site-packages，可搬迁）
-  org-sidecar/   # 内置 Node + 已构建的 openXYOS
+  org-sidecar/   # 可选；默认不打。SHIP_OPENXYOS_RUNTIME=1 才带 Node + openXYOS
   launch.py      # 启动引导（site.addsitedir / Windows pywin32）
   start.sh       # macOS / Linux
   start.bat      # Windows

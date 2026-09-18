@@ -51,7 +51,9 @@ Organization control-plane capabilities (`org_os`, `/api/org-module/*`,
 the Organization page) live in that host. The full openXYOS Node stack on
 `127.0.0.1:3780` is **optional** (export / sync / advanced deploy). It is
 not required to install FreeOS, open Organization, or run
-`freeos org loop run`.
+`freeos org loop run`. Default Windows NSIS and portable zips do **not**
+embed `openxyos-runtime.zip` (the ~500MB Node payload). Opt-in builds set
+`SHIP_OPENXYOS_RUNTIME=1`.
 
 The host inserts governance in front of high-risk data-plane tools,
 generates module skills, compiles blueprints into chat-usable colleagues,
