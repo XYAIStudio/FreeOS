@@ -84,6 +84,8 @@ describe("sidebarNav", () => {
     expect(zh.organization.downloadSourceBar).toBe("下载最新源码");
     expect(zh.organization.downloadSource).toBe("下载最新 openXYOS 源码");
     expect(zh.organization.restartSidecar).toBe("重启 openXYOS 前后端服务");
+    expect(zh.organization.restartSidecarCta).toBe("重启前后端服务");
+    expect(zh.organization.restartOverlayTitle).toBe("正在重启前后端服务");
     expect(zh.organization.browserReload).toBe("刷新");
     expect(en.organization.enableModule).toBe("Enable organization module");
     expect(en.organization.manageOs).toBe("Organization OS");
@@ -93,6 +95,12 @@ describe("sidebarNav", () => {
     );
     expect(en.organization.restartSidecar).toBe(
       "Restart openXYOS frontend and backend",
+    );
+    expect(en.organization.restartSidecarCta).toBe(
+      "Restart frontend and backend",
+    );
+    expect(en.organization.restartOverlayTitle).toBe(
+      "Restarting frontend and backend",
     );
     expect(en.organization.browserReload).toBe("Reload");
     expect(zh.chat.modelPickerManage).toBe("模型管理");

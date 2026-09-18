@@ -137,6 +137,20 @@ async def org_module_start_sidecar(
     return payload
 
 
+@router.get("/sidecar/livez", summary="Probe local openXYOS /api/health/livez")
+async def org_module_sidecar_livez(
+    server: OctopServer = Depends(get_server),
+    _user: Any = Depends(current_user),
+) -> dict[str, Any]:
+    service = _service(server)
+    health = await asyncio.to_thread(service.probe_sidecar)
+    return {
+        "reachable": health.reachable,
+        "url": health.url,
+        "detail": health.detail,
+    }
+
+
 @router.post("/sidecar/restart", summary="Restart local openXYOS frontend and backend")
 async def org_module_restart_sidecar(
     request: Request,

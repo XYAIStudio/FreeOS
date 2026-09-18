@@ -70,6 +70,7 @@ vi.mock("../../api/modules/orgModule", () => ({
     setEnabled: vi.fn(),
     startSidecar: vi.fn(),
     restartSidecar: vi.fn(),
+    probeLivez: vi.fn(),
     assemble: vi.fn(),
     produce: vi.fn(),
     pack: vi.fn(),
@@ -103,6 +104,12 @@ describe("OrganizationPage", () => {
     vi.mocked(orgModuleApi.downloadSource).mockReset();
     vi.mocked(orgModuleApi.startSidecar).mockReset();
     vi.mocked(orgModuleApi.restartSidecar).mockReset();
+    vi.mocked(orgModuleApi.probeLivez).mockReset();
+    vi.mocked(orgModuleApi.probeLivez).mockResolvedValue({
+      reachable: true,
+      url: "http://127.0.0.1:3780",
+      detail: "ok",
+    });
     vi.mocked(orgModuleApi.assemble).mockReset();
     vi.mocked(orgModuleApi.pack).mockReset();
     vi.mocked(message.success).mockReset();
@@ -270,9 +277,10 @@ describe("OrganizationPage", () => {
     });
     fireEvent.submit(address.closest("form") as HTMLFormElement);
     fireEvent.click(screen.getByTestId("org-restart-sidecar"));
-    expect(
-      await screen.findByTestId("org-restart-overlay"),
-    ).toBeInTheDocument();
+    const overlay = await screen.findByTestId("org-restart-overlay");
+    expect(overlay).toBeInTheDocument();
+    expect(overlay).toHaveTextContent("organization.restartOverlayTitle");
+    expect(screen.getAllByTestId("org-restart-step")).toHaveLength(5);
     await waitFor(() => {
       expect(orgModuleApi.restartSidecar).toHaveBeenCalled();
     });
@@ -284,6 +292,74 @@ describe("OrganizationPage", () => {
     expect(screen.queryByTestId("org-restart-overlay")).toBeNull();
     expect(message.success).toHaveBeenCalledWith(
       "organization.restartSidecarDone",
+    );
+  });
+
+  it("gates the local test page when livez is down and prompts restart", async () => {
+    vi.mocked(orgModuleApi.overview).mockResolvedValue({
+      ...overview,
+      sidecar_reachable: false,
+      sidecar_embed_ok: false,
+      start_available: false,
+      install_ready: false,
+    });
+    vi.mocked(orgModuleApi.probeLivez).mockResolvedValue({
+      reachable: false,
+      url: "http://127.0.0.1:3780",
+      detail: "sidecar unreachable",
+    });
+    renderOrg();
+    expect(await screen.findByTestId("org-sidecar-gate")).toBeInTheDocument();
+    expect(screen.getByTestId("org-sidecar-gate")).toHaveTextContent(
+      "organization.previewNeedsRestart",
+    );
+    expect(screen.getByTestId("org-browser-frame")).toHaveAttribute(
+      "src",
+      "about:blank",
+    );
+    expect(screen.getByTestId("org-restart-sidecar")).toBeInTheDocument();
+    vi.mocked(orgModuleApi.restartSidecar).mockImplementation(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 80));
+      return {
+        started: true,
+        already: false,
+        reachable: true,
+        url: "http://127.0.0.1:3780",
+        command: "start-sidecar",
+        detail: "ok",
+        launcher: "",
+      };
+    });
+    fireEvent.click(screen.getByTestId("org-sidecar-gate-restart"));
+    expect(
+      await screen.findByTestId("org-restart-overlay"),
+    ).toBeInTheDocument();
+  });
+
+  it("probes livez before opening a sidecar URL from the address bar", async () => {
+    vi.mocked(orgModuleApi.overview).mockResolvedValue({
+      ...overview,
+      sidecar_reachable: false,
+      start_available: false,
+      install_ready: false,
+    });
+    vi.mocked(orgModuleApi.probeLivez).mockResolvedValue({
+      reachable: false,
+      url: "http://127.0.0.1:3780",
+      detail: "sidecar unreachable",
+    });
+    renderOrg();
+    await screen.findByTestId("org-sidecar-gate");
+    fireEvent.submit(
+      screen.getByTestId("org-address-bar").closest("form") as HTMLFormElement,
+    );
+    await waitFor(() => {
+      expect(orgModuleApi.probeLivez).toHaveBeenCalled();
+    });
+    expect(screen.getByTestId("org-sidecar-gate")).toBeInTheDocument();
+    expect(screen.getByTestId("org-browser-frame")).toHaveAttribute(
+      "src",
+      "about:blank",
     );
   });
 

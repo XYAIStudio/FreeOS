@@ -1,6 +1,6 @@
-export type SidecarRecoverPhase = "hidden" | "opening";
+export type SidecarRecoverPhase = "hidden" | "opening" | "needsRestart";
 
-/** Organization always embeds the local URL; there is no start-CTA recover path. */
+/** When livez is down, surface a restart CTA instead of a silent Failed to fetch. */
 export function sidecarRecoverPhase(input: {
   sidecarUp: boolean;
   installReady: boolean;
@@ -9,7 +9,8 @@ export function sidecarRecoverPhase(input: {
   autoStartFailed: boolean;
 }): SidecarRecoverPhase {
   if (input.sidecarUp) return "hidden";
-  return "opening";
+  if (input.autoStarting && !input.autoStartFailed) return "opening";
+  return "needsRestart";
 }
 
 /** livez can be green while iframe assets 500 on the sidecar's own Origin. */

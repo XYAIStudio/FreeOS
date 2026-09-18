@@ -151,6 +151,10 @@ export const orgModuleApi = {
     request<OrgSidecarStart>("/org-module/sidecar/start", { method: "POST" }),
   restartSidecar: () =>
     request<OrgSidecarStart>("/org-module/sidecar/restart", { method: "POST" }),
+  probeLivez: () =>
+    request<{ reachable: boolean; url: string; detail: string }>(
+      "/org-module/sidecar/livez",
+    ),
   assemble: () =>
     request<OrgAssembleResult>("/org-module/assemble", { method: "POST" }),
   produce: (body: {

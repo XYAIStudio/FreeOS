@@ -13,6 +13,7 @@
 - 组织页互生长通道两端都落到可选用状态：推送到 openXYOS 时员工/人才写成列表页能看到的 `active` / `internal` / `available`；从 openXYOS 回流时即使没有技能字段也会登记为同事，技能/插件/MCP 写入 `org-skills` / `org-plugins` / `org-mcps`，并把聊天专家挂到当前用户（修复 `user_id=NULL` 导致「专家」页看不见）。导入后跳到「专家」页，推送/循环后关闭管理抽屉并刷新预览。
 - 组织页内嵌浏览器补上后退 / 前进 / 刷新；openXYOS 首页卡通助手改为打包进前端资源（并保留 `/assets/xyai-mascot.webp` 回退），不再显示破碎图片。
 - 启动 FreeOS 时就会拉起本机 openXYOS 前后端（桌面 `startOrgSidecar` + 主机 `ensure_sidecar`），不必先进入组织页；登录不再因为 3780 未监听而 `Failed to fetch`。
+- 组织页打开本机测试页会先探测 `livez`：前后端未起来时不再把登录 iframe 暴露成 `Failed to fetch`，而是提示点击「重启前后端服务」，并高亮状态栏重启按钮。重启过程改为 XYAI Studio 风格进度卡（吉祥物对话气泡、转圈、逐步推进的停进程 / 本机完整目录 / 启动 API 与页面 / 等待端口 / 加载登录页），并真实停启 FreeOS openXYOS 节点。
 - 组织页「最近同步」左侧增加「重启 openXYOS 前后端服务」：XYAI 吉祥物动画、真实停启进程，livez 通过后回到本机测试首页。
 
 - 组织页「把 FreeOS 资产推到 openXYOS」不再把行写进 tenant 1 却让嵌入式登录（`demo@demo.com` → tenant 2）看不见。ingest 以当前登录 / 最近登录 / 本地演示租户为准，并把员工/人才写成列表页会显示的状态；打包回执带落地数量，预览跳到员工页。

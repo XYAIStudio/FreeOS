@@ -13,7 +13,6 @@ import {
   Users,
   Workflow,
 } from "lucide-react";
-import { xyaiMascotSrc } from "../../assets/mascot";
 import { useTranslation } from "react-i18next";
 import PageShell from "../../layouts/PageShell";
 import {
@@ -32,14 +31,17 @@ import {
 } from "../../utils/desktopFolder";
 import { message } from "../../utils/antdMessage";
 import { resolveOpenxyosSourceDest } from "./pickSourceDest";
-import { shouldShowPreviewBlank } from "./sidecarRecover";
+import { sidecarRecoverPhase, shouldShowPreviewBlank } from "./sidecarRecover";
+import { confirmSidecarLivez, sidecarPreviewGate } from "./sidecarLivez";
 import OrgMiniBrowser from "./OrgMiniBrowser";
+import OrgRestartOverlay from "./OrgRestartOverlay";
 import {
   DEFAULT_ORG_URL,
   closeOrgTab,
   createHomeTab,
   goBackOrgTab,
   goForwardOrgTab,
+  isSidecarOriginUrl,
   navigateOrgTab,
   normalizeOrgUrl,
   openOrgTab,
@@ -123,7 +125,13 @@ export default function OrganizationPage() {
   const [landed, setLanded] = useState<Record<string, unknown> | null>(null);
   const autoStartRef = useRef(false);
   const iframeRefs = useRef<Record<string, HTMLIFrameElement | null>>({});
+  const livezOkRef = useRef(false);
   const [previewNonce, setPreviewNonce] = useState("");
+  const [livezOk, setLivezOk] = useState(false);
+  const [autoStarting, setAutoStarting] = useState(false);
+  const [autoStartFailed, setAutoStartFailed] = useState(false);
+  const [restartFinished, setRestartFinished] = useState(false);
+  const [openBlocked, setOpenBlocked] = useState(false);
   const homeTitle = t("organization.homeTabTitle");
   const [tabs, setTabs] = useState<OrgBrowserTab[]>(() => [
     createHomeTab(DEFAULT_ORG_URL, homeTitle),
@@ -138,6 +146,19 @@ export default function OrganizationPage() {
           path.startsWith("/") ? path : `/${path}`
         }`,
       );
+      const origin = sidecarOriginOf(
+        (overview?.sidecar_url || DEFAULT_ORG_URL).replace(/\/$/, ""),
+      );
+      if (isSidecarOriginUrl(dest, origin) && !livezOkRef.current) {
+        void confirmSidecarLivez({
+          origin,
+          apiProbe: orgModuleApi.probeLivez,
+        }).then((ok) => {
+          setLivezOk(ok);
+          livezOkRef.current = ok;
+          if (!ok) setOpenBlocked(true);
+        });
+      }
       setTabs((current) =>
         navigateOrgTab(current, "org-home", dest, homeTitle),
       );
@@ -154,6 +175,9 @@ export default function OrganizationPage() {
       try {
         const next = await orgModuleApi.overview();
         setOverview(next);
+        setLivezOk(Boolean(next.sidecar_reachable));
+        livezOkRef.current = Boolean(next.sidecar_reachable);
+        if (next.sidecar_reachable) setOpenBlocked(false);
         if (next.module_toggles) setModuleToggles(next.module_toggles);
         const proof = next.last_loop;
         if (proof && typeof proof === "object" && proof.landed) {
@@ -190,12 +214,27 @@ export default function OrganizationPage() {
     return () => window.clearInterval(id);
   }, [applyOverview, overview?.sidecar_reachable]);
 
-  const sidecarUp = Boolean(overview?.sidecar_reachable);
+  const sidecarUp = Boolean(overview?.sidecar_reachable) && livezOk;
   const embedOk = overview?.sidecar_embed_ok;
   const previewBlank = shouldShowPreviewBlank({
     sidecarUp,
     embedOk,
   });
+  const recoverPhase = sidecarRecoverPhase({
+    sidecarUp,
+    installReady: Boolean(overview?.install_ready),
+    startAvailable: Boolean(overview?.start_available),
+    autoStarting,
+    autoStartFailed,
+  });
+  const previewGate = sidecarPreviewGate({
+    livezOk: sidecarUp,
+    restarting: busy === "restart",
+  });
+  const showRestartGate =
+    Boolean(overview) &&
+    previewGate === "needsRestart" &&
+    (openBlocked || recoverPhase === "needsRestart");
   const firstRun = useMemo(() => {
     if (!overview) return false;
     return (
@@ -252,6 +291,8 @@ export default function OrganizationPage() {
 
   const startSidecar = () =>
     runAction("sidecar", async () => {
+      setAutoStarting(true);
+      setAutoStartFailed(false);
       try {
         const result = await orgModuleApi.startSidecar();
         setLastActionNotes([result.detail, result.command].filter(Boolean));
@@ -259,10 +300,14 @@ export default function OrganizationPage() {
           ? await applyOverview(true)
           : await waitForSidecar();
         if (next?.sidecar_reachable) {
+          setAutoStartFailed(false);
           return;
         }
+        setAutoStartFailed(true);
       } catch {
-        // FreeOS still embeds the local URL; no user-facing start CTA.
+        setAutoStartFailed(true);
+      } finally {
+        setAutoStarting(false);
       }
     });
 
@@ -491,9 +536,31 @@ export default function OrganizationPage() {
   );
   const sidecarOrigin = sidecarOriginOf(localConsoleUrl);
 
+  const confirmLivez = useCallback(async (): Promise<boolean> => {
+    const origin = sidecarOriginOf(
+      (overview?.sidecar_url || DEFAULT_ORG_URL).replace(/\/$/, ""),
+    );
+    const ok = await confirmSidecarLivez({
+      origin,
+      apiProbe: orgModuleApi.probeLivez,
+    });
+    setLivezOk(ok);
+    livezOkRef.current = ok;
+    if (ok) setOpenBlocked(false);
+    return ok;
+  }, [overview?.sidecar_url]);
+
   const openTab = useCallback(
     (raw: string, title?: string, reuse = true) => {
       const url = normalizeOrgUrl(raw);
+      const origin = sidecarOriginOf(
+        (overview?.sidecar_url || DEFAULT_ORG_URL).replace(/\/$/, ""),
+      );
+      if (isSidecarOriginUrl(url, origin) && !livezOkRef.current) {
+        void confirmLivez().then((ok) => {
+          if (!ok) setOpenBlocked(true);
+        });
+      }
       const label = title || tabTitleFromUrl(url, homeTitle);
       let nextActive = "";
       let nextAddress = url;
@@ -508,16 +575,28 @@ export default function OrganizationPage() {
       setAddressValue(nextAddress);
       return true;
     },
-    [homeTitle],
+    [confirmLivez, homeTitle, overview?.sidecar_url],
   );
 
   const submitAddress = useCallback(() => {
     const url = normalizeOrgUrl(addressValue, localConsoleUrl + "/");
+    if (isSidecarOriginUrl(url, sidecarOrigin) && !livezOkRef.current) {
+      void confirmLivez().then((ok) => {
+        if (!ok) setOpenBlocked(true);
+      });
+    }
     setTabs((current) =>
       navigateOrgTab(current, activeId, url, tabTitleFromUrl(url, homeTitle)),
     );
     setAddressValue(url);
-  }, [activeId, addressValue, homeTitle, localConsoleUrl]);
+  }, [
+    activeId,
+    addressValue,
+    confirmLivez,
+    homeTitle,
+    localConsoleUrl,
+    sidecarOrigin,
+  ]);
 
   const goHomeAfterRestart = useCallback(() => {
     const home = normalizeOrgUrl(localConsoleUrl + "/");
@@ -528,39 +607,50 @@ export default function OrganizationPage() {
   }, [homeTitle, localConsoleUrl]);
 
   const onBrowserBack = useCallback(() => {
-    let nextAddress = addressValue;
     setTabs((current) => {
       const next = goBackOrgTab(current, activeId, homeTitle);
-      nextAddress =
-        next.find((tab) => tab.id === activeId)?.url ?? addressValue;
+      const url = next.find((tab) => tab.id === activeId)?.url;
+      if (url) setAddressValue(url);
       return next;
     });
-    setAddressValue(nextAddress);
-  }, [activeId, addressValue, homeTitle]);
+  }, [activeId, homeTitle]);
 
   const onBrowserForward = useCallback(() => {
-    let nextAddress = addressValue;
     setTabs((current) => {
       const next = goForwardOrgTab(current, activeId, homeTitle);
-      nextAddress =
-        next.find((tab) => tab.id === activeId)?.url ?? addressValue;
+      const url = next.find((tab) => tab.id === activeId)?.url;
+      if (url) setAddressValue(url);
       return next;
     });
-    setAddressValue(nextAddress);
-  }, [activeId, addressValue, homeTitle]);
+  }, [activeId, homeTitle]);
 
   const onBrowserReload = useCallback(() => {
+    const tab = tabs.find((row) => row.id === activeId);
+    if (
+      tab &&
+      isSidecarOriginUrl(tab.url, sidecarOrigin) &&
+      !livezOkRef.current
+    ) {
+      void confirmLivez().then((ok) => {
+        if (!ok) setOpenBlocked(true);
+      });
+      return;
+    }
     setTabs((current) => reloadOrgTab(current, activeId));
-  }, [activeId]);
+  }, [activeId, confirmLivez, sidecarOrigin, tabs]);
 
   const restartSidecar = () =>
     runAction("restart", async () => {
+      setRestartFinished(false);
+      setOpenBlocked(false);
       const result = await orgModuleApi.restartSidecar();
       setLastActionNotes([result.detail, result.command].filter(Boolean));
       const next = result.reachable
         ? await applyOverview(true)
         : await waitForSidecar();
       if (next?.sidecar_reachable) {
+        setRestartFinished(true);
+        await new Promise((resolve) => window.setTimeout(resolve, 600));
         goHomeAfterRestart();
         message.success(t("organization.restartSidecarDone"));
         return;
@@ -657,7 +747,9 @@ export default function OrganizationPage() {
             </span>
             <Button
               size="small"
-              className={styles.restartBtn}
+              className={`${styles.restartBtn} ${
+                showRestartGate ? styles.restartBtnPulse : ""
+              }`}
               icon={<RefreshCw size={13} />}
               loading={busy === "restart"}
               disabled={busy !== null && busy !== "restart"}
@@ -708,7 +800,9 @@ export default function OrganizationPage() {
           disabledKeys={disabledKeys}
           previewNonce={previewNonce}
           sidecarUp={sidecarUp}
+          livezOk={livezOk}
           previewBlank={previewBlank}
+          recoverPhase={recoverPhase}
           iframeRefs={iframeRefs}
           onAddressChange={setAddressValue}
           onAddressSubmit={submitAddress}
@@ -737,27 +831,12 @@ export default function OrganizationPage() {
           onReload={onBrowserReload}
           onFrameLoad={pushTogglesToPreview}
         />
-        {busy === "restart" && (
-          <div
-            className={styles.restartOverlay}
-            data-testid="org-restart-overlay"
-            role="status"
-            aria-live="polite"
-          >
-            <img
-              className={styles.restartMascot}
-              src={xyaiMascotSrc("work")}
-              alt=""
-              aria-hidden
-              draggable={false}
-            />
-            <p className={styles.restartLabel}>
-              {t("organization.restartingSidecar")}
-            </p>
-            <p className={styles.restartHint}>
-              {t("organization.restartSidecarHint")}
-            </p>
-          </div>
+        {(busy === "restart" || showRestartGate) && (
+          <OrgRestartOverlay
+            mode={busy === "restart" ? "restarting" : "needsRestart"}
+            finished={restartFinished}
+            onRestart={() => void restartSidecar()}
+          />
         )}
       </div>
 
