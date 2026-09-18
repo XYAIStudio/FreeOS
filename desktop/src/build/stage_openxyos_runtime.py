@@ -161,7 +161,7 @@ def stage(source: Path, dest_zip: Path) -> Path:
     readme = dest_zip.with_name("openxyos-README.txt")
     readme.write_text(
         "FreeOS openXYOS runtime\n"
-        "Install dir: <install>\\openxyos  (FE+BE, read-only)\n"
+        "Install dir: <install>\\openxyos  (README stub only)\n"
         "Work dir:    %LOCALAPPDATA%\\FreeOS\\openxyos  or  %USERPROFILE%\\.freeos\\openxyos\n"
         "URL:         http://127.0.0.1:3780\n",
         encoding="utf-8",

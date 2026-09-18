@@ -25,12 +25,16 @@ Same precedence as the FreeOS CLI/server:
 - Local openXYOS workdir (FE+BE) → `%LOCALAPPDATA%\FreeOS\openxyos` on Windows,
   else `{home}/openxyos`. During Setup the FreeOS installer `nsExec`s a
   shipped **provisioner subprocess** (`provision-openxyos.ps1`) that expands
-  `openxyos-runtime.zip` with `tar.exe` into that live workdir (and keeps
-  `$INSTDIR\openxyos` as a sealed copy; the `openxyos-runtime` zip and folder
-  are deleted after a successful provision), starts FE/BE
+  `openxyos-runtime.zip` **once** with `tar.exe` into that live workdir
+  (`$INSTDIR\openxyos` and `$INSTDIR\openxyos-runtime` are README stubs only;
+  the `openxyos-runtime` zip and leftover staging folder are deleted after a
+  successful provision), starts FE/BE
   at medium integrity (Node inherits `CORS_ORIGIN` / `NODE_ENV`; stdout/stderr
-  go to UTF-8 `start.log`), and writes `.install-ready` only after
-  `http://127.0.0.1:3780/api/health/livez` is healthy. The Setup detail list
+  go to UTF-8 `start.log` / `start.out.log` / `start.err.log`, with a
+  `cmd /c` redirect fallback if PowerShell redirect swallows a crash), and
+  writes `.install-ready` only after
+  `http://127.0.0.1:3780/api/health/livez` is healthy **and** `start.pid` is
+  still alive. The Setup detail list
   shows localized step results only (`nsExec::Exec`, not `ExecToLog`); full
   PowerShell/Node console stays in `%LOCALAPPDATA%\FreeOS\openxyos\provision.log`
   and `start.log` so UTF-8 Chinese is not misread as GBK. Before extract it
@@ -38,8 +42,10 @@ Same precedence as the FreeOS CLI/server:
   paths) and waits until that owned process is gone. After extract+heal, Node
   starts with cwd at the live root when `backend-dist/server.js` and
   `dist/index.html` exist there (a leftover nested `openxyos\openxyos` tree
-  must not win — that cwd exits immediately with an empty console). It unpacks into a LocalAppData
-  temp dir, logs tar stderr to `provision.log`, and treats a non-zero tar as
+  is removed after heal so it cannot win — that cwd exits immediately with an
+  empty console). It unpacks into a LocalAppData
+  temp dir, moves that tree into the live workdir (one extract), logs tar
+  stderr to `provision.log`, and treats a non-zero tar as
   success when the layout heals. Transient `[Error] POST /api/auth` / `[seed]`
   lines in `start.log` are not a provision failure when livez is healthy. If
   Node dies before livez, the provisioner exits 10 with a `start.log` excerpt
@@ -70,8 +76,9 @@ waiting until it is gone. tar
 stdout/stderr go to UTF-8 `provision.log`, not the NSIS detail list. A non-zero tar is not exit 3 when the
 layout is complete after heal. It then starts Node at medium integrity
 (IShellDispatch2 — never High-IL Node from the elevated installer), waits
-for livez, and writes `.install-ready` only when healthy. `$INSTDIR\openxyos`
-is the sealed install copy. After success the provisioner removes
+for livez, and writes `.install-ready` only when healthy and `start.pid`
+is still alive. `$INSTDIR\openxyos` and `$INSTDIR\openxyos-runtime` are
+README stubs, not full runtime copies. After success the provisioner removes
 `$INSTDIR\openxyos-runtime.zip` (and similarly named archives) plus the
 `$INSTDIR\openxyos-runtime` folder, and a sibling `openxyos-runtime` under
 `%LOCALAPPDATA%\FreeOS` if one was staged there. A failed provision leaves

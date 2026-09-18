@@ -2,9 +2,14 @@
 
 from __future__ import annotations
 
+import os
 import re
+import shutil
+import subprocess
 from pathlib import Path
 from urllib.parse import urlparse
+
+import pytest
 
 REPO = Path(__file__).resolve().parents[3]
 NSIS = REPO / "desktop" / "src" / "build" / "windows" / "nsis"
@@ -284,7 +289,8 @@ def test_provisioner_nonzero_tar_with_good_layout_is_not_exit_3() -> None:
     assert "Repair-OpenXYOSLayout" in extract_body
     assert "exit 3" not in extract_body
     main = text[text.index("# --- main ---") :]
-    assert "will try backup heal" in main
+    assert "extract into live dir returned incomplete layout" in main
+    assert "will try backup heal" not in main
     hard_fail = (
         "if (-not (Invoke-TarExtract -Tar $tar -Zip $ZipPath -Dest $LiveDir)) {\n"
         "        Write-ProvLog 'extract into live dir failed'\n"
@@ -360,6 +366,132 @@ def test_provisioner_ignores_transient_auth_console_noise() -> None:
     assert "Test-OpenXYOSTransientConsoleLine" not in wait
     assert "-match" not in wait
     assert "startup noise" in wait
+
+
+def test_provisioner_extracts_zip_once_into_livedir() -> None:
+    """Runtime zip is extracted once into LocalAppData; INSTDIR stays stubs."""
+    text = PROVISION_PS1.read_text(encoding="utf-8")
+    main = text[text.index("# --- main ---") :]
+    assert main.count("Invoke-TarExtract") == 1
+    assert "Dest $LiveDir" in main
+    assert "Dest $backup" not in main
+    assert "backup extract" not in main
+    extract_body = text[
+        text.index("function Invoke-TarExtract") : text.index("function Test-SamePath")
+    ]
+    assert "& $Tar -xf" in extract_body
+    assert extract_body.count("& $Tar -xf") == 1
+    assert "single extract" in extract_body
+    assert "Move-OpenXYOSTree" in extract_body
+    assert "Remove-OpenXYOSNestedLeftover" in extract_body
+    nsh = (NSIS / "wails_tools.nsh").read_text(encoding="utf-8")
+    provision = nsh[
+        nsh.index("!macro wails.provisionOpenXYOS") : nsh.index("!macro wails.openxyosFailDetail")
+    ]
+    assert provision.count('File "/oname=openxyos-runtime.zip"') == 1
+    assert "ONCE" in nsh or "once" in nsh
+    assert "README stubs" in nsh or "README stub" in nsh
+    assert "Set-Content -LiteralPath (Join-Path $stubDir 'README.txt')" in main
+    assert "not a runtime copy" in main
+
+
+def test_provisioner_ready_gate_requires_livez_and_pid() -> None:
+    text = PROVISION_PS1.read_text(encoding="utf-8")
+    assert "function Test-OpenXYOSInstallReady" in text
+    assert "function Test-OpenXYOSPidAlive" in text
+    complete = text[
+        text.index("function Complete-OpenXYOSSuccess") : text.index("# --- main ---")
+    ]
+    assert "Test-OpenXYOSInstallReady" in complete
+    assert complete.index("Test-OpenXYOSInstallReady") < complete.index("Write-InstallReady")
+    assert "拒绝写入 .install-ready" in complete
+    gate = text[
+        text.index("function Test-OpenXYOSInstallReady") : text.index(
+            "function Complete-OpenXYOSSuccess"
+        )
+    ]
+    assert "Test-OpenXYOSLivez" in gate
+    assert "Test-OpenXYOSPidAlive" in gate
+    assert "Test-StartLogShowsFailFast" in gate
+    start_fn = text[
+        text.index("function Start-OpenXYOSUnelevated") : text.index("function Write-InstallReady")
+    ]
+    assert "Test-StartClaimUnreliable" in start_fn
+    assert "改走直接启动" in start_fn
+    assert "未写入 .install-ready" in text
+
+
+def test_provisioner_removes_nested_leftover_after_heal() -> None:
+    text = PROVISION_PS1.read_text(encoding="utf-8")
+    start = START_PS1.read_text(encoding="utf-8")
+    for body in (text, start):
+        assert "function Remove-OpenXYOSNestedLeftover" in body
+        assert "leftover nested payload" in body or "Remove-OpenXYOSNestedLeftover $Root" in body
+        repair = body[
+            body.index("function Repair-OpenXYOSLayout") : body.index(
+                "function Remove-OpenXYOSNestedLeftover"
+            )
+        ]
+        assert "Remove-OpenXYOSNestedLeftover $Root" in repair
+    assert "Removing leftover nested payload" in text
+
+
+def test_start_sidecar_records_nonempty_fail_fast_reason() -> None:
+    start = START_PS1.read_text(encoding="utf-8")
+    assert "cmd.exe" in start
+    assert "/c" in start
+    assert '2>"' in start
+    assert "function Write-OpenXYOSFailFastReason" in start
+    assert "function Invoke-OpenXYOSCmdCapture" in start
+    assert "redirect produced empty stdout/stderr; capturing via cmd /c" in start
+    assert "still empty after cmd capture" in start
+    assert "CrashSelfTest" in start
+    assert "forced-crash-openxyos" in start
+    assert "Start-Process -FilePath $node" in start
+    assert "$env:CORS_ORIGIN" in start
+    assert "JWT_SECRET set=" in start
+
+
+@pytest.mark.skipif(
+    os.name != "nt" or shutil.which("powershell") is None or shutil.which("node") is None,
+    reason="forced-crash probe needs Windows powershell + node",
+)
+def test_start_sidecar_forced_crash_writes_reason(tmp_path: Path) -> None:
+    """On Windows with node+powershell, -CrashSelfTest must leave a non-empty reason."""
+    live = tmp_path / "openxyos"
+    pwsh = shutil.which("powershell")
+    node = shutil.which("node")
+    assert pwsh and node
+    (live / "node").mkdir(parents=True)
+    shutil.copy(node, live / "node" / "node.exe")
+    (live / "dist").mkdir()
+    (live / "dist" / "index.html").write_text("<html></html>", encoding="utf-8")
+    (live / "backend-dist").mkdir()
+    (live / "backend-dist" / "server.js").write_text("/* unused */", encoding="utf-8")
+    helper = live / "start-sidecar.ps1"
+    helper.write_text(START_PS1.read_text(encoding="utf-8"), encoding="utf-8")
+    completed = subprocess.run(
+        [
+            pwsh,
+            "-NoProfile",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-File",
+            str(helper),
+            "-CrashSelfTest",
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+    log = (live / "start.log").read_text(encoding="utf-8", errors="replace")
+    err = ""
+    if (live / "start.err.log").is_file():
+        err = (live / "start.err.log").read_text(encoding="utf-8", errors="replace")
+    blob = log + err
+    assert "fail-fast" in blob or "forced-crash-openxyos" in blob
+    assert blob.strip(), f"empty start logs, exit={completed.returncode}"
 
 
 def test_wrappers_have_no_goto_labels() -> None:

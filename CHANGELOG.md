@@ -8,6 +8,7 @@
 
 ### 修复
 
+- Windows 安装预配只把 `openxyos-runtime.zip` **解压一次**到 `%LOCALAPPDATA%\\FreeOS\\openxyos`（先解到同卷暂存再 move），不再额外整包解到 `$INSTDIR\\openxyos` 与 `$INSTDIR\\openxyos-runtime`（这两处只留 README 桩）。解压后拍平并删除残留的嵌套 `openxyos\\openxyos`。Node 崩溃时用 `cmd /c` 把真实 stderr/stdout 落到 `start.out.log` / `start.err.log`；`.install-ready` 只在 livez 通过且 `start.pid` 仍存活时写入。Shell.Application 若声称成功但 start.log 已是 fail-fast / 空日志，改走直接启动或中文失败说明，不再假成功。
 - Windows 安装预配不再把 Node 工作目录选到残留的嵌套 `openxyos\\openxyos`：顶层已有 `backend-dist/server.js` 与 `dist/index.html` 时必须用 live 根。嵌套 cwd 会让 `node backend-dist/server.js` 立刻退出且 stdout/stderr 为空，安装空等 90s 后以退出码 12 失败。`start-sidecar.ps1` / 预配 / 桌面 Go / Python 启动路径统一按此选择 cwd；每次启动截断 `start.log`；Shell.Application 若未刷新日志则改走 explorer / Start-Process，Node fail-fast 不再伪装成 livez 超时。
 - Windows 安装详情不再把 openXYOS 预配的 UTF-8 Node/PowerShell 控制台（`[Error] POST /api/auth`、`[seed]`、中文 Server/WebSocket 状态）按系统 ANSI/GBK 打成乱码。NSIS 只用 `nsExec::Exec` 等退出码，详情页只显示本地化步骤结果；完整日志写入 `%LOCALAPPDATA%\\FreeOS\\openxyos\\provision.log` / `start.log`（UTF-8）。解压前停止并等待旧的 FreeOS openXYOS Node 退出；livez 通过即成功，不把启动期 auth 日志当失败。
 - 组织页互生长通道两端都落到可选用状态：推送到 openXYOS 时员工/人才写成列表页能看到的 `active` / `internal` / `available`；从 openXYOS 回流时即使没有技能字段也会登记为同事，技能/插件/MCP 写入 `org-skills` / `org-plugins` / `org-mcps`，并把聊天专家挂到当前用户（修复 `user_id=NULL` 导致「专家」页看不见）。导入后跳到「专家」页，推送/循环后关闭管理抽屉并刷新预览。

@@ -7,6 +7,12 @@
 # (UTF-8). Do not Write-Host those lines — NSIS detail treats child stdout
 # as system ANSI (GBK on Chinese Windows) and would show mojibake plus
 # transient [Error] POST /api/auth / [seed] noise.
+# Launch so OS-level redirects flush on crash; if Start-Process redirect
+# swallows stdout/stderr, fall back to cmd /c "node ... >log 2>&1".
+[CmdletBinding()]
+param(
+    [switch]$CrashSelfTest
+)
 $ErrorActionPreference = 'Continue'
 $live = Split-Path -Parent $MyInvocation.MyCommand.Path
 $livez = 'http://127.0.0.1:3780/api/health/livez'
@@ -92,14 +98,35 @@ function Repair-OpenXYOSLayout {
     } elseif ((Test-Path -LiteralPath $nestedBe) -and -not (Test-Path -LiteralPath $flatBe)) {
         Copy-OpenXYOSTree (Join-Path $Root 'openxyos') $Root
     }
-    if (Test-OpenXYOSLayout $Root) { return $true }
+    if (Test-OpenXYOSLayout $Root) {
+        Remove-OpenXYOSNestedLeftover $Root
+        return $true
+    }
     $found = Find-OpenXYOSBundleRoot $Root
     if (-not $found) { return $false }
     $fullFound = [IO.Path]::GetFullPath($found)
     $fullRoot = [IO.Path]::GetFullPath($Root)
-    if ($fullFound -eq $fullRoot) { return $true }
+    if ($fullFound -eq $fullRoot) {
+        Remove-OpenXYOSNestedLeftover $Root
+        return $true
+    }
     Copy-OpenXYOSTree $found $Root
-    return (Test-OpenXYOSLayout $Root)
+    $ok = Test-OpenXYOSLayout $Root
+    if ($ok) { Remove-OpenXYOSNestedLeftover $Root }
+    return $ok
+}
+
+function Remove-OpenXYOSNestedLeftover {
+    param([string]$Root)
+    if (-not (Test-OpenXYOSAppReady $Root)) { return }
+    $nested = Join-Path $Root 'openxyos'
+    if (-not (Test-Path -LiteralPath $nested)) { return }
+    $nestedFe = Join-Path $nested 'dist\index.html'
+    $nestedBe = Join-Path $nested 'backend-dist\server.js'
+    if (-not ((Test-Path -LiteralPath $nestedFe) -or (Test-Path -LiteralPath $nestedBe))) {
+        return
+    }
+    Remove-Item -LiteralPath $nested -Recurse -Force -ErrorAction SilentlyContinue
 }
 
 function Stop-OpenXYOSNode {
@@ -169,7 +196,9 @@ function Reset-OpenXYOSStartLogs {
 
 if (Test-IsElevated) {
     $pwsh = Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
-    $arg = "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$($MyInvocation.MyCommand.Path)`""
+    $crashArg = ''
+    if ($CrashSelfTest) { $crashArg = ' -CrashSelfTest' }
+    $arg = "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$($MyInvocation.MyCommand.Path)`"$crashArg"
     $before = $null
     if (Test-Path -LiteralPath $startLog) {
         $before = (Get-Item -LiteralPath $startLog).LastWriteTimeUtc
@@ -250,7 +279,9 @@ $env:FREEOS_HOME = $freeosHome
 $env:OCTOP_HOME = $freeosHome
 $env:FREEOS_ORG_SIDECAR_PORT = '3780'
 $compiled = Join-Path $app 'backend-dist\server.js'
-if (Test-Path -LiteralPath $compiled) {
+if ($CrashSelfTest) {
+    $argv = @('-e', "process.stderr.write('forced-crash-openxyos\n'); process.exit(1)")
+} elseif (Test-Path -LiteralPath $compiled) {
     $argv = @('backend-dist/server.js')
 } else {
     $argv = @('--import', 'tsx', 'backend/server.ts')
@@ -305,6 +336,20 @@ foreach ($name in @(
     }
 }
 
+function Get-OpenXYOSLogText {
+    param([string]$Path)
+    if (-not (Test-Path -LiteralPath $Path)) { return '' }
+    $item = Get-Item -LiteralPath $Path -ErrorAction SilentlyContinue
+    if (-not $item -or $item.Length -le 0) { return '' }
+    return ((Get-Content -LiteralPath $Path -Raw -ErrorAction SilentlyContinue) + '')
+}
+
+function Test-OpenXYOSNodeLogsEmpty {
+    $outText = Get-OpenXYOSLogText $startOut
+    $errText = Get-OpenXYOSLogText $startErr
+    return ([string]::IsNullOrWhiteSpace($outText) -and [string]::IsNullOrWhiteSpace($errText))
+}
+
 function Merge-NodeLogs {
     foreach ($f in @($startOut, $startErr)) {
         if (Test-Path -LiteralPath $f) {
@@ -315,18 +360,80 @@ function Merge-NodeLogs {
     }
 }
 
-# Redirect* + -NoNewWindow => UseShellExecute=$false, so $env:* is inherited.
-# File redirects keep stdout/stderr after this helper exits.
+function Invoke-OpenXYOSCmdCapture {
+    $cmdExe = Join-Path $env:SystemRoot 'System32\cmd.exe'
+    $inner = '"{0}" {1} >"{2}" 2>"{3}"' -f $node, $psi.Arguments, $startOut, $startErr
+    Add-Content -LiteralPath $startLog -Value "cmd /c capture: $inner" -Encoding UTF8
+    try {
+        $cap = Start-Process -FilePath $cmdExe -ArgumentList @('/s', '/c', "`"$inner`"") `
+            -WorkingDirectory $app -Wait -PassThru -NoNewWindow
+        return $cap.ExitCode
+    } catch {
+        Add-Content -LiteralPath $startLog -Value "cmd /c capture failed: $($_.Exception.Message)" -Encoding UTF8
+        return -1
+    }
+}
+
+function Write-OpenXYOSFailFastReason {
+    param($ExitCode)
+    Merge-NodeLogs
+    $reason = "node exited $ExitCode (fail-fast) cwd=$app layout=$layout"
+    Add-Content -LiteralPath $startLog -Value $reason -Encoding UTF8
+    if (Test-OpenXYOSNodeLogsEmpty) {
+        Add-Content -LiteralPath $startLog -Value 'redirect produced empty stdout/stderr; capturing via cmd /c' -Encoding UTF8
+        $null = Invoke-OpenXYOSCmdCapture
+        Merge-NodeLogs
+    }
+    if (Test-OpenXYOSNodeLogsEmpty) {
+        Add-Content -LiteralPath $startLog -Value "node stdout/stderr still empty after cmd capture; exit=$ExitCode cwd=$app (typical of nested openxyos\openxyos cwd crash)" -Encoding UTF8
+    }
+    if (($app -ne $live) -and (Test-OpenXYOSAppReady $live)) {
+        Add-Content -LiteralPath $startLog -Value "nested cwd crashed; top-level $live has backend-dist/server.js + dist/index.html" -Encoding UTF8
+    }
+}
+
+function Resolve-OpenXYOSNodeChildPid {
+    param($ParentProc)
+    if (-not $ParentProc) { return 0 }
+    for ($i = 0; $i -lt 20; $i++) {
+        try {
+            $child = Get-CimInstance Win32_Process -Filter "Name = 'node.exe'" -ErrorAction SilentlyContinue |
+                Where-Object { $_.ParentProcessId -eq $ParentProc.Id } |
+                Select-Object -First 1
+            if ($child) { return [int]$child.ProcessId }
+        } catch {
+        }
+        if ($ParentProc.HasExited) { break }
+        Start-Sleep -Milliseconds 100
+    }
+    return 0
+}
+
+# Prefer cmd /c file redirect so Node crash text is flushed to start.out/err.
+# Start-Process -FilePath $node with Redirect* is kept as fallback (UseShellExecute=$false).
+$cmdExe = Join-Path $env:SystemRoot 'System32\cmd.exe'
+$inner = '"{0}" {1} >"{2}" 2>"{3}"' -f $node, $psi.Arguments, $startOut, $startErr
 $proc = $null
 $usedPsi = $false
+$usedCmd = $false
 try {
-    $proc = Start-Process -FilePath $node -ArgumentList $argv -WorkingDirectory $app `
-        -NoNewWindow `
-        -RedirectStandardOutput $startOut `
-        -RedirectStandardError $startErr `
-        -PassThru
+    $proc = Start-Process -FilePath $cmdExe -ArgumentList @('/s', '/c', "`"$inner`"") `
+        -WorkingDirectory $app -NoNewWindow -PassThru
+    $usedCmd = [bool]$proc
 } catch {
-    Add-Content -LiteralPath $startLog -Value "Start-Process failed: $($_.Exception.Message)" -Encoding UTF8
+    Add-Content -LiteralPath $startLog -Value "cmd /c start failed: $($_.Exception.Message)" -Encoding UTF8
+}
+
+if (-not $proc) {
+    try {
+        $proc = Start-Process -FilePath $node -ArgumentList $argv -WorkingDirectory $app `
+            -NoNewWindow `
+            -RedirectStandardOutput $startOut `
+            -RedirectStandardError $startErr `
+            -PassThru
+    } catch {
+        Add-Content -LiteralPath $startLog -Value "Start-Process failed: $($_.Exception.Message)" -Encoding UTF8
+    }
 }
 
 if (-not $proc) {
@@ -344,29 +451,39 @@ if (-not $proc) {
     exit 10
 }
 
-$proc.Id | Set-Content -LiteralPath $pidFile -Encoding ASCII
+$nodePid = 0
+if ($usedCmd) {
+    $nodePid = Resolve-OpenXYOSNodeChildPid $proc
+}
+if ($nodePid -le 0) { $nodePid = $proc.Id }
+$nodePid | Set-Content -LiteralPath $pidFile -Encoding ASCII
+
+$waitProc = $proc
+if ($nodePid -gt 0 -and $nodePid -ne $proc.Id) {
+    $childProc = Get-Process -Id $nodePid -ErrorAction SilentlyContinue
+    if ($childProc) { $waitProc = $childProc }
+}
 
 # Fast crash (missing CORS_ORIGIN, module, etc.) must not look like a 90s livez timeout.
-if ($proc.WaitForExit(5000)) {
-    Merge-NodeLogs
+if ($waitProc.WaitForExit(5000)) {
     if ($usedPsi) {
         try {
             $tailOut = $proc.StandardOutput.ReadToEnd()
             $tailErr = $proc.StandardError.ReadToEnd()
-            if ($tailOut) { Add-Content -LiteralPath $startLog -Value $tailOut -Encoding UTF8 }
-            if ($tailErr) { Add-Content -LiteralPath $startLog -Value $tailErr -Encoding UTF8 }
+            if ($tailOut) { Add-Content -LiteralPath $startOut -Value $tailOut -Encoding UTF8 }
+            if ($tailErr) { Add-Content -LiteralPath $startErr -Value $tailErr -Encoding UTF8 }
         } catch {
         }
     }
-    Add-Content -LiteralPath $startLog -Value "node exited $($proc.ExitCode) (fail-fast) cwd=$app layout=$layout" -Encoding UTF8
-    if (-not (Test-Path -LiteralPath $startOut) -and -not (Test-Path -LiteralPath $startErr)) {
-        Add-Content -LiteralPath $startLog -Value 'node stdout/stderr empty (typical of nested openxyos\openxyos cwd crash)' -Encoding UTF8
-    }
-    if (($app -ne $live) -and (Test-OpenXYOSAppReady $live)) {
-        Add-Content -LiteralPath $startLog -Value "nested cwd crashed; top-level $live has backend-dist/server.js + dist/index.html" -Encoding UTF8
+    $exitCode = $waitProc.ExitCode
+    Write-OpenXYOSFailFastReason $exitCode
+    if ($CrashSelfTest) {
+        $blob = (Get-OpenXYOSLogText $startLog) + (Get-OpenXYOSLogText $startOut) + (Get-OpenXYOSLogText $startErr)
+        if ($blob -match 'forced-crash-openxyos') { exit 0 }
+        exit 10
     }
     exit 10
 }
 Merge-NodeLogs
-Add-Content -LiteralPath $startLog -Value "node still running pid=$($proc.Id) cwd=$app layout=$layout" -Encoding UTF8
+Add-Content -LiteralPath $startLog -Value "node still running pid=$nodePid cwd=$app layout=$layout" -Encoding UTF8
 exit 0
