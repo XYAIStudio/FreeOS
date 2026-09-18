@@ -69,6 +69,9 @@ def test_provisioner_starts_medium_integrity_and_requires_livez() -> None:
     assert "Test-OpenXYOSNodeAlive" in text
     assert "Test-OpenXYOSPortListen" in text
     assert "exit 10" in text
+    assert "ConvertTo-NsisOemText" in text
+    assert "Write-ProvHost" in text
+    assert "Test-OpenXYOSTransientConsoleLine" in text
 
 
 def test_start_sidecar_does_not_assign_automatic_home() -> None:
@@ -82,6 +85,20 @@ def test_start_sidecar_does_not_assign_automatic_home() -> None:
     assert not re.search(r"(?i)\$pid\s*=", text)
 
 
+def resolve_openxyos_app_dir(root: Path) -> Path:
+    """Mirror Resolve-OpenXYOSAppDir: prefer healed top-level over nested."""
+    flat_fe = root / "dist" / "index.html"
+    flat_be = root / "backend-dist" / "server.js"
+    nested = root / "openxyos"
+    if flat_fe.is_file() and flat_be.is_file():
+        return root
+    if (nested / "backend-dist" / "server.js").is_file() or (
+        nested / "dist" / "index.html"
+    ).is_file():
+        return nested
+    return root
+
+
 def test_start_sidecar_stops_stale_node_and_heals_layout() -> None:
     text = START_PS1.read_text(encoding="utf-8")
     assert "Repair-OpenXYOSLayout" in text
@@ -89,8 +106,48 @@ def test_start_sidecar_stops_stale_node_and_heals_layout() -> None:
     assert "start.pid" in text
     assert "openxyos\\dist\\index.html" in text
     assert "backend-dist\\server.js" in text
-    assert "if (Test-Livez) { exit 0 }" not in text
+    before_stop = text.split("Stop-OpenXYOSNode $live", 1)[0]
+    assert "if (Test-Livez) { exit 0 }" not in before_stop
     assert "day-old" in text or "stale" in text.lower()
+
+
+def test_layout_picker_prefers_top_level_when_both_exist(tmp_path: Path) -> None:
+    live = tmp_path / "openxyos"
+    nested = live / "openxyos"
+    for folder in (live, nested):
+        (folder / "dist").mkdir(parents=True)
+        (folder / "backend-dist").mkdir(parents=True)
+        (folder / "dist" / "index.html").write_text("<html></html>", encoding="utf-8")
+        (folder / "backend-dist" / "server.js").write_text("/* compiled */", encoding="utf-8")
+    assert resolve_openxyos_app_dir(live) == live
+    (live / "backend-dist" / "server.js").unlink()
+    assert resolve_openxyos_app_dir(live) == nested
+
+
+def test_start_sidecar_prefers_top_level_app_dir() -> None:
+    start = START_PS1.read_text(encoding="utf-8")
+    text = PROVISION_PS1.read_text(encoding="utf-8")
+    for body in (start, text):
+        assert "function Resolve-OpenXYOSAppDir" in body
+        assert "function Test-OpenXYOSAppReady" in body
+        picker = body[
+            body.index("function Resolve-OpenXYOSAppDir") : body.index(
+                "function Repair-OpenXYOSLayout"
+            )
+        ]
+        assert "Test-OpenXYOSAppReady $Root" in picker
+        assert picker.index("Test-OpenXYOSAppReady $Root") < picker.index(
+            "Test-OpenXYOSAppReady $nested"
+        )
+    assert (
+        "Join-Path $live 'openxyos'" not in start.split("Resolve-OpenXYOSAppDir $live", 1)[1][:200]
+    )
+    assert "layout=$layout" in start
+    assert "JWT_SECRET set=" in start
+    assert "nested openxyos\\openxyos cwd crash" in start or "nested openxyos" in start
+    assert "function Wait-OpenXYOSStartEvidence" in text
+    assert "direct powershell fallback" in text
+    assert "Node exited fail-fast" in text
 
 
 def test_start_sidecar_cors_origin_is_parseorigins_safe() -> None:
@@ -116,7 +173,7 @@ def test_provisioner_fail_fast_when_node_dies() -> None:
     # Dead Node during livez wait is exit 10, not a 90s exit 12.
     dead = text.index("Node is not running and 3780 is not listening")
     exit10 = text.index("exit 10", dead)
-    exit12 = text.index("exit 12")
+    exit12 = text.rindex("exit 12")
     assert exit10 < exit12
     assert "LivezTimeoutSec" in text
 
@@ -167,14 +224,15 @@ def test_provisioner_stops_owned_node_before_extract() -> None:
     text = PROVISION_PS1.read_text(encoding="utf-8")
     start = START_PS1.read_text(encoding="utf-8")
     stop_fn = text.index("function Stop-OpenXYOSNode")
+    wait_fn = text.index("function Wait-OpenXYOSOwnedNodeGone")
     wrap_fn = text.index("function Stop-OpenXYOSLockedProcesses")
     extract_fn = text.index("function Invoke-TarExtract")
     main = text.index("# --- main ---")
     stop_call = text.index("Stop-OpenXYOSLockedProcesses", main)
     first_extract = text.index("Invoke-TarExtract", main)
-    assert stop_fn < wrap_fn < extract_fn < main
+    assert stop_fn < wait_fn < wrap_fn < extract_fn < main
     assert stop_call < first_extract
-    node_body = text[stop_fn:wrap_fn]
+    node_body = text[stop_fn:wait_fn]
     wrap_body = text[wrap_fn:extract_fn]
     assert "Stop-OpenXYOSNode" in start
     assert "Stop-OpenXYOSNode" in wrap_body
@@ -190,6 +248,9 @@ def test_provisioner_stops_owned_node_before_extract() -> None:
     assert "$LiveDir" in lock_body
     assert "Stopping FreeOS openXYOS process" in node_body
     assert "stop before extract" in wrap_body
+    assert "Wait-OpenXYOSOwnedNodeGone" in wrap_body
+    assert "Test-OpenXYOSOwnNode" in text[wait_fn:wrap_fn]
+    assert "retrying stop" in wrap_body
     assert "Stop-Process -Name node" not in text
     assert "taskkill" not in node_body.lower()
     # Same owned-path rule as start-sidecar: live node.exe / command line, not every Node.
@@ -200,7 +261,7 @@ def test_provisioner_logs_tar_stderr() -> None:
     text = PROVISION_PS1.read_text(encoding="utf-8")
     body = text[text.index("function Invoke-TarExtract") : text.index("function Test-SamePath")]
     assert "2>&1" in body
-    assert 'Write-ProvLog "tar:' in body or 'Write-ProvLog "tar:' in body
+    assert 'Write-ProvLog -Quiet "tar:' in body
     assert "tar exit" in body
     assert (
         "LOCALAPPDATA"
@@ -263,6 +324,42 @@ def test_provisioner_idempotent_requires_own_layout_not_stray_livez() -> None:
     # A healthy stray listener after extract must not write .install-ready.
     assert "if (Test-OpenXYOSOwnLivez)" in main
     assert "if (Test-OpenXYOSLivez)" not in main[main.index("Install-StartHelpers") :]
+
+
+def test_provisioner_keeps_node_console_out_of_nsis_detail() -> None:
+    text = PROVISION_PS1.read_text(encoding="utf-8")
+    cmd = PROVISION_CMD.read_text(encoding="utf-8")
+    excerpt = text[
+        text.index("function Write-StartLogExcerpt") : text.index(
+            "function Test-OpenXYOSPortListen"
+        )
+    ]
+    assert "Write-ProvLog -Quiet" in excerpt
+    assert "Write-Host" not in excerpt
+    assert "not shown in NSIS" in excerpt
+    tar_body = text[text.index("function Invoke-TarExtract") : text.index("function Test-SamePath")]
+    assert 'Write-ProvLog -Quiet "tar:' in tar_body
+    assert ">nul" in cmd
+    assert "2>&1" in cmd
+
+
+def test_provisioner_ignores_transient_auth_console_noise() -> None:
+    text = PROVISION_PS1.read_text(encoding="utf-8")
+    helper = text[
+        text.index("function Test-OpenXYOSTransientConsoleLine") : text.index(
+            "function Test-OpenXYOSLayout"
+        )
+    ]
+    assert "POST\\s+/api/auth" in helper
+    assert "[seed]" in helper.replace("\\", "")
+    assert "node still running pid=" in helper
+    wait = text[
+        text.index("function Wait-OpenXYOSLivez") : text.index("function Start-OpenXYOSUnelevated")
+    ]
+    assert "Test-OpenXYOSLivez" in wait
+    assert "Test-OpenXYOSTransientConsoleLine" not in wait
+    assert "-match" not in wait
+    assert "startup noise" in wait
 
 
 def test_wrappers_have_no_goto_labels() -> None:

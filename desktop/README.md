@@ -29,13 +29,21 @@ Same precedence as the FreeOS CLI/server:
   `$INSTDIR\openxyos` as a sealed copy; the `openxyos-runtime` zip and folder
   are deleted after a successful provision), starts FE/BE
   at medium integrity (Node inherits `CORS_ORIGIN` / `NODE_ENV`; stdout/stderr
-  go to `start.log`), and writes `.install-ready` only after
-  `http://127.0.0.1:3780/api/health/livez` is healthy. Before extract it
+  go to UTF-8 `start.log`), and writes `.install-ready` only after
+  `http://127.0.0.1:3780/api/health/livez` is healthy. The Setup detail list
+  shows localized step results only (`nsExec::Exec`, not `ExecToLog`); full
+  PowerShell/Node console stays in `%LOCALAPPDATA%\FreeOS\openxyos\provision.log`
+  and `start.log` so UTF-8 Chinese is not misread as GBK. Before extract it
   stops only FreeOS openXYOS Node (`start.pid` / live and `$INSTDIR\openxyos`
-  paths), unpacks into a LocalAppData temp dir, logs tar stderr to
-  `provision.log`, and treats a non-zero tar as success when the layout
-  heals. If Node dies before livez, the provisioner exits 10 with a
-  `start.log` excerpt instead of waiting out a livez timeout. A failed
+  paths) and waits until that owned process is gone. After extract+heal, Node
+  starts with cwd at the live root when `backend-dist/server.js` and
+  `dist/index.html` exist there (a leftover nested `openxyos\openxyos` tree
+  must not win — that cwd exits immediately with an empty console). It unpacks into a LocalAppData
+  temp dir, logs tar stderr to `provision.log`, and treats a non-zero tar as
+  success when the layout heals. Transient `[Error] POST /api/auth` / `[seed]`
+  lines in `start.log` are not a provision failure when livez is healthy. If
+  Node dies before livez, the provisioner exits 10 with a `start.log` excerpt
+  in `provision.log` instead of waiting out a livez timeout. A failed
   subprocess is a failed install step (retry the provisioner). There is no
   Windows logon autostart: when FreeOS starts later, it brings local
   openXYOS up with it. Organization embeds `http://127.0.0.1:3780` directly.
@@ -53,11 +61,13 @@ with `makensis -INPUTCHARSET UTF8` from a UTF-8 BOM `project.nsi`.
 The install log is no longer only `FreeOS.exe` + shortcuts. A healthy package
 also copies `openxyos-runtime.zip` plus the provisioner (`provision-openxyos.ps1`
 / `.cmd`, `start-sidecar.ps1` / `.cmd`). Setup **nsExecs that provisioner as
-a child process** and waits for exit 0. The child extracts with Windows
+a child process** (`nsExec::Exec`, stdout discarded) and waits for exit 0.
+The child extracts with Windows
 `tar.exe` (quoted paths, so `Program Files` works) into a LocalAppData
 temp dir, then heals that tree into `%LOCALAPPDATA%\FreeOS\openxyos` after
-stopping only the FreeOS openXYOS Node that would lock those files. tar
-stdout/stderr go to `provision.log`. A non-zero tar is not exit 3 when the
+stopping only the FreeOS openXYOS Node that would lock those files and
+waiting until it is gone. tar
+stdout/stderr go to UTF-8 `provision.log`, not the NSIS detail list. A non-zero tar is not exit 3 when the
 layout is complete after heal. It then starts Node at medium integrity
 (IShellDispatch2 — never High-IL Node from the elevated installer), waits
 for livez, and writes `.install-ready` only when healthy. `$INSTDIR\openxyos`

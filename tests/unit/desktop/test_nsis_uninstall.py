@@ -218,7 +218,9 @@ def test_nsis_runs_openxyos_provisioner_subprocess() -> None:
     assert 'File "provision-openxyos.ps1"' in provision
     assert 'File "provision-openxyos.cmd"' in provision
     assert 'File "start-sidecar.ps1"' in provision
-    assert "nsExec::ExecToLog $R4" in provision
+    assert "nsExec::Exec $R4" in provision
+    assert "nsExec::ExecToLog $R4" not in provision
+    assert "OPENXYOS_PROVISION_DETAIL" in provision
     assert r"$INSTDIR\openxyos-runtime.zip" in provision
     assert r"$R6\FreeOS\openxyos" in provision
     # Cleanup after success lives in the provisioner, not NSIS (failed
@@ -232,6 +234,8 @@ def test_nsis_runs_openxyos_provisioner_subprocess() -> None:
     assert "OPENXYOS_FAIL_LIVEZ" in nsh
     assert "start.log" in nsi
     assert "LangString OPENXYOS_PROVISION ${LANG_SIMPCHINESE}" in nsi
+    assert "LangString OPENXYOS_PROVISION_DETAIL ${LANG_SIMPCHINESE}" in nsi
+    assert "provision.log（UTF-8）" in nsi
     assert "子进程" in nsi
     assert "OPENXYOS_PROBE_WARN" not in nsi
     assert "安装将继续" not in nsi

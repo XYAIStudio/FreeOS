@@ -9,6 +9,7 @@ import pytest
 from octop.modules.org_os.service import OrgModuleService
 from octop.modules.org_os.sidecar_launch import (
     SidecarRuntime,
+    _sidecar_app_dir,
     ensure_sidecar,
     find_sidecar_runtime,
     launch_sidecar_argv,
@@ -294,6 +295,20 @@ def test_launch_argv_windows_prefers_ps1(monkeypatch: pytest.MonkeyPatch, tmp_pa
     argv = launch_sidecar_argv(runtime, launcher)
     assert argv[0] == "powershell"
     assert str(launcher) in argv
+
+
+def test_sidecar_app_dir_prefers_top_level_when_both_exist(tmp_path: Path) -> None:
+    live = tmp_path / "openxyos"
+    nested = live / "openxyos"
+    for folder in (live, nested):
+        (folder / "dist").mkdir(parents=True)
+        (folder / "backend-dist").mkdir(parents=True)
+        (folder / "dist" / "index.html").write_text("<html></html>", encoding="utf-8")
+        (folder / "backend-dist" / "server.js").write_text("/* compiled */", encoding="utf-8")
+    assert _sidecar_app_dir(live) == live
+    (live / "backend-dist" / "server.js").unlink()
+    (live / "backend" / "server.ts").unlink(missing_ok=True)
+    assert _sidecar_app_dir(live) == nested
 
 
 def test_heal_openxyos_layout_promotes_nested(tmp_path: Path) -> None:

@@ -3,6 +3,10 @@
 # extract to a LocalAppData temp dir, heal into $LiveDir, start once at
 # medium IL, wait livez, write .install-ready.
 # Exit 0 only when http://127.0.0.1:3780/api/health/livez is healthy.
+# Full logs stay UTF-8 in %LOCALAPPDATA%\FreeOS\openxyos\provision.log and
+# start.log. Host/NSIS detail gets OEM-safe (ACP/GBK) short status only —
+# never raw Node console (seed / auth POST / WebSocket). Transient
+# [Error] POST /api/auth lines are not a provision failure when livez is up.
 # On success, deletes $InstallDir\openxyos-runtime (folder + archive) and a
 # sibling openxyos-runtime under the live parent. Never deletes $LiveDir or
 # $InstallDir\openxyos. Failed runs leave staging in place for debugging.
@@ -32,10 +36,71 @@ $ErrorActionPreference = 'Continue'
 $script:ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $script:LogPath = Join-Path $LiveDir 'provision.log'
 
-function Write-ProvLog {
+# NSIS ExecToLog / cmd.exe treat child stdout as the system ANSI code page
+# (CP936/GBK on Chinese Windows). PowerShell 5.1 Write-Host is UTF-16/UTF-8,
+# so Chinese Node lines become mojibake. Emit ACP bytes for the console;
+# keep the on-disk log UTF-8.
+function Get-NsisOemEncoding {
+    $cp = 0
+    try {
+        $cp = [Console]::OutputEncoding.CodePage
+    } catch {
+        $cp = 0
+    }
+    if ($cp -le 0) {
+        try {
+            $cp = [int](Get-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\Nls\CodePage' -Name ACP).ACP
+        } catch {
+            $cp = 0
+        }
+    }
+    if ($cp -le 0) {
+        return [System.Text.Encoding]::Default
+    }
+    try {
+        return [System.Text.Encoding]::GetEncoding($cp)
+    } catch {
+        return [System.Text.Encoding]::Default
+    }
+}
+
+function ConvertTo-NsisOemText {
+    param([string]$Text)
+    if ([string]::IsNullOrEmpty($Text)) { return '' }
+    $oem = Get-NsisOemEncoding
+    $roundtrip = $oem.GetString($oem.GetBytes($Text))
+    if ($roundtrip -eq $Text) { return $Text }
+    $chars = New-Object System.Text.StringBuilder
+    foreach ($ch in $Text.ToCharArray()) {
+        if ([int]$ch -lt 128) { [void]$chars.Append($ch) }
+    }
+    return $chars.ToString().Trim()
+}
+
+function Write-ProvHost {
     param([string]$Message)
+    if ([string]::IsNullOrEmpty($Message)) { return }
+    $safe = ConvertTo-NsisOemText $Message
+    if ([string]::IsNullOrEmpty($safe)) { return }
+    try {
+        $oem = Get-NsisOemEncoding
+        $payload = $oem.GetBytes($safe + [Environment]::NewLine)
+        $stdout = [Console]::OpenStandardOutput()
+        $stdout.Write($payload, 0, $payload.Length)
+    } catch {
+        Write-Host $safe
+    }
+}
+
+function Write-ProvLog {
+    param(
+        [string]$Message,
+        [switch]$Quiet
+    )
     $line = '{0} {1}' -f (Get-Date -Format o), $Message
-    Write-Host $line
+    if (-not $Quiet) {
+        Write-ProvHost $Message
+    }
     try {
         $dir = Split-Path -Parent $script:LogPath
         if ($dir -and -not (Test-Path -LiteralPath $dir)) {
@@ -46,6 +111,17 @@ function Write-ProvLog {
     }
 }
 
+function Test-OpenXYOSTransientConsoleLine {
+    param([string]$Line)
+    if ([string]::IsNullOrEmpty($Line)) { return $false }
+    if ($Line -match '(?i)POST\s+/api/auth') { return $true }
+    if ($Line -match '(?i)\[seed\]') { return $true }
+    if ($Line -match '(?i)node still running pid=') { return $true }
+    if ($Line -match '(?i)WebSocket:') { return $true }
+    if ($Line -match '(?i)Server:\s+https?://') { return $true }
+    return $false
+}
+
 function Test-OpenXYOSLayout {
     param([string]$Root)
     $node = Join-Path $Root 'node\node.exe'
@@ -53,6 +129,26 @@ function Test-OpenXYOSLayout {
     $nested = Join-Path $Root 'openxyos\dist\index.html'
     $flat = Join-Path $Root 'dist\index.html'
     return (Test-Path -LiteralPath $nested) -or (Test-Path -LiteralPath $flat)
+}
+
+function Test-OpenXYOSAppReady {
+    param([string]$Root)
+    if (-not $Root) { return $false }
+    $fe = Join-Path $Root 'dist\index.html'
+    $be = Join-Path $Root 'backend-dist\server.js'
+    return (Test-Path -LiteralPath $fe) -and (Test-Path -LiteralPath $be)
+}
+
+# Prefer the healed live root. Nested openxyos\openxyos cwd makes Node
+# exit immediately with empty stdout/stderr (livez then times out).
+function Resolve-OpenXYOSAppDir {
+    param([string]$Root)
+    if (Test-OpenXYOSAppReady $Root) { return $Root }
+    $nested = Join-Path $Root 'openxyos'
+    if (Test-OpenXYOSAppReady $nested) { return $nested }
+    $nestedFe = Join-Path $nested 'dist\index.html'
+    if (Test-Path -LiteralPath $nestedFe) { return $nested }
+    return $Root
 }
 
 function Copy-OpenXYOSTree {
@@ -165,10 +261,22 @@ function Repair-OpenXYOSMigrations {
 }
 
 function Test-OpenXYOSLivez {
+    param([switch]$LogError)
+    $url = 'http://127.0.0.1:3780/api/health/livez'
     try {
-        $r = Invoke-WebRequest -UseBasicParsing -TimeoutSec 2 -Uri 'http://127.0.0.1:3780/api/health/livez'
+        $r = Invoke-WebRequest -UseBasicParsing -TimeoutSec 2 -Uri $url
         return ($r.StatusCode -lt 500)
     } catch {
+        if ($LogError) {
+            $detail = $_.Exception.Message
+            try {
+                if ($_.Exception.Response) {
+                    $detail = '{0} HTTP {1}' -f $url, [int]$_.Exception.Response.StatusCode
+                }
+            } catch {
+            }
+            Write-ProvLog "livez probe failed: $detail"
+        }
         return $false
     }
 }
@@ -194,14 +302,14 @@ function Get-StartLogExcerpt {
 function Write-StartLogExcerpt {
     $excerpt = Get-StartLogExcerpt
     if (-not $excerpt) {
-        Write-ProvLog 'start.log empty or missing (Node produced no stdout/stderr)'
+        Write-ProvLog -Quiet 'start.log empty or missing (Node produced no stdout/stderr)'
         return
     }
-    Write-ProvLog '--- start.log excerpt ---'
+    Write-ProvLog -Quiet '--- start.log excerpt (UTF-8 file only; not shown in NSIS) ---'
     foreach ($line in ($excerpt -split "`n")) {
-        Write-ProvLog $line
+        Write-ProvLog -Quiet $line
     }
-    Write-ProvLog '--- end start.log ---'
+    Write-ProvLog -Quiet '--- end start.log ---'
 }
 
 function Test-OpenXYOSPortListen {
@@ -244,17 +352,59 @@ function Test-OpenXYOSNodeAlive {
     return $false
 }
 
-function Wait-OpenXYOSLivez {
-    param([int]$Seconds)
+function Get-StartLogStamp {
+    $p = Join-Path $LiveDir 'start.log'
+    if (-not (Test-Path -LiteralPath $p)) { return $null }
+    return (Get-Item -LiteralPath $p).LastWriteTimeUtc
+}
+
+function Test-StartLogShowsFailFast {
+    $p = Join-Path $LiveDir 'start.log'
+    if (-not (Test-Path -LiteralPath $p)) { return $false }
+    $text = Get-Content -LiteralPath $p -Raw -ErrorAction SilentlyContinue
+    if (-not $text) { return $false }
+    return ($text -match 'node exited .+ \(fail-fast\)')
+}
+
+function Wait-OpenXYOSStartEvidence {
+    param($BeforeUtc, [int]$Seconds = 12)
     for ($i = 0; $i -lt $Seconds; $i++) {
         if (Test-OpenXYOSLivez) { return $true }
+        $nid = Read-OpenXYOSPidFile $LiveDir
+        if ($nid -gt 0) {
+            $p = Get-Process -Id $nid -ErrorAction SilentlyContinue
+            if ($p -and -not $p.HasExited) { return $true }
+        }
+        $log = Join-Path $LiveDir 'start.log'
+        if (Test-Path -LiteralPath $log) {
+            $stamp = (Get-Item -LiteralPath $log).LastWriteTimeUtc
+            if ($null -eq $BeforeUtc -or $stamp -gt $BeforeUtc) { return $true }
+        }
+        Start-Sleep -Seconds 1
+    }
+    return $false
+}
+
+function Wait-OpenXYOSLivez {
+    param([int]$Seconds)
+    # Success is livez only. Transient Node console (auth probe, seed banner,
+    # websocket status) is startup noise — not a provision failure.
+    for ($i = 0; $i -lt $Seconds; $i++) {
+        if (Test-OpenXYOSLivez) { return $true }
+        if (Test-StartLogShowsFailFast) {
+            Write-ProvLog 'Node exited fail-fast during livez wait (see start.log cwd)'
+            Write-StartLogExcerpt
+            exit 10
+        }
         if ($i -ge 8 -and -not (Test-OpenXYOSLivez) -and -not (Test-OpenXYOSPortListen) -and -not (Test-OpenXYOSNodeAlive)) {
             Write-ProvLog 'Node is not running and 3780 is not listening during livez wait'
+            $null = Test-OpenXYOSLivez -LogError
             Write-StartLogExcerpt
             exit 10
         }
         Start-Sleep -Seconds 1
     }
+    $null = Test-OpenXYOSLivez -LogError
     return $false
 }
 
@@ -265,26 +415,59 @@ function Start-OpenXYOSUnelevated {
         Write-ProvLog "start helper missing: $helper"
         return $false
     }
+    $app = Resolve-OpenXYOSAppDir $Dir
+    Write-ProvLog "start cwd=$app (live=$Dir)"
     $pwsh = Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
     $arg = "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$helper`""
+    $before = Get-StartLogStamp
     try {
         $shell = New-Object -ComObject Shell.Application
         $shell.ShellExecute($pwsh, $arg, $Dir, 'open', 0)
         Write-ProvLog 'Started FE/BE via Shell.Application (IShellDispatch2 / medium IL)'
-        return $true
+        if (Wait-OpenXYOSStartEvidence $before 12) {
+            if (Test-StartLogShowsFailFast) {
+                Write-ProvLog 'start helper ran but Node exited fail-fast'
+                return $false
+            }
+            return $true
+        }
+        Write-ProvLog 'Shell.Application produced no fresh start.log/pid/livez'
     } catch {
         Write-ProvLog "Shell.Application failed: $($_.Exception.Message)"
     }
     $cmd = Join-Path $Dir 'start-sidecar.cmd'
     $explorer = Join-Path $env:WINDIR 'explorer.exe'
     if ((Test-Path -LiteralPath $cmd) -and (Test-Path -LiteralPath $explorer)) {
+        $before = Get-StartLogStamp
         try {
             Start-Process -FilePath $explorer -ArgumentList "`"$cmd`""
             Write-ProvLog 'Started FE/BE via explorer.exe (medium IL fallback)'
-            return $true
+            if (Wait-OpenXYOSStartEvidence $before 12) {
+                if (Test-StartLogShowsFailFast) {
+                    Write-ProvLog 'explorer start helper ran but Node exited fail-fast'
+                    return $false
+                }
+                return $true
+            }
+            Write-ProvLog 'explorer fallback produced no fresh start.log/pid/livez'
         } catch {
             Write-ProvLog "explorer fallback failed: $($_.Exception.Message)"
         }
+    }
+    $before = Get-StartLogStamp
+    try {
+        Start-Process -FilePath $pwsh -ArgumentList $arg -WorkingDirectory $Dir -WindowStyle Hidden
+        Write-ProvLog 'Started FE/BE via Start-Process (direct powershell fallback)'
+        if (Wait-OpenXYOSStartEvidence $before 12) {
+            if (Test-StartLogShowsFailFast) {
+                Write-ProvLog 'direct start helper ran but Node exited fail-fast'
+                return $false
+            }
+            return $true
+        }
+        Write-ProvLog 'direct Start-Process produced no fresh start.log/pid/livez'
+    } catch {
+        Write-ProvLog "direct Start-Process failed: $($_.Exception.Message)"
     }
     return $false
 }
@@ -433,21 +616,39 @@ function Stop-OpenXYOSNode {
         }
 }
 
+function Wait-OpenXYOSOwnedNodeGone {
+    param([int]$TimeoutMs = 8000)
+    $deadline = [datetime]::UtcNow.AddMilliseconds($TimeoutMs)
+    do {
+        if (-not (Test-OpenXYOSOwnNode)) { return $true }
+        Start-Sleep -Milliseconds 250
+    } while ([datetime]::UtcNow -lt $deadline)
+    return (-not (Test-OpenXYOSOwnNode))
+}
+
 function Stop-OpenXYOSLockedProcesses {
     Write-ProvLog 'Stopping FreeOS openXYOS processes before extract'
     $any = $false
     foreach ($root in (Get-OpenXYOSLockRoots)) {
         if (-not $root) { continue }
-        if (-not (Test-Path -LiteralPath $root)) { continue }
         $any = $true
         Stop-OpenXYOSNode $root
     }
     if (-not $any) {
-        Write-ProvLog 'No FreeOS openXYOS processes to stop before extract'
+        Write-ProvLog 'No FreeOS openXYOS lock roots to stop before extract'
+        return
     }
-    for ($i = 0; $i -lt 8; $i++) {
-        if (-not (Test-OpenXYOSOwnLivez)) { break }
-        Start-Sleep -Milliseconds 250
+    if (Wait-OpenXYOSOwnedNodeGone) {
+        Write-ProvLog 'FreeOS openXYOS processes stopped before extract'
+        return
+    }
+    Write-ProvLog 'Owned FreeOS openXYOS node still running after stop; retrying stop'
+    foreach ($root in (Get-OpenXYOSLockRoots)) {
+        if (-not $root) { continue }
+        Stop-OpenXYOSNode $root
+    }
+    if (-not (Wait-OpenXYOSOwnedNodeGone 5000)) {
+        Write-ProvLog 'Owned node still present after second stop (extract may fail if files are locked)'
     }
 }
 
@@ -486,7 +687,7 @@ function Invoke-TarExtract {
     if ($null -eq $code) { $code = 0 }
     foreach ($row in @($output)) {
         $text = "$row"
-        if ($text) { Write-ProvLog "tar: $text" }
+        if ($text) { Write-ProvLog -Quiet "tar: $text" }
     }
     if ($code -ne 0) {
         Write-ProvLog "tar exit $code"
@@ -705,6 +906,8 @@ if ($env:USERNAME) {
 }
 
 Install-StartHelpers $LiveDir
+$appDir = Resolve-OpenXYOSAppDir $LiveDir
+Write-ProvLog "canonical openXYOS cwd=$appDir (prefer top-level when backend-dist+dist exist)"
 
 if (Test-OpenXYOSOwnLivez) {
     Write-ProvLog 'livez already healthy after extract'

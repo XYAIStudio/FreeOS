@@ -8,6 +8,8 @@
 
 ### 修复
 
+- Windows 安装预配不再把 Node 工作目录选到残留的嵌套 `openxyos\\openxyos`：顶层已有 `backend-dist/server.js` 与 `dist/index.html` 时必须用 live 根。嵌套 cwd 会让 `node backend-dist/server.js` 立刻退出且 stdout/stderr 为空，安装空等 90s 后以退出码 12 失败。`start-sidecar.ps1` / 预配 / 桌面 Go / Python 启动路径统一按此选择 cwd；每次启动截断 `start.log`；Shell.Application 若未刷新日志则改走 explorer / Start-Process，Node fail-fast 不再伪装成 livez 超时。
+- Windows 安装详情不再把 openXYOS 预配的 UTF-8 Node/PowerShell 控制台（`[Error] POST /api/auth`、`[seed]`、中文 Server/WebSocket 状态）按系统 ANSI/GBK 打成乱码。NSIS 只用 `nsExec::Exec` 等退出码，详情页只显示本地化步骤结果；完整日志写入 `%LOCALAPPDATA%\\FreeOS\\openxyos\\provision.log` / `start.log`（UTF-8）。解压前停止并等待旧的 FreeOS openXYOS Node 退出；livez 通过即成功，不把启动期 auth 日志当失败。
 - 组织页互生长通道两端都落到可选用状态：推送到 openXYOS 时员工/人才写成列表页能看到的 `active` / `internal` / `available`；从 openXYOS 回流时即使没有技能字段也会登记为同事，技能/插件/MCP 写入 `org-skills` / `org-plugins` / `org-mcps`，并把聊天专家挂到当前用户（修复 `user_id=NULL` 导致「专家」页看不见）。导入后跳到「专家」页，推送/循环后关闭管理抽屉并刷新预览。
 - 组织页内嵌浏览器补上后退 / 前进 / 刷新；openXYOS 首页卡通助手改为打包进前端资源（并保留 `/assets/xyai-mascot.webp` 回退），不再显示破碎图片。
 - 启动 FreeOS 时就会拉起本机 openXYOS 前后端（桌面 `startOrgSidecar` + 主机 `ensure_sidecar`），不必先进入组织页；登录不再因为 3780 未监听而 `Failed to fetch`。
