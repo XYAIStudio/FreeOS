@@ -13,7 +13,7 @@ FreeOS/Octop remains the execution runtime.
 
 - [ADR 001](adr/001-single-process-model.md) — single process, no external queue
 - [ADR 003](adr/003-org-ui-single-source-dual-delivery.md) — org-ui single source, dual delivery (Accepted)
-- [org-merge-plan.md](org-merge-plan.md) — Phases 0–5; Phase 3 in progress (org chart / employees / skills / governance / knowledge / tasks)
+- [org-merge-plan.md](org-merge-plan.md) — Phases 0–5; Phase 3 in progress (org chart / employees / skills / governance / knowledge / tasks / reflections / settings / agents)
 - [asset-loop.md](asset-loop.md) — operator self-growth loop
 - [ADR index](adr/)
 
@@ -353,6 +353,7 @@ copy the openXYOS working directory themselves.
 | Org-ui dual-delivery ADR | `docs/adr/003-org-ui-single-source-dual-delivery.md` |
 | Org merge plan (Phases 0–5) | `docs/org-merge-plan.md` |
 | BFF router | `src/octop/api/routers/org_module.py` |
+| Agent Studio snapshot | `src/octop/api/routers/org_agents.py` · `dashboard/src/org-ui/pages/agents` |
 | Enablement + health | `src/octop/modules/org_os/service.py` |
 | Catalog | `src/octop/modules/org_os/catalog.py` |
 | Proxy + tenant headers | `src/octop/modules/org_os/proxy.py` |

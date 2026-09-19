@@ -49,6 +49,10 @@ function renderOrg() {
           element={<div data-testid="org-settings-page">settings</div>}
         />
         <Route
+          path="/organization/agents"
+          element={<div data-testid="org-agents-page">agents</div>}
+        />
+        <Route
           path="/experts"
           element={<div data-testid="experts-page">experts</div>}
         />
@@ -295,6 +299,13 @@ describe("OrganizationPage", () => {
     renderOrg();
     fireEvent.click(await screen.findByTestId("org-open-settings"));
     expect(await screen.findByTestId("org-settings-page")).toBeInTheDocument();
+    expect(screen.queryByTestId("org-browser-frame")).toBeNull();
+  });
+
+  it("opens in-host Agent Studio without a sidecar iframe", async () => {
+    renderOrg();
+    fireEvent.click(await screen.findByTestId("org-open-agents"));
+    expect(await screen.findByTestId("org-agents-page")).toBeInTheDocument();
     expect(screen.queryByTestId("org-browser-frame")).toBeNull();
   });
 

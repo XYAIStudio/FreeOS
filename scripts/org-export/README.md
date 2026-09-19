@@ -4,7 +4,8 @@
 **imports the same org-ui pages** Dashboard mounts under `/organization/...`.
 
 Phase 3 includes **Announcements**, **Org chart**, **Employees**, **Skills**,
-**Governance**, **Knowledge**, **Tasks**, **Reflections**, and **Settings**:
+**Governance**, **Knowledge**, **Tasks**, **Reflections**, **Settings**,
+and **Agents**:
 
 | Delivery | Route | Component |
 |---|---|---|
@@ -28,6 +29,8 @@ Phase 3 includes **Announcements**, **Org chart**, **Employees**, **Skills**,
 | Standalone (this export) | `/reflections` | same import |
 | Dashboard | `/organization/settings` | `dashboard/src/org-ui` → `SettingsPage` |
 | Standalone (this export) | `/settings` | same import |
+| Dashboard | `/organization/agents` | `dashboard/src/org-ui` → `AgentsPage` |
+| Standalone (this export) | `/agents` | same import |
 
 Directory employees share `{FREEOS_HOME}/org/org_chart.sqlite` with the org
 chart. Organization skills live under `{FREEOS_HOME}/org-skills/` (skill_bridge).
@@ -41,6 +44,9 @@ lessons learned, not Chat and not a second skill runtime.
 Organization Settings are org-module only: catalog toggles and
 `{FREEOS_HOME}/org-os/prefs.json`. They do **not** duplicate FreeOS
 system settings (LLM keys, users, timezone).
+Organization Agents compile `openxyos.agent-blueprint.v1` into host
+lifecycle colleagues. This is **not** the FreeOS personalization editor,
+Chat runtime, or sidecar `/api/agent-studio/*`.
 Do not copy the pages into a second tree.
 
 ## Phase 5 TODO

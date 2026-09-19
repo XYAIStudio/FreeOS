@@ -3,8 +3,8 @@
 Full Vite + Node server packaging is Phase 5. This writes a snapshot that
 lists the shared org-ui modules and points at the same AnnouncementPage,
 OrgChartPage, EmployeesPage, SkillsPage, GovernancePage, KnowledgePage,
-TasksPage, ReflectionsPage, and SettingsPage sources Dashboard mounts under
-``/organization/...``.
+TasksPage, ReflectionsPage, SettingsPage, and AgentsPage sources Dashboard
+mounts under ``/organization/...``.
 """
 
 from __future__ import annotations
@@ -34,6 +34,7 @@ Dashboard and this export consume the **same** org-ui pages:
 | tasks | `/organization/tasks` | `/tasks` | `dashboard/src/org-ui` → `TasksPage` / `TaskDetailPage` |
 | reflections | `/organization/reflections` | `/reflections` | `dashboard/src/org-ui` → `ReflectionsPage` |
 | settings | `/organization/settings` | `/settings` | `dashboard/src/org-ui` → `SettingsPage` |
+| agents | `/organization/agents` | `/agents` | `dashboard/src/org-ui` → `AgentsPage` |
 
 Do **not** copy those pages into a second tree. Edit `dashboard/src/org-ui`.
 
@@ -52,6 +53,10 @@ Organization Settings are **org-module only**: catalog toggles
 (`{FREEOS_HOME}/org-os/module-toggles.json`) and org-local prefs
 (`{FREEOS_HOME}/org-os/prefs.json`). LLM keys, users, timezone, and
 models stay on FreeOS system settings (`/system-settings`).
+Organization Agents compile `openxyos.agent-blueprint.v1` into host
+lifecycle colleagues (`{FREEOS_HOME}/tenants/<id>/employees/`). This is
+**not** the FreeOS personalization editor, Chat runtime, or sidecar
+`/api/agent-studio/*`. Spawned colleagues appear on FreeOS Experts.
 
 ## Phase 3 vs Phase 5
 
@@ -60,7 +65,7 @@ Phase 3 (this scaffold):
 - Shared module list (`src/modules.json`)
 - Thin `src/App.tsx` that imports `AnnouncementPage`, `OrgChartPage`,
   `EmployeesPage`, `SkillsPage`, `GovernancePage`, `KnowledgePage`,
-  `TasksPage`, `ReflectionsPage`, and `SettingsPage`
+  `TasksPage`, `ReflectionsPage`, `SettingsPage`, and `AgentsPage`
 - Documents IdentityBridge: embedded mode uses FreeOS JWT; standalone uses local JWT
 
 Phase 5 (TODO — not implemented here):
@@ -81,6 +86,7 @@ uv run freeos org export-standalone --out dist/openxyos-web
 
 _APP_TSX = """\
 import {
+  AgentsPage,
   AnnouncementPage,
   EmployeeDetailPage,
   EmployeesPage,
@@ -95,6 +101,7 @@ import {
   TasksPage,
 } from "org-ui";
 import type {
+  OrgAgentsClient,
   OrgAnnouncementsClient,
   OrgChartClient,
   OrgEmployeesClient,
@@ -112,8 +119,8 @@ import type {
  * Page components are the same ones Dashboard mounts at
  * /organization/announcements, /organization/org, /organization/employees,
  * /organization/skills, /organization/governance, /organization/knowledge,
- * /organization/tasks, /organization/reflections, and
- * /organization/settings.
+ * /organization/tasks, /organization/reflections,
+ * /organization/settings, and /organization/agents.
  */
 const session: OrgSession = {
   userId: 0,
@@ -132,6 +139,7 @@ export default function App(props: {
   tasksClient: OrgTasksClient;
   reflectionsClient: OrgReflectionsClient;
   settingsClient: OrgSettingsClient;
+  agentsClient: OrgAgentsClient;
   locale?: "zh" | "en";
 }) {
   return (
@@ -204,6 +212,12 @@ export default function App(props: {
         locale={props.locale ?? "en"}
         modules={SHARED_ORG_UI_MODULES}
       />
+      <AgentsPage
+        client={props.agentsClient}
+        session={session}
+        locale={props.locale ?? "en"}
+        modules={SHARED_ORG_UI_MODULES}
+      />
     </>
   );
 }
@@ -216,7 +230,7 @@ _PACKAGE_JSON = {
     "description": (
         "Standalone Organization web export skeleton. "
         "Pages come from dashboard/src/org-ui "
-        "(Phase 3: Announcements + Org chart + Employees + Skills + Governance + Knowledge + Tasks + Reflections + Settings). "
+        "(Phase 3: Announcements + Org chart + Employees + Skills + Governance + Knowledge + Tasks + Reflections + Settings + Agents). "
         "Full Node packaging is Phase 5."
     ),
     "type": "module",
@@ -306,6 +320,16 @@ def write_standalone_scaffold(out_dir: Path) -> dict[str, Any]:
                 "modules_api": "/api/org-module/modules",
                 "prefs_api": "/api/org-module/prefs",
                 "store": "{FREEOS_HOME}/org-os/prefs.json",
+            },
+            "agents": {
+                "component": "AgentsPage",
+                "embedded_route": "/organization/agents",
+                "standalone_route": "/agents",
+                "api": "/api/org-module/agents",
+                "compile_api": "/api/org-module/blueprints/compile",
+                "transition_api": "/api/org-module/employees/transition",
+                "spawn_api": "/api/org-module/employees/spawn",
+                "store": "{FREEOS_HOME}/tenants/<id>/employees",
             },
         },
         "todo": "Phase 5: full Vite + server packaging; do not fork org-ui pages",

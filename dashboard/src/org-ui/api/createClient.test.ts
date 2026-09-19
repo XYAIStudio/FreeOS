@@ -97,6 +97,20 @@ describe("createOrgApiClient", () => {
       if (path === "/org-module/modules") {
         return { updates: { settings: true, chat: false } };
       }
+      if (path === "/org-module/agents") {
+        return {
+          success: true,
+          data: {
+            scope: "org_module",
+            colleagues: [{ slug: "policy-analyst", lifecycle: "draft" }],
+            stats: { total: 1, spawned: 0 },
+            host_surfaces: { experts: "/experts" },
+          },
+        };
+      }
+      if (path === "/org-module/blueprints/compile") {
+        return { slug: "policy-analyst", workspace: "/tmp/policy-analyst" };
+      }
       throw new Error(`unexpected ${path}`);
     });
     const client = createOrgApiClient({ fetchJson });
@@ -122,6 +136,18 @@ describe("createOrgApiClient", () => {
       settings: true,
       chat: false,
     });
+    expect((await client.agents.snapshot()).colleagues[0]?.slug).toBe(
+      "policy-analyst",
+    );
+    expect(
+      (
+        await client.agents.compile({
+          name: "Policy Analyst",
+          positioning: "Review drafts.",
+          capabilities: ["Risk alerts"],
+        })
+      ).slug,
+    ).toBe("policy-analyst");
     expect(fetchJson).toHaveBeenCalled();
   });
 

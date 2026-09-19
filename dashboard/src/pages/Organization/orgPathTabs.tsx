@@ -6,6 +6,7 @@ import {
   Megaphone,
   Network,
   Package,
+  Bot,
   Settings,
   Shield,
   Users,
@@ -25,7 +26,8 @@ export function useOrgPathTabs(
     | "knowledge"
     | "tasks"
     | "reflections"
-    | "settings",
+    | "settings"
+    | "agents",
 ): PathTabsConfig {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -82,6 +84,11 @@ export function useOrgPathTabs(
         label: t("organization.navSettings"),
         icon: <Settings size={14} />,
       },
+      {
+        value: "agents",
+        label: t("organization.navAgents"),
+        icon: <Bot size={14} />,
+      },
     ],
     onChange: (value) => {
       if (value === "announcements") {
@@ -118,6 +125,10 @@ export function useOrgPathTabs(
       }
       if (value === "settings") {
         navigate("/organization/settings");
+        return;
+      }
+      if (value === "agents") {
+        navigate("/organization/agents");
         return;
       }
       navigate("/organization");

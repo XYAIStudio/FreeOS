@@ -191,6 +191,7 @@
     "navTasks": "Tasks",
     "navReflections": "Reflections",
     "navSettings": "Settings",
+    "navAgents": "Agents",
     "announcementsTitle": "Announcements",
     "announcementsBody": "Publish notices and track who has read them. This page lives in the host — no sidecar or second port.",
     "openAnnouncements": "Open announcements",
@@ -217,7 +218,10 @@
     "openReflections": "Open reflections",
     "settingsTitle": "Organization settings",
     "settingsBody": "Org-module catalog toggles and local preferences. LLM keys, users, and timezone stay on FreeOS system settings — no sidecar.",
-    "openSettings": "Open settings"
+    "openSettings": "Open settings",
+    "agentsTitle": "Agent Studio",
+    "agentsBody": "Compile organization digital colleagues from blueprints and manage lifecycle on the host. FreeOS Agents, Experts, and personalization stay where they are — no sidecar Agent Studio and no Chat page.",
+    "openAgents": "Open Agent Studio"
   },
   "systemSettings": {
     "subtitle": "Workbench, remote desktop, and host administration in one place."
