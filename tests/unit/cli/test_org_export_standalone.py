@@ -24,6 +24,7 @@ def test_export_standalone_lists_shared_org_ui_modules(tmp_path: Path) -> None:
         "governance",
         "knowledge",
         "tasks",
+        "reflections",
     ]
     modules = json.loads((out / "src" / "modules.json").read_text(encoding="utf-8"))
     assert modules["shared_org_ui_modules"] == [
@@ -34,6 +35,7 @@ def test_export_standalone_lists_shared_org_ui_modules(tmp_path: Path) -> None:
         "governance",
         "knowledge",
         "tasks",
+        "reflections",
     ]
     assert modules["pages"]["announcements"]["component"] == "AnnouncementPage"
     assert modules["pages"]["announcements"]["embedded_route"] == "/organization/announcements"
@@ -55,6 +57,10 @@ def test_export_standalone_lists_shared_org_ui_modules(tmp_path: Path) -> None:
     assert modules["pages"]["tasks"]["embedded_route"] == "/organization/tasks"
     assert modules["pages"]["tasks"]["api"] == "/api/org-module/tasks"
     assert modules["pages"]["tasks"]["store"] == "{FREEOS_HOME}/org/tasks.sqlite"
+    assert modules["pages"]["reflections"]["component"] == "ReflectionsPage"
+    assert modules["pages"]["reflections"]["embedded_route"] == "/organization/reflections"
+    assert modules["pages"]["reflections"]["api"] == "/api/org-module/reflections"
+    assert modules["pages"]["reflections"]["store"] == "{FREEOS_HOME}/org/reflections.sqlite"
     app = (out / "src" / "App.tsx").read_text(encoding="utf-8")
     assert "AnnouncementPage" in app
     assert "OrgChartPage" in app
@@ -65,6 +71,7 @@ def test_export_standalone_lists_shared_org_ui_modules(tmp_path: Path) -> None:
     assert "KnowledgePage" in app
     assert "TasksPage" in app
     assert "TaskDetailPage" in app
+    assert "ReflectionsPage" in app
     assert 'from "org-ui"' in app
     readme = (out / "README.md").read_text(encoding="utf-8")
     assert "Phase 5" in readme
@@ -75,3 +82,4 @@ def test_export_standalone_lists_shared_org_ui_modules(tmp_path: Path) -> None:
     assert "GovernancePage" in readme
     assert "KnowledgePage" in readme
     assert "TasksPage" in readme
+    assert "ReflectionsPage" in readme

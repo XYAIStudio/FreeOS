@@ -8,6 +8,7 @@
 
 ### 新增
 
+- Organization Phase 3（反思切片）：宿主内 Reflections。Dashboard `/organization/reflections` 使用共享 `dashboard/src/org-ui` 的 `ReflectionsPage`。列表/创建/删除走 `/api/org-module/reflections*`，SQLite 在 `{FREEOS_HOME}/org/reflections.sqlite`。可选 `employee_id` / `task_id` 指向同一租户的目录员工与组织任务。这是组织复盘，不是 Chat，也不是第二套技能运行时。`freeos org export-standalone` 同时列出 Reflections。未迁：Chat、边车技能统计、边车部署铁律样例、其余 Open-12。
 - Organization Phase 3（任务切片）：宿主内 Tasks。Dashboard `/organization/tasks` 与 `/organization/tasks/:id` 使用共享 `dashboard/src/org-ui` 的 `TasksPage` / `TaskDetailPage`。CRUD、状态流转、子任务与人工评论走 `/api/org-module/tasks*`，SQLite 在 `{FREEOS_HOME}/org/tasks.sqlite`。这是组织待办，不是 Octop cron，也不是项目/Chat 对话。`freeos org export-standalone` 同时列出 Tasks。未迁：Chat、附件上传、边车任务库、其余 Open-12。
 - Organization Phase 3（知识切片）：宿主内 Knowledge。Dashboard `/organization/knowledge` 使用共享 `dashboard/src/org-ui` 的 `KnowledgePage`。列表/详情/笔记走 `/api/org-module/knowledge*`，包装已有 `KnowledgeService`（Octop `knowledge_bases` / `knowledge_documents`），与 Chat 检索同一套行。不克隆 openXYOS sidecar notes/files DB。上传、文件夹、嵌入模型仍在 `/knowledge-bases`。`freeos org export-standalone` 同时列出 Knowledge。未迁：Chat、边车知识库、其余 Open-12。
 - Organization Phase 3（技能切片）：宿主内 Skills。Dashboard `/organization/skills` 使用共享 `dashboard/src/org-ui` 的 `SkillsPage`。列表/详情走 `GET /api/org-module/skills` 与 `GET /api/org-module/skills/{slug}`，生成/发布仍是已有 `POST …/generate|publish`（`{FREEOS_HOME}/org-skills`，`skill_bridge`）。宿主 skill packages 只读列出，编辑仍在「个性化 → 技能包」。这不是第二套技能运行时。`freeos org export-standalone` 同时列出 Skills。未迁：Chat、边车市场/插件中心、其余 Open-12。

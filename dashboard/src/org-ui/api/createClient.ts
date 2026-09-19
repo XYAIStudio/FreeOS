@@ -445,6 +445,62 @@ export interface OrgTasksClient {
   addComment(id: number, content: string): Promise<OrgTaskComment>;
 }
 
+export type OrgReflectionType =
+  | "task_completion"
+  | "error_learning"
+  | "knowledge_capture"
+  | "improvement";
+
+export interface OrgReflection {
+  id: number;
+  employee_id: number;
+  task_id?: number | null;
+  reflection_type: string;
+  success_factors?: string | null;
+  failure_reasons?: string | null;
+  knowledge_gaps?: string | null;
+  improvement_plans?: string | null;
+  extracted_skills?: string | null;
+  learned_knowledge?: string | null;
+  importance_score: number;
+  created_at?: string;
+}
+
+export interface OrgReflectionStats {
+  total: number;
+  task_completion: number;
+  error_learning: number;
+  knowledge_capture: number;
+  improvement: number;
+}
+
+export interface OrgReflectionWrite {
+  employee_id?: number | null;
+  task_id?: number | null;
+  reflection_type?: string;
+  success_factors?: string;
+  failure_reasons?: string;
+  knowledge_gaps?: string;
+  improvement_plans?: string;
+  extracted_skills?: string;
+  learned_knowledge?: string;
+  importance_score?: number;
+}
+
+export interface OrgReflectionListParams {
+  employee_id?: number;
+  type?: string;
+  search?: string;
+}
+
+export interface OrgReflectionsClient {
+  list(params?: OrgReflectionListParams): Promise<OrgReflection[]>;
+  stats(): Promise<OrgReflectionStats>;
+  get(id: number): Promise<OrgReflection>;
+  create(body: OrgReflectionWrite): Promise<OrgReflection>;
+  remove(id: number): Promise<void>;
+}
+
 export interface OrgApiClient {
   announcements: OrgAnnouncementsClient;
   org: OrgChartClient;
@@ -453,6 +509,7 @@ export interface OrgApiClient {
   skills: OrgSkillsClient;
   knowledge: OrgKnowledgeClient;
   tasks: OrgTasksClient;
+  reflections: OrgReflectionsClient;
 }
 
 async function unwrap<T>(payload: OrgEnvelope<T>): Promise<T> {
@@ -474,6 +531,7 @@ export function createOrgApiClient(opts: {
   skillsPrefix?: string;
   knowledgePrefix?: string;
   tasksPrefix?: string;
+  reflectionsPrefix?: string;
 }): OrgApiClient {
   const prefix = opts.announcementsPrefix ?? "/org-module/announcements";
   const orgPrefix = opts.orgPrefix ?? "/org-module/org";
@@ -481,6 +539,7 @@ export function createOrgApiClient(opts: {
   const skillsPrefix = opts.skillsPrefix ?? "/org-module/skills";
   const knowledgePrefix = opts.knowledgePrefix ?? "/org-module/knowledge";
   const tasksPrefix = opts.tasksPrefix ?? "/org-module/tasks";
+  const reflectionsPrefix = opts.reflectionsPrefix ?? "/org-module/reflections";
   const fetchJson = opts.fetchJson;
 
   const announcements: OrgAnnouncementsClient = {
@@ -879,6 +938,53 @@ export function createOrgApiClient(opts: {
     },
   };
 
+  const reflections: OrgReflectionsClient = {
+    async list(params = {}) {
+      const query = new URLSearchParams();
+      if (params.employee_id != null) {
+        query.set("employee_id", String(params.employee_id));
+      }
+      if (params.type) query.set("type", params.type);
+      if (params.search) query.set("search", params.search);
+      const suffix = query.toString() ? `?${query.toString()}` : "";
+      return unwrap(
+        await fetchJson<OrgEnvelope<OrgReflection[]>>(
+          `${reflectionsPrefix}${suffix}`,
+        ),
+      );
+    },
+    async stats() {
+      return unwrap(
+        await fetchJson<OrgEnvelope<OrgReflectionStats>>(
+          `${reflectionsPrefix}/stats`,
+        ),
+      );
+    },
+    async get(id) {
+      return unwrap(
+        await fetchJson<OrgEnvelope<OrgReflection>>(
+          `${reflectionsPrefix}/${id}`,
+        ),
+      );
+    },
+    async create(body) {
+      return unwrap(
+        await fetchJson<OrgEnvelope<OrgReflection>>(reflectionsPrefix, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        }),
+      );
+    },
+    async remove(id) {
+      await unwrap(
+        await fetchJson<OrgEnvelope<undefined>>(`${reflectionsPrefix}/${id}`, {
+          method: "DELETE",
+        }),
+      );
+    },
+  };
+
   return {
     announcements,
     org,
@@ -887,5 +993,6 @@ export function createOrgApiClient(opts: {
     skills,
     knowledge,
     tasks,
+    reflections,
   };
 }

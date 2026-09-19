@@ -4,7 +4,7 @@
 **imports the same org-ui pages** Dashboard mounts under `/organization/...`.
 
 Phase 3 includes **Announcements**, **Org chart**, **Employees**, **Skills**,
-**Governance**, **Knowledge**, and **Tasks**:
+**Governance**, **Knowledge**, **Tasks**, and **Reflections**:
 
 | Delivery | Route | Component |
 |---|---|---|
@@ -24,6 +24,8 @@ Phase 3 includes **Announcements**, **Org chart**, **Employees**, **Skills**,
 | Dashboard | `/organization/tasks` | `dashboard/src/org-ui` → `TasksPage` |
 | Dashboard | `/organization/tasks/:id` | `dashboard/src/org-ui` → `TaskDetailPage` |
 | Standalone (this export) | `/tasks` | same import |
+| Dashboard | `/organization/reflections` | `dashboard/src/org-ui` → `ReflectionsPage` |
+| Standalone (this export) | `/reflections` | same import |
 
 Directory employees share `{FREEOS_HOME}/org/org_chart.sqlite` with the org
 chart. Organization skills live under `{FREEOS_HOME}/org-skills/` (skill_bridge).
@@ -32,6 +34,8 @@ Organization Knowledge lists host FreeOS knowledge bases (same rows as
 `/knowledge-bases`); it does not clone the sidecar notes/files DB.
 Organization Tasks live in `{FREEOS_HOME}/org/tasks.sqlite` — not Octop cron
 and not agent/project chat.
+Organization Reflections live in `{FREEOS_HOME}/org/reflections.sqlite` —
+lessons learned, not Chat and not a second skill runtime.
 Do not copy the pages into a second tree.
 
 ## Phase 5 TODO

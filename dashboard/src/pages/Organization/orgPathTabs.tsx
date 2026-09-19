@@ -1,5 +1,6 @@
 import {
   BookOpen,
+  Brain,
   Building2,
   ListTodo,
   Megaphone,
@@ -21,7 +22,8 @@ export function useOrgPathTabs(
     | "skills"
     | "governance"
     | "knowledge"
-    | "tasks",
+    | "tasks"
+    | "reflections",
 ): PathTabsConfig {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -68,6 +70,11 @@ export function useOrgPathTabs(
         label: t("organization.navTasks"),
         icon: <ListTodo size={14} />,
       },
+      {
+        value: "reflections",
+        label: t("organization.navReflections"),
+        icon: <Brain size={14} />,
+      },
     ],
     onChange: (value) => {
       if (value === "announcements") {
@@ -96,6 +103,10 @@ export function useOrgPathTabs(
       }
       if (value === "tasks") {
         navigate("/organization/tasks");
+        return;
+      }
+      if (value === "reflections") {
+        navigate("/organization/reflections");
         return;
       }
       navigate("/organization");

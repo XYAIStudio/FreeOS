@@ -4,6 +4,7 @@ import { Button, Drawer, Input, Space, Switch, Tag } from "antd";
 import {
   ArrowDownUp,
   BookOpen,
+  Brain,
   Building2,
   Download,
   ListTodo,
@@ -512,6 +513,22 @@ export default function OrganizationPage() {
                 data-testid="org-open-tasks"
               >
                 {t("organization.openTasks")}
+              </Button>
+            </div>
+            <div className={styles.action}>
+              <Brain size={18} />
+              <p className={styles.actionTitle}>
+                {t("organization.reflectionsTitle")}
+              </p>
+              <p className={styles.actionBody}>
+                {t("organization.reflectionsBody")}
+              </p>
+              <Button
+                type="primary"
+                onClick={() => navigate("/organization/reflections")}
+                data-testid="org-open-reflections"
+              >
+                {t("organization.openReflections")}
               </Button>
             </div>
           </section>
