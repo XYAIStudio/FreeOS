@@ -61,8 +61,69 @@ export interface OrgAnnouncementsClient {
   pinned(): Promise<Announcement[]>;
 }
 
+export interface OrgEmployee {
+  id: number;
+  name: string;
+  role: string;
+  description?: string;
+  employee_type: string;
+  agent_type?: string | null;
+  skills?: string;
+  avatar_emoji?: string;
+  department_id: number;
+  status: string;
+  is_online?: boolean;
+}
+
+export interface OrgDepartment {
+  id: number;
+  name: string;
+  parent_id: number | null;
+  sort_order: number;
+  description?: string;
+  department_code?: string | null;
+  function_type?: string;
+  level?: number;
+  children?: OrgDepartment[];
+  employees?: OrgEmployee[];
+}
+
+export interface DepartmentWrite {
+  name?: string;
+  parent_id?: number | null;
+  sort_order?: number;
+  description?: string;
+  department_code?: string | null;
+  function_type?: string;
+  level?: number;
+}
+
+export interface EmployeeWrite {
+  name?: string;
+  department_id?: number;
+  role?: string;
+  description?: string;
+  employee_type?: string;
+  agent_type?: string | null;
+  skills?: string;
+  avatar_emoji?: string;
+  status?: string;
+}
+
+export interface OrgChartClient {
+  tree(): Promise<OrgDepartment[]>;
+  listDepartments(): Promise<OrgDepartment[]>;
+  createDepartment(body: DepartmentWrite): Promise<OrgDepartment>;
+  updateDepartment(id: number, body: DepartmentWrite): Promise<OrgDepartment>;
+  removeDepartment(id: number): Promise<void>;
+  createEmployee(body: EmployeeWrite): Promise<OrgEmployee>;
+  updateEmployee(id: number, body: EmployeeWrite): Promise<OrgEmployee>;
+  removeEmployee(id: number): Promise<void>;
+}
+
 export interface OrgApiClient {
   announcements: OrgAnnouncementsClient;
+  org: OrgChartClient;
 }
 
 async function unwrap<T>(payload: OrgEnvelope<T>): Promise<T> {
@@ -79,8 +140,10 @@ async function unwrap<T>(payload: OrgEnvelope<T>): Promise<T> {
 export function createOrgApiClient(opts: {
   fetchJson: OrgFetcher;
   announcementsPrefix?: string;
+  orgPrefix?: string;
 }): OrgApiClient {
   const prefix = opts.announcementsPrefix ?? "/org-module/announcements";
+  const orgPrefix = opts.orgPrefix ?? "/org-module/org";
   const fetchJson = opts.fetchJson;
 
   const announcements: OrgAnnouncementsClient = {
@@ -163,5 +226,81 @@ export function createOrgApiClient(opts: {
     },
   };
 
-  return { announcements };
+  const org: OrgChartClient = {
+    async tree() {
+      return unwrap(
+        await fetchJson<OrgEnvelope<OrgDepartment[]>>(`${orgPrefix}/tree`),
+      );
+    },
+    async listDepartments() {
+      return unwrap(
+        await fetchJson<OrgEnvelope<OrgDepartment[]>>(
+          `${orgPrefix}/departments`,
+        ),
+      );
+    },
+    async createDepartment(body) {
+      return unwrap(
+        await fetchJson<OrgEnvelope<OrgDepartment>>(
+          `${orgPrefix}/departments`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body),
+          },
+        ),
+      );
+    },
+    async updateDepartment(id, body) {
+      return unwrap(
+        await fetchJson<OrgEnvelope<OrgDepartment>>(
+          `${orgPrefix}/departments/${id}`,
+          {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body),
+          },
+        ),
+      );
+    },
+    async removeDepartment(id) {
+      await unwrap(
+        await fetchJson<OrgEnvelope<undefined>>(
+          `${orgPrefix}/departments/${id}`,
+          { method: "DELETE" },
+        ),
+      );
+    },
+    async createEmployee(body) {
+      return unwrap(
+        await fetchJson<OrgEnvelope<OrgEmployee>>(`${orgPrefix}/employees`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        }),
+      );
+    },
+    async updateEmployee(id, body) {
+      return unwrap(
+        await fetchJson<OrgEnvelope<OrgEmployee>>(
+          `${orgPrefix}/employees/${id}`,
+          {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body),
+          },
+        ),
+      );
+    },
+    async removeEmployee(id) {
+      await unwrap(
+        await fetchJson<OrgEnvelope<undefined>>(
+          `${orgPrefix}/employees/${id}`,
+          { method: "DELETE" },
+        ),
+      );
+    },
+  };
+
+  return { announcements, org };
 }

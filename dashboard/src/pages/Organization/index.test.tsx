@@ -17,6 +17,10 @@ function renderOrg() {
           }
         />
         <Route
+          path="/organization/org"
+          element={<div data-testid="org-chart-page">org chart</div>}
+        />
+        <Route
           path="/experts"
           element={<div data-testid="experts-page">experts</div>}
         />
@@ -147,6 +151,7 @@ describe("OrganizationPage", () => {
     expect(screen.getByTestId("org-colleagues")).toHaveTextContent("Ops");
     expect(screen.getByTestId("org-surfaces")).toBeInTheDocument();
     expect(screen.getByTestId("org-open-announcements")).toBeInTheDocument();
+    expect(screen.getByTestId("org-open-chart")).toBeInTheDocument();
     expect(screen.queryByTestId("org-mini-browser")).toBeNull();
     expect(screen.queryByTestId("org-browser-frame")).toBeNull();
     expect(screen.queryByTestId("org-sidecar-gate")).toBeNull();
@@ -199,6 +204,13 @@ describe("OrganizationPage", () => {
     expect(
       await screen.findByTestId("org-announcements-page"),
     ).toBeInTheDocument();
+    expect(screen.queryByTestId("org-browser-frame")).toBeNull();
+  });
+
+  it("opens in-host org chart without a sidecar iframe", async () => {
+    renderOrg();
+    fireEvent.click(await screen.findByTestId("org-open-chart"));
+    expect(await screen.findByTestId("org-chart-page")).toBeInTheDocument();
     expect(screen.queryByTestId("org-browser-frame")).toBeNull();
   });
 

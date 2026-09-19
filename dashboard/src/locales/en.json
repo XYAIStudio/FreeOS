@@ -183,9 +183,13 @@
     "packPreviewEmployees": "The preview now opens Employees so you can confirm the result.",
     "navWorkbench": "Workbench",
     "navAnnouncements": "Announcements",
+    "navOrgChart": "Org chart",
     "announcementsTitle": "Announcements",
     "announcementsBody": "Publish notices and track who has read them. This page lives in the host — no sidecar or second port.",
-    "openAnnouncements": "Open announcements"
+    "openAnnouncements": "Open announcements",
+    "orgChartTitle": "Organization chart",
+    "orgChartBody": "Departments and people on the host org tree. This page lives in the host — no sidecar or second port.",
+    "openOrgChart": "Open org chart"
   },
   "systemSettings": {
     "subtitle": "Workbench, remote desktop, and host administration in one place."

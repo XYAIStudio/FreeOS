@@ -1,8 +1,8 @@
-"""Minimal ``freeos org export-standalone`` scaffold (Phase 2).
+"""Minimal ``freeos org export-standalone`` scaffold (Phase 3).
 
 Full Vite + Node server packaging is Phase 5. This writes a snapshot that
 lists the shared org-ui modules and points at the same AnnouncementPage
-source Dashboard mounts under ``/organization/announcements``.
+and OrgChartPage sources Dashboard mounts under ``/organization/...``.
 """
 
 from __future__ import annotations
@@ -24,15 +24,16 @@ Dashboard and this export consume the **same** org-ui pages:
 | Module | Dashboard route | Standalone route | Import |
 |---|---|---|---|
 | announcements | `/organization/announcements` | `/announcements` | `dashboard/src/org-ui` → `AnnouncementPage` |
+| organization | `/organization/org` | `/org` | `dashboard/src/org-ui` → `OrgChartPage` |
 
-Do **not** copy `AnnouncementPage.tsx` into a second tree. Edit `dashboard/src/org-ui`.
+Do **not** copy `AnnouncementPage.tsx` or `OrgChartPage.tsx` into a second tree. Edit `dashboard/src/org-ui`.
 
-## Phase 2 vs Phase 5
+## Phase 3 vs Phase 5
 
-Phase 2 (this scaffold):
+Phase 3 (this scaffold):
 
 - Shared module list (`src/modules.json`)
-- Thin `src/App.tsx` that imports `AnnouncementPage`
+- Thin `src/App.tsx` that imports `AnnouncementPage` and `OrgChartPage`
 - Documents IdentityBridge: embedded mode uses FreeOS JWT; standalone uses local JWT
 
 Phase 5 (TODO — not implemented here):
@@ -52,13 +53,17 @@ uv run freeos org export-standalone --out dist/openxyos-web
 """
 
 _APP_TSX = """\
-import { AnnouncementPage, SHARED_ORG_UI_MODULES } from "org-ui";
-import type { OrgAnnouncementsClient, OrgSession } from "org-ui";
+import { AnnouncementPage, OrgChartPage, SHARED_ORG_UI_MODULES } from "org-ui";
+import type {
+  OrgAnnouncementsClient,
+  OrgChartClient,
+  OrgSession,
+} from "org-ui";
 
 /**
  * Standalone shell stub. Phase 5 wires a real IdentityBridge + local JWT.
- * The page component is the same one Dashboard mounts at
- * /organization/announcements.
+ * Page components are the same ones Dashboard mounts at
+ * /organization/announcements and /organization/org.
  */
 const session: OrgSession = {
   userId: 0,
@@ -69,15 +74,24 @@ const session: OrgSession = {
 
 export default function App(props: {
   client: OrgAnnouncementsClient;
+  orgClient: OrgChartClient;
   locale?: "zh" | "en";
 }) {
   return (
-    <AnnouncementPage
-      client={props.client}
-      session={session}
-      locale={props.locale ?? "en"}
-      modules={SHARED_ORG_UI_MODULES}
-    />
+    <>
+      <AnnouncementPage
+        client={props.client}
+        session={session}
+        locale={props.locale ?? "en"}
+        modules={SHARED_ORG_UI_MODULES}
+      />
+      <OrgChartPage
+        client={props.orgClient}
+        session={session}
+        locale={props.locale ?? "en"}
+        modules={SHARED_ORG_UI_MODULES}
+      />
+    </>
   );
 }
 """
@@ -88,7 +102,7 @@ _PACKAGE_JSON = {
     "version": "0.0.0",
     "description": (
         "Standalone Organization web export skeleton. "
-        "Pages come from dashboard/src/org-ui (Phase 2: Announcements). "
+        "Pages come from dashboard/src/org-ui (Phase 3: Announcements + Org chart). "
         "Full Node packaging is Phase 5."
     ),
     "type": "module",
@@ -119,9 +133,15 @@ def write_standalone_scaffold(out_dir: Path) -> dict[str, Any]:
                 "embedded_route": "/organization/announcements",
                 "standalone_route": "/announcements",
                 "api": "/api/org-module/announcements",
-            }
+            },
+            "organization": {
+                "component": "OrgChartPage",
+                "embedded_route": "/organization/org",
+                "standalone_route": "/org",
+                "api": "/api/org-module/org",
+            },
         },
-        "todo": "Phase 5: full Vite + server packaging; do not fork AnnouncementPage",
+        "todo": "Phase 5: full Vite + server packaging; do not fork org-ui pages",
     }
     (dest / "README.md").write_text(_README, encoding="utf-8")
     (dest / "package.json").write_text(json.dumps(_PACKAGE_JSON, indent=2) + "\n", encoding="utf-8")

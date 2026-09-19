@@ -1,0 +1,71 @@
+import type { OrgLocale } from "../../shell";
+
+const EN = {
+  title: "Organization chart",
+  employees: "employees",
+  search: "Search people...",
+  loading: "Loading organization chart...",
+  empty: "No departments yet. Add a root department to start the chart.",
+  addRoot: "Add department",
+  addChild: "Add child department",
+  addEmployee: "Add person",
+  editDepartment: "Edit department",
+  editEmployee: "Edit person",
+  fieldName: "Name",
+  fieldRole: "Role",
+  fieldDescription: "Description",
+  fieldType: "Type",
+  fieldParent: "Parent department",
+  fieldDepartment: "Department",
+  fieldEmoji: "Avatar",
+  typeHuman: "Human",
+  typeAi: "AI colleague",
+  save: "Save",
+  create: "Create",
+  cancel: "Cancel",
+  editShort: "Edit",
+  deleteShort: "Delete",
+  confirmDeleteDept: "Delete this department?",
+  confirmDeleteEmp: "Remove this person from the chart?",
+  required: "Name is required",
+  noMatch: "No people match this search",
+  root: "Root",
+};
+
+const ZH: typeof EN = {
+  title: "组织架构图",
+  employees: "名员工",
+  search: "搜索人员...",
+  loading: "加载组织架构...",
+  empty: "还没有部门。先添加一个根部门开始搭建架构。",
+  addRoot: "添加部门",
+  addChild: "添加子部门",
+  addEmployee: "添加人员",
+  editDepartment: "编辑部门",
+  editEmployee: "编辑人员",
+  fieldName: "名称",
+  fieldRole: "岗位",
+  fieldDescription: "说明",
+  fieldType: "类型",
+  fieldParent: "上级部门",
+  fieldDepartment: "部门",
+  fieldEmoji: "头像",
+  typeHuman: "人类",
+  typeAi: "AI 同事",
+  save: "保存",
+  create: "创建",
+  cancel: "取消",
+  editShort: "编辑",
+  deleteShort: "删除",
+  confirmDeleteDept: "确定删除该部门？",
+  confirmDeleteEmp: "确定从架构图中移除该人员？",
+  required: "名称不能为空",
+  noMatch: "没有匹配的人员",
+  root: "根节点",
+};
+
+export type OrgChartLabels = typeof EN;
+
+export function orgChartLabels(locale: OrgLocale): OrgChartLabels {
+  return locale === "zh" ? ZH : EN;
+}
