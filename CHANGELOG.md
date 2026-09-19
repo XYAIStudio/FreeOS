@@ -8,6 +8,7 @@
 
 ### 新增
 
+- Organization Phase 3（组织架构切片）：宿主内 org chart。Dashboard `/organization/org` 使用共享 `dashboard/src/org-ui` 的 `OrgChartPage`；树与 CRUD 走 `/api/org-module/org`（`{FREEOS_HOME}/org/org_chart.sqlite`），不需要 Node sidecar。`freeos org export-standalone` 同时列出 Announcements 与 Org chart。未迁：Chat、员工目录页、汇报线/版本/导入导出图、其余 Open-12。
 - Organization Phase 2：宿主内通知公告。Dashboard `/organization/announcements` 使用共享 `dashboard/src/org-ui` 页面；CRUD 走 `/api/org-module/announcements`（`{FREEOS_HOME}/org/announcements.sqlite`），不需要 Node sidecar。`freeos org export-standalone` 写出同一页面的独立站骨架（完整打包仍待 Phase 5）。
 
 ### 修复

@@ -1,0 +1,111 @@
+.page {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 8px 4px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.titleRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 650;
+}
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.empty {
+  text-align: center;
+  padding: 48px 12px;
+  color: var(--fn-text-secondary, #667085);
+}
+
+.tree {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.node {
+  border: 1px solid var(--fn-border, #e5e7eb);
+  border-radius: 10px;
+  padding: 14px;
+  background: var(--fn-bg-container, #fff);
+}
+
+.nodeHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.nodeTitle {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.nodeMeta {
+  margin: 6px 0 0;
+  color: var(--fn-text-secondary, #667085);
+  font-size: 13px;
+}
+
+.people {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.person {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--fn-border, #e5e7eb);
+  border-radius: 999px;
+  padding: 4px 10px;
+  background: var(--fn-bg, #f9fafb);
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.personHidden {
+  display: none;
+}
+
+.children {
+  margin-top: 12px;
+  margin-left: 16px;
+  padding-left: 12px;
+  border-left: 2px solid var(--fn-border, #e5e7eb);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.actions {
+  margin-left: auto;
+}

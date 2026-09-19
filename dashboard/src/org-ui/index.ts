@@ -5,12 +5,19 @@ export type {
   Announcement,
   AnnouncementListData,
   AnnouncementWrite,
+  DepartmentWrite,
+  EmployeeWrite,
   OrgAnnouncementsClient,
   OrgApiClient,
+  OrgChartClient,
+  OrgDepartment,
+  OrgEmployee,
   OrgEnvelope,
 } from "./api/createClient";
 export { AnnouncementPage } from "./pages/announcements/AnnouncementPage";
 export type { AnnouncementPageProps } from "./pages/announcements/AnnouncementPage";
+export { OrgChartPage } from "./pages/org/OrgChartPage";
+export type { OrgChartPageProps } from "./pages/org/OrgChartPage";
 export type {
   IdentityBridge,
   OrgFetcher,

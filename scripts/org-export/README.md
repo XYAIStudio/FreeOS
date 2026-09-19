@@ -1,16 +1,18 @@
-# Organization standalone export (Phase 2 skeleton)
+# Organization standalone export (Phase 3 skeleton)
 
 `freeos org export-standalone --out dist/openxyos-web` writes a scaffold that
 **imports the same org-ui pages** Dashboard mounts under `/organization/...`.
 
-Phase 2 includes **Announcements** only:
+Phase 3 includes **Announcements** and **Org chart**:
 
 | Delivery | Route | Component |
 |---|---|---|
 | Dashboard | `/organization/announcements` | `dashboard/src/org-ui` → `AnnouncementPage` |
 | Standalone (this export) | `/announcements` | same import |
+| Dashboard | `/organization/org` | `dashboard/src/org-ui` → `OrgChartPage` |
+| Standalone (this export) | `/org` | same import |
 
-Do not copy the page into a second tree.
+Do not copy the pages into a second tree.
 
 ## Phase 5 TODO
 

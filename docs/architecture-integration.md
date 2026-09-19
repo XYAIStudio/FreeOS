@@ -13,7 +13,7 @@ FreeOS/Octop remains the execution runtime.
 
 - [ADR 001](adr/001-single-process-model.md) — single process, no external queue
 - [ADR 003](adr/003-org-ui-single-source-dual-delivery.md) — org-ui single source, dual delivery (Accepted)
-- [org-merge-plan.md](org-merge-plan.md) — Phases 0–5; Phase 2 = Announcements
+- [org-merge-plan.md](org-merge-plan.md) — Phases 0–5; Phase 2 = Announcements; Phase 3 org chart slice in progress
 - [asset-loop.md](asset-loop.md) — operator self-growth loop
 - [ADR index](adr/)
 
@@ -289,8 +289,8 @@ The Phase A work sits on the existing FreeOS bootstrap:
 | Asset factory | Bridge | `freeos org assets publish\|import\|apply` · `{home}/asset-packs/` · `{home}/openxyos-mirror/` |
 | Self-growth loop | Bridge | `freeos org loop run` · `/api/org-module/loop/run` |
 | Colleague agents | Host agents table | `org-<slug>` · `{home}/org-agents/` · tenant `routing.json` |
-| Org APIs | Host BFF + optional sidecar | `/api/org-module/*` in-host (announcements CRUD is in-host); sidecar `/api/org`, `/api/employees`, … until each remaining CRUD slice moves (see [org-merge-plan.md](org-merge-plan.md)) |
-| Org UI | Host Dashboard (`org-ui`) | Native `/organization` workbench + `/organization/announcements` (shared `dashboard/src/org-ui`). Standalone site is **exported** from the same source (`freeos org export-standalone`). Sidecar `:3780` iframe is opt-in compat only |
+| Org APIs | Host BFF + optional sidecar | `/api/org-module/*` in-host (announcements + org chart CRUD are in-host); sidecar `/api/org`, `/api/employees`, … until each remaining CRUD slice moves (see [org-merge-plan.md](org-merge-plan.md)) |
+| Org UI | Host Dashboard (`org-ui`) | Native `/organization` workbench + `/organization/announcements` + `/organization/org` (shared `dashboard/src/org-ui`). Standalone site is **exported** from the same source (`freeos org export-standalone`). Sidecar `:3780` iframe is opt-in compat only |
 
 ### Auth and tenant mapping
 

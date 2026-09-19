@@ -762,6 +762,18 @@
       "title_content_required": "标题和内容不能为空",
       "unavailable": "公告服务暂时不可用，请稍后重试"
     },
+    "chart": {
+      "forbidden": "无权限",
+      "name_required": "部门或员工名称不能为空",
+      "name_department_required": "姓名和部门必填",
+      "no_updates": "没有可更新的字段",
+      "department_not_found": "部门不存在",
+      "employee_not_found": "员工不存在",
+      "parent_not_found": "上级部门不存在",
+      "has_employees": "部门下还有员工，无法删除",
+      "has_children": "部门下还有子部门，无法删除",
+      "cycle": "不能把部门挂到自身或其下级之下"
+    },
     "sidecar": {
       "already": "边车已可达",
       "started_pending": "已启动但尚未可达；请查看 logs/org-sidecar.log",
