@@ -150,7 +150,10 @@ export interface OrgEmployeesClient {
 }
 
 export type GovernancePauseStatus =
-  "pending" | "approved" | "rejected" | "expired";
+  | "pending"
+  | "approved"
+  | "rejected"
+  | "expired";
 
 export interface GovernancePause {
   pause_id: string;
@@ -443,7 +446,10 @@ export interface OrgTasksClient {
 }
 
 export type OrgReflectionType =
-  "task_completion" | "error_learning" | "knowledge_capture" | "improvement";
+  | "task_completion"
+  | "error_learning"
+  | "knowledge_capture"
+  | "improvement";
 
 export interface OrgReflection {
   id: number;
@@ -538,7 +544,12 @@ export interface OrgSettingsClient {
 }
 
 export type OrgColleagueLifecycle =
-  "draft" | "market" | "recruit" | "shadow" | "active" | "offboard";
+  | "draft"
+  | "market"
+  | "recruit"
+  | "shadow"
+  | "active"
+  | "offboard";
 
 export interface OrgColleague {
   slug: string;

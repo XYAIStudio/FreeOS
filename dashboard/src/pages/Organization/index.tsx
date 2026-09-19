@@ -343,14 +343,14 @@ export default function OrganizationPage() {
     busy === "assemble"
       ? t("organization.progressAssemble")
       : busy === "pack"
-        ? t("organization.progressPack")
-        : busy === "loop"
-          ? t("organization.progressLoop")
-          : busy === "produce"
-            ? t("organization.progressProduce")
-            : busy === "sidecar"
-              ? t("organization.autoStartingSidecar")
-              : null;
+      ? t("organization.progressPack")
+      : busy === "loop"
+      ? t("organization.progressLoop")
+      : busy === "produce"
+      ? t("organization.progressProduce")
+      : busy === "sidecar"
+      ? t("organization.autoStartingSidecar")
+      : null;
 
   const lastLoop = (loopProof ?? overview?.last_loop) as OrgLoopProof | null;
   const lastSync = overview?.last_sync
@@ -953,8 +953,8 @@ export default function OrganizationPage() {
                       {row.locked
                         ? t("organization.locked")
                         : moduleToggles[row.key] === false
-                          ? t("organization.catalogDisabled")
-                          : t("organization.catalogEnabled")}
+                        ? t("organization.catalogDisabled")
+                        : t("organization.catalogEnabled")}
                     </Tag>
                   </p>
                   <p className={styles.catalogDesc}>
