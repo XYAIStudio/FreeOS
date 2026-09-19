@@ -292,26 +292,85 @@ class OrgChartStore:
     def get_employee(self, employee_id: int, *, tenant_id: str) -> dict[str, Any] | None:
         with self._connect() as conn:
             row = conn.execute(
-                "SELECT * FROM employees WHERE id = ? AND tenant_id = ?",
+                """
+                SELECT e.*, d.name AS department_name
+                FROM employees e
+                LEFT JOIN departments d ON d.id = e.department_id
+                WHERE e.id = ? AND e.tenant_id = ?
+                """,
                 (employee_id, tenant_id),
             ).fetchone()
         if row is None:
             return None
         return self._decorate_employee(dict(row))
 
-    def list_employees(self, *, tenant_id: str, status: str = "active") -> list[dict[str, Any]]:
-        where = ["tenant_id = ?"]
+    def list_employees(
+        self,
+        *,
+        tenant_id: str,
+        status: str = "active",
+        employee_type: str | None = None,
+        department_id: int | None = None,
+        search: str = "",
+    ) -> list[dict[str, Any]]:
+        where = ["e.tenant_id = ?"]
         params: list[Any] = [tenant_id]
         if status and status != "all":
-            where.append("status = ?")
+            where.append("e.status = ?")
             params.append(normalize_status(status))
+        if employee_type:
+            where.append("e.employee_type = ?")
+            params.append(normalize_employee_type(employee_type))
+        if department_id is not None:
+            where.append("e.department_id = ?")
+            params.append(int(department_id))
+        needle = (search or "").strip()
+        if needle:
+            like = f"%{needle}%"
+            where.append("(e.name LIKE ? OR e.role LIKE ? OR e.skills LIKE ?)")
+            params.extend([like, like, like])
         clause = " AND ".join(where)
         with self._connect() as conn:
             rows = conn.execute(
-                f"SELECT * FROM employees WHERE {clause} ORDER BY id",
+                f"""
+                SELECT e.*, d.name AS department_name
+                FROM employees e
+                LEFT JOIN departments d ON d.id = e.department_id
+                WHERE {clause}
+                ORDER BY e.id
+                """,
                 params,
             ).fetchall()
         return [self._decorate_employee(dict(row)) for row in rows]
+
+    def employee_stats(self, *, tenant_id: str) -> dict[str, Any]:
+        employees = self.list_employees(tenant_id=tenant_id, status="active")
+        by_department: dict[str, int] = {}
+        by_role: dict[str, int] = {}
+        ai = 0
+        human = 0
+        for emp in employees:
+            if str(emp.get("employee_type") or "") == "ai":
+                ai += 1
+            else:
+                human += 1
+            dept = str(emp.get("department_name") or "")
+            by_department[dept] = by_department.get(dept, 0) + 1
+            role = str(emp.get("role") or "").strip()
+            if role:
+                by_role[role] = by_role.get(role, 0) + 1
+        return {
+            "total": len(employees),
+            "ai": ai,
+            "human": human,
+            "byDepartment": [
+                {"department": name, "count": count} for name, count in by_department.items()
+            ],
+            "byRole": [
+                {"role": name, "count": count}
+                for name, count in sorted(by_role.items(), key=lambda item: (-item[1], item[0]))
+            ][:10],
+        }
 
     def update_employee(
         self,

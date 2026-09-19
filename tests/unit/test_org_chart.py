@@ -42,6 +42,7 @@ def _client(tmp_path: Path, user: User) -> TestClient:
 def test_shared_organization_module_is_in_catalog() -> None:
     assert "organization" in SHARED_ORG_UI_MODULES
     assert "announcements" in SHARED_ORG_UI_MODULES
+    assert "employees" in SHARED_ORG_UI_MODULES
     assert_shared_modules_in_catalog()
 
 
@@ -68,6 +69,12 @@ def test_store_tree_create_and_isolate(tmp_path: Path) -> None:
     assert tree[0]["children"][0]["employees"][0]["name"] == "Ada"
     assert tree[0]["children"][0]["employees"][0]["is_online"] is False
     assert store.tree(tenant_id="other")[0]["name"] == "Other HQ"
+    listed = store.list_employees(tenant_id="default", search="Ada")
+    assert listed[0]["department_name"] == "Eng"
+    stats = store.employee_stats(tenant_id="default")
+    assert stats["total"] == 1
+    assert stats["human"] == 1
+    assert store.get_employee(listed[0]["id"], tenant_id="default")["name"] == "Ada"
 
 
 def test_store_delete_guards_and_deactivate(tmp_path: Path) -> None:
@@ -114,6 +121,19 @@ def test_api_tree_create_update_delete(tmp_path: Path) -> None:
     assert emp.status_code == 200
     emp_id = emp.json()["data"]["id"]
 
+    listed = admin.get("/api/org-module/org/employees")
+    assert listed.status_code == 200
+    assert listed.json()["data"][0]["name"] == "Ada"
+    assert listed.json()["data"][0]["department_name"] == "Eng"
+    detail = admin.get(f"/api/org-module/org/employees/{emp_id}")
+    assert detail.json()["data"]["role"] == "Lead"
+    stats = admin.get("/api/org-module/org/employees/stats")
+    assert stats.json()["data"]["total"] == 1
+    searched = admin.get("/api/org-module/org/employees?search=Ada&type=human")
+    assert len(searched.json()["data"]) == 1
+    missing = admin.get("/api/org-module/org/employees/999999")
+    assert missing.status_code == 404
+
     tree = admin.get("/api/org-module/org/tree")
     assert tree.status_code == 200
     roots = tree.json()["data"]
@@ -147,6 +167,8 @@ def test_api_member_cannot_write(tmp_path: Path) -> None:
     tree = member.get("/api/org-module/org/tree")
     assert tree.status_code == 200
     assert tree.json()["data"][0]["name"] == "HQ"
+    directory = member.get("/api/org-module/org/employees")
+    assert directory.status_code == 200
     denied = member.post("/api/org-module/org/departments", json={"name": "Nope"})
     assert denied.status_code == 403
     assert denied.json()["success"] is False
@@ -166,4 +188,9 @@ def test_org_chart_routes_registered() -> None:
     assert "/org/departments" in paths
     assert "/org/departments/{department_id}" in paths
     assert "/org/employees" in paths
+    assert "/org/employees/stats" in paths
     assert "/org/employees/{employee_id}" in paths
+    # Lifecycle colleagues stay on /employees; directory CRUD is /org/employees.
+    module_paths = {getattr(route, "path", "") for route in router.routes}
+    assert "/employees" in module_paths
+    assert "/employees/spawn" in module_paths

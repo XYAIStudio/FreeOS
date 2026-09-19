@@ -24,6 +24,22 @@ describe("createOrgApiClient", () => {
           data: [{ id: 1, name: "HQ", parent_id: null, sort_order: 0 }],
         };
       }
+      if (path === "/org-module/org/employees") {
+        return {
+          success: true,
+          data: [
+            {
+              id: 4,
+              name: "Ada",
+              role: "Lead",
+              department_id: 1,
+              department_name: "HQ",
+              employee_type: "human",
+              status: "active",
+            },
+          ],
+        };
+      }
       throw new Error(`unexpected ${path}`);
     });
     const client = createOrgApiClient({ fetchJson });
@@ -36,6 +52,7 @@ describe("createOrgApiClient", () => {
     expect(listed.list[0]?.title).toBe("Hi");
     expect(await client.announcements.unread()).toEqual({ count: 2 });
     expect((await client.org.tree())[0]?.name).toBe("HQ");
+    expect((await client.employees.list())[0]?.name).toBe("Ada");
     expect(fetchJson).toHaveBeenCalled();
   });
 

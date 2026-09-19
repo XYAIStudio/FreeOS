@@ -434,6 +434,22 @@ export default function OrganizationPage() {
                 {t("organization.openOrgChart")}
               </Button>
             </div>
+            <div className={styles.action}>
+              <Users size={18} />
+              <p className={styles.actionTitle}>
+                {t("organization.employeesTitle")}
+              </p>
+              <p className={styles.actionBody}>
+                {t("organization.employeesBody")}
+              </p>
+              <Button
+                type="primary"
+                onClick={() => navigate("/organization/employees")}
+                data-testid="org-open-employees"
+              >
+                {t("organization.openEmployees")}
+              </Button>
+            </div>
           </section>
 
           {firstRun && (

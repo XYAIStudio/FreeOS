@@ -71,8 +71,11 @@ export interface OrgEmployee {
   skills?: string;
   avatar_emoji?: string;
   department_id: number;
+  department_name?: string | null;
   status: string;
   is_online?: boolean;
+  created_at?: string;
+  updated_at?: string | null;
 }
 
 export interface OrgDepartment {
@@ -121,9 +124,35 @@ export interface OrgChartClient {
   removeEmployee(id: number): Promise<void>;
 }
 
+export interface EmployeeListParams {
+  type?: string;
+  department_id?: number;
+  status?: string;
+  search?: string;
+}
+
+export interface EmployeeStats {
+  total: number;
+  ai: number;
+  human: number;
+  byDepartment: { department: string; count: number }[];
+  byRole: { role: string; count: number }[];
+}
+
+export interface OrgEmployeesClient {
+  list(params?: EmployeeListParams): Promise<OrgEmployee[]>;
+  get(id: number): Promise<OrgEmployee>;
+  stats(): Promise<EmployeeStats>;
+  listDepartments(): Promise<OrgDepartment[]>;
+  create(body: EmployeeWrite): Promise<OrgEmployee>;
+  update(id: number, body: EmployeeWrite): Promise<OrgEmployee>;
+  remove(id: number): Promise<void>;
+}
+
 export interface OrgApiClient {
   announcements: OrgAnnouncementsClient;
   org: OrgChartClient;
+  employees: OrgEmployeesClient;
 }
 
 async function unwrap<T>(payload: OrgEnvelope<T>): Promise<T> {
@@ -302,5 +331,49 @@ export function createOrgApiClient(opts: {
     },
   };
 
-  return { announcements, org };
+  const employees: OrgEmployeesClient = {
+    async list(params = {}) {
+      const query = new URLSearchParams();
+      if (params.type) query.set("type", params.type);
+      if (params.department_id != null) {
+        query.set("department_id", String(params.department_id));
+      }
+      if (params.status) query.set("status", params.status);
+      if (params.search) query.set("search", params.search);
+      const suffix = query.toString() ? `?${query.toString()}` : "";
+      return unwrap(
+        await fetchJson<OrgEnvelope<OrgEmployee[]>>(
+          `${orgPrefix}/employees${suffix}`,
+        ),
+      );
+    },
+    async get(id) {
+      return unwrap(
+        await fetchJson<OrgEnvelope<OrgEmployee>>(
+          `${orgPrefix}/employees/${id}`,
+        ),
+      );
+    },
+    async stats() {
+      return unwrap(
+        await fetchJson<OrgEnvelope<EmployeeStats>>(
+          `${orgPrefix}/employees/stats`,
+        ),
+      );
+    },
+    async listDepartments() {
+      return org.listDepartments();
+    },
+    async create(body) {
+      return org.createEmployee(body);
+    },
+    async update(id, body) {
+      return org.updateEmployee(id, body);
+    },
+    async remove(id) {
+      return org.removeEmployee(id);
+    },
+  };
+
+  return { announcements, org, employees };
 }

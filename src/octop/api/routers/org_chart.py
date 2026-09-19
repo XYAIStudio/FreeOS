@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 from typing import Any
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Query, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
@@ -179,6 +179,55 @@ async def delete_department(
     if reason == "has_children":
         return _fail(request, "org.chart.has_children", 400)
     return _ok()
+
+
+@router.get("/org/employees", summary="List directory employees")
+async def list_employees(
+    type: str = Query(default=""),
+    department_id: int | None = Query(default=None),
+    status: str = Query(default="active"),
+    search: str = Query(default=""),
+    server: OctopServer = Depends(get_server),
+    _user: Any = Depends(current_user),
+) -> dict[str, Any]:
+    store = _store(server)
+    rows = await asyncio.to_thread(
+        store.list_employees,
+        tenant_id=_tenant_id(server),
+        status=status or "active",
+        employee_type=type or None,
+        department_id=department_id,
+        search=search,
+    )
+    return _ok(rows)
+
+
+@router.get("/org/employees/stats", summary="Directory employee stats")
+async def employee_stats(
+    server: OctopServer = Depends(get_server),
+    _user: Any = Depends(current_user),
+) -> dict[str, Any]:
+    store = _store(server)
+    data = await asyncio.to_thread(store.employee_stats, tenant_id=_tenant_id(server))
+    return _ok(data)
+
+
+@router.get(
+    "/org/employees/{employee_id}",
+    summary="Directory employee detail",
+    response_model=None,
+)
+async def get_employee(
+    employee_id: int,
+    request: Request,
+    server: OctopServer = Depends(get_server),
+    _user: Any = Depends(current_user),
+) -> dict[str, Any] | JSONResponse:
+    store = _store(server)
+    row = await asyncio.to_thread(store.get_employee, employee_id, tenant_id=_tenant_id(server))
+    if row is None:
+        return _fail(request, "org.chart.employee_not_found", 404)
+    return _ok(row)
 
 
 @router.post("/org/employees", summary="Create a directory employee", response_model=None)

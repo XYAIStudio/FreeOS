@@ -6,18 +6,25 @@ export type {
   AnnouncementListData,
   AnnouncementWrite,
   DepartmentWrite,
+  EmployeeListParams,
+  EmployeeStats,
   EmployeeWrite,
   OrgAnnouncementsClient,
   OrgApiClient,
   OrgChartClient,
   OrgDepartment,
   OrgEmployee,
+  OrgEmployeesClient,
   OrgEnvelope,
 } from "./api/createClient";
 export { AnnouncementPage } from "./pages/announcements/AnnouncementPage";
 export type { AnnouncementPageProps } from "./pages/announcements/AnnouncementPage";
 export { OrgChartPage } from "./pages/org/OrgChartPage";
 export type { OrgChartPageProps } from "./pages/org/OrgChartPage";
+export { EmployeesPage } from "./pages/employees/EmployeesPage";
+export type { EmployeesPageProps } from "./pages/employees/EmployeesPage";
+export { EmployeeDetailPage } from "./pages/employees/EmployeeDetailPage";
+export type { EmployeeDetailPageProps } from "./pages/employees/EmployeeDetailPage";
 export type {
   IdentityBridge,
   OrgFetcher,
