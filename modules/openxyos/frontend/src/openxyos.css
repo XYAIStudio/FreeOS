@@ -11,14 +11,16 @@
 
 /* The FreeOS shell is light by default. Keep the public organization home
    aligned with that system canvas instead of forcing a separate black page. */
-.ox-page{--bg:#f5f5f5;--panel:#fff;--line:rgba(29,33,41,.12);--text:#1d2129;--muted:#667085;--green:#0033ff;--cyan:#4b74fa;background:#f5f5f5}
-.ox-nav{border-bottom-color:rgba(29,33,41,.12);background:rgba(245,245,245,.9)}
-.ox-brand>i{border-color:rgba(0,51,255,.3);background:rgba(0,51,255,.07)}
-.ox-console{background:rgba(255,255,255,.94);box-shadow:0 22px 70px rgba(30,41,59,.16),0 0 42px rgba(0,51,255,.06)}
+.ox-page{--bg:#f5f6f8;--panel:#fff;--line:#e4e7ec;--text:#182230;--muted:#667085;--green:#315efb;--cyan:#4c7dff;background:#f5f6f8}
+.ox-nav{border-bottom-color:#e4e7ec;background:rgba(255,255,255,.92)}
+.ox-brand>i{border-color:rgba(49,94,251,.26);background:rgba(49,94,251,.06)}
+.ox-hero{background:linear-gradient(180deg,#fbfcfe 0%,#f5f6f8 100%)}.ox-grid{opacity:.28;background-image:linear-gradient(rgba(49,94,251,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(49,94,251,.045) 1px,transparent 1px)}.ox-wave-haze{background:radial-gradient(ellipse at center,rgba(76,125,255,.045),rgba(76,125,255,.018) 45%,transparent 72%)}.ox-glow.one{background:rgba(49,94,251,.075)}.ox-glow.two{background:rgba(76,125,255,.045)}
+.ox-hero h1 span{background:linear-gradient(100deg,#182230 4%,#315efb 62%,#4c7dff);background-clip:text;-webkit-background-clip:text}.ox-primary{color:#fff;background:#315efb;box-shadow:0 10px 26px rgba(49,94,251,.2)}.ox-primary:hover{box-shadow:0 12px 30px rgba(49,94,251,.28)}
+.ox-console{background:rgba(255,255,255,.97);box-shadow:0 20px 56px rgba(30,41,59,.12),0 0 32px rgba(49,94,251,.04)}
 .ox-console>header{color:#667085}.ox-console header i{background:#cbd5e1}.ox-console header i:first-child{background:#e56767}.ox-console header i:nth-child(2){background:#d6ae55}.ox-console header i:last-child{background:#4b74fa}
 .ox-terminal{color:#334155}.ox-terminal .dim{color:#64748b}.ox-terminal button{background:#fff;color:#475569}.ox-console>footer{background:rgba(0,51,255,.035);color:#475569}.ox-console footer span{background:#f1f5ff}
-.ox-hero-copy>p{color:#4e5969}.ox-secondary{color:#1d2129;border-color:rgba(29,33,41,.18);background:rgba(255,255,255,.75)}.ox-meta{color:#667085}.ox-pill{color:#245dbe;background:rgba(237,243,255,.82)}
-.ox-cards article,.ox-layers>div{background:rgba(255,255,255,.8)}.ox-cards article:hover{background:rgba(0,51,255,.04)}.ox-layers b{background:rgba(255,255,255,.78)}.ox-architecture{background:linear-gradient(180deg,rgba(0,51,255,.06),rgba(245,245,245,0))}
+.ox-hero-copy>p{color:#4e5969}.ox-secondary{color:#182230;border-color:#d0d5dd;background:#fff}.ox-meta{color:#667085}.ox-pill{color:#3158c7;background:#edf2ff;border-color:rgba(49,94,251,.18)}
+.ox-cards article,.ox-layers>div{background:#fff}.ox-cards article:hover{background:#f7f9ff}.ox-layers b{background:#f8fafc}.ox-architecture{background:linear-gradient(180deg,#eef3ff 0%,#f5f6f8 100%)}
 html.dark .ox-page{--bg:#111827;--panel:#1f2937;--line:rgba(132,155,230,.18);--text:#f4f7ff;--muted:#97a3c4;--green:#6b8cff;--cyan:#8aa8ff;background:#111827}html.dark .ox-nav{background:rgba(17,24,39,.88)}html.dark .ox-console{background:rgba(13,19,36,.94);box-shadow:0 34px 110px rgba(0,0,0,.55),0 0 80px rgba(58,95,224,.08)}html.dark .ox-terminal{color:#bdd0ca}html.dark .ox-terminal .dim{color:#668078}html.dark .ox-terminal button{background:#0d1324;color:#78928a}html.dark .ox-console>footer{background:rgba(75,116,250,.025);color:#a9c8bd}html.dark .ox-console footer span{background:#101a36}html.dark .ox-hero-copy>p{color:#9db2ab}html.dark .ox-secondary{color:var(--text);border-color:rgba(184,219,207,.2);background:rgba(255,255,255,.035)}html.dark .ox-meta{color:#738d84}html.dark .ox-pill{color:#a9cfc0;background:rgba(12,29,25,.7)}html.dark .ox-cards article{background:linear-gradient(145deg,rgba(255,255,255,.018),transparent)}html.dark .ox-layers>div{background:rgba(10,18,17,.76)}html.dark .ox-layers b{background:rgba(255,255,255,.018)}html.dark .ox-architecture{background:linear-gradient(180deg,rgba(58,95,224,.18),rgba(5,9,9,0))}
 
 @keyframes wave-breathe{0%,100%{opacity:.55;transform:scaleX(.94)}50%{opacity:1;transform:scaleX(1.04)}}
