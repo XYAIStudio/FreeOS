@@ -230,6 +230,11 @@ def test_nsis_runs_openxyos_provisioner_subprocess() -> None:
     assert "OPENXYOS_OPTIONAL_ABSENT" in provision
     assert 'File "/oname=openxyos-runtime.zip"' in provision
     assert "OPENXYOS_RUNTIME_ZIP_PRESENT is set but" in provision
+    create_dir = provision.index('CreateDirectory "$INSTDIR\\openxyos"')
+    ifdef = provision.index("!ifdef OPENXYOS_RUNTIME_ZIP_PRESENT")
+    absent = provision.index("OPENXYOS_OPTIONAL_ABSENT")
+    assert ifdef < create_dir < absent
+    assert "CreateDirectory" not in provision[absent:]
     assert "openxyos-runtime.zip missing" not in nsh
     assert "安装继续" in nsi
     assert "Setup continues" in nsi

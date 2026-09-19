@@ -2,7 +2,14 @@
 
 ---
 
-This directory contains the Docker build and deployment assets for Octop.
+This directory contains the Docker build and deployment assets for Octop /
+FreeOS. Compose stays **one Python process**. There is no Node/openXYOS
+sidecar service. Organization runs in-host (`/api/org-module/*`).
+
+**Home directory names:** the product name is `FREEOS_HOME`. Compose and
+this image still use `OCTOP_*` and `~/.octop` as compatibility aliases
+(`HOME=/data` → `/data/.octop`). Set `FREEOS_HOME` (or `OCTOP_HOME`) if
+you want an explicit path; the app honors `FREEOS_HOME` first.
 
 ### Files
 
@@ -57,6 +64,8 @@ bash docker/docker_build.sh
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `HOME` | `/data` | Must be `/data` so `~/.octop` maps to the data volume |
+| `FREEOS_HOME` | _(unset)_ | Product home. When set, wins over `OCTOP_HOME` / `~/.octop` |
+| `OCTOP_HOME` | _(unset)_ | Legacy alias for the same home directory |
 | `OCTOP_PORT` | `8088` | HTTP listen port |
 | `OCTOP_DEFAULT_PASSWORD` | _(unset)_ | First-run admin password (≥8 chars, letters + digits). When unset, a random password is generated and written to `credential.txt` |
 | `OCTOP_ADMIN_USERNAME` | `admin` | Initial admin username |

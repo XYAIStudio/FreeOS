@@ -1,6 +1,6 @@
 # 组织模块合并计划（openXYOS → FreeOS Dashboard）
 
-**状态：** Phase 3 Open-12 宿主 UI **已完成**（Chat 永久不迁）。Phase 4 独立站导出 **已起步**：`freeos org export-standalone` 产出可运行 Vite + Docker 包（共享 `org-ui` + 本地 JWT IdentityBridge + 代理到宿主 `/api/org-module`）。自包含 org API 与默认安装器瘦身仍是 Phase 5。详见 [org-export.md](org-export.md)。
+**状态：** Phase 0–4 已落地（#55 宿主内 Organization + Open-12 宿主 UI + `export-standalone`）。**Phase 5 默认安装器瘦身已完成**：Windows/macOS/Linux 默认包不捆绑、不解压、不自动拉起 openXYOS Node；`FREEOS_ORG_SIDECAR` / `SHIP_OPENXYOS_RUNTIME=1` 仍是可选高级路径。残留：导出站自包含 org API、可选 `packages/org-ui` 抽包。详见 [org-export.md](org-export.md)。
 **日期：** 2026-09-19
 **依据：** Phase 0 迁移图、[architecture-integration.md](architecture-integration.md)、[asset-loop.md](asset-loop.md)、[ADR 001](adr/001-single-process-model.md)、#55 宿主内 Organization
 
@@ -26,8 +26,8 @@ Phase 1 冻结了合同。Phase 2（通知公告）与 Phase 3 Open-12 宿主页
 | **1** 合同冻结 | ADR + 本计划：单源双交付、包布局、API 归属、IdentityBridge、Phase 2 验收 | **本文** |
 | **2** 垂直切片 | **通知公告 Announcements** 按合同落地（Dashboard 路由 + 可导出同一页面） | **已完成** |
 | **3** Open-12 其余页 | 工作台、组织架构、员工、技能、智能体、任务、知识、反思、治理 UI、设置 | **已完成（Chat 除外）**：架构 / 员工 / 技能 / 治理 / 知识 / 任务 / 反思 / 设置 / 智能体 / 薄 Workspace overview 已迁。**Chat 永久不迁** |
-| **4** 身份与导出 | 已迁页面走 IdentityBridge；`export-standalone` 产出可运行独立站（Vite SPA + 本地 JWT + 代理到宿主 org-module API） | **进行中**：可运行包已落地；自包含 Node API 仍是目标终态 |
-| **5** 安装器瘦身 | 默认安装器去掉 sidecar / 保持零 Node；可选 `packages/org-ui` 抽取 | **未开始**（明确推迟；sidecar 仍可选） |
+| **4** 身份与导出 | 已迁页面走 IdentityBridge；`export-standalone` 产出可运行独立站（Vite SPA + 本地 JWT + 代理到宿主 org-module API） | **已完成（可运行包）**；自包含 Node API 仍是目标终态 |
+| **5** 安装器瘦身 | 默认安装器去掉 sidecar / 保持零 Node | **已完成**。残留：自包含 org API、可选 `packages/org-ui` 抽包 |
 
 Phase 0 已落地、Phase 1 **只冻结合同**。Phase 2 起才允许搬页面。
 
@@ -529,13 +529,35 @@ Phase 3 Open-12 宿主 UI 至此收口。下一步是 Phase 4 导出与 Identity
 4. 部署物：`Dockerfile`、`docker-compose.yml`、导出目录 `README.md`、仓库 [org-export.md](org-export.md)。
 5. Chat 仍不导出；`/chat`、`/experts`、`/system-settings` 为深链说明页。
 
-### 本阶段明确推迟（Phase 5）
+### Phase 4 当时推迟、现已分流
 
-| 推迟项 | 原因 |
+| 项 | 现状 |
 |---|---|
-| 从默认安装器摘掉 sidecar | 用户明确本波不做；`FREEOS_ORG_SIDECAR` 仍可选 |
-| 自包含 org-module Node/Fastify 服务 | 过渡期复用宿主 BFF；`server/proxy.mjs` 是占位 |
-| `packages/org-ui` 抽包 | 导出已拷贝 org-ui；不必先拆 monorepo |
+| 从默认安装器摘掉 sidecar | **Phase 5 已完成。** 默认 NSIS / 绿包 / Docker 零 Node；`FREEOS_ORG_SIDECAR=1` / `SHIP_OPENXYOS_RUNTIME=1` 仍可选 |
+| 自包含 org-module Node/Fastify 服务 | **残留。** 过渡期仍复用宿主 BFF；`server/proxy.mjs` 是占位 |
+| `packages/org-ui` 抽包 | **残留。** 导出已拷贝 org-ui；不必先拆 monorepo |
+
+---
+
+## Phase 5 进度：默认安装器瘦身
+
+默认交付是 **一个 FreeOS 进程 + 宿主内 Organization**。客户不必再装第二套 Node/openXYOS。
+
+### 已落地
+
+1. 默认 Windows NSIS / 绿包 / Desktop CI **不** 打入 `openxyos-runtime.zip` 或 `org-sidecar`（`SKIP_ORG_SIDECAR=1`，`SHIP_OPENXYOS_RUNTIME` 默认 `0`）。
+2. Setup **不** `nsExec` 预配、不解压、不等 livez、不注册开机自启；缺 zip 不是安装失败。
+3. 桌面 / 主机启动默认不设 `OPENXYOS_BASE_URL`，不拉起 3780。Organization 首屏是 `/organization` + `/api/org-module/*`。
+4. `modules/openxyos` 仍保留给导出 / 开发 / `FREEOS_ORG_SIDECAR=1` 高级路径，不是默认运行时。
+5. 独立商业站走 `freeos org export-standalone`（[org-export.md](org-export.md)），不是默认安装器。
+
+### 残留（不挡默认安装）
+
+| 残留 | 说明 |
+|---|---|
+| 导出站自包含 org API | 仍代理到 `FREEOS_UPSTREAM`；不是第二套默认桌面运行时 |
+| `packages/org-ui` 抽包 | 仅当 Dashboard Vite 图必须脱离时再做 |
+| 未迁商业 `App.tsx` 路由 | 合同 / 资产 / 考勤等仍不加售进默认 Dashboard |
 
 ---
 

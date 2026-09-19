@@ -39,7 +39,12 @@ Interim API: SPA + proxy to a FreeOS host (`FREEOS_UPSTREAM`).
 Target end-state: self-contained server in the export (see
 [docs/org-export.md](../../docs/org-export.md)).
 
-## Phase 5 (deferred)
+## Phase 5 (default installer)
 
-- Slim the default installer (sidecar remains opt-in here)
+Default FreeOS installers stay **zero-Node**. This export is an explicit
+operator / commercial action — it does not change the desktop package.
+
+Residual (not default install):
+
+- Self-contained org API (export still proxies to `FREEOS_UPSTREAM`)
 - Optional `packages/org-ui` extraction if the Dashboard Vite graph must be left behind
