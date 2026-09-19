@@ -1,10 +1,23 @@
-import { Building2, Megaphone, Network, Shield, Users } from "lucide-react";
+import {
+  Building2,
+  Megaphone,
+  Network,
+  Package,
+  Shield,
+  Users,
+} from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import type { PathTabsConfig } from "../../layouts/PageShell";
 
 export function useOrgPathTabs(
-  active: "workbench" | "announcements" | "org" | "employees" | "governance",
+  active:
+    | "workbench"
+    | "announcements"
+    | "org"
+    | "employees"
+    | "skills"
+    | "governance",
 ): PathTabsConfig {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -32,6 +45,11 @@ export function useOrgPathTabs(
         icon: <Users size={14} />,
       },
       {
+        value: "skills",
+        label: t("organization.navSkills"),
+        icon: <Package size={14} />,
+      },
+      {
         value: "governance",
         label: t("organization.navGovernance"),
         icon: <Shield size={14} />,
@@ -48,6 +66,10 @@ export function useOrgPathTabs(
       }
       if (value === "employees") {
         navigate("/organization/employees");
+        return;
+      }
+      if (value === "skills") {
+        navigate("/organization/skills");
         return;
       }
       if (value === "governance") {

@@ -20,9 +20,16 @@ export type {
   OrgChartClient,
   OrgDepartment,
   OrgEmployee,
+  HostSkillPackage,
   OrgEmployeesClient,
   OrgEnvelope,
   OrgGovernanceClient,
+  OrgSkill,
+  OrgSkillCatalogRow,
+  OrgSkillGenerateResult,
+  OrgSkillList,
+  OrgSkillPublishResult,
+  OrgSkillsClient,
 } from "./api/createClient";
 export { AnnouncementPage } from "./pages/announcements/AnnouncementPage";
 export type { AnnouncementPageProps } from "./pages/announcements/AnnouncementPage";
@@ -32,6 +39,8 @@ export { EmployeesPage } from "./pages/employees/EmployeesPage";
 export type { EmployeesPageProps } from "./pages/employees/EmployeesPage";
 export { EmployeeDetailPage } from "./pages/employees/EmployeeDetailPage";
 export type { EmployeeDetailPageProps } from "./pages/employees/EmployeeDetailPage";
+export { SkillsPage } from "./pages/skills/SkillsPage";
+export type { SkillsPageProps } from "./pages/skills/SkillsPage";
 export { GovernancePage } from "./pages/governance/GovernancePage";
 export type { GovernancePageProps } from "./pages/governance/GovernancePage";
 export type {

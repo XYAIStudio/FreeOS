@@ -385,8 +385,8 @@ def export_standalone(out_dir: Path) -> None:
     """Scaffold a standalone Organization web from shared org-ui (Phase 3).
 
     Writes the shared module list and an App.tsx that imports AnnouncementPage,
-    OrgChartPage, EmployeesPage, and GovernancePage. Full Vite + Node packaging
-    is Phase 5 (TODO in the generated README).
+    OrgChartPage, EmployeesPage, SkillsPage, and GovernancePage. Full Vite +
+    Node packaging is Phase 5 (TODO in the generated README).
     """
     from octop.modules.org_os.export_standalone import write_standalone_scaffold
 

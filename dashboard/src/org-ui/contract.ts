@@ -3,6 +3,7 @@ export const SHARED_ORG_UI_MODULES = [
   "announcements",
   "organization",
   "employees",
+  "skills",
   "governance",
 ] as const;
 

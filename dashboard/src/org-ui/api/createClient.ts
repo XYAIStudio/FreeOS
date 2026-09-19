@@ -215,11 +215,78 @@ export interface OrgGovernanceClient {
   resolve(pauseId: string, approve: boolean): Promise<GovernanceDecision>;
 }
 
+export interface OrgSkill {
+  slug: string;
+  module_key: string;
+  name: string;
+  description: string;
+  label_en: string;
+  label_zh: string;
+  directory: string;
+  skill_md: string;
+  published: boolean;
+  plugin_dir: string | null;
+  content?: string;
+}
+
+export interface OrgSkillCatalogRow {
+  key: string;
+  slug: string;
+  label: string;
+  label_zh: string;
+  description: string;
+  description_zh: string;
+  generated: boolean;
+  published: boolean;
+}
+
+export interface HostSkillPackage {
+  id: string;
+  name: string;
+  description: string;
+  skill_count: number;
+}
+
+export interface OrgSkillList {
+  out_dir: string;
+  skills: OrgSkill[];
+  catalog: OrgSkillCatalogRow[];
+  host_packages: HostSkillPackage[];
+}
+
+export interface OrgSkillGenerateResult {
+  out_dir: string;
+  skills: Array<{
+    slug: string;
+    module_key: string;
+    directory: string;
+  }>;
+}
+
+export interface OrgSkillPublishResult {
+  plugin_id: string;
+  module_key: string;
+  source_skill: string;
+  output_dir: string;
+  notes?: string[];
+}
+
+export interface OrgSkillsClient {
+  list(): Promise<OrgSkillList>;
+  get(slug: string): Promise<OrgSkill>;
+  generate(modules?: string[]): Promise<OrgSkillGenerateResult>;
+  publish(opts: {
+    slug?: string;
+    skillDir?: string;
+  }): Promise<OrgSkillPublishResult>;
+}
+
 export interface OrgApiClient {
   announcements: OrgAnnouncementsClient;
   org: OrgChartClient;
   employees: OrgEmployeesClient;
   governance: OrgGovernanceClient;
+  skills: OrgSkillsClient;
 }
 
 async function unwrap<T>(payload: OrgEnvelope<T>): Promise<T> {
@@ -238,10 +305,12 @@ export function createOrgApiClient(opts: {
   announcementsPrefix?: string;
   orgPrefix?: string;
   governancePrefix?: string;
+  skillsPrefix?: string;
 }): OrgApiClient {
   const prefix = opts.announcementsPrefix ?? "/org-module/announcements";
   const orgPrefix = opts.orgPrefix ?? "/org-module/org";
   const governancePrefix = opts.governancePrefix ?? "/org-module/governance";
+  const skillsPrefix = opts.skillsPrefix ?? "/org-module/skills";
   const fetchJson = opts.fetchJson;
 
   const announcements: OrgAnnouncementsClient = {
@@ -465,5 +534,31 @@ export function createOrgApiClient(opts: {
     },
   };
 
-  return { announcements, org, employees, governance };
+  const skills: OrgSkillsClient = {
+    async list() {
+      return fetchJson<OrgSkillList>(skillsPrefix);
+    },
+    async get(slug) {
+      return fetchJson<OrgSkill>(`${skillsPrefix}/${encodeURIComponent(slug)}`);
+    },
+    async generate(modules) {
+      return fetchJson<OrgSkillGenerateResult>(`${skillsPrefix}/generate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(modules ? { modules } : {}),
+      });
+    },
+    async publish(opts) {
+      return fetchJson<OrgSkillPublishResult>(`${skillsPrefix}/publish`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          slug: opts.slug || "",
+          skill_dir: opts.skillDir || "",
+        }),
+      });
+    },
+  };
+
+  return { announcements, org, employees, governance, skills };
 }
