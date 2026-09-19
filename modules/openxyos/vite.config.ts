@@ -26,7 +26,7 @@ export default defineConfig(({ mode }) => {
           short_name: "openXYOS",
           description: "面向人机共融共治组织的开源操作系统",
           theme_color: "#10B981",
-          background_color: "#050a08",
+          background_color: "#f5f5f5",
           display: "standalone",
           icons: [
             { src: "/logo.png", sizes: "192x192", type: "image/png" },

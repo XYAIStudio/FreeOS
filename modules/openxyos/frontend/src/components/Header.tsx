@@ -51,7 +51,7 @@ export default function Header({ onMobileMenuToggle }: HeaderProps) {
   }, [pinned]);
 
   return (
-    <header className="flex items-center justify-between h-12 px-3 md:px-4 border-b border-border bg-bg-card shrink-0">
+    <header className="flex min-w-0 items-center justify-between gap-2 h-12 px-3 md:px-4 border-b border-border bg-bg-card shrink-0">
       <div className="flex items-center gap-3 shrink-0">
         <button onClick={handleMobileToggle}
           className="md:hidden p-1.5 rounded text-text-muted hover:text-text hover:bg-bg transition-colors"
@@ -86,19 +86,19 @@ export default function Header({ onMobileMenuToggle }: HeaderProps) {
         </div>
       )}
 
-      <div className="flex items-center gap-3 shrink-0">
-        <LanguageToggle className="inline-flex"/>
+      <div className="flex min-w-0 items-center gap-1.5 sm:gap-2 shrink-0">
+        <LanguageToggle className="ox-header-language inline-flex shrink-0"/>
         {user && (
           <>
-            <span className="hidden sm:inline text-[11px] text-text-muted truncate max-w-[80px]">{user.nickname}</span>
-            <button onClick={logout} className="p-1.5 text-text-muted hover:text-danger hover:bg-bg rounded transition-colors" title={isEnglish ? "Sign out" : "退出登录"}>
+            <span className="hidden lg:inline text-[11px] text-text-muted truncate max-w-[72px]">{user.nickname}</span>
+            <button onClick={logout} className="shrink-0 p-1.5 text-text-muted hover:text-danger hover:bg-bg rounded transition-colors" title={isEnglish ? "Sign out" : "退出登录"}>
               <LogOut size={14} />
             </button>
-            <button onClick={toggle} className="p-1.5 text-text-muted hover:text-text hover:bg-bg rounded transition-colors" title={dark ? (isEnglish ? "Use light mode" : "切换到亮色模式") : (isEnglish ? "Use dark mode" : "切换到深色模式")}>
+            <button onClick={toggle} className="shrink-0 p-1.5 text-text-muted hover:text-text hover:bg-bg rounded transition-colors" title={dark ? (isEnglish ? "Use light mode" : "切换到亮色模式") : (isEnglish ? "Use dark mode" : "切换到深色模式")}>
               {dark ? <Sun size={14} /> : <Moon size={14} />}
             </button>
             <NotificationPanel />
-            <div className="hidden sm:flex items-center gap-1.5 text-[11px] text-text-muted px-2 py-1 rounded bg-bg">
+            <div className="hidden xl:flex shrink-0 items-center gap-1.5 text-[11px] text-text-muted px-2 py-1 rounded bg-bg">
               <span className="w-1.5 h-1.5 rounded-full bg-success animate-[pulse_2s_infinite]" />{t("AI 就绪", "AI ready")}
             </div>
           </>
