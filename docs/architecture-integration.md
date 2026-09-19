@@ -9,6 +9,14 @@ They are complementary, not competitors. FreeOS does **not** replace Octop’s
 agent runtime with openXYOS chat. openXYOS is the organization control plane;
 FreeOS/Octop remains the execution runtime.
 
+## Related
+
+- [ADR 001](adr/001-single-process-model.md) — single process, no external queue
+- [ADR 003](adr/003-org-ui-single-source-dual-delivery.md) — org-ui single source, dual delivery (Accepted)
+- [org-merge-plan.md](org-merge-plan.md) — Phases 0–5; Phase 2 = Announcements
+- [asset-loop.md](asset-loop.md) — operator self-growth loop
+- [ADR index](adr/)
+
 ## North star — internally self-growing multi-agent management
 
 FreeOS grows its own AI workforce and capability catalog:
@@ -281,8 +289,8 @@ The Phase A work sits on the existing FreeOS bootstrap:
 | Asset factory | Bridge | `freeos org assets publish\|import\|apply` · `{home}/asset-packs/` · `{home}/openxyos-mirror/` |
 | Self-growth loop | Bridge | `freeos org loop run` · `/api/org-module/loop/run` |
 | Colleague agents | Host agents table | `org-<slug>` · `{home}/org-agents/` · tenant `routing.json` |
-| Org APIs | openXYOS sidecar | `/api/org`, `/api/employees`, `/api/governance`, `/api/module-settings`, … |
-| Org UI | openXYOS Vite/Express | sidecar `:3780`; iframe on `/organization` when healthy |
+| Org APIs | Host BFF + optional sidecar | `/api/org-module/*` in-host; sidecar `/api/org`, `/api/employees`, … until each CRUD slice moves (see [org-merge-plan.md](org-merge-plan.md)) |
+| Org UI | Host Dashboard (target: `org-ui`) | Native `/organization` workbench (#55). Open-12 pages become Dashboard sub-UIs; standalone site is **exported** from the same source ([ADR 003](adr/003-org-ui-single-source-dual-delivery.md)). Sidecar `:3780` iframe is opt-in compat only |
 
 ### Auth and tenant mapping
 
@@ -333,6 +341,7 @@ copy the openXYOS working directory themselves.
 | Rewrite openXYOS routes into FastAPI | Duplicate PEP/PDP; not MVP |
 | Prompt-only multi-tenant isolation | Risk 2; one tenant = one workspace/sandbox |
 | iframe-only, no BFF / MCP / skills | Agents cannot call org APIs or be governed |
+| Permanent dual UI process or hand-maintained standalone | Rejected in [ADR 003](adr/003-org-ui-single-source-dual-delivery.md): one `org-ui` source, Dashboard adapter + export |
 | Start with org-as-code GitOps (Direction 7) | End-state; contract + runtime first |
 | Fail-open when sidecar/SQL.js is down | Makes governance cosmetic |
 
@@ -341,6 +350,8 @@ copy the openXYOS working directory themselves.
 | Role | Path |
 |---|---|
 | Architecture (this file) | `docs/architecture-integration.md` |
+| Org-ui dual-delivery ADR | `docs/adr/003-org-ui-single-source-dual-delivery.md` |
+| Org merge plan (Phases 0–5) | `docs/org-merge-plan.md` |
 | BFF router | `src/octop/api/routers/org_module.py` |
 | Enablement + health | `src/octop/modules/org_os/service.py` |
 | Catalog | `src/octop/modules/org_os/catalog.py` |
