@@ -24,6 +24,7 @@
 ### 修复
 
 - Organization 子页（公告 / 架构 / 员工 / 技能 / 治理 / 知识 / 任务 / 反思 / 设置 / 智能体 / 工作台）去掉居中窄列 `max-width`，与知识库、设置等 Dashboard 系统页同宽；`PageShell` 在 `fill` 时滚动内容区，避免被固定标题/路径 Tab 裁切。路径 Tab 改到标题下方两行，页面主体更接近 openXYOS OpenApp（Ant Design 控件 vs 原 Tailwind 仍保留）。Chat 仍是 FreeOS 原生。
+- Organization 任务详情把原来的「评论列表 + 右侧空白详情」收成一块嵌入式讨论区：左侧任务信息 / 子任务 / 状态，右侧消息流 + 发送框（头像、气泡、智能体备注），仍走宿主 `/api/org-module/tasks/:id/comments`，不嵌入 FreeOS Chat。
 
 > 下面若干「启动即拉起本机 openXYOS」条目记录的是 0.0.1 边车时代问题。默认路径已被 [0.0.2] 与本文件 Unreleased 的 Phase 5 取代：安装与首屏不再捆绑或自动拉起 Node。
 
