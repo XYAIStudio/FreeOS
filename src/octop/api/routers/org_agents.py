@@ -13,7 +13,11 @@ from fastapi import APIRouter, Depends
 
 from octop.api.deps import current_user, get_server
 from octop.infra.server import OctopServer
-from octop.modules.org_os.lifecycle.store import LIFECYCLE_STATES, LifecycleStore
+from octop.modules.org_os.lifecycle.store import (
+    LIFECYCLE_STATES,
+    ColleagueRecord,
+    LifecycleStore,
+)
 from octop.modules.org_os.lifecycle.transitions import ALLOWED
 from octop.modules.org_os.service import org_module_from_paths
 
@@ -46,8 +50,8 @@ def _next_states() -> dict[str, list[str]]:
     return {state: sorted(ALLOWED.get(state, frozenset())) for state in LIFECYCLE_STATES}
 
 
-def _colleague_row(record: Any) -> dict[str, Any]:
-    row = record.to_dict()
+def _colleague_row(record: ColleagueRecord) -> dict[str, Any]:
+    row: dict[str, Any] = record.to_dict()
     row["spawned"] = bool(record.agent_id)
     row["next"] = sorted(ALLOWED.get(record.lifecycle, frozenset()))
     return row
