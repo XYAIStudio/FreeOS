@@ -187,6 +187,7 @@
     "navEmployees": "Employees",
     "navSkills": "Skills",
     "navGovernance": "Governance",
+    "navKnowledge": "Knowledge",
     "announcementsTitle": "Announcements",
     "announcementsBody": "Publish notices and track who has read them. This page lives in the host — no sidecar or second port.",
     "openAnnouncements": "Open announcements",
@@ -201,7 +202,10 @@
     "openSkills": "Open skills",
     "governanceTitle": "Governance",
     "governanceBody": "Pending approvals and the host audit log. High-risk tools stay blocked until a human decides — no sidecar or second port.",
-    "openGovernance": "Open governance"
+    "openGovernance": "Open governance",
+    "knowledgeTitle": "Knowledge",
+    "knowledgeBody": "Lists the same FreeOS knowledge bases Chat retrieves from. Notes become host documents — no sidecar knowledge DB.",
+    "openKnowledge": "Open knowledge"
   },
   "systemSettings": {
     "subtitle": "Workbench, remote desktop, and host administration in one place."

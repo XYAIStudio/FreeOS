@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Button, Drawer, Input, Space, Switch, Tag } from "antd";
 import {
   ArrowDownUp,
+  BookOpen,
   Building2,
   Download,
   Package,
@@ -480,6 +481,22 @@ export default function OrganizationPage() {
                 data-testid="org-open-governance"
               >
                 {t("organization.openGovernance")}
+              </Button>
+            </div>
+            <div className={styles.action}>
+              <BookOpen size={18} />
+              <p className={styles.actionTitle}>
+                {t("organization.knowledgeTitle")}
+              </p>
+              <p className={styles.actionBody}>
+                {t("organization.knowledgeBody")}
+              </p>
+              <Button
+                type="primary"
+                onClick={() => navigate("/organization/knowledge")}
+                data-testid="org-open-knowledge"
+              >
+                {t("organization.openKnowledge")}
               </Button>
             </div>
           </section>

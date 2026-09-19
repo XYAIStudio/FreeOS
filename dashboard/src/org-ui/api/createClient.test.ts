@@ -54,6 +54,15 @@ describe("createOrgApiClient", () => {
           host_packages: [{ id: "pkg-1", name: "Ops", skill_count: 2 }],
         };
       }
+      if (path === "/org-module/knowledge") {
+        return {
+          host_route: "/knowledge-bases",
+          store: "host_knowledge_bases",
+          capability: { feature_enabled: true, usable: true },
+          bases: [{ id: "kb-1", name: "Policies" }],
+          stats: { bases: 1, documents: 0, shared: 0, owned: 1 },
+        };
+      }
       throw new Error(`unexpected ${path}`);
     });
     const client = createOrgApiClient({ fetchJson });
@@ -69,6 +78,7 @@ describe("createOrgApiClient", () => {
     expect((await client.employees.list())[0]?.name).toBe("Ada");
     expect((await client.governance.pauses()).pauses[0]?.pause_id).toBe("p1");
     expect((await client.skills.list()).skills[0]?.slug).toBe("org-employees");
+    expect((await client.knowledge.list()).bases[0]?.name).toBe("Policies");
     expect(fetchJson).toHaveBeenCalled();
   });
 

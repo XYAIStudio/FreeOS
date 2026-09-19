@@ -53,6 +53,7 @@ def test_shared_governance_module_is_in_catalog() -> None:
     assert "organization" in SHARED_ORG_UI_MODULES
     assert "employees" in SHARED_ORG_UI_MODULES
     assert "skills" in SHARED_ORG_UI_MODULES
+    assert "knowledge" in SHARED_ORG_UI_MODULES
     assert_shared_modules_in_catalog()
 
 

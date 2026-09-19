@@ -4,7 +4,7 @@
 **imports the same org-ui pages** Dashboard mounts under `/organization/...`.
 
 Phase 3 includes **Announcements**, **Org chart**, **Employees**, **Skills**,
-and **Governance**:
+**Governance**, and **Knowledge**:
 
 | Delivery | Route | Component |
 |---|---|---|
@@ -19,10 +19,14 @@ and **Governance**:
 | Standalone (this export) | `/skills` | same import |
 | Dashboard | `/organization/governance` | `dashboard/src/org-ui` → `GovernancePage` |
 | Standalone (this export) | `/governance` | same import |
+| Dashboard | `/organization/knowledge` | `dashboard/src/org-ui` → `KnowledgePage` |
+| Standalone (this export) | `/knowledge` | same import |
 
 Directory employees share `{FREEOS_HOME}/org/org_chart.sqlite` with the org
 chart. Organization skills live under `{FREEOS_HOME}/org-skills/` (skill_bridge).
 Governance pauses/audit live under `{FREEOS_HOME}/governance/`.
+Organization Knowledge lists host FreeOS knowledge bases (same rows as
+`/knowledge-bases`); it does not clone the sidecar notes/files DB.
 Do not copy the pages into a second tree.
 
 ## Phase 5 TODO
