@@ -84,8 +84,64 @@ describe("TaskDetailPage", () => {
         "Human notes on this work item. This is not agent chat.",
       ),
     ).toBeInTheDocument();
+    expect(screen.getByTestId("org-task-conversation")).toBeInTheDocument();
+    expect(
+      screen.getByTestId("org-task-conversation-empty"),
+    ).toBeInTheDocument();
     expect(document.querySelector("iframe")).toBeNull();
     expect(client.get).toHaveBeenCalledWith(3);
+  });
+
+  it("shows comments in one conversation pane instead of a split list", async () => {
+    const client = mockClient();
+    client.get = vi.fn(async () => ({
+      id: 3,
+      title: "Ship Tasks slice",
+      description: "Host org tasks",
+      status: "todo",
+      priority: "high",
+      creator_name: "Ada",
+      created_at: "2026-09-19T00:00:00Z",
+      subtasks: [],
+      comments: [
+        {
+          id: 8,
+          task_id: 3,
+          content: "Looks good",
+          comment_type: "user",
+          user_name: "Ada",
+          created_at: "2026-09-19T00:00:00Z",
+        },
+        {
+          id: 9,
+          task_id: 3,
+          content: "Starting now",
+          comment_type: "ai",
+          user_name: "Scout",
+          created_at: "2026-09-19T00:01:00Z",
+        },
+      ],
+    }));
+    render(
+      <TaskDetailPage
+        client={client}
+        session={session}
+        locale="en"
+        taskId={3}
+      />,
+    );
+    expect(
+      await screen.findByTestId("org-task-conversation"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByTestId("org-task-conversation-thread"),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId("org-task-comment-8")).toBeInTheDocument();
+    expect(screen.getByText("Looks good")).toBeInTheDocument();
+    expect(screen.getByText("Starting now")).toBeInTheDocument();
+    expect(screen.getByText("Scout")).toBeInTheDocument();
+    expect(screen.queryByTestId("org-task-conversation-empty")).toBeNull();
+    expect(document.querySelector("iframe")).toBeNull();
   });
 
   it("saves edits and adds a comment through the injected client", async () => {

@@ -8,7 +8,7 @@ import {
   createOrgApiClient,
   type OrgSession,
 } from "../../../org-ui";
-import { useOrgPathTabs } from "../orgPathTabs";
+import { ORG_PAGE_SHELL, useOrgPathTabs } from "../orgPathTabs";
 
 export default function OrganizationChartPage() {
   const { t, i18n } = useTranslation();
@@ -33,7 +33,7 @@ export default function OrganizationChartPage() {
     <PageShell
       title={t("organization.orgChartTitle")}
       subtitle={t("organization.orgChartBody")}
-      fill
+      {...ORG_PAGE_SHELL}
       pathTabs={pathTabs}
     >
       <OrgChartPage client={client.org} session={session} locale={locale} />

@@ -1,7 +1,7 @@
 import type { OrgLocale } from "../../shell";
 
 const EN = {
-  title: "Tasks",
+  title: "Task management",
   subtitle:
     "Organization work items on the host. Stored under FREEOS_HOME/org — not Octop cron, not project chat, and not a sidecar.",
   hostHint:
@@ -49,6 +49,9 @@ const EN = {
   comments: "Comments",
   addComment: "Add a comment…",
   commentHint: "Human notes on this work item. This is not agent chat.",
+  conversationEmpty: "No discussion yet. Send the first message below.",
+  send: "Send",
+  aiComment: "AI",
   createdBy: "Created by",
   createdAt: "Created",
   unknown: "Unknown",
@@ -58,7 +61,7 @@ const EN = {
 };
 
 const ZH: typeof EN = {
-  title: "任务",
+  title: "任务管理",
   subtitle:
     "宿主内的组织待办。存在 FREEOS_HOME/org，不是 Octop 定时任务，也不是项目对话或边车。",
   hostHint:
@@ -106,6 +109,9 @@ const ZH: typeof EN = {
   comments: "评论",
   addComment: "添加评论…",
   commentHint: "这是工作项上的人工备注，不是智能体对话。",
+  conversationEmpty: "还没有讨论。在下方发送第一条消息。",
+  send: "发送",
+  aiComment: "智能体",
   createdBy: "创建者",
   createdAt: "创建时间",
   unknown: "未知",

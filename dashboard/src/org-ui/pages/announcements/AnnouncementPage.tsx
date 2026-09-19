@@ -10,7 +10,7 @@ import {
   Tag,
   Typography,
 } from "antd";
-import { Megaphone, Pin, Plus, Search } from "lucide-react";
+import { Eye, Megaphone, Pin, Plus, Search } from "lucide-react";
 import type {
   Announcement,
   OrgAnnouncementsClient,
@@ -199,7 +199,7 @@ export function AnnouncementPage({
           <Megaphone size={22} />
           <h1 className={styles.title}>{labels.title}</h1>
           {unreadCount > 0 ? (
-            <Tag color="red">
+            <Tag color="red" style={{ borderRadius: 999 }}>
               {unreadCount} {labels.unread}
             </Tag>
           ) : null}
@@ -260,6 +260,9 @@ export function AnnouncementPage({
         <div className={styles.empty}>{labels.loading}</div>
       ) : items.length === 0 ? (
         <div className={styles.empty} data-testid="org-announcements-empty">
+          <div className={styles.emptyIcon} aria-hidden>
+            <Megaphone size={48} />
+          </div>
           {labels.empty}
         </div>
       ) : (
@@ -271,7 +274,9 @@ export function AnnouncementPage({
             return (
               <div
                 key={row.id}
-                className={styles.card}
+                className={`${styles.card} ${
+                  row.is_pinned === 1 ? styles.cardPinned : ""
+                } ${expired ? styles.cardExpired : ""}`}
                 data-testid={`org-announcement-${row.id}`}
                 onClick={() => void openDetail(row)}
                 role="button"
@@ -279,16 +284,11 @@ export function AnnouncementPage({
                 onKeyDown={(event) => {
                   if (event.key === "Enter") void openDetail(row);
                 }}
-                style={{
-                  border: "1px solid var(--fn-border, #e5e7eb)",
-                  borderRadius: 10,
-                  padding: 14,
-                  background: "var(--fn-bg-container, #fff)",
-                  opacity: expired ? 0.65 : 1,
-                }}
               >
+                {row.is_pinned === 1 ? (
+                  <Pin size={14} className={styles.pinBadge} />
+                ) : null}
                 <div className={styles.cardTitle}>
-                  {row.is_pinned === 1 ? <Pin size={14} /> : null}
                   <Tag color={TYPE_COLOR[row.type] || "blue"}>
                     {typeLabel(row.type, locale)}
                   </Tag>
@@ -338,6 +338,7 @@ export function AnnouncementPage({
                   <span>{row.creator_name || labels.system}</span>
                   <span>{format(row.published_at)}</span>
                   <span>
+                    <Eye size={11} style={{ marginRight: 4 }} />
                     {row.read_percent ?? 0}% ({row.read_count ?? 0}/
                     {row.total_users ?? 1})
                   </span>

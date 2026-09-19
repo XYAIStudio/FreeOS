@@ -59,7 +59,7 @@ describe("ReflectionsPage", () => {
     const client = mockClient();
     render(<ReflectionsPage client={client} session={session} locale="en" />);
     expect(await screen.findByTestId("org-ui-reflections")).toBeInTheDocument();
-    expect(screen.getByText("Reflections")).toBeInTheDocument();
+    expect(screen.getByText("Reflection Engine")).toBeInTheDocument();
     expect(screen.getByText("const dead zone")).toBeInTheDocument();
     expect(document.querySelector("iframe")).toBeNull();
     expect(client.list).toHaveBeenCalled();

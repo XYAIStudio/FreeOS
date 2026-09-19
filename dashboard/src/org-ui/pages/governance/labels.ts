@@ -1,7 +1,7 @@
 import type { OrgLocale } from "../../shell";
 
 const EN = {
-  title: "Governance",
+  title: "Governance Engine",
   subtitle:
     "Pending human approvals and the local host audit. High-risk tools stay blocked until someone decides.",
   loading: "Loading governance…",
@@ -51,7 +51,7 @@ const EN = {
 };
 
 const ZH: typeof EN = {
-  title: "治理",
+  title: "治理引擎",
   subtitle:
     "待人工复核的暂停，以及宿主本地审计。高风险工具在有人拍板前保持拦截。",
   loading: "加载治理…",
