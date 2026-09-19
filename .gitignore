@@ -104,3 +104,10 @@ scripts/dev-local-link.sh
 docs/superpowers/
 scripts/lh_image_install_octop_tencentos.sh
 .worktrees/
+# Local release and Organization-runtime verification output.
+.artifacts/
+.tmp-org-integration-check/
+.tmp-org-window-check/
+.toolchain/
+modules/openxyos/backend-dist/
+scripts/repair-installed-chatrequest.py

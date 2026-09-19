@@ -18,6 +18,7 @@ import { clearSetupRequired, markSetupRequired, request } from "../request";
  */
 
 export interface AuthStatus {
+  permission_mode_overrides?: boolean;
   /** True when no admin exists yet — UI must redirect to /setup. */
   setup_required: boolean;
   /** Legacy alias of ``!setup_required`` kept for compat. */
@@ -61,6 +62,10 @@ export interface LoginResponse {
   user: OctopUser;
   /** Legacy alias for ``access_token`` so old callers using ``.token`` keep working. */
   token: string;
+  /** True when the shared FreeOS/openXYOS organization account issued the token. */
+  organization?: boolean;
+  /** Original organization identity retained for the embedded openXYOS client. */
+  organization_user?: OrganizationIdentityUser;
 }
 
 export interface OidcStatus {
@@ -75,6 +80,7 @@ export interface SetupBody {
 }
 
 interface RawSetupStatus {
+  permission_mode_overrides?: boolean;
   setup_required: boolean;
   wizard_password_required?: boolean;
   wizard_password_exists?: boolean;
@@ -90,6 +96,43 @@ interface RawLoginResponse {
   token_type: string;
   expires_in: number;
   user: OctopUser;
+}
+
+export interface OrganizationIdentityUser {
+  id: number;
+  email: string;
+  nickname?: string;
+  role: string;
+  tenant_id: number;
+}
+
+interface RawOrganizationSession {
+  success: boolean;
+  data: {
+    user: OrganizationIdentityUser;
+    tokens: { accessToken: string; expiresIn?: number };
+  };
+}
+
+function organizationSession(raw: RawOrganizationSession): LoginResponse {
+  const token = raw.data.tokens.accessToken;
+  const user = raw.data.user;
+  return {
+    access_token: token,
+    token,
+    token_type: "bearer",
+    expires_in: raw.data.tokens.expiresIn ?? 3600,
+    organization: true,
+    organization_user: user,
+    user: {
+      id: user.id,
+      username: user.email,
+      role: user.role === "super_admin" ? "admin" : "user",
+      display_name: user.nickname || user.email,
+      locale: "zh",
+      permissions: [],
+    },
+  };
 }
 
 /** Coalesce AuthGuard / Login / Setup probing the same endpoint in parallel. */
@@ -110,6 +153,44 @@ function applySetupFlags(status: AuthStatus): AuthStatus {
 }
 
 export const authApi = {
+  organizationIdentityStatus: () =>
+    request<{ integrated: boolean; authority: string }>(
+      "/org-module/identity/status",
+    ),
+
+  organizationLogin: async (
+    email: string,
+    password: string,
+  ): Promise<LoginResponse> => {
+    const raw = await request<RawOrganizationSession>(
+      "/org-module/identity/login",
+      {
+        method: "POST",
+        body: JSON.stringify({ email, password }),
+      },
+    );
+    return organizationSession(raw);
+  },
+
+  organizationRegister: async (
+    email: string,
+    password: string,
+  ): Promise<LoginResponse> => {
+    const raw = await request<RawOrganizationSession>(
+      "/org-module/identity/register",
+      {
+        method: "POST",
+        body: JSON.stringify({
+          email,
+          password,
+          nickname: email.split("@")[0],
+          organization_name: email.split("@")[0],
+        }),
+      },
+    );
+    return organizationSession(raw);
+  },
+
   /** Probe whether the initial admin has been created. */
   getAuthStatus: async (): Promise<AuthStatus> => {
     if (statusInFlight) return statusInFlight;
@@ -129,6 +210,7 @@ export const authApi = {
           database_driver: raw.database_driver ?? null,
           desktop: raw.desktop ?? false,
           has_providers: raw.has_providers ?? false,
+          permission_mode_overrides: raw.permission_mode_overrides,
         };
         return applySetupFlags(value);
       } finally {

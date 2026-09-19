@@ -5,7 +5,8 @@
 import { Router } from "express";
 import { authenticate, AuthRequest } from "../middleware";
 import { LTSProvider, getAuthProvider } from "../services/auth-provider";
-import { dbGet, dbRun } from "../db";
+import { dbGet, dbRun, getDb, saveDb } from "../db";
+import { randomUUID } from "crypto";
 import bcrypt from "bcryptjs";
 import { localizedError } from "../utils/locale";
 import { logError } from "../utils/error-handler";
@@ -24,7 +25,7 @@ export const authRoutes = Router();
 // POST /register — 用户注册
 authRoutes.post("/register", async (req, res) => {
   try {
-    if (process.env.ALLOW_PUBLIC_REGISTRATION !== "true") {
+    if (process.env.ALLOW_PUBLIC_REGISTRATION !== "true" && process.env.FREEOS_ORG_INTEGRATED !== "1") {
       return res.status(403).json({ success: false, error: localizedError(req, "公开注册未启用", "Public registration is disabled") });
     }
     const { email, password, nickname } = req.body;
@@ -41,10 +42,32 @@ authRoutes.post("/register", async (req, res) => {
     }
 
     const hash = bcrypt.hashSync(password, 10);
-    dbRun(
-      "INSERT INTO users (email, password_hash, nickname, role, tenant_id) VALUES (?, ?, ?, 'user', 2)",
-      [email, hash, nickname || email.split("@")[0]]
-    );
+    if (process.env.FREEOS_ORG_INTEGRATED === "1") {
+      // Registration creates a distinct organization, never a shared demo tenant.
+      const db = getDb();
+      db.run("BEGIN");
+      try {
+        db.run("INSERT INTO tenants(name, slug, status, plan) VALUES (?, ?, 'trial', 'free')",
+          [req.body.organization_name || nickname || email.split("@")[0], `org-${randomUUID()}`]);
+        const tenantId = Number(db.exec("SELECT last_insert_rowid()")[0].values[0][0]);
+        db.run("INSERT INTO users(email, password_hash, nickname, role, tenant_id) VALUES (?, ?, ?, 'admin', ?)",
+          [email, hash, nickname || email.split("@")[0], tenantId]);
+        const userId = Number(db.exec("SELECT last_insert_rowid()")[0].values[0][0]);
+        db.run("INSERT INTO tenant_members(tenant_id, user_id, role) VALUES (?, ?, 'admin')", [tenantId, userId]);
+        db.run("INSERT INTO companies(name, tenant_id) VALUES (?, ?)",
+          [req.body.organization_name || nickname || email.split("@")[0], tenantId]);
+        db.run("COMMIT");
+        saveDb();
+      } catch (error) {
+        db.run("ROLLBACK");
+        throw error;
+      }
+    } else {
+      dbRun(
+        "INSERT INTO users (email, password_hash, nickname, role, tenant_id) VALUES (?, ?, ?, 'user', 2)",
+        [email, hash, nickname || email.split("@")[0]]
+      );
+    }
 
     // 自动登录
     const provider = getAuthProvider();

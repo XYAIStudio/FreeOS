@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
 """Build openxyos-runtime.zip from a green portable zip or staging tree.
 
-Opt-in only. Default Windows/macOS/Linux packages do not call this script
-and do not ship the zip. Pass SHIP_OPENXYOS_RUNTIME=1 to stage it; NSIS
-then copies the zip into $INSTDIR but still does not extract or start Node
-unless FREEOS_ORG_SIDECAR=1 later.
+The full organization-enabled Windows package calls this script by default.
+It stages the managed Node runtime with the compiled organization frontend and
+backend, so the installer has no external Node dependency.
 """
 
 from __future__ import annotations

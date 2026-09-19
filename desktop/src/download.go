@@ -93,20 +93,33 @@ func replacePortable(root string) error {
 	_ = os.RemoveAll(previous)
 	hadCurrent := false
 	if _, err := os.Stat(root); err == nil {
-		if err := os.Rename(root, previous); err != nil {
+		if err := renamePortable(root, previous); err != nil {
 			_ = os.RemoveAll(next)
 			return err
 		}
 		hadCurrent = true
 	}
-	if err := os.Rename(next, root); err != nil {
+	if err := renamePortable(next, root); err != nil {
 		if hadCurrent {
-			_ = os.Rename(previous, root)
+			_ = renamePortable(previous, root)
 		}
 		return err
 	}
 	_ = os.RemoveAll(previous)
 	return nil
+}
+
+func renamePortable(source string, target string) error {
+	var last error
+	for attempt := 0; attempt < 25; attempt++ {
+		if err := os.Rename(source, target); err == nil {
+			return nil
+		} else {
+			last = err
+		}
+		time.Sleep(200 * time.Millisecond)
+	}
+	return last
 }
 
 const portableStampName = "FREEOS_STAMP"

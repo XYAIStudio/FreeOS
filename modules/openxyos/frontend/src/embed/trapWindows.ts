@@ -49,15 +49,16 @@ export function blankLinkFromEvent(event: Event): HTMLAnchorElement | null {
 }
 
 function fakeWindow(): WindowProxy {
-  return {
+  const result = {
     closed: false,
-    close() {
-      this.closed = true;
+    close: () => {
+      result.closed = true;
     },
     focus() {},
     blur() {},
     opener: window,
-  } as unknown as WindowProxy;
+  };
+  return result as unknown as WindowProxy;
 }
 
 function postToParent(win: Window, data: Record<string, unknown>): void {

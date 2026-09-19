@@ -252,6 +252,8 @@
     "groupMembersRequired": "请至少选择两位（同事或智能助手）",
     "groupCreated": "群聊已创建",
     "groupCreateFailed": "无法创建群聊",
+    "conversationCreateFailed": "无法创建对话",
+    "noAvailableExpert": "暂无可用智能助手，请先在“专家”中启用一个助手",
     "kindDirect": "单聊",
     "kindGroup": "群聊",
     "liveEmpty": "还没有对话。新建对话或建群后会出现在这里。",
@@ -1393,6 +1395,7 @@
     "model_ref_unavailable": "默认模型不可用或已禁用，请检查「设置 → 模型」或修改此专家的默认模型后重试。"
   },
   "stream_errors": {
+    "runtime_incompatible": "本地宿主与智能体运行时接口不兼容。请更新或修复 FreeOS 运行环境；更换模型无法解决此错误。",
     "stream_stall": "模型响应中断：连接仍在，但长时间没有新内容。请点击「重试」，或稍后更换模型再试。若经常出现，请检查供应商状态，或联系管理员排查流式超时设置。",
     "rate_limit": "模型请求过于频繁，已被限流。请稍等片刻后重试，或切换其他模型。",
     "auth": "模型服务鉴权失败。请检查「设置 → 模型」中的 API Key 是否正确、是否过期。",
@@ -1558,6 +1561,7 @@
       "dockTasksTitle": "后台任务"
     },
     "permissionMode": {
+      "unsupported": "当前运行环境不支持单轮权限切换，继续使用默认安全策略。",
       "label": "使用权限",
       "default": "默认权限",
       "defaultHint": "按当前安全策略询问或执行工具。",

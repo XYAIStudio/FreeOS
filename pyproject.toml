@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "octop"
-version = "0.0.2"
+version = "0.0.3"
 description = "FreeOS — self-hosted multi-user multi-agent assistant with an optional organization OS module (Octop-compatible package name)"
 readme = "README.md"
 license = { text = "MIT" }
@@ -45,6 +45,7 @@ dependencies = [
     "pypinyin>=0.53",
     "openpyxl>=3.1",
     "xlrd>=2.0.1",
+    "ollama",
 ]
 
 [project.optional-dependencies]

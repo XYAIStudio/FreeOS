@@ -57,6 +57,15 @@ def test_classify_auth() -> None:
     )
 
 
+def test_runtime_interface_failure_is_not_a_model_failure() -> None:
+    exc = TypeError("ChatRequest.__init__() got an unexpected keyword argument 'interrupt_on'")
+    assert classify_stream_error_message(str(exc)) == "octop:stream_errors.runtime_incompatible"
+    assert "本地宿主" in format_stream_error(exc, "zh")
+    wrapped = RuntimeError("Model call failed after 3 attempts")
+    wrapped.__cause__ = exc
+    assert "interfaces are incompatible" in format_stream_error(wrapped, "en")
+
+
 def test_classify_provider_unavailable_http_status() -> None:
     assert (
         classify_stream_error_message("HTTP 503 POST https://api.example.com/v1/embeddings")

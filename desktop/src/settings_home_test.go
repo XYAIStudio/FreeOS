@@ -41,12 +41,17 @@ func TestProductHomeHonorsOctopHome(t *testing.T) {
 func TestHostLaunchEnvSetsFreeosHomeAndOrgEnable(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("FREEOS_HOME", home)
+	t.Setenv("FREEOS_OPENXYOS_HOME", filepath.Join(home, "missing-openxyos"))
+	t.Setenv("LOCALAPPDATA", filepath.Join(home, "local"))
 	env := hostLaunchEnv(filepath.Join(home, "portable"), 8088)
 	if env["FREEOS_HOME"] != home || env["OCTOP_HOME"] != home {
 		t.Fatalf("homes: %+v", env)
 	}
 	if env["FREEOS_ORG_ENABLE"] != "1" {
 		t.Fatalf("org enable: %+v", env)
+	}
+	if env["FREEOS_ORG_INTEGRATED"] != "1" {
+		t.Fatalf("integrated identity: %+v", env)
 	}
 	if _, ok := env["FREEOS_ORG_SIDECAR_URL"]; ok {
 		t.Fatalf("sidecar url must stay unset by default: %+v", env)
@@ -59,6 +64,59 @@ func TestHostLaunchEnvSetsFreeosHomeAndOrgEnable(t *testing.T) {
 	}
 	if env["PYTHONUTF8"] != "1" || env["PYTHONIOENCODING"] != "utf-8" {
 		t.Fatalf("utf8 env: %+v", env)
+	}
+}
+
+func TestOpenxyosWorkDirStaysInsideProductHome(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("FREEOS_HOME", home)
+	t.Setenv("FREEOS_OPENXYOS_HOME", "")
+	t.Setenv("LOCALAPPDATA", filepath.Join(t.TempDir(), "unrelated-local-app-data"))
+	if got, want := openxyosUserWorkDir(), filepath.Join(home, "openxyos"); got != want {
+		t.Fatalf("openxyosUserWorkDir() = %q, want %q", got, want)
+	}
+}
+
+func TestHostLaunchEnvPassesIntegratedRuntimeWithoutLegacySidecar(t *testing.T) {
+	home := t.TempDir()
+	work := filepath.Join(home, "openxyos")
+	t.Setenv("FREEOS_HOME", home)
+	t.Setenv("FREEOS_OPENXYOS_HOME", work)
+	t.Setenv("LOCALAPPDATA", filepath.Join(home, "local"))
+	writeSidecarBundle(t, work)
+	env := hostLaunchEnv(filepath.Join(home, "portable"), 8088)
+	if env["FREEOS_OPENXYOS_HOME"] != work {
+		t.Fatalf("integrated runtime path: %+v", env)
+	}
+	if _, ok := env["OPENXYOS_BASE_URL"]; ok {
+		t.Fatalf("Python must own the integrated Node port: %+v", env)
+	}
+}
+
+func TestOrgRuntimeProvisionDefaultsOnAndCanBeDisabled(t *testing.T) {
+	t.Setenv("FREEOS_ORG_ENABLE", "")
+	if !orgRuntimeWanted() {
+		t.Fatal("desktop product must provision organization runtime by default")
+	}
+	t.Setenv("FREEOS_ORG_ENABLE", "0")
+	if orgRuntimeWanted() {
+		t.Fatal("explicit disable must be honored")
+	}
+}
+
+func TestWebviewAcceptanceArgsRequiresValidExplicitPort(t *testing.T) {
+	t.Setenv("FREEOS_WEBVIEW_DEBUG_PORT", "")
+	if got := webviewAcceptanceArgs(); got != nil {
+		t.Fatalf("debugging must be off by default: %v", got)
+	}
+	t.Setenv("FREEOS_WEBVIEW_DEBUG_PORT", "9223")
+	got := webviewAcceptanceArgs()
+	if len(got) != 1 || got[0] != "--remote-debugging-port=9223" {
+		t.Fatalf("unexpected args: %v", got)
+	}
+	t.Setenv("FREEOS_WEBVIEW_DEBUG_PORT", "80")
+	if got := webviewAcceptanceArgs(); got != nil {
+		t.Fatalf("privileged or invalid port must be rejected: %v", got)
 	}
 }
 

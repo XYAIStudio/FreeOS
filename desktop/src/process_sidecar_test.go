@@ -131,6 +131,44 @@ func TestProvisionOpenXYOSCopiesFromPortable(t *testing.T) {
 	}
 }
 
+func TestProvisionOpenXYOSPrefersInstallerRuntimeZip(t *testing.T) {
+	root := t.TempDir()
+	t.Setenv("FREEOS_HOME", root)
+	work := filepath.Join(root, "workdir")
+	t.Setenv("FREEOS_OPENXYOS_HOME", work)
+	t.Setenv("LOCALAPPDATA", filepath.Join(root, "local"))
+	install := filepath.Join(root, "install")
+	installerRootOverride = install
+	t.Cleanup(func() { installerRootOverride = "" })
+	if err := os.MkdirAll(install, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	runtimeBundle := filepath.Join(root, "runtime-bundle")
+	writeSidecarBundle(t, runtimeBundle)
+	if err := os.WriteFile(filepath.Join(sidecarAppAt(runtimeBundle), "dist", "index.html"), []byte("installer-runtime"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := zipDir(runtimeBundle, filepath.Join(install, "openxyos-runtime.zip")); err != nil {
+		t.Fatal(err)
+	}
+	portable := filepath.Join(root, "portable")
+	writeSidecarBundle(t, orgSidecarDir(portable))
+	if err := os.WriteFile(filepath.Join(sidecarAppAt(orgSidecarDir(portable)), "dist", "index.html"), []byte("portable-runtime"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	got, err := provisionOpenXYOS(portable, LocaleEN, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	content, err := os.ReadFile(filepath.Join(sidecarAppAt(got), "dist", "index.html"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(content) != "installer-runtime" {
+		t.Fatalf("provisioned index=%q, want installer runtime", content)
+	}
+}
+
 func writeSidecarBundle(t *testing.T, bundle string) {
 	t.Helper()
 	node := sidecarNodeAt(bundle)

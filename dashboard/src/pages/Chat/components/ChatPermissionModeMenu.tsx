@@ -1,10 +1,17 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Popover, Tooltip } from "antd";
-import { AlertTriangle, Check, ChevronDown, Hand, Sparkles } from "lucide-react";
+import {
+  AlertTriangle,
+  Check,
+  ChevronDown,
+  Hand,
+  Sparkles,
+} from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { showConfirmModal } from "../../../utils/confirmModal";
 import type { ChatPermissionMode } from "../utils/permissionMode";
 import styles from "../index.module.less";
+import { authApi } from "../../../api/modules/auth";
 
 interface ChatPermissionModeMenuProps {
   mode: ChatPermissionMode;
@@ -23,6 +30,24 @@ export default function ChatPermissionModeMenu({
 }: ChatPermissionModeMenuProps) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
+  const [overridesSupported, setOverridesSupported] = useState<
+    boolean | undefined
+  >();
+  useEffect(() => {
+    let cancelled = false;
+    void authApi
+      .getAuthStatus()
+      .then((status) => {
+        if (!cancelled) setOverridesSupported(status.permission_mode_overrides);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  useEffect(() => {
+    if (overridesSupported === false && mode !== "default") onChange("default");
+  }, [overridesSupported, mode, onChange]);
 
   const labels = useMemo(
     () => ({
@@ -51,6 +76,7 @@ export default function ChatPermissionModeMenu({
   );
 
   const applyMode = (next: ChatPermissionMode) => {
+    if (next !== "default" && overridesSupported === false) return;
     if (next === mode) {
       setOpen(false);
       return;
@@ -87,6 +113,12 @@ export default function ChatPermissionModeMenu({
             type="button"
             role="menuitemradio"
             aria-checked={active}
+            disabled={item !== "default" && overridesSupported === false}
+            title={
+              item !== "default" && overridesSupported === false
+                ? t("chat.permissionMode.unsupported")
+                : hints[item]
+            }
             className={`${styles.permissionMenuItem} ${
               active ? styles.permissionMenuItemActive : ""
             } ${item === "full" ? styles.permissionMenuItemWarn : ""}`}

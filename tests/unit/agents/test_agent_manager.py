@@ -1433,6 +1433,27 @@ def test_prepare_stream_request_maps_max_iters_to_recursion_limit(
     assert req["recursion_limit"] == 17
 
 
+@pytest.mark.parametrize("mode", ["default", "auto", "full"])
+def test_permission_mode_request_matches_installed_harness(
+    manager: AgentManager,
+    monkeypatch: pytest.MonkeyPatch,
+    mode: str,
+) -> None:
+    from harness_agent.request import ChatRequest
+
+    from octop.infra.agents.permission_mode import supports_request_interrupt_override
+
+    monkeypatch.setattr(manager, "get_config", lambda _: {})
+    original = {"messages": "hello", "configurable": {"octop_permission_mode": mode}}
+    request = manager._prepare_stream_request("01AGENT", original)
+    parsed = ChatRequest.coerce(request)
+    assert parsed.messages == "hello"
+    assert original["configurable"]["octop_permission_mode"] == mode
+    if not supports_request_interrupt_override():
+        assert "interrupt_on" not in request
+        assert request["configurable"]["octop_permission_mode"] == "default"
+
+
 def test_prepare_stream_request_maps_model_settings_and_max_input_tokens(
     manager: AgentManager,
     monkeypatch: pytest.MonkeyPatch,

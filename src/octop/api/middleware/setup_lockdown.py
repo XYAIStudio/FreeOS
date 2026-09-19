@@ -12,6 +12,8 @@ from typing import Any
 from fastapi import Request
 from fastapi.responses import JSONResponse
 
+from octop.modules.org_os.integration import integrated_organization
+
 _OPEN_PREFIXES = (
     "/api/setup/",
     "/api/health/",
@@ -25,6 +27,8 @@ def install(app: Any, server: Any) -> None:
         call_next: Callable[[Request], Awaitable[Any]],
     ) -> Any:
         path = request.url.path
+        if integrated_organization():
+            return await call_next(request)
         if not path.startswith("/api/"):
             return await call_next(request)
         cfg = server.services.config if server.services else getattr(server, "config", None)

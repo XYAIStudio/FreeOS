@@ -2642,6 +2642,7 @@ class AgentManager:
             CONFIG_KEY,
             normalize_permission_mode,
             permission_mode_security_override,
+            supports_request_interrupt_override,
         )
 
         configurable = dict(req.get("configurable") or {})
@@ -2649,9 +2650,18 @@ class AgentManager:
         if mode is not None:
             configurable[CONFIG_KEY] = mode
             patch = permission_mode_security_override(mode)
-            if patch:
+            if patch and supports_request_interrupt_override():
                 policy = SecurityPolicy.merge(self._security.harness_policy(), patch)
                 req["interrupt_on"] = policy.resolve_interrupt_on()
+            elif patch:
+                # harness-agent 1.0.9 accepts interrupt_on on agent config,
+                # not ChatRequest. Keep the installed security policy intact.
+                configurable["octop_requested_permission_mode"] = mode
+                configurable[CONFIG_KEY] = "default"
+                logger.warning(
+                    "Per-turn permission mode %s is unsupported by this harness; using stored policy",
+                    mode,
+                )
             req["configurable"] = configurable
         return apply_agent_runtime_to_stream_request(req, agent_cfg)
 
@@ -2771,6 +2781,7 @@ class AgentManager:
 
         from octop.infra.agents.middleware.binary_read_guard import BinaryReadGuardMiddleware
         from octop.infra.agents.middleware.browser_profile import BrowserProfileMiddleware
+        from octop.infra.agents.middleware.group_mentions import GroupMentionMiddleware
         from octop.infra.agents.middleware.org_governance import OrgGovernanceMiddleware
         from octop.infra.agents.middleware.reasoning import ReasoningRequestMiddleware
         from octop.infra.agents.middleware.thread_artifacts import ThreadArtifactsMiddleware
@@ -2792,6 +2803,7 @@ class AgentManager:
                 usage_repo=self._repos.usage_repo,
             ),
             ReasoningRequestMiddleware(),
+            GroupMentionMiddleware(lambda: self._harness_manager),
             KnowledgeSearchHintMiddleware(),
             BrowserProfileMiddleware(),
             BinaryReadGuardMiddleware(),

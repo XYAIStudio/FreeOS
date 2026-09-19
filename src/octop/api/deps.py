@@ -73,6 +73,10 @@ _JWT_EXEMPT_PREFIXES = (
 _JWT_EXEMPT_EXACT = (
     "/api/health",
     "/api/auth/login",
+    "/api/org-module/identity/login",
+    "/api/org-module/identity/register",
+    "/api/org-module/identity/status",
+    "/api/org-module/identity/refresh",
     "/api/auth/local-session",
     "/api/auth/oidc/status",
     "/api/auth/oidc/start",
@@ -142,6 +146,23 @@ def resolve_user_from_token(server: OctopServer, token: str) -> User:
     if user is None:
         raise OctopError(ErrorCode.USER_DISABLED, "user not active")
     return user
+
+
+async def resolve_user_from_access_token(server: OctopServer, token: str) -> User:
+    """Resolve either the integrated organization session or an Octop JWT.
+
+    HTTP requests normally receive their organization user from ``JwtAuthMiddleware``.
+    WebSocket handshakes do not pass through that HTTP middleware, so they must use
+    the same identity authority explicitly.
+    """
+    from octop.modules.org_os.integration import (  # noqa: PLC0415
+        integrated_organization,
+        organization_user,
+    )
+
+    if integrated_organization():
+        return cast("User", await organization_user(server, token))
+    return resolve_user_from_token(server, token)
 
 
 def maybe_sliding_renew_token(server: OctopServer, token: str, user: User) -> str | None:

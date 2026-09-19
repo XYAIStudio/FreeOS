@@ -252,6 +252,8 @@
     "groupMembersRequired": "Select at least two colleagues or smart helpers",
     "groupCreated": "Group chat created",
     "groupCreateFailed": "Could not create the group chat",
+    "conversationCreateFailed": "Could not create the conversation",
+    "noAvailableExpert": "No assistant is available. Enable one under Experts first.",
     "kindDirect": "Direct",
     "kindGroup": "Group",
     "liveEmpty": "No conversations yet. New chats and groups show up here.",
@@ -1393,6 +1395,7 @@
     "model_ref_unavailable": "The default model is unavailable or disabled. Check Settings → Models or update this expert's default model, then try again."
   },
   "stream_errors": {
+    "runtime_incompatible": "The local host and agent runtime interfaces are incompatible. Update or repair the FreeOS runtime; changing the model will not resolve this error.",
     "stream_stall": "The model stopped sending content while the connection stayed open. Click Retry, or try again later with another model. If this happens often, check the provider status or ask an admin to review stream timeout settings.",
     "rate_limit": "The model provider rate-limited this request. Wait a moment and retry, or switch to another model.",
     "auth": "Model authentication failed. Check that the API key under Settings → Models is correct and still valid.",
@@ -1558,6 +1561,7 @@
       "dockTasksTitle": "Background tasks"
     },
     "permissionMode": {
+      "unsupported": "This runtime does not support per-turn permission changes. The default security policy remains active.",
       "label": "Use permissions",
       "default": "Default permissions",
       "defaultHint": "Follow the current security policy when running tools.",

@@ -11,7 +11,7 @@ from typing import Any
 from fastapi import APIRouter, Query, WebSocket, WebSocketDisconnect
 from starlette.websockets import WebSocketState
 
-from octop.api.deps import resolve_user_from_token
+from octop.api.deps import resolve_user_from_access_token
 from octop.api.routers.chat.sse import json_chunk_default
 from octop.infra.errors import OctopError
 
@@ -32,7 +32,7 @@ async def dashboard_notifications_ws(
         return
 
     try:
-        user = resolve_user_from_token(server, token)
+        user = await resolve_user_from_access_token(server, token)
     except OctopError as exc:
         await websocket.close(code=4001, reason=f"auth: {exc.code.value}")
         return

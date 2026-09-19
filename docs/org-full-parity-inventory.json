@@ -1,0 +1,1872 @@
+{
+  "scope": "All business routes in App.tsx and OpenApp.tsx, including chat and commercial modules",
+  "limitation": "Static inventory only. Dynamic URLs, internal controls, permissions and data relations require manual/runtime review. Route existence is not parity.",
+  "mounted_api_roots": [
+    "/api/admin",
+    "/api/agent-studio",
+    "/api/ai",
+    "/api/analytics",
+    "/api/announcements",
+    "/api/assets",
+    "/api/assistant",
+    "/api/attendance",
+    "/api/audit",
+    "/api/auth",
+    "/api/budgets",
+    "/api/chats",
+    "/api/config-versions",
+    "/api/contracts",
+    "/api/customers",
+    "/api/daily-report",
+    "/api/dashboard",
+    "/api/efficiency",
+    "/api/electricity",
+    "/api/employee-code",
+    "/api/employees",
+    "/api/expense",
+    "/api/files",
+    "/api/freeos",
+    "/api/goals",
+    "/api/governance",
+    "/api/health",
+    "/api/heartbeat",
+    "/api/knowledge",
+    "/api/leave",
+    "/api/memory",
+    "/api/notifications",
+    "/api/orchestrate",
+    "/api/org",
+    "/api/org-import",
+    "/api/payments",
+    "/api/performance",
+    "/api/plugins",
+    "/api/reflections",
+    "/api/reviews",
+    "/api/routines",
+    "/api/settings",
+    "/api/skills",
+    "/api/talent",
+    "/api/tasks",
+    "/api/tenants",
+    "/api/workflows",
+    "/api/workflows-v2",
+    "/api/ws-ticket"
+  ],
+  "routes": [
+    {
+      "source_shell": "App.tsx",
+      "source_route": "/",
+      "component": "Dashboard",
+      "source_file": "modules/openxyos/frontend/src/pages/Dashboard.tsx",
+      "target_route": "/organization/dashboard",
+      "host_route_exists": false,
+      "parity": "not_accepted",
+      "dependencies": [
+        "modules/openxyos/frontend/src/api/authFetch.ts",
+        "modules/openxyos/frontend/src/i18n.tsx",
+        "modules/openxyos/frontend/src/pages/Dashboard.tsx",
+        "modules/openxyos/frontend/src/stores/auth.ts"
+      ],
+      "api_references": [
+        "/api/admin/visitor-log",
+        "/api/auth/login",
+        "/api/auth/refresh",
+        "/api/auth/register",
+        "/api/dashboard/activities?limit=5",
+        "/api/dashboard/employee-performance",
+        "/api/dashboard/modules",
+        "/api/org-module/business${url}",
+        "/api/org-module/identity/login",
+        "/api/org-module/identity/refresh",
+        "/api/org-module/identity/register"
+      ],
+      "unmounted_api_roots": [
+        "/api/org-module"
+      ]
+    },
+    {
+      "source_shell": "App.tsx",
+      "source_route": "/dashboard",
+      "component": "Dashboard",
+      "source_file": "modules/openxyos/frontend/src/pages/Dashboard.tsx",
+      "target_route": "/organization/dashboard",
+      "host_route_exists": false,
+      "parity": "not_accepted",
+      "dependencies": [
+        "modules/openxyos/frontend/src/api/authFetch.ts",
+        "modules/openxyos/frontend/src/i18n.tsx",
+        "modules/openxyos/frontend/src/pages/Dashboard.tsx",
+        "modules/openxyos/frontend/src/stores/auth.ts"
+      ],
+      "api_references": [
+        "/api/admin/visitor-log",
+        "/api/auth/login",
+        "/api/auth/refresh",
+        "/api/auth/register",
+        "/api/dashboard/activities?limit=5",
+        "/api/dashboard/employee-performance",
+        "/api/dashboard/modules",
+        "/api/org-module/business${url}",
+        "/api/org-module/identity/login",
+        "/api/org-module/identity/refresh",
+        "/api/org-module/identity/register"
+      ],
+      "unmounted_api_roots": [
+        "/api/org-module"
+      ]
+    },
+    {
+      "source_shell": "App.tsx",
+      "source_route": "/workspace",
+      "component": "OpenDashboard",
+      "source_file": "modules/openxyos/frontend/src/pages/OpenDashboard.tsx",
+      "target_route": "/organization/workspace",
+      "host_route_exists": true,
+      "parity": "not_accepted",
+      "dependencies": [
+        "modules/openxyos/frontend/src/api/authFetch.ts",
+        "modules/openxyos/frontend/src/i18n.tsx",
+        "modules/openxyos/frontend/src/open-modules.ts",
+        "modules/openxyos/frontend/src/pages/OpenDashboard.tsx",
+        "modules/openxyos/frontend/src/stores/auth.ts"
+      ],
+      "api_references": [
+        "/api/admin/visitor-log",
+        "/api/auth/login",
+        "/api/auth/refresh",
+        "/api/auth/register",
+        "/api/dashboard/overview",
+        "/api/module-settings",
+        "/api/org-module/business${url}",
+        "/api/org-module/identity/login",
+        "/api/org-module/identity/refresh",
+        "/api/org-module/identity/register"
+      ],
+      "unmounted_api_roots": [
+        "/api/module-settings",
+        "/api/org-module"
+      ]
+    },
+    {
+      "source_shell": "App.tsx",
+      "source_route": "/org",
+      "component": "OrgChart",
+      "source_file": "modules/openxyos/frontend/src/pages/OrgChart.tsx",
+      "target_route": "/organization/org",
+      "host_route_exists": true,
+      "parity": "not_accepted",
+      "dependencies": [
+        "modules/openxyos/frontend/src/api/authFetch.ts",
+        "modules/openxyos/frontend/src/components/Avatar.tsx",
+        "modules/openxyos/frontend/src/i18n.tsx",
+        "modules/openxyos/frontend/src/pages/OrgChart.tsx",
+        "modules/openxyos/frontend/src/stores/auth.ts",
+        "modules/openxyos/frontend/src/utils/avatar.ts"
+      ],
+      "api_references": [
+        "/api/admin/visitor-log",
+        "/api/auth/login",
+        "/api/auth/refresh",
+        "/api/auth/register",
+        "/api/chats",
+        "/api/org-module/business${url}",
+        "/api/org-module/identity/login",
+        "/api/org-module/identity/refresh",
+        "/api/org-module/identity/register",
+        "/api/org/departments",
+        "/api/org/departments/${dept.id}",
+        "/api/org/employees",
+        "/api/org/employees/${emp.id}",
+        "/api/org/employees/${emp.id}/auto-fill",
+        "/api/org/employees/${emp.id}/skills",
+        "/api/org/employees/${employee.id}/reporting-lines",
+        "/api/org/employees/${employeeId}/skills",
+        "/api/org/import",
+        "/api/org/reporting-lines",
+        "/api/org/reporting-lines/${id}",
+        "/api/org/skills",
+        "/api/org/tree",
+        "/api/org/versions",
+        "/api/org/versions/${id}/status",
+        "/api/skills"
+      ],
+      "unmounted_api_roots": [
+        "/api/org-module"
+      ]
+    },
+    {
+      "source_shell": "App.tsx",
+      "source_route": "/employees",
+      "component": "EmployeesPage",
+      "source_file": "modules/openxyos/frontend/src/pages/EmployeesPage.tsx",
+      "target_route": "/organization/employees",
+      "host_route_exists": true,
+      "parity": "not_accepted",
+      "dependencies": [
+        "modules/openxyos/frontend/src/api/authFetch.ts",
+        "modules/openxyos/frontend/src/components/Avatar.tsx",
+        "modules/openxyos/frontend/src/i18n.tsx",
+        "modules/openxyos/frontend/src/pages/EmployeesPage.tsx",
+        "modules/openxyos/frontend/src/stores/auth.ts",
+        "modules/openxyos/frontend/src/utils/avatar.ts"
+      ],
+      "api_references": [
+        "/api/admin/visitor-log",
+        "/api/auth/login",
+        "/api/auth/refresh",
+        "/api/auth/register",
+        "/api/employees",
+        "/api/employees/${empId}/onboard",
+        "/api/employees/${empId}/reserve",
+        "/api/employees/stats/by-category",
+        "/api/employees?category=${activeTab}",
+        "/api/org-module/business${url}",
+        "/api/org-module/identity/login",
+        "/api/org-module/identity/refresh",
+        "/api/org-module/identity/register",
+        "/api/org/tree",
+        "/api/skills",
+        "/api/talent",
+        "/api/talent/${talentId}/recruit",
+        "/api/talent/stats"
+      ],
+      "unmounted_api_roots": [
+        "/api/org-module"
+      ]
+    },
+    {
+      "source_shell": "App.tsx",
+      "source_route": "/employees/:id",
+      "component": "EmployeeDetailPage",
+      "source_file": "modules/openxyos/frontend/src/pages/EmployeeDetailPage.tsx",
+      "target_route": "/organization/employees/:id",
+      "host_route_exists": true,
+      "parity": "not_accepted",
+      "dependencies": [
+        "modules/openxyos/frontend/src/api/authFetch.ts",
+        "modules/openxyos/frontend/src/components/Avatar.tsx",
+        "modules/openxyos/frontend/src/i18n.tsx",
+        "modules/openxyos/frontend/src/pages/EmployeeDetailPage.tsx",
+        "modules/openxyos/frontend/src/stores/auth.ts",
+        "modules/openxyos/frontend/src/utils/avatar.ts"
+      ],
+      "api_references": [
+        "/api/admin/visitor-log",
+        "/api/auth/login",
+        "/api/auth/refresh",
+        "/api/auth/register",
+        "/api/chats",
+        "/api/employees/${id}/offboard",
+        "/api/employees/${id}/offboard-preview",
+        "/api/org-module/business${url}",
+        "/api/org-module/identity/login",
+        "/api/org-module/identity/refresh",
+        "/api/org-module/identity/register",
+        "/api/org/employees/${id}",
+        "/api/org/employees/${id}/avatar",
+        "/api/org/employees/${id}/avatar-preset",
+        "/api/org/employees/${id}/reporting-lines",
+        "/api/org/employees/${id}/skills",
+        "/api/org/tree",
+        "/api/performance/employee/${id}/summary",
+        "/api/skills"
+      ],
+      "unmounted_api_roots": [
+        "/api/org-module"
+      ]
+    },
+    {
+      "source_shell": "App.tsx",
+      "source_route": "/chat",
+      "component": "ChatPage",
+      "source_file": "modules/openxyos/frontend/src/pages/ChatPage.tsx",
+      "target_route": "/organization/chat",
+      "host_route_exists": false,
+      "parity": "not_accepted",
+      "dependencies": [
+        "modules/openxyos/frontend/src/api/authFetch.ts",
+        "modules/openxyos/frontend/src/components/Avatar.tsx",
+        "modules/openxyos/frontend/src/components/MentionInput.tsx",
+        "modules/openxyos/frontend/src/hooks/useWebSocket.ts",
+        "modules/openxyos/frontend/src/i18n.tsx",
+        "modules/openxyos/frontend/src/pages/ChatPage.tsx",
+        "modules/openxyos/frontend/src/stores/auth.ts",
+        "modules/openxyos/frontend/src/utils/avatar.ts"
+      ],
+      "api_references": [
+        "/api/admin/visitor-log",
+        "/api/auth/login",
+        "/api/auth/refresh",
+        "/api/auth/register",
+        "/api/chats",
+        "/api/chats/${active.id}",
+        "/api/chats/${active.id}/announcement",
+        "/api/chats/${active.id}/at-all",
+        "/api/chats/${active.id}/members",
+        "/api/chats/${active.id}/members/${memberId}/role",
+        "/api/chats/${active.id}/messages",
+        "/api/chats/${active.id}/messages/${messageId}",
+        "/api/chats/${active.id}/messages/${messageId}/export?format=${format}",
+        "/api/chats/${active.id}/messages/${messageId}/import-knowledge",
+        "/api/chats/${active.id}/messages/${messageId}/pin",
+        "/api/chats/${active.id}/messages/${messageId}/reactions",
+        "/api/chats/${active.id}/messages?limit=50",
+        "/api/chats/${active.id}/minutes",
+        "/api/chats/${chat.id}/messages?limit=50",
+        "/api/chats/${chatId}/members",
+        "/api/chats/${chatId}/messages?limit=1",
+        "/api/chats/${chatId}/read-marker",
+        "/api/chats/${renamingChat.id}",
+        "/api/chats/${targetChatId}/messages",
+        "/api/knowledge",
+        "/api/org-module/business${url}",
+        "/api/org-module/identity/login",
+        "/api/org-module/identity/refresh",
+        "/api/org-module/identity/register",
+        "/api/org/tree"
+      ],
+      "unmounted_api_roots": [
+        "/api/org-module"
+      ]
+    },
+    {
+      "source_shell": "App.tsx",
+      "source_route": "/agents",
+      "component": "AgentStudioPage",
+      "source_file": "modules/openxyos/frontend/src/pages/AgentStudioPage.tsx",
+      "target_route": "/organization/agents",
+      "host_route_exists": true,
+      "parity": "not_accepted",
+      "dependencies": [
+        "modules/openxyos/frontend/src/api/authFetch.ts",
+        "modules/openxyos/frontend/src/i18n.tsx",
+        "modules/openxyos/frontend/src/pages/AgentStudioPage.tsx"
+      ],
+      "api_references": [
+        "/api/agent-studio/generate",
+        "/api/agent-studio/references",
+        "/api/auth/login",
+        "/api/auth/refresh",
+        "/api/auth/register",
+        "/api/org-module/business${url}",
+        "/api/org-module/identity/login",
+        "/api/org-module/identity/refresh",
+        "/api/org-module/identity/register"
+      ],
+      "unmounted_api_roots": [
+        "/api/org-module"
+      ]
+    },
+    {
+      "source_shell": "App.tsx",
+      "source_route": "/tasks",
+      "component": "TasksPage",
+      "source_file": "modules/openxyos/frontend/src/pages/TasksPage.tsx",
+      "target_route": "/organization/tasks",
+      "host_route_exists": true,
+      "parity": "not_accepted",
+      "dependencies": [
+        "modules/openxyos/frontend/src/api/authFetch.ts",
+        "modules/openxyos/frontend/src/components/Avatar.tsx",
+        "modules/openxyos/frontend/src/i18n.tsx",
+        "modules/openxyos/frontend/src/pages/TasksPage.tsx",
+        "modules/openxyos/frontend/src/utils/avatar.ts"
+      ],
+      "api_references": [
+        "/api/auth/login",
+        "/api/auth/refresh",
+        "/api/auth/register",
+        "/api/org-module/business${url}",
+        "/api/org-module/identity/login",
+        "/api/org-module/identity/refresh",
+        "/api/org-module/identity/register",
+        "/api/tasks",
+        "/api/tasks/${id}/transition",
+        "/api/tasks/stats",
+        "/api/tasks?${params.toString()}"
+      ],
+      "unmounted_api_roots": [
+        "/api/org-module"
+      ]
+    },
+    {
+      "source_shell": "App.tsx",
+      "source_route": "/tasks/:id",
+      "component": "TaskDetailPage",
+      "source_file": "modules/openxyos/frontend/src/pages/TaskDetailPage.tsx",
+      "target_route": "/organization/tasks/:id",
+      "host_route_exists": true,
+      "parity": "not_accepted",
+      "dependencies": [
+        "modules/openxyos/frontend/src/api/authFetch.ts",
+        "modules/openxyos/frontend/src/components/Avatar.tsx",
+        "modules/openxyos/frontend/src/i18n.tsx",
+        "modules/openxyos/frontend/src/pages/TaskDetailPage.tsx",
+        "modules/openxyos/frontend/src/utils/avatar.ts"
+      ],
+      "api_references": [
+        "/api/auth/login",
+        "/api/auth/refresh",
+        "/api/auth/register",
+        "/api/org-module/business${url}",
+        "/api/org-module/identity/login",
+        "/api/org-module/identity/refresh",
+        "/api/org-module/identity/register",
+        "/api/tasks/${id}",
+        "/api/tasks/${id}/comments",
+        "/api/tasks/${id}/subtasks",
+        "/api/tasks/${id}/subtasks/${subtaskId}",
+        "/api/tasks/${id}/transition"
+      ],
+      "unmounted_api_roots": [
+        "/api/org-module"
+      ]
+    },
+    {
+      "source_shell": "App.tsx",
+      "source_route": "/goals",
+      "component": "GoalPage",
+      "source_file": "modules/openxyos/frontend/src/pages/GoalPage.tsx",
+      "target_route": "/organization/goals",
+      "host_route_exists": false,
+      "parity": "not_accepted",
+      "dependencies": [
+        "modules/openxyos/frontend/src/api/authFetch.ts",
+        "modules/openxyos/frontend/src/pages/GoalPage.tsx"
+      ],
+      "api_references": [
+        "/api/auth/login",
+        "/api/auth/refresh",
+        "/api/auth/register",
+        "/api/goals",
+        "/api/goals/${id}",
+        "/api/goals/tree",
+        "/api/org-module/business${url}",
+        "/api/org-module/identity/login",
+        "/api/org-module/identity/refresh",
+        "/api/org-module/identity/register"
+      ],
+      "unmounted_api_roots": [
+        "/api/org-module"
+      ]
+    },
+    {
+      "source_shell": "App.tsx",
+      "source_route": "/budgets",
+      "component": "BudgetPage",
+      "source_file": "modules/openxyos/frontend/src/pages/BudgetPage.tsx",
+      "target_route": "/organization/budgets",
+      "host_route_exists": false,
+      "parity": "not_accepted",
+      "dependencies": [
+        "modules/openxyos/frontend/src/api/authFetch.ts",
+        "modules/openxyos/frontend/src/pages/BudgetPage.tsx"
+      ],
+      "api_references": [
+        "/api/auth/login",
+        "/api/auth/refresh",
+        "/api/auth/register",
+        "/api/budgets",
+        "/api/budgets/${id}",
+        "/api/budgets/alerts",
+        "/api/budgets/usage/stats?period=monthly",
+        "/api/org-module/business${url}",
+        "/api/org-module/identity/login",
+        "/api/org-module/identity/refresh",
+        "/api/org-module/identity/register"
+      ],
+      "unmounted_api_roots": [
+        "/api/org-module"
+      ]
+    },
+    {
+      "source_shell": "App.tsx",
+      "source_route": "/routines",
+      "component": "RoutinePage",
+      "source_file": "modules/openxyos/frontend/src/pages/RoutinePage.tsx",
+      "target_route": "/organization/routines",
+      "host_route_exists": false,
+      "parity": "not_accepted",
+      "dependencies": [
+        "modules/openxyos/frontend/src/api/authFetch.ts",
+        "modules/openxyos/frontend/src/pages/RoutinePage.tsx"
+      ],
+      "api_references": [
+        "/api/auth/login",
+        "/api/auth/refresh",
+        "/api/auth/register",
+        "/api/org-module/business${url}",
+        "/api/org-module/identity/login",
+        "/api/org-module/identity/refresh",
+        "/api/org-module/identity/register",
+        "/api/routines",
+        "/api/routines/${id}",
+        "/api/routines/${id}/execute",
+        "/api/routines/${routine.id}",
+        "/api/routines/logs?limit=20"
+      ],
+      "unmounted_api_roots": [
+        "/api/org-module"
+      ]
+    },
+    {
+      "source_shell": "App.tsx",
+      "source_route": "/performance",
+      "component": "PerformancePage",
+      "source_file": "modules/openxyos/frontend/src/pages/PerformancePage.tsx",
+      "target_route": "/organization/performance",
+      "host_route_exists": false,
+      "parity": "not_accepted",
+      "dependencies": [
+        "modules/openxyos/frontend/src/api/authFetch.ts",
+        "modules/openxyos/frontend/src/pages/PerformancePage.tsx"
+      ],
+      "api_references": [
+        "/api/auth/login",
+        "/api/auth/refresh",
+        "/api/auth/register",
+        "/api/org-module/business${url}",
+        "/api/org-module/identity/login",
+        "/api/org-module/identity/refresh",
+        "/api/org-module/identity/register",
+        "/api/performance/employee/${employeeId}/summary",
+        "/api/performance/reviews"
+      ],
+      "unmounted_api_roots": [
+        "/api/org-module"
+      ]
+    },
+    {
+      "source_shell": "App.tsx",
+      "source_route": "/reflections",
+      "component": "ReflectionPage",
+      "source_file": "modules/openxyos/frontend/src/pages/ReflectionPage.tsx",
+      "target_route": "/organization/reflections",
+      "host_route_exists": true,
+      "parity": "not_accepted",
+      "dependencies": [
+        "modules/openxyos/frontend/src/api/authFetch.ts",
+        "modules/openxyos/frontend/src/i18n.tsx",
+        "modules/openxyos/frontend/src/pages/ReflectionPage.tsx"
+      ],
+      "api_references": [
+        "/api/auth/login",
+        "/api/auth/refresh",
+        "/api/auth/register",
+        "/api/org-module/business${url}",
+        "/api/org-module/identity/login",
+        "/api/org-module/identity/refresh",
+        "/api/org-module/identity/register",
+        "/api/reflections/reflections",
+        "/api/reflections/reflections/${id}"
+      ],
+      "unmounted_api_roots": [
+        "/api/org-module"
+      ]
+    },
+    {
+      "source_shell": "App.tsx",
+      "source_route": "/skills",
+      "component": "SkillsPage",
+      "source_file": "modules/openxyos/frontend/src/pages/SkillsPage.tsx",
+      "target_route": "/organization/skills",
+      "host_route_exists": true,
+      "parity": "not_accepted",
+      "dependencies": [
+        "modules/openxyos/frontend/src/api/authFetch.ts",
+        "modules/openxyos/frontend/src/i18n.tsx",
+        "modules/openxyos/frontend/src/pages/SkillsPage.tsx",
+        "modules/openxyos/frontend/src/stores/skills.ts"
+      ],
+      "api_references": [
+        "/api/auth/login",
+        "/api/auth/refresh",
+        "/api/auth/register",
+        "/api/org-module/business${url}",
+        "/api/org-module/identity/login",
+        "/api/org-module/identity/refresh",
+        "/api/org-module/identity/register",
+        "/api/plugins/${pluginId}/install",
+        "/api/plugins/installed",
+        "/api/plugins/stats",
+        "/api/plugins?sort=${sort}",
+        "/api/skills",
+        "/api/skills/${id}",
+        "/api/skills/${id}/toggle",
+        "/api/skills/batch-toggle",
+        "/api/skills/import",
+        "/api/skills/marketplace?page=${page}&pageSize=12",
+        "/api/skills/stats"
+      ],
+      "unmounted_api_roots": [
+        "/api/org-module"
+      ]
+    },
+    {
+      "source_shell": "App.tsx",
+      "source_route": "/knowledge",
+      "component": "KnowledgePage",
+      "source_file": "modules/openxyos/frontend/src/pages/KnowledgePage.tsx",
+      "target_route": "/organization/knowledge",
+      "host_route_exists": true,
+      "parity": "not_accepted",
+      "dependencies": [
+        "modules/openxyos/frontend/src/api/authFetch.ts",
+        "modules/openxyos/frontend/src/i18n.tsx",
+        "modules/openxyos/frontend/src/pages/KnowledgePage.tsx"
+      ],
+      "api_references": [
+        "/api/auth/login",
+        "/api/auth/refresh",
+        "/api/auth/register",
+        "/api/knowledge",
+        "/api/knowledge/${editId}",
+        "/api/knowledge/${id}",
+        "/api/knowledge/files/${fileId}/move",
+        "/api/knowledge/files/${id}",
+        "/api/knowledge/files/${id}/reparse",
+        "/api/knowledge/files/folder",
+        "/api/knowledge/files/folders",
+        "/api/knowledge/files/list?folder=${encodeURIComponent(curFolder)}",
+        "/api/knowledge/files/stats",
+        "/api/knowledge/files/upload",
+        "/api/org-module/business${url}",
+        "/api/org-module/identity/login",
+        "/api/org-module/identity/refresh",
+        "/api/org-module/identity/register"
+      ],
+      "unmounted_api_roots": [
+        "/api/org-module"
+      ]
+    },
+    {
+      "source_shell": "App.tsx",
+      "source_route": "/audit",
+      "component": "AuditTrailPage",
+      "source_file": "modules/openxyos/frontend/src/pages/AuditTrailPage.tsx",
+      "target_route": "/organization/audit",
+      "host_route_exists": false,
+      "parity": "not_accepted",
+      "dependencies": [
+        "modules/openxyos/frontend/src/api/authFetch.ts",
+        "modules/openxyos/frontend/src/pages/AuditTrailPage.tsx"
+      ],
+      "api_references": [
+        "/api/audit/agents/0/behaviors?${params}",
+        "/api/audit/behaviors/timeline?${params}",
+        "/api/audit/behaviors?${params}",
+        "/api/audit/chat/search?${params}",
+        "/api/audit/stats/overview",
+        "/api/audit/stats/trend?days=7",
+        "/api/auth/login",
+        "/api/auth/refresh",
+        "/api/auth/register",
+        "/api/org-module/business${url}",
+        "/api/org-module/identity/login",
+        "/api/org-module/identity/refresh",
+        "/api/org-module/identity/register"
+      ],
+      "unmounted_api_roots": [
+        "/api/org-module"
+      ]
+    },
+    {
+      "source_shell": "App.tsx",
+      "source_route": "/efficiency",
+      "component": "EfficiencyDashboard",
+      "source_file": "modules/openxyos/frontend/src/pages/EfficiencyDashboard.tsx",
+      "target_route": "/organization/efficiency",
+      "host_route_exists": false,
+      "parity": "not_accepted",
+      "dependencies": [
+        "modules/openxyos/frontend/src/api/authFetch.ts",
+        "modules/openxyos/frontend/src/pages/EfficiencyDashboard.tsx"
+      ],
+      "api_references": [
+        "/api/auth/login",
+        "/api/auth/refresh",
+        "/api/auth/register",
+        "/api/efficiency/calculate",
+        "/api/efficiency/dashboard",
+        "/api/org-module/business${url}",
+        "/api/org-module/identity/login",
+        "/api/org-module/identity/refresh",
+        "/api/org-module/identity/register"
+      ],
+      "unmounted_api_roots": [
+        "/api/org-module"
+      ]
+    },
+    {
+      "source_shell": "App.tsx",
+      "source_route": "/governance",
+      "component": "GovernancePage",
+      "source_file": "modules/openxyos/frontend/src/pages/GovernancePage.tsx",
+      "target_route": "/organization/governance",
+      "host_route_exists": true,
+      "parity": "not_accepted",
+      "dependencies": [
+        "modules/openxyos/frontend/src/api/authFetch.ts",
+        "modules/openxyos/frontend/src/i18n.tsx",
+        "modules/openxyos/frontend/src/pages/GovernancePage.tsx"
+      ],
+      "api_references": [
+        "/api/auth/login",
+        "/api/auth/refresh",
+        "/api/auth/register",
+        "/api/governance/comm-rules",
+        "/api/governance/logs",
+        "/api/governance/permissions",
+        "/api/governance/stats",
+        "/api/governance/templates",
+        "/api/governance/templates/${id}",
+        "/api/org-module/business${url}",
+        "/api/org-module/identity/login",
+        "/api/org-module/identity/refresh",
+        "/api/org-module/identity/register"
+      ],
+      "unmounted_api_roots": [
+        "/api/org-module"
+      ]
+    },
+    {
+      "source_shell": "App.tsx",
+      "source_route": "/workflows",
+      "component": "WorkflowPage",
+      "source_file": "modules/openxyos/frontend/src/pages/WorkflowPage.tsx",
+      "target_route": "/organization/workflows",
+      "host_route_exists": false,
+      "parity": "not_accepted",
+      "dependencies": [
+        "modules/openxyos/frontend/src/api/authFetch.ts",
+        "modules/openxyos/frontend/src/components/workflow/FlowDesigner.tsx",
+        "modules/openxyos/frontend/src/components/workflow/FlowPreview.tsx",
+        "modules/openxyos/frontend/src/components/workflow/FormDesigner.tsx",
+        "modules/openxyos/frontend/src/components/workflow/types.ts",
+        "modules/openxyos/frontend/src/components/workflow/WorkflowDesigner.tsx",
+        "modules/openxyos/frontend/src/pages/WorkflowPage.tsx"
+      ],
+      "api_references": [
+        "/api/auth/login",
+        "/api/auth/refresh",
+        "/api/auth/register",
+        "/api/org-module/business${url}",
+        "/api/org-module/identity/login",
+        "/api/org-module/identity/refresh",
+        "/api/org-module/identity/register",
+        "/api/workflows-v2/categories",
+        "/api/workflows-v2/definitions",
+        "/api/workflows-v2/definitions/${editId}",
+        "/api/workflows-v2/definitions/${id}",
+        "/api/workflows-v2/instances",
+        "/api/workflows-v2/instances/${task.instance_id}",
+        "/api/workflows-v2/notifications/${id}/read",
+        "/api/workflows-v2/notifications?unread=1",
+        "/api/workflows-v2/stats",
+        "/api/workflows-v2/tasks",
+        "/api/workflows-v2/tasks/${taskId}/${actionMap[action]}",
+        "/api/workflows/definitions"
+      ],
+      "unmounted_api_roots": [
+        "/api/org-module"
+      ]
+    },
+    {
+      "source_shell": "App.tsx",
+      "source_route": "/announcements",
+      "component": "AnnouncementPage",
+      "source_file": "modules/openxyos/frontend/src/pages/AnnouncementPage.tsx",
+      "target_route": "/organization/announcements",
+      "host_route_exists": true,
+      "parity": "not_accepted",
+      "dependencies": [
+        "modules/openxyos/frontend/src/api/authFetch.ts",
+        "modules/openxyos/frontend/src/i18n.tsx",
+        "modules/openxyos/frontend/src/pages/AnnouncementPage.tsx",
+        "modules/openxyos/frontend/src/stores/auth.ts"
+      ],
+      "api_references": [
+        "/api/admin/visitor-log",
+        "/api/announcements",
+        "/api/announcements/${a.id}",
+        "/api/announcements/${editId}",
+        "/api/announcements/${id}",
+        "/api/announcements/${id}/toggle-pin",
+        "/api/announcements/action/unread",
+        "/api/announcements/read-all",
+        "/api/announcements?${params}",
+        "/api/auth/login",
+        "/api/auth/refresh",
+        "/api/auth/register",
+        "/api/org-module/business${url}",
+        "/api/org-module/identity/login",
+        "/api/org-module/identity/refresh",
+        "/api/org-module/identity/register"
+      ],
+      "unmounted_api_roots": [
+        "/api/org-module"
+      ]
+    },
+    {
+      "source_shell": "App.tsx",
+      "source_route": "/attendance",
+      "component": "AttendancePage",
+      "source_file": "modules/openxyos/frontend/src/pages/AttendancePage.tsx",
+      "target_route": "/organization/attendance",
+      "host_route_exists": false,
+      "parity": "not_accepted",
+      "dependencies": [
+        "modules/openxyos/frontend/src/api/authFetch.ts",
+        "modules/openxyos/frontend/src/pages/AttendancePage.tsx",
+        "modules/openxyos/frontend/src/stores/auth.ts"
+      ],
+      "api_references": [
+        "/api/admin/visitor-log",
+        "/api/attendance/check-in",
+        "/api/attendance/check-out",
+        "/api/attendance/records?${params}",
+        "/api/attendance/stats?month=${statsMonth}",
+        "/api/attendance/supplements",
+        "/api/attendance/supplements/${id}/review",
+        "/api/attendance/today",
+        "/api/auth/login",
+        "/api/auth/refresh",
+        "/api/auth/register",
+        "/api/org-module/business${url}",
+        "/api/org-module/identity/login",
+        "/api/org-module/identity/refresh",
+        "/api/org-module/identity/register"
+      ],
+      "unmounted_api_roots": [
+        "/api/org-module"
+      ]
+    },
+    {
+      "source_shell": "App.tsx",
+      "source_route": "/leave",
+      "component": "LeavePage",
+      "source_file": "modules/openxyos/frontend/src/pages/LeavePage.tsx",
+      "target_route": "/organization/leave",
+      "host_route_exists": false,
+      "parity": "not_accepted",
+      "dependencies": [
+        "modules/openxyos/frontend/src/api/authFetch.ts",
+        "modules/openxyos/frontend/src/pages/LeavePage.tsx",
+        "modules/openxyos/frontend/src/stores/auth.ts"
+      ],
+      "api_references": [
+        "/api/admin/visitor-log",
+        "/api/auth/login",
+        "/api/auth/refresh",
+        "/api/auth/register",
+        "/api/leave",
+        "/api/leave/${id}/cancel",
+        "/api/leave/stats/summary",
+        "/api/leave?${params}",
+        "/api/org-module/business${url}",
+        "/api/org-module/identity/login",
+        "/api/org-module/identity/refresh",
+        "/api/org-module/identity/register",
+        "/api/workflows-v2/definitions?status=active",
+        "/api/workflows-v2/instances"
+      ],
+      "unmounted_api_roots": [
+        "/api/org-module"
+      ]
+    },
+    {
+      "source_shell": "App.tsx",
+      "source_route": "/expense",
+      "component": "ExpensePage",
+      "source_file": "modules/openxyos/frontend/src/pages/ExpensePage.tsx",
+      "target_route": "/organization/expense",
+      "host_route_exists": false,
+      "parity": "not_accepted",
+      "dependencies": [
+        "modules/openxyos/frontend/src/api/authFetch.ts",
+        "modules/openxyos/frontend/src/pages/ExpensePage.tsx",
+        "modules/openxyos/frontend/src/stores/auth.ts"
+      ],
+      "api_references": [
+        "/api/admin/visitor-log",
+        "/api/auth/login",
+        "/api/auth/refresh",
+        "/api/auth/register",
+        "/api/expense",
+        "/api/expense/${id}/cancel",
+        "/api/expense/${id}/pay",
+        "/api/expense/stats/monthly?month=${statsMonth}",
+        "/api/expense?${params}",
+        "/api/org-module/business${url}",
+        "/api/org-module/identity/login",
+        "/api/org-module/identity/refresh",
+        "/api/org-module/identity/register",
+        "/api/workflows-v2/definitions?status=active",
+        "/api/workflows-v2/instances"
+      ],
+      "unmounted_api_roots": [
+        "/api/org-module"
+      ]
+    },
+    {
+      "source_shell": "App.tsx",
+      "source_route": "/daily-report",
+      "component": "DailyReportPage",
+      "source_file": "modules/openxyos/frontend/src/pages/DailyReportPage.tsx",
+      "target_route": "/organization/daily-report",
+      "host_route_exists": false,
+      "parity": "not_accepted",
+      "dependencies": [
+        "modules/openxyos/frontend/src/api/authFetch.ts",
+        "modules/openxyos/frontend/src/pages/DailyReportPage.tsx",
+        "modules/openxyos/frontend/src/stores/auth.ts"
+      ],
+      "api_references": [
+        "/api/admin/visitor-log",
+        "/api/auth/login",
+        "/api/auth/refresh",
+        "/api/auth/register",
+        "/api/daily-report",
+        "/api/daily-report/${detail.id}/comments",
+        "/api/daily-report/${id}",
+        "/api/daily-report?${params}",
+        "/api/org-module/business${url}",
+        "/api/org-module/identity/login",
+        "/api/org-module/identity/refresh",
+        "/api/org-module/identity/register",
+        "/api/workflows-v2/definitions?status=active",
+        "/api/workflows-v2/instances"
+      ],
+      "unmounted_api_roots": [
+        "/api/org-module"
+      ]
+    },
+    {
+      "source_shell": "App.tsx",
+      "source_route": "/settings",
+      "component": "SettingsPage",
+      "source_file": "modules/openxyos/frontend/src/pages/SettingsPage.tsx",
+      "target_route": "/organization/settings",
+      "host_route_exists": true,
+      "parity": "not_accepted",
+      "dependencies": [
+        "modules/openxyos/frontend/src/api/authFetch.ts",
+        "modules/openxyos/frontend/src/components/Avatar.tsx",
+        "modules/openxyos/frontend/src/components/OpenModuleManagementTab.tsx",
+        "modules/openxyos/frontend/src/i18n.tsx",
+        "modules/openxyos/frontend/src/llm-providers.ts",
+        "modules/openxyos/frontend/src/open-modules.ts",
+        "modules/openxyos/frontend/src/pages/SettingsPage.tsx",
+        "modules/openxyos/frontend/src/stores/auth.ts",
+        "modules/openxyos/frontend/src/utils/avatar.ts"
+      ],
+      "api_references": [
+        "/api/admin/tenants",
+        "/api/admin/visitor-log",
+        "/api/auth/login",
+        "/api/auth/refresh",
+        "/api/auth/register",
+        "/api/config-versions",
+        "/api/config-versions/${id}",
+        "/api/config-versions/rollback/${id}",
+        "/api/employees/${editId}",
+        "/api/employees/${id}",
+        "/api/employees?category=internal",
+        "/api/module-settings",
+        "/api/module-settings?tenant_id=${id}",
+        "/api/org-module/business${url}",
+        "/api/org-module/identity/login",
+        "/api/org-module/identity/refresh",
+        "/api/org-module/identity/register",
+        "/api/settings/ai",
+        "/api/settings/air-gap",
+        "/api/settings/company",
+        "/api/settings/database/backup",
+        "/api/settings/database/backups",
+        "/api/settings/database/backups/${encodeURIComponent(filename)}",
+        "/api/settings/database/info",
+        "/api/settings/database/restore",
+        "/api/settings/registration",
+        "/api/settings/roles",
+        "/api/settings/roles/${id}",
+        "/api/settings/users",
+        "/api/settings/users/${id}"
+      ],
+      "unmounted_api_roots": [
+        "/api/module-settings",
+        "/api/org-module"
+      ]
+    },
+    {
+      "source_shell": "App.tsx",
+      "source_route": "/contracts",
+      "component": "ContractPage",
+      "source_file": "modules/openxyos/frontend/src/pages/ContractPage.tsx",
+      "target_route": "/organization/contracts",
+      "host_route_exists": false,
+      "parity": "not_accepted",
+      "dependencies": [
+        "modules/openxyos/frontend/src/api/authFetch.ts",
+        "modules/openxyos/frontend/src/pages/ContractPage.tsx"
+      ],
+      "api_references": [
+        "/api/auth/login",
+        "/api/auth/refresh",
+        "/api/auth/register",
+        "/api/contracts",
+        "/api/contracts/${contractId}/approval",
+        "/api/contracts/${contractId}/approval/submit",
+        "/api/contracts/${contractId}/clauses",
+        "/api/contracts/${contractId}/payments",
+        "/api/contracts/${contractId}/progress",
+        "/api/contracts/${editForm.id}",
+        "/api/contracts/${id}",
+        "/api/contracts/${selectedContract!.id}/approval/${recordId}",
+        "/api/contracts/${selectedContract!.id}/payments/${paymentId}/pay",
+        "/api/contracts/${selectedContract!.id}/progress",
+        "/api/contracts/${selectedContract!.id}/progress/${progressId}/review",
+        "/api/contracts/${selectedContract!.id}/progress/${progressId}/submit",
+        "/api/contracts/${selectedContract.id}/payments",
+        "/api/contracts/alerts/config",
+        "/api/contracts/alerts/escalations/${paymentId}",
+        "/api/contracts/alerts/multi-level",
+        "/api/contracts/alerts/overdue",
+        "/api/contracts/alerts/upcoming",
+        "/api/contracts/approval/rules",
+        "/api/contracts/approval/rules/${id}",
+        "/api/contracts/approval/rules/confirm",
+        "/api/contracts/approval/rules/parse",
+        "/api/contracts/dashboard",
+        "/api/contracts/gantt?${params.toString()}",
+        "/api/contracts/payments/export/${format}?${params}",
+        "/api/contracts/payments/stats?${params}",
+        "/api/contracts/stats",
+        "/api/contracts/upload",
+        "/api/contracts/upload/confirm",
+        "/api/contracts?${params}",
+        "/api/org-module/business${url}",
+        "/api/org-module/identity/login",
+        "/api/org-module/identity/refresh",
+        "/api/org-module/identity/register"
+      ],
+      "unmounted_api_roots": [
+        "/api/org-module"
+      ]
+    },
+    {
+      "source_shell": "App.tsx",
+      "source_route": "/assets",
+      "component": "AssetPage",
+      "source_file": "modules/openxyos/frontend/src/pages/AssetPage.tsx",
+      "target_route": "/organization/assets",
+      "host_route_exists": false,
+      "parity": "not_accepted",
+      "dependencies": [
+        "modules/openxyos/frontend/src/api/authFetch.ts",
+        "modules/openxyos/frontend/src/pages/AssetPage.tsx"
+      ],
+      "api_references": [
+        "/api/assets",
+        "/api/assets/alerts",
+        "/api/assets/export/csv${qs",
+        "/api/assets/idle-pool",
+        "/api/assets?${params.toString()}",
+        "/api/auth/login",
+        "/api/auth/refresh",
+        "/api/auth/register",
+        "/api/org-module/business${url}",
+        "/api/org-module/identity/login",
+        "/api/org-module/identity/refresh",
+        "/api/org-module/identity/register",
+        "/api/org/departments"
+      ],
+      "unmounted_api_roots": [
+        "/api/org-module"
+      ]
+    },
+    {
+      "source_shell": "App.tsx",
+      "source_route": "/assets/count",
+      "component": "AssetCountPage",
+      "source_file": "modules/openxyos/frontend/src/pages/AssetCountPage.tsx",
+      "target_route": "/organization/assets/count",
+      "host_route_exists": false,
+      "parity": "not_accepted",
+      "dependencies": [
+        "modules/openxyos/frontend/src/api/authFetch.ts",
+        "modules/openxyos/frontend/src/pages/AssetCountPage.tsx"
+      ],
+      "api_references": [
+        "/api/assets/count-tasks",
+        "/api/assets/count-tasks/${selectedTask.id}/results",
+        "/api/assets/count-tasks/${taskId}",
+        "/api/assets/count-tasks/${taskId}/report",
+        "/api/assets/count-tasks/${taskId}/results",
+        "/api/assets?search=${encodeURIComponent(entryForm.asset_search)}&limit=10",
+        "/api/auth/login",
+        "/api/auth/refresh",
+        "/api/auth/register",
+        "/api/org-module/business${url}",
+        "/api/org-module/identity/login",
+        "/api/org-module/identity/refresh",
+        "/api/org-module/identity/register"
+      ],
+      "unmounted_api_roots": [
+        "/api/org-module"
+      ]
+    },
+    {
+      "source_shell": "App.tsx",
+      "source_route": "/assets/dashboard",
+      "component": "AssetDashboard",
+      "source_file": "modules/openxyos/frontend/src/pages/AssetDashboard.tsx",
+      "target_route": "/organization/assets/dashboard",
+      "host_route_exists": false,
+      "parity": "not_accepted",
+      "dependencies": [
+        "modules/openxyos/frontend/src/api/authFetch.ts",
+        "modules/openxyos/frontend/src/pages/AssetDashboard.tsx"
+      ],
+      "api_references": [
+        "/api/assets/dashboard",
+        "/api/auth/login",
+        "/api/auth/refresh",
+        "/api/auth/register",
+        "/api/org-module/business${url}",
+        "/api/org-module/identity/login",
+        "/api/org-module/identity/refresh",
+        "/api/org-module/identity/register"
+      ],
+      "unmounted_api_roots": [
+        "/api/org-module"
+      ]
+    },
+    {
+      "source_shell": "App.tsx",
+      "source_route": "/assets/vehicles",
+      "component": "AssetVehicleExpensePage",
+      "source_file": "modules/openxyos/frontend/src/pages/AssetVehicleExpensePage.tsx",
+      "target_route": "/organization/assets/vehicles",
+      "host_route_exists": false,
+      "parity": "not_accepted",
+      "dependencies": [
+        "modules/openxyos/frontend/src/api/authFetch.ts",
+        "modules/openxyos/frontend/src/pages/AssetVehicleExpensePage.tsx"
+      ],
+      "api_references": [
+        "/api/assets/vehicle-expenses?${params}",
+        "/api/auth/login",
+        "/api/auth/refresh",
+        "/api/auth/register",
+        "/api/org-module/business${url}",
+        "/api/org-module/identity/login",
+        "/api/org-module/identity/refresh",
+        "/api/org-module/identity/register"
+      ],
+      "unmounted_api_roots": [
+        "/api/org-module"
+      ]
+    },
+    {
+      "source_shell": "App.tsx",
+      "source_route": "/assets/procurement",
+      "component": "AssetProcurementPage",
+      "source_file": "modules/openxyos/frontend/src/pages/AssetProcurementPage.tsx",
+      "target_route": "/organization/assets/procurement",
+      "host_route_exists": false,
+      "parity": "not_accepted",
+      "dependencies": [
+        "modules/openxyos/frontend/src/api/authFetch.ts",
+        "modules/openxyos/frontend/src/pages/AssetProcurementPage.tsx",
+        "modules/openxyos/frontend/src/stores/auth.ts"
+      ],
+      "api_references": [
+        "/api/admin/visitor-log",
+        "/api/assets/procurements",
+        "/api/assets/procurements/${id}",
+        "/api/assets/procurements/${procurementId}/approve",
+        "/api/assets/procurements?${params}",
+        "/api/auth/login",
+        "/api/auth/refresh",
+        "/api/auth/register",
+        "/api/budgets",
+        "/api/org-module/business${url}",
+        "/api/org-module/identity/login",
+        "/api/org-module/identity/refresh",
+        "/api/org-module/identity/register",
+        "/api/org/departments"
+      ],
+      "unmounted_api_roots": [
+        "/api/org-module"
+      ]
+    },
+    {
+      "source_shell": "App.tsx",
+      "source_route": "/assets/:id",
+      "component": "AssetDetailPage",
+      "source_file": "modules/openxyos/frontend/src/pages/AssetDetailPage.tsx",
+      "target_route": "/organization/assets/:id",
+      "host_route_exists": false,
+      "parity": "not_accepted",
+      "dependencies": [
+        "modules/openxyos/frontend/src/api/authFetch.ts",
+        "modules/openxyos/frontend/src/pages/AssetDetailPage.tsx",
+        "modules/openxyos/frontend/src/stores/auth.ts"
+      ],
+      "api_references": [
+        "/api/admin/visitor-log",
+        "/api/assets/${id}",
+        "/api/assets/${id}/category",
+        "/api/assets/${id}/checkout",
+        "/api/assets/${id}/return",
+        "/api/assets/${id}/transactions",
+        "/api/auth/login",
+        "/api/auth/refresh",
+        "/api/auth/register",
+        "/api/employees",
+        "/api/org-module/business${url}",
+        "/api/org-module/identity/login",
+        "/api/org-module/identity/refresh",
+        "/api/org-module/identity/register"
+      ],
+      "unmounted_api_roots": [
+        "/api/org-module"
+      ]
+    },
+    {
+      "source_shell": "App.tsx",
+      "source_route": "/admin",
+      "component": "AdminPage",
+      "source_file": "modules/openxyos/frontend/src/pages/AdminPage.tsx",
+      "target_route": "/organization/admin",
+      "host_route_exists": false,
+      "parity": "not_accepted",
+      "dependencies": [
+        "modules/openxyos/frontend/src/api/authFetch.ts",
+        "modules/openxyos/frontend/src/pages/AdminPage.tsx"
+      ],
+      "api_references": [
+        "/api/admin/stats/overview",
+        "/api/admin/stats/trials",
+        "/api/admin/stats/visitors?days=30",
+        "/api/admin/tenants/${tenantId}/trial",
+        "/api/assistant/conversations/${id}",
+        "/api/assistant/conversations?${params}",
+        "/api/assistant/stats",
+        "/api/auth/login",
+        "/api/auth/refresh",
+        "/api/auth/register",
+        "/api/org-module/business${url}",
+        "/api/org-module/identity/login",
+        "/api/org-module/identity/refresh",
+        "/api/org-module/identity/register",
+        "/api/payments/config/${editing.provider}",
+        "/api/payments/config/${provider}/test",
+        "/api/payments/providers"
+      ],
+      "unmounted_api_roots": [
+        "/api/org-module"
+      ]
+    },
+    {
+      "source_shell": "App.tsx",
+      "source_route": "/customers",
+      "component": "CustomerServicePage",
+      "source_file": "modules/openxyos/frontend/src/pages/CustomerServicePage.tsx",
+      "target_route": "/organization/customers",
+      "host_route_exists": false,
+      "parity": "not_accepted",
+      "dependencies": [
+        "modules/openxyos/frontend/src/api/authFetch.ts",
+        "modules/openxyos/frontend/src/pages/CustomerServicePage.tsx"
+      ],
+      "api_references": [
+        "/api/auth/login",
+        "/api/auth/refresh",
+        "/api/auth/register",
+        "/api/customers",
+        "/api/customers/bills",
+        "/api/customers/stats/billing",
+        "/api/customers/tickets",
+        "/api/org-module/business${url}",
+        "/api/org-module/identity/login",
+        "/api/org-module/identity/refresh",
+        "/api/org-module/identity/register"
+      ],
+      "unmounted_api_roots": [
+        "/api/org-module"
+      ]
+    },
+    {
+      "source_shell": "App.tsx",
+      "source_route": "/electricity",
+      "component": "ElectricityMarketPage",
+      "source_file": "modules/openxyos/frontend/src/pages/ElectricityMarketPage.tsx",
+      "target_route": "/organization/electricity",
+      "host_route_exists": false,
+      "parity": "not_accepted",
+      "dependencies": [
+        "modules/openxyos/frontend/src/api/authFetch.ts",
+        "modules/openxyos/frontend/src/pages/ElectricityMarketPage.tsx"
+      ],
+      "api_references": [
+        "/api/auth/login",
+        "/api/auth/refresh",
+        "/api/auth/register",
+        "/api/electricity/grid/snapshot",
+        "/api/electricity/plants",
+        "/api/electricity/price",
+        "/api/electricity/trades",
+        "/api/org-module/business${url}",
+        "/api/org-module/identity/login",
+        "/api/org-module/identity/refresh",
+        "/api/org-module/identity/register"
+      ],
+      "unmounted_api_roots": [
+        "/api/org-module"
+      ]
+    },
+    {
+      "source_shell": "OpenApp.tsx",
+      "source_route": "/app",
+      "component": "Dashboard",
+      "source_file": "modules/openxyos/frontend/src/pages/OpenDashboard.tsx",
+      "target_route": "/organization/workspace",
+      "host_route_exists": true,
+      "parity": "not_accepted",
+      "dependencies": [
+        "modules/openxyos/frontend/src/api/authFetch.ts",
+        "modules/openxyos/frontend/src/i18n.tsx",
+        "modules/openxyos/frontend/src/open-modules.ts",
+        "modules/openxyos/frontend/src/pages/OpenDashboard.tsx",
+        "modules/openxyos/frontend/src/stores/auth.ts"
+      ],
+      "api_references": [
+        "/api/admin/visitor-log",
+        "/api/auth/login",
+        "/api/auth/refresh",
+        "/api/auth/register",
+        "/api/dashboard/overview",
+        "/api/module-settings",
+        "/api/org-module/business${url}",
+        "/api/org-module/identity/login",
+        "/api/org-module/identity/refresh",
+        "/api/org-module/identity/register"
+      ],
+      "unmounted_api_roots": [
+        "/api/module-settings",
+        "/api/org-module"
+      ]
+    },
+    {
+      "source_shell": "OpenApp.tsx",
+      "source_route": "/announcements",
+      "component": "AnnouncementPage",
+      "source_file": "modules/openxyos/frontend/src/pages/AnnouncementPage.tsx",
+      "target_route": "/organization/announcements",
+      "host_route_exists": true,
+      "parity": "not_accepted",
+      "dependencies": [
+        "modules/openxyos/frontend/src/api/authFetch.ts",
+        "modules/openxyos/frontend/src/i18n.tsx",
+        "modules/openxyos/frontend/src/pages/AnnouncementPage.tsx",
+        "modules/openxyos/frontend/src/stores/auth.ts"
+      ],
+      "api_references": [
+        "/api/admin/visitor-log",
+        "/api/announcements",
+        "/api/announcements/${a.id}",
+        "/api/announcements/${editId}",
+        "/api/announcements/${id}",
+        "/api/announcements/${id}/toggle-pin",
+        "/api/announcements/action/unread",
+        "/api/announcements/read-all",
+        "/api/announcements?${params}",
+        "/api/auth/login",
+        "/api/auth/refresh",
+        "/api/auth/register",
+        "/api/org-module/business${url}",
+        "/api/org-module/identity/login",
+        "/api/org-module/identity/refresh",
+        "/api/org-module/identity/register"
+      ],
+      "unmounted_api_roots": [
+        "/api/org-module"
+      ]
+    },
+    {
+      "source_shell": "OpenApp.tsx",
+      "source_route": "/org",
+      "component": "OrgChart",
+      "source_file": "modules/openxyos/frontend/src/pages/OrgChart.tsx",
+      "target_route": "/organization/org",
+      "host_route_exists": true,
+      "parity": "not_accepted",
+      "dependencies": [
+        "modules/openxyos/frontend/src/api/authFetch.ts",
+        "modules/openxyos/frontend/src/components/Avatar.tsx",
+        "modules/openxyos/frontend/src/i18n.tsx",
+        "modules/openxyos/frontend/src/pages/OrgChart.tsx",
+        "modules/openxyos/frontend/src/stores/auth.ts",
+        "modules/openxyos/frontend/src/utils/avatar.ts"
+      ],
+      "api_references": [
+        "/api/admin/visitor-log",
+        "/api/auth/login",
+        "/api/auth/refresh",
+        "/api/auth/register",
+        "/api/chats",
+        "/api/org-module/business${url}",
+        "/api/org-module/identity/login",
+        "/api/org-module/identity/refresh",
+        "/api/org-module/identity/register",
+        "/api/org/departments",
+        "/api/org/departments/${dept.id}",
+        "/api/org/employees",
+        "/api/org/employees/${emp.id}",
+        "/api/org/employees/${emp.id}/auto-fill",
+        "/api/org/employees/${emp.id}/skills",
+        "/api/org/employees/${employee.id}/reporting-lines",
+        "/api/org/employees/${employeeId}/skills",
+        "/api/org/import",
+        "/api/org/reporting-lines",
+        "/api/org/reporting-lines/${id}",
+        "/api/org/skills",
+        "/api/org/tree",
+        "/api/org/versions",
+        "/api/org/versions/${id}/status",
+        "/api/skills"
+      ],
+      "unmounted_api_roots": [
+        "/api/org-module"
+      ]
+    },
+    {
+      "source_shell": "OpenApp.tsx",
+      "source_route": "/employees",
+      "component": "EmployeesPage",
+      "source_file": "modules/openxyos/frontend/src/pages/EmployeesPage.tsx",
+      "target_route": "/organization/employees",
+      "host_route_exists": true,
+      "parity": "not_accepted",
+      "dependencies": [
+        "modules/openxyos/frontend/src/api/authFetch.ts",
+        "modules/openxyos/frontend/src/components/Avatar.tsx",
+        "modules/openxyos/frontend/src/i18n.tsx",
+        "modules/openxyos/frontend/src/pages/EmployeesPage.tsx",
+        "modules/openxyos/frontend/src/stores/auth.ts",
+        "modules/openxyos/frontend/src/utils/avatar.ts"
+      ],
+      "api_references": [
+        "/api/admin/visitor-log",
+        "/api/auth/login",
+        "/api/auth/refresh",
+        "/api/auth/register",
+        "/api/employees",
+        "/api/employees/${empId}/onboard",
+        "/api/employees/${empId}/reserve",
+        "/api/employees/stats/by-category",
+        "/api/employees?category=${activeTab}",
+        "/api/org-module/business${url}",
+        "/api/org-module/identity/login",
+        "/api/org-module/identity/refresh",
+        "/api/org-module/identity/register",
+        "/api/org/tree",
+        "/api/skills",
+        "/api/talent",
+        "/api/talent/${talentId}/recruit",
+        "/api/talent/stats"
+      ],
+      "unmounted_api_roots": [
+        "/api/org-module"
+      ]
+    },
+    {
+      "source_shell": "OpenApp.tsx",
+      "source_route": "/employees/:id",
+      "component": "EmployeeDetailPage",
+      "source_file": "modules/openxyos/frontend/src/pages/EmployeeDetailPage.tsx",
+      "target_route": "/organization/employees/:id",
+      "host_route_exists": true,
+      "parity": "not_accepted",
+      "dependencies": [
+        "modules/openxyos/frontend/src/api/authFetch.ts",
+        "modules/openxyos/frontend/src/components/Avatar.tsx",
+        "modules/openxyos/frontend/src/i18n.tsx",
+        "modules/openxyos/frontend/src/pages/EmployeeDetailPage.tsx",
+        "modules/openxyos/frontend/src/stores/auth.ts",
+        "modules/openxyos/frontend/src/utils/avatar.ts"
+      ],
+      "api_references": [
+        "/api/admin/visitor-log",
+        "/api/auth/login",
+        "/api/auth/refresh",
+        "/api/auth/register",
+        "/api/chats",
+        "/api/employees/${id}/offboard",
+        "/api/employees/${id}/offboard-preview",
+        "/api/org-module/business${url}",
+        "/api/org-module/identity/login",
+        "/api/org-module/identity/refresh",
+        "/api/org-module/identity/register",
+        "/api/org/employees/${id}",
+        "/api/org/employees/${id}/avatar",
+        "/api/org/employees/${id}/avatar-preset",
+        "/api/org/employees/${id}/reporting-lines",
+        "/api/org/employees/${id}/skills",
+        "/api/org/tree",
+        "/api/performance/employee/${id}/summary",
+        "/api/skills"
+      ],
+      "unmounted_api_roots": [
+        "/api/org-module"
+      ]
+    },
+    {
+      "source_shell": "OpenApp.tsx",
+      "source_route": "/skills",
+      "component": "SkillsPage",
+      "source_file": "modules/openxyos/frontend/src/pages/SkillsPage.tsx",
+      "target_route": "/organization/skills",
+      "host_route_exists": true,
+      "parity": "not_accepted",
+      "dependencies": [
+        "modules/openxyos/frontend/src/api/authFetch.ts",
+        "modules/openxyos/frontend/src/i18n.tsx",
+        "modules/openxyos/frontend/src/pages/SkillsPage.tsx",
+        "modules/openxyos/frontend/src/stores/skills.ts"
+      ],
+      "api_references": [
+        "/api/auth/login",
+        "/api/auth/refresh",
+        "/api/auth/register",
+        "/api/org-module/business${url}",
+        "/api/org-module/identity/login",
+        "/api/org-module/identity/refresh",
+        "/api/org-module/identity/register",
+        "/api/plugins/${pluginId}/install",
+        "/api/plugins/installed",
+        "/api/plugins/stats",
+        "/api/plugins?sort=${sort}",
+        "/api/skills",
+        "/api/skills/${id}",
+        "/api/skills/${id}/toggle",
+        "/api/skills/batch-toggle",
+        "/api/skills/import",
+        "/api/skills/marketplace?page=${page}&pageSize=12",
+        "/api/skills/stats"
+      ],
+      "unmounted_api_roots": [
+        "/api/org-module"
+      ]
+    },
+    {
+      "source_shell": "OpenApp.tsx",
+      "source_route": "/chat",
+      "component": "ChatPage",
+      "source_file": "modules/openxyos/frontend/src/pages/ChatPage.tsx",
+      "target_route": "/organization/chat",
+      "host_route_exists": false,
+      "parity": "not_accepted",
+      "dependencies": [
+        "modules/openxyos/frontend/src/api/authFetch.ts",
+        "modules/openxyos/frontend/src/components/Avatar.tsx",
+        "modules/openxyos/frontend/src/components/MentionInput.tsx",
+        "modules/openxyos/frontend/src/hooks/useWebSocket.ts",
+        "modules/openxyos/frontend/src/i18n.tsx",
+        "modules/openxyos/frontend/src/pages/ChatPage.tsx",
+        "modules/openxyos/frontend/src/stores/auth.ts",
+        "modules/openxyos/frontend/src/utils/avatar.ts"
+      ],
+      "api_references": [
+        "/api/admin/visitor-log",
+        "/api/auth/login",
+        "/api/auth/refresh",
+        "/api/auth/register",
+        "/api/chats",
+        "/api/chats/${active.id}",
+        "/api/chats/${active.id}/announcement",
+        "/api/chats/${active.id}/at-all",
+        "/api/chats/${active.id}/members",
+        "/api/chats/${active.id}/members/${memberId}/role",
+        "/api/chats/${active.id}/messages",
+        "/api/chats/${active.id}/messages/${messageId}",
+        "/api/chats/${active.id}/messages/${messageId}/export?format=${format}",
+        "/api/chats/${active.id}/messages/${messageId}/import-knowledge",
+        "/api/chats/${active.id}/messages/${messageId}/pin",
+        "/api/chats/${active.id}/messages/${messageId}/reactions",
+        "/api/chats/${active.id}/messages?limit=50",
+        "/api/chats/${active.id}/minutes",
+        "/api/chats/${chat.id}/messages?limit=50",
+        "/api/chats/${chatId}/members",
+        "/api/chats/${chatId}/messages?limit=1",
+        "/api/chats/${chatId}/read-marker",
+        "/api/chats/${renamingChat.id}",
+        "/api/chats/${targetChatId}/messages",
+        "/api/knowledge",
+        "/api/org-module/business${url}",
+        "/api/org-module/identity/login",
+        "/api/org-module/identity/refresh",
+        "/api/org-module/identity/register",
+        "/api/org/tree"
+      ],
+      "unmounted_api_roots": [
+        "/api/org-module"
+      ]
+    },
+    {
+      "source_shell": "OpenApp.tsx",
+      "source_route": "/agents",
+      "component": "AgentStudioPage",
+      "source_file": "modules/openxyos/frontend/src/pages/AgentStudioPage.tsx",
+      "target_route": "/organization/agents",
+      "host_route_exists": true,
+      "parity": "not_accepted",
+      "dependencies": [
+        "modules/openxyos/frontend/src/api/authFetch.ts",
+        "modules/openxyos/frontend/src/i18n.tsx",
+        "modules/openxyos/frontend/src/pages/AgentStudioPage.tsx"
+      ],
+      "api_references": [
+        "/api/agent-studio/generate",
+        "/api/agent-studio/references",
+        "/api/auth/login",
+        "/api/auth/refresh",
+        "/api/auth/register",
+        "/api/org-module/business${url}",
+        "/api/org-module/identity/login",
+        "/api/org-module/identity/refresh",
+        "/api/org-module/identity/register"
+      ],
+      "unmounted_api_roots": [
+        "/api/org-module"
+      ]
+    },
+    {
+      "source_shell": "OpenApp.tsx",
+      "source_route": "/tasks",
+      "component": "TasksPage",
+      "source_file": "modules/openxyos/frontend/src/pages/TasksPage.tsx",
+      "target_route": "/organization/tasks",
+      "host_route_exists": true,
+      "parity": "not_accepted",
+      "dependencies": [
+        "modules/openxyos/frontend/src/api/authFetch.ts",
+        "modules/openxyos/frontend/src/components/Avatar.tsx",
+        "modules/openxyos/frontend/src/i18n.tsx",
+        "modules/openxyos/frontend/src/pages/TasksPage.tsx",
+        "modules/openxyos/frontend/src/utils/avatar.ts"
+      ],
+      "api_references": [
+        "/api/auth/login",
+        "/api/auth/refresh",
+        "/api/auth/register",
+        "/api/org-module/business${url}",
+        "/api/org-module/identity/login",
+        "/api/org-module/identity/refresh",
+        "/api/org-module/identity/register",
+        "/api/tasks",
+        "/api/tasks/${id}/transition",
+        "/api/tasks/stats",
+        "/api/tasks?${params.toString()}"
+      ],
+      "unmounted_api_roots": [
+        "/api/org-module"
+      ]
+    },
+    {
+      "source_shell": "OpenApp.tsx",
+      "source_route": "/tasks/:id",
+      "component": "TaskDetailPage",
+      "source_file": "modules/openxyos/frontend/src/pages/TaskDetailPage.tsx",
+      "target_route": "/organization/tasks/:id",
+      "host_route_exists": true,
+      "parity": "not_accepted",
+      "dependencies": [
+        "modules/openxyos/frontend/src/api/authFetch.ts",
+        "modules/openxyos/frontend/src/components/Avatar.tsx",
+        "modules/openxyos/frontend/src/i18n.tsx",
+        "modules/openxyos/frontend/src/pages/TaskDetailPage.tsx",
+        "modules/openxyos/frontend/src/utils/avatar.ts"
+      ],
+      "api_references": [
+        "/api/auth/login",
+        "/api/auth/refresh",
+        "/api/auth/register",
+        "/api/org-module/business${url}",
+        "/api/org-module/identity/login",
+        "/api/org-module/identity/refresh",
+        "/api/org-module/identity/register",
+        "/api/tasks/${id}",
+        "/api/tasks/${id}/comments",
+        "/api/tasks/${id}/subtasks",
+        "/api/tasks/${id}/subtasks/${subtaskId}",
+        "/api/tasks/${id}/transition"
+      ],
+      "unmounted_api_roots": [
+        "/api/org-module"
+      ]
+    },
+    {
+      "source_shell": "OpenApp.tsx",
+      "source_route": "/knowledge",
+      "component": "KnowledgePage",
+      "source_file": "modules/openxyos/frontend/src/pages/KnowledgePage.tsx",
+      "target_route": "/organization/knowledge",
+      "host_route_exists": true,
+      "parity": "not_accepted",
+      "dependencies": [
+        "modules/openxyos/frontend/src/api/authFetch.ts",
+        "modules/openxyos/frontend/src/i18n.tsx",
+        "modules/openxyos/frontend/src/pages/KnowledgePage.tsx"
+      ],
+      "api_references": [
+        "/api/auth/login",
+        "/api/auth/refresh",
+        "/api/auth/register",
+        "/api/knowledge",
+        "/api/knowledge/${editId}",
+        "/api/knowledge/${id}",
+        "/api/knowledge/files/${fileId}/move",
+        "/api/knowledge/files/${id}",
+        "/api/knowledge/files/${id}/reparse",
+        "/api/knowledge/files/folder",
+        "/api/knowledge/files/folders",
+        "/api/knowledge/files/list?folder=${encodeURIComponent(curFolder)}",
+        "/api/knowledge/files/stats",
+        "/api/knowledge/files/upload",
+        "/api/org-module/business${url}",
+        "/api/org-module/identity/login",
+        "/api/org-module/identity/refresh",
+        "/api/org-module/identity/register"
+      ],
+      "unmounted_api_roots": [
+        "/api/org-module"
+      ]
+    },
+    {
+      "source_shell": "OpenApp.tsx",
+      "source_route": "/reflections",
+      "component": "ReflectionPage",
+      "source_file": "modules/openxyos/frontend/src/pages/ReflectionPage.tsx",
+      "target_route": "/organization/reflections",
+      "host_route_exists": true,
+      "parity": "not_accepted",
+      "dependencies": [
+        "modules/openxyos/frontend/src/api/authFetch.ts",
+        "modules/openxyos/frontend/src/i18n.tsx",
+        "modules/openxyos/frontend/src/pages/ReflectionPage.tsx"
+      ],
+      "api_references": [
+        "/api/auth/login",
+        "/api/auth/refresh",
+        "/api/auth/register",
+        "/api/org-module/business${url}",
+        "/api/org-module/identity/login",
+        "/api/org-module/identity/refresh",
+        "/api/org-module/identity/register",
+        "/api/reflections/reflections",
+        "/api/reflections/reflections/${id}"
+      ],
+      "unmounted_api_roots": [
+        "/api/org-module"
+      ]
+    },
+    {
+      "source_shell": "OpenApp.tsx",
+      "source_route": "/governance",
+      "component": "GovernancePage",
+      "source_file": "modules/openxyos/frontend/src/pages/GovernancePage.tsx",
+      "target_route": "/organization/governance",
+      "host_route_exists": true,
+      "parity": "not_accepted",
+      "dependencies": [
+        "modules/openxyos/frontend/src/api/authFetch.ts",
+        "modules/openxyos/frontend/src/i18n.tsx",
+        "modules/openxyos/frontend/src/pages/GovernancePage.tsx"
+      ],
+      "api_references": [
+        "/api/auth/login",
+        "/api/auth/refresh",
+        "/api/auth/register",
+        "/api/governance/comm-rules",
+        "/api/governance/logs",
+        "/api/governance/permissions",
+        "/api/governance/stats",
+        "/api/governance/templates",
+        "/api/governance/templates/${id}",
+        "/api/org-module/business${url}",
+        "/api/org-module/identity/login",
+        "/api/org-module/identity/refresh",
+        "/api/org-module/identity/register"
+      ],
+      "unmounted_api_roots": [
+        "/api/org-module"
+      ]
+    },
+    {
+      "source_shell": "OpenApp.tsx",
+      "source_route": "/settings",
+      "component": "SettingsPage",
+      "source_file": "modules/openxyos/frontend/src/pages/SettingsPage.tsx",
+      "target_route": "/organization/settings",
+      "host_route_exists": true,
+      "parity": "not_accepted",
+      "dependencies": [
+        "modules/openxyos/frontend/src/api/authFetch.ts",
+        "modules/openxyos/frontend/src/components/Avatar.tsx",
+        "modules/openxyos/frontend/src/components/OpenModuleManagementTab.tsx",
+        "modules/openxyos/frontend/src/i18n.tsx",
+        "modules/openxyos/frontend/src/llm-providers.ts",
+        "modules/openxyos/frontend/src/open-modules.ts",
+        "modules/openxyos/frontend/src/pages/SettingsPage.tsx",
+        "modules/openxyos/frontend/src/stores/auth.ts",
+        "modules/openxyos/frontend/src/utils/avatar.ts"
+      ],
+      "api_references": [
+        "/api/admin/tenants",
+        "/api/admin/visitor-log",
+        "/api/auth/login",
+        "/api/auth/refresh",
+        "/api/auth/register",
+        "/api/config-versions",
+        "/api/config-versions/${id}",
+        "/api/config-versions/rollback/${id}",
+        "/api/employees/${editId}",
+        "/api/employees/${id}",
+        "/api/employees?category=internal",
+        "/api/module-settings",
+        "/api/module-settings?tenant_id=${id}",
+        "/api/org-module/business${url}",
+        "/api/org-module/identity/login",
+        "/api/org-module/identity/refresh",
+        "/api/org-module/identity/register",
+        "/api/settings/ai",
+        "/api/settings/air-gap",
+        "/api/settings/company",
+        "/api/settings/database/backup",
+        "/api/settings/database/backups",
+        "/api/settings/database/backups/${encodeURIComponent(filename)}",
+        "/api/settings/database/info",
+        "/api/settings/database/restore",
+        "/api/settings/registration",
+        "/api/settings/roles",
+        "/api/settings/roles/${id}",
+        "/api/settings/users",
+        "/api/settings/users/${id}"
+      ],
+      "unmounted_api_roots": [
+        "/api/module-settings",
+        "/api/org-module"
+      ]
+    }
+  ],
+  "pages_without_direct_business_route": [
+    "modules/openxyos/frontend/src/pages/AuthPage.tsx",
+    "modules/openxyos/frontend/src/pages/ConfigVersionPage.tsx",
+    "modules/openxyos/frontend/src/pages/LegalEnglishContent.tsx",
+    "modules/openxyos/frontend/src/pages/OpenHomePage.tsx",
+    "modules/openxyos/frontend/src/pages/PrivacyPolicyPage.tsx",
+    "modules/openxyos/frontend/src/pages/UserAgreementPage.tsx"
+  ]
+}

@@ -22,6 +22,7 @@ export default function LoginPage() {
   const [searchParams] = useSearchParams();
   const [oidc, setOidc] = useState<OidcStatus | null>(null);
   const [mode, setMode] = useState<AuthFormMode>("login");
+  const [organizationIdentity, setOrganizationIdentity] = useState(false);
   const desktop = isDesktopShell(`?${searchParams.toString()}`);
 
   useEffect(() => {
@@ -31,6 +32,15 @@ export default function LoginPage() {
   useEffect(() => {
     let cancelled = false;
     const boot = async () => {
+      try {
+        const organization = await authApi.organizationIdentityStatus();
+        if (organization.integrated) {
+          if (!cancelled) setOrganizationIdentity(true);
+          return;
+        }
+      } catch {
+        // Continue with the standalone host login when integration is unavailable.
+      }
       const attempts = desktop ? 20 : 4;
       const delayMs = desktop ? 250 : 150;
       for (let attempt = 0; attempt < attempts; attempt += 1) {
@@ -105,7 +115,7 @@ export default function LoginPage() {
     navigate("/chat", { replace: true });
   };
 
-  if (desktop) {
+  if (desktop && !organizationIdentity) {
     return (
       <div
         style={{
@@ -167,6 +177,7 @@ export default function LoginPage() {
           onModeChange={setMode}
           onSuccess={onSuccess}
           oidc={oidc}
+          organizationIdentity={organizationIdentity}
         />
       </div>
     </div>

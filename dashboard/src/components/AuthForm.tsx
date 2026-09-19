@@ -26,6 +26,7 @@ interface AuthFormProps {
   onSuccess: (res: LoginResponse) => void;
   oidc?: OidcStatus | null;
   allowRegister?: boolean;
+  organizationIdentity?: boolean;
 }
 
 export default function AuthForm({
@@ -34,6 +35,7 @@ export default function AuthForm({
   onSuccess,
   oidc,
   allowRegister = true,
+  organizationIdentity = false,
 }: AuthFormProps) {
   const { t } = useTranslation();
   const [username, setUsername] = useState("");
@@ -61,6 +63,13 @@ export default function AuthForm({
 
   const applySession = async (res: LoginResponse) => {
     setAuthToken(res.access_token);
+    if (res.organization) {
+      localStorage.setItem("token", res.access_token);
+      localStorage.setItem(
+        "user",
+        JSON.stringify(res.organization_user ?? res.user),
+      );
+    }
     await applyUserLocale(res.user.locale);
     void refreshServerLabels(res.user.locale);
     onSuccess(res);
@@ -81,14 +90,17 @@ export default function AuthForm({
     }
     setLoading(true);
     try {
-      if (mode === "register" && !getAuthToken()) {
+      if (mode === "register" && !organizationIdentity && !getAuthToken()) {
         const guest = await authApi.localSession();
         setAuthToken(guest.access_token);
       }
-      const res =
-        mode === "register"
-          ? await authApi.register(username, password)
-          : await authApi.login(username, password);
+      const res = organizationIdentity
+        ? mode === "register"
+          ? await authApi.organizationRegister(username, password)
+          : await authApi.organizationLogin(username, password)
+        : mode === "register"
+        ? await authApi.register(username, password)
+        : await authApi.login(username, password);
       await applySession(res);
     } catch (err) {
       message.error(

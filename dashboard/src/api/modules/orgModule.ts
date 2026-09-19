@@ -28,6 +28,11 @@ export interface OrgModuleStatus {
   notes: string[];
 }
 
+export interface OrganizationIdentityStatus {
+  integrated: boolean;
+  authority: "organization" | string;
+}
+
 export interface OrgPlaneCounts {
   employees: number;
   employee_states: Record<string, number>;
@@ -162,6 +167,8 @@ export interface OrgLoopProof {
 }
 
 export const orgModuleApi = {
+  identityStatus: () =>
+    request<OrganizationIdentityStatus>("/org-module/identity/status"),
   status: () => request<OrgModuleStatus>("/org-module/status"),
   overview: () => request<OrgOverview>("/org-module/overview"),
   catalog: () => request<{ modules: OrgCapability[] }>("/org-module/catalog"),

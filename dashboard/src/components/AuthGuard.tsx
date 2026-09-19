@@ -85,6 +85,27 @@ export default function AuthGuard({ children }: AuthGuardProps) {
 
     const check = async () => {
       try {
+        const organization = await authApi.organizationIdentityStatus();
+        if (organization.integrated) {
+          const organizationToken =
+            getAuthToken() || localStorage.getItem("token") || "";
+          if (!organizationToken) {
+            if (!cancelled) navigate("/login", { replace: true });
+            return;
+          }
+          setAuthToken(organizationToken);
+          localStorage.setItem("token", organizationToken);
+          try {
+            const me = await authApi.me();
+            await adopt(me);
+          } catch {
+            clearAuthToken();
+            localStorage.removeItem("token");
+            localStorage.removeItem("user");
+            if (!cancelled) navigate("/login", { replace: true });
+          }
+          return;
+        }
         const status = await authApi.getAuthStatus();
 
         if (status.setup_required) {

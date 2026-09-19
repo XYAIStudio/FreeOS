@@ -3,6 +3,7 @@
 import type { TFunction } from "i18next";
 
 const _STREAM_ERROR_KEYS = [
+  "stream_errors.runtime_incompatible",
   "stream_errors.stream_stall",
   "stream_errors.rate_limit",
   "stream_errors.auth",

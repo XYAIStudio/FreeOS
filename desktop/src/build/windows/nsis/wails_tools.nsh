@@ -34,10 +34,9 @@
     !define WAILS_INSTALL_SCOPE "machine"
 !endif
 
-# Optional openXYOS Node runtime. Organization runs in the FreeOS host.
-# OPENXYOS_RUNTIME_ZIP_PRESENT is OFF by default. A leftover zip on disk
-# must not silently inflate the installer — only opt-in makensis
-# (-DOPENXYOS_RUNTIME_ZIP_PRESENT from SHIP_OPENXYOS_RUNTIME=1) ships it.
+# Managed openXYOS Node runtime. Production packaging defines
+# OPENXYOS_RUNTIME_ZIP_PRESENT by default. A development-only profile may
+# disable it explicitly; a leftover zip cannot silently change that profile.
 !ifndef OPENXYOS_RUNTIME_ZIP
     !define OPENXYOS_RUNTIME_ZIP "..\openxyos-runtime.zip"
 !endif
@@ -142,10 +141,9 @@ RequestExecutionLevel "${REQUEST_EXECUTION_LEVEL}"
     ${EndIf}
 !macroend
 
-# Organization is in-host. Default Setup copies no openxyos-runtime.zip
-# and does not create $INSTDIR\openxyos. Opt-in builds
-# (-DOPENXYOS_RUNTIME_ZIP_PRESENT) copy the zip + scripts but still
-# never extract, start Node, wait for livez, or Abort.
+# Production Setup copies the complete openxyos-runtime.zip and runtime
+# bootstrap scripts. It does not start Node in the installer; FreeOS owns that
+# lifecycle after installation. Development-only builds may omit the runtime.
 # Do not FileWrite goto-label .cmd scripts here. Do not register logon autostart.
 !macro wails.provisionOpenXYOS
     !insertmacro wails.userLocalAppData
@@ -160,7 +158,7 @@ RequestExecutionLevel "${REQUEST_EXECUTION_LEVEL}"
             File "start-sidecar.ps1"
             File "start-sidecar.cmd"
             CreateDirectory "$INSTDIR\openxyos"
-            DetailPrint "$(OPENXYOS_OPTIONAL_SKIP)"
+            DetailPrint "$(OPENXYOS_COPY_ZIP)"
         !else
             !error "OPENXYOS_RUNTIME_ZIP_PRESENT is set but ${OPENXYOS_RUNTIME_ZIP} is missing"
         !endif

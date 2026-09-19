@@ -48,6 +48,17 @@ import { announcementRoutes } from "./routes/announcements";
 import { analyticsRoutes } from "./routes/analytics";
 import { assistantRoutes } from "./routes/assistant";
 import { freeosBridgeRoutes } from "./routes/freeos-bridge";
+import { moduleSettingsRoutes } from "./routes/module-settings";
+import { workflowV2Routes } from "./routes/workflow-v2";
+import { agentStudioRoutes } from "./routes/agent-studio";
+import { attendanceRoutes } from "./routes/attendance";
+import { leaveRoutes } from "./routes/leave";
+import { expenseRoutes } from "./routes/expense";
+import { dailyReportRoutes } from "./routes/daily-report";
+import { customerRoutes } from "./routes/customers";
+import { electricityRoutes } from "./routes/electricity";
+import { fileRoutes } from "./routes/files";
+import { wsTicketRoutes } from "./routes/ws-ticket";
 import { seedDatabase } from "./seed";
 import { authenticate } from "./middleware";
 import { setupWebSocket } from "./services/websocket";
@@ -134,6 +145,11 @@ app.use(cookieParser(cookieSecret));
   const globalLimiter = rateLimit({
     windowMs: 60 * 1000,
     max: 300,
+    // The integrated FreeOS host validates the organization token through
+    // this endpoint for each authenticated request.  Counting that internal
+    // identity check again can exhaust the business request budget while the
+    // user is simply navigating between modules.
+    skip: (req) => req.path === "/auth/me",
     standardHeaders: true,
     legacyHeaders: false,
     message: { success: false, error: "请求过于频繁，请稍后再试" },
@@ -207,7 +223,7 @@ app.use(cookieParser(cookieSecret));
   app.use("/api/notifications", notificationRoutes);
   app.use("/api/dashboard", dashboardRoutes);
   app.use("/api/settings", settingsRoutes);
-  app.use("/api/module-settings", openModuleSettingsRoutes);
+  app.use("/api/module-settings", process.env.FREEOS_ORG_INTEGRATED === "1" ? moduleSettingsRoutes : openModuleSettingsRoutes);
   app.use("/api/ai", aiRoutes);
   app.use("/api/tenants", tenantRoutes);
     app.use("/api/memory", memoryRoutes);
@@ -225,6 +241,16 @@ app.use(cookieParser(cookieSecret));
   app.use("/api/efficiency", efficiencyRoutes);
   app.use("/api/governance", governanceRoutes);
   app.use("/api/workflows", workflowRoutes);
+  app.use("/api/workflows-v2", workflowV2Routes);
+  app.use("/api/agent-studio", agentStudioRoutes);
+  app.use("/api/attendance", attendanceRoutes);
+  app.use("/api/leave", leaveRoutes);
+  app.use("/api/expense", expenseRoutes);
+  app.use("/api/daily-report", dailyReportRoutes);
+  app.use("/api/customers", customerRoutes);
+  app.use("/api/electricity", electricityRoutes);
+  app.use("/api/files", fileRoutes);
+  app.use("/api/ws-ticket", wsTicketRoutes);
 app.use("/api/talent", talentRoutes);
 app.use("/api/plugins", pluginRoutes);
 app.use("/api/admin", adminRoutes);
@@ -256,7 +282,7 @@ app.get("/admin/database", (req, res) => {
 
   setupWebSocket(server);
 
-  server.listen(PORT, '0.0.0.0', () => {
+  server.listen(PORT, process.env.HOST || '0.0.0.0', () => {
     console.log(`\n  🌐 openXYOS Community — Human + Agent OS`);
     console.log(`  ─────────────────────────────────────`);
     console.log(`  Server:     http://localhost:${PORT}`);

@@ -121,6 +121,33 @@ async def test_authenticate_rejects_null_password_hash(manager: UserManager):
     assert await manager.authenticate("sso_user", "any") is None
 
 
+async def test_organization_admin_can_manage_cloud_and_local_models(
+    manager: UserManager,
+):
+    profile = {
+        "id": 7,
+        "tenant_id": 3,
+        "email": "owner@example.local",
+        "nickname": "Owner",
+        "role": "admin",
+    }
+
+    user = await manager.resolve_organization_user(
+        issuer="http://organization.local",
+        profile=profile,
+    )
+
+    assert user.role is Role.USER
+    assert user.organization_role == "admin"
+    assert {
+        "providers",
+        "ollama_models",
+        "onnx_models",
+        "voice",
+        "search",
+    }.issubset(user.permissions)
+
+
 async def test_change_password_rejects_null_password_hash(manager: UserManager):
     manager._services.user_repo.create(username="sso_user", password_hash=None, role="user")
     with pytest.raises(OctopError) as ei:

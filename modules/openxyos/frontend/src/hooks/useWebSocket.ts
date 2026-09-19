@@ -26,7 +26,14 @@ function getWsConnection(): { url: string; protocols: string[] } | null {
   // JWT must never be placed in a URL: reverse-proxy access logs, browser
   // history and telemetry can retain query strings. The protocol header is
   // available to the WebSocket handshake but is not part of the request URI.
-  return { url: `${protocol}://${host}/ws`, protocols: [`xyos-auth.${token}`] };
+  const base =
+    import.meta.env.VITE_FREEOS_ORG_INTEGRATED === "true"
+      ? "/organization-app"
+      : "";
+  return {
+    url: `${protocol}://${host}${base}/ws`,
+    protocols: [`xyos-auth.${token}`],
+  };
 }
 
 let globalWs: WebSocket | null = null;
@@ -35,7 +42,11 @@ let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 let handlerIdCounter = 0;
 
 function connectGlobal() {
-  if (globalWs?.readyState === WebSocket.OPEN || globalWs?.readyState === WebSocket.CONNECTING) return;
+  if (
+    globalWs?.readyState === WebSocket.OPEN ||
+    globalWs?.readyState === WebSocket.CONNECTING
+  )
+    return;
 
   try {
     const connection = getWsConnection();

@@ -14,6 +14,7 @@ from octop.api.deps import current_user, get_server, require_permission
 from octop.api.routers.org_agents import router as agents_router
 from octop.api.routers.org_announcements import router as announcements_router
 from octop.api.routers.org_chart import router as org_chart_router
+from octop.api.routers.org_identity import router as identity_router
 from octop.api.routers.org_knowledge import router as knowledge_router
 from octop.api.routers.org_reflections import router as reflections_router
 from octop.api.routers.org_settings import router as settings_router
@@ -48,6 +49,7 @@ router.include_router(tasks_router)
 router.include_router(reflections_router)
 router.include_router(settings_router)
 router.include_router(agents_router)
+router.include_router(identity_router)
 
 
 class OrgModulePatch(BaseModel):

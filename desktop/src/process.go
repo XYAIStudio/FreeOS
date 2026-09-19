@@ -22,26 +22,27 @@ const defaultSidecarPort = 3780
 func hostLaunchEnv(root string, port int) map[string]string {
 	home := productHome()
 	env := map[string]string{
-		"FREEOS_HOME":          home,
-		"OCTOP_HOME":           home,
-		"OCTOP_GREEN_PACKAGES": filepath.Join(root, "packages"),
-		"PYTHONNOUSERSITE":     "1",
-		"PYTHONUTF8":           "1",
-		"PYTHONIOENCODING":     "utf-8",
-		"PYTHONPATH":           "",
-		"FREEOS_ORG_ENABLE":    "1",
-		"OCTOP_PORT":           strconv.Itoa(port),
-		"OCTOP_DESKTOP":        "1",
-		"FREEOS_DESKTOP":       "1",
+		"FREEOS_HOME":           home,
+		"OCTOP_HOME":            home,
+		"OCTOP_GREEN_PACKAGES":  filepath.Join(root, "packages"),
+		"PYTHONNOUSERSITE":      "1",
+		"PYTHONUTF8":            "1",
+		"PYTHONIOENCODING":      "utf-8",
+		"PYTHONPATH":            "",
+		"FREEOS_ORG_ENABLE":     "1",
+		"FREEOS_ORG_INTEGRATED": "1",
+		"OCTOP_PORT":            strconv.Itoa(port),
+		"OCTOP_DESKTOP":         "1",
+		"FREEOS_DESKTOP":        "1",
+	}
+	if bundle := resolveSidecarDir(root); bundle != "" {
+		env["FREEOS_OPENXYOS_HOME"] = bundle
 	}
 	if orgSidecarWanted() {
 		env["FREEOS_ORG_SIDECAR"] = "1"
 		env["FREEOS_ORG_SIDECAR_URL"] = sidecarURL()
 		env["FREEOS_ORG_SIDECAR_PORT"] = strconv.Itoa(defaultSidecarPort)
 		env["OPENXYOS_BASE_URL"] = sidecarURL()
-		if bundle := resolveSidecarDir(root); bundle != "" {
-			env["FREEOS_OPENXYOS_HOME"] = bundle
-		}
 		if install := openxyosInstallDir(); install != "" {
 			env["FREEOS_OPENXYOS_INSTALL"] = install
 		}

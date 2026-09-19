@@ -235,6 +235,8 @@ async def validate_wizard_token(
 @router.get("/setup/status", summary="Setup wizard status")
 async def status(server: Any = Depends(get_server)) -> dict[str, Any]:
     """Whether initial admin creation is still required and wizard password file state."""
+    from octop.infra.agents.permission_mode import supports_request_interrupt_override
+
     wizard_path = str(Path.home() / _wizard.WIZARD_FILE_NAME)
     password_required = _setup_password_required(server)
     um = server.user_manager
@@ -255,6 +257,7 @@ async def status(server: Any = Depends(get_server)) -> dict[str, Any]:
         "database_bound": server.database_bound,
         "desktop": is_desktop_process(),
         "has_providers": has_providers,
+        "permission_mode_overrides": supports_request_interrupt_override(),
     }
 
 

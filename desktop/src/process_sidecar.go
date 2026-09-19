@@ -26,6 +26,18 @@ func orgSidecarWanted() bool {
 	}
 }
 
+// orgRuntimeWanted controls whether the integrated organization runtime is
+// provisioned for the Python host.  This is separate from orgSidecarWanted:
+// the latter is the legacy mode where the Wails process owns Node directly.
+func orgRuntimeWanted() bool {
+	switch strings.ToLower(strings.TrimSpace(os.Getenv("FREEOS_ORG_ENABLE"))) {
+	case "0", "false", "no", "off":
+		return false
+	default:
+		return true
+	}
+}
+
 func orgSidecarDir(root string) string {
 	return filepath.Join(root, "org-sidecar")
 }
@@ -104,11 +116,6 @@ func sidecarReady(root string) bool {
 func openxyosUserWorkDir() string {
 	if v := strings.TrimSpace(os.Getenv("FREEOS_OPENXYOS_HOME")); v != "" {
 		return v
-	}
-	if runtime.GOOS == "windows" {
-		if base := strings.TrimSpace(os.Getenv("LOCALAPPDATA")); base != "" {
-			return filepath.Join(base, "FreeOS", "openxyos")
-		}
 	}
 	return filepath.Join(productHome(), "openxyos")
 }
@@ -487,7 +494,10 @@ func provisionOpenXYOS(portableRoot string, locale Locale, status func(string)) 
 	if err := os.MkdirAll(dest, 0o755); err != nil {
 		return "", err
 	}
-	for _, source := range openxyosSourceDirs(portableRoot) {
+	// Prefer an installer-provided runtime over the copy embedded in the
+	// portable host. The runtime zip is rebuilt independently and may contain
+	// newer organization UI assets than the host's recovery bundle.
+	for _, source := range openxyosSourceDirs("") {
 		if !sidecarBundleReady(source) {
 			continue
 		}
@@ -514,6 +524,18 @@ func provisionOpenXYOS(portableRoot string, locale Locale, status func(string)) 
 			return dest, nil
 		}
 	}
+	if portableRoot != "" {
+		source := orgSidecarDir(portableRoot)
+		if !sidecarBundleReady(source) {
+			// Fall through to the final diagnostic below.
+		} else if err := copyTree(source, dest); err != nil {
+			log.Printf("copy openXYOS from %s: %v", source, err)
+		} else if sidecarBundleReady(dest) {
+			_ = writeOpenXYOSReadme(dest)
+			log.Printf("openXYOS workdir ready at %s", dest)
+			return dest, nil
+		}
+	}
 	if bundle := resolveSidecarDir(portableRoot); bundle != "" {
 		_ = writeOpenXYOSReadme(bundle)
 		return bundle, nil
@@ -537,11 +559,10 @@ func openxyosSourceDirs(portableRoot string) []string {
 }
 
 func openxyosRuntimeZip() string {
-	exe, err := os.Executable()
-	if err != nil {
+	dir := installerRoot()
+	if dir == "" {
 		return ""
 	}
-	dir := filepath.Dir(exe)
 	for _, name := range []string{"openxyos-runtime.zip", "openXYOS-runtime.zip"} {
 		path := filepath.Join(dir, name)
 		if _, err := os.Stat(path); err == nil {

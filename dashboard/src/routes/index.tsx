@@ -17,7 +17,9 @@ const ModelsPage = lazy(() => import("../pages/Settings/Models"));
 // Lazy-loaded pages — Control
 const RemoteDesktopPage = lazy(() => import("../pages/Control/RemoteDesktop"));
 
-const OrganizationPage = lazy(() => import("../pages/Organization"));
+const OrganizationPage = lazy(
+  () => import("../pages/Organization/OrganizationEntry"),
+);
 const OrganizationAnnouncementsPage = lazy(
   () => import("../pages/Organization/announcements"),
 );
@@ -187,6 +189,7 @@ export const pathToKey: Record<string, string> = {
  * Pages that should fill the entire content area without padding/scroll wrapper.
  */
 export const FULLSCREEN_PATHS = new Set([
+  "/organization",
   "/workbench",
   "/workbench/terminal",
   "/workbench/browser",

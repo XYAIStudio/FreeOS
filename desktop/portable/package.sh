@@ -14,7 +14,7 @@
 #   FreeOS-<plat>/
 #     runtime/     portable CPython
 #     packages/    site-packages (uv --target, relocatable)
-#     org-sidecar/ optional Node + openXYOS (only if SHIP_OPENXYOS_RUNTIME=1)
+#     org-sidecar/ managed Node + complete openXYOS organization runtime
 #     start.sh / start.bat
 #     README.txt
 #
@@ -241,12 +241,12 @@ assemble_one() {
   cp "${TEMPLATES}/README.txt" "${staging}/README.txt"
   chmod +x "${staging}/start.sh"
 
-  # Default v0.0.2 portable zip is the Python host only. The Node/openXYOS
-  # sidecar (~500MB) is opt-in: SHIP_OPENXYOS_RUNTIME=1 or SKIP_ORG_SIDECAR=0.
-  if [[ "${SHIP_OPENXYOS_RUNTIME:-0}" == "1" ]]; then
-    SKIP_ORG_SIDECAR=0
-  elif [[ -z "${SKIP_ORG_SIDECAR:-}" ]]; then
+  # A production package always contains the organization runtime. Developers
+  # may opt out only with SHIP_OPENXYOS_RUNTIME=0 or SKIP_ORG_SIDECAR=1.
+  if [[ "${SHIP_OPENXYOS_RUNTIME:-1}" == "0" ]]; then
     SKIP_ORG_SIDECAR=1
+  elif [[ -z "${SKIP_ORG_SIDECAR:-}" ]]; then
+    SKIP_ORG_SIDECAR=0
   fi
   export SKIP_ORG_SIDECAR
   echo "[package] ${plat}: org sidecar (SKIP_ORG_SIDECAR=${SKIP_ORG_SIDECAR})" >&2

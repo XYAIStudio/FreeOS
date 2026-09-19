@@ -1,5 +1,7 @@
 # 组织模块合并计划（openXYOS → FreeOS Dashboard）
 
+> **范围已于 2026-09-19 被用户修正：** 以下 Phase 0–5 仅记录旧 Open-12 切片进度，不能作为全量融合完成结论。当前要求覆盖 openXYOS 全部已实现页面、功能和跨模块关系，含商业 App.tsx 与组织沟通能力。旧「不迁」范围限制由 [全量融合验收合同](org-full-integration.md) 取代。
+
 **状态：** Phase 0–4 已落地（#55 宿主内 Organization + Open-12 宿主 UI + `export-standalone`）。**Phase 5 默认安装器瘦身已完成**：Windows/macOS/Linux 默认包不捆绑、不解压、不自动拉起 openXYOS Node；`FREEOS_ORG_SIDECAR` / `SHIP_OPENXYOS_RUNTIME=1` 仍是可选高级路径。残留：导出站自包含 org API、可选 `packages/org-ui` 抽包。详见 [org-export.md](org-export.md)。
 **日期：** 2026-09-19
 **依据：** Phase 0 迁移图、[architecture-integration.md](architecture-integration.md)、[asset-loop.md](asset-loop.md)、[ADR 001](adr/001-single-process-model.md)、#55 宿主内 Organization

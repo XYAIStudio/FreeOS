@@ -41,15 +41,21 @@ const AssetPage = lazy(() => import("./pages/AssetPage"));
 const AssetDetailPage = lazy(() => import("./pages/AssetDetailPage"));
 const AssetCountPage = lazy(() => import("./pages/AssetCountPage"));
 const AssetDashboard = lazy(() => import("./pages/AssetDashboard"));
-const AssetVehicleExpensePage = lazy(() => import("./pages/AssetVehicleExpensePage"));
+const AssetVehicleExpensePage = lazy(
+  () => import("./pages/AssetVehicleExpensePage"),
+);
 const AssetProcurementPage = lazy(() => import("./pages/AssetProcurementPage"));
 const AnnouncementPage = lazy(() => import("./pages/AnnouncementPage"));
 const CustomerServicePage = lazy(() => import("./pages/CustomerServicePage"));
-const ElectricityMarketPage = lazy(() => import("./pages/ElectricityMarketPage"));
+const ElectricityMarketPage = lazy(
+  () => import("./pages/ElectricityMarketPage"),
+);
 const AttendancePage = lazy(() => import("./pages/AttendancePage"));
 const LeavePage = lazy(() => import("./pages/LeavePage"));
 const ExpensePage = lazy(() => import("./pages/ExpensePage"));
 const DailyReportPage = lazy(() => import("./pages/DailyReportPage"));
+const AgentStudioPage = lazy(() => import("./pages/AgentStudioPage"));
+const OpenDashboard = lazy(() => import("./pages/OpenDashboard"));
 
 const MODULE_ROUTES: Array<{ prefix: string; moduleKey: TenantModuleKey }> = [
   { prefix: "/announcements", moduleKey: "announcements" },
@@ -76,27 +82,37 @@ const MODULE_ROUTES: Array<{ prefix: string; moduleKey: TenantModuleKey }> = [
 ];
 
 function moduleForPath(pathname: string): TenantModuleKey | undefined {
-  return MODULE_ROUTES.find(route => pathname === route.prefix || pathname.startsWith(route.prefix + "/"))?.moduleKey;
+  return MODULE_ROUTES.find(
+    (route) =>
+      pathname === route.prefix || pathname.startsWith(route.prefix + "/"),
+  )?.moduleKey;
 }
 
 /** 懒加载包装器 */
 function LazyFallback() {
-  return <div className="flex items-center justify-center h-40 text-text-muted animate-[pulse_1.5s_infinite]">加载中...</div>;
+  return (
+    <div className="flex items-center justify-center h-40 text-text-muted animate-[pulse_1.5s_infinite]">
+      加载中...
+    </div>
+  );
 }
 
 export default function App() {
   const { user, loading, init } = useAuthStore();
   const { init: initTheme } = useThemeStore();
-  const modules = useModuleSettingsStore(state => state.modules);
-  const moduleTenantId = useModuleSettingsStore(state => state.tenantId);
-  const moduleError = useModuleSettingsStore(state => state.error);
-  const loadModules = useModuleSettingsStore(state => state.load);
-  const resetModules = useModuleSettingsStore(state => state.reset);
+  const modules = useModuleSettingsStore((state) => state.modules);
+  const moduleTenantId = useModuleSettingsStore((state) => state.tenantId);
+  const moduleError = useModuleSettingsStore((state) => state.error);
+  const loadModules = useModuleSettingsStore((state) => state.load);
+  const resetModules = useModuleSettingsStore((state) => state.reset);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const location = useLocation();
 
-  useEffect(() => { init(); initTheme(); }, [init, initTheme]);
+  useEffect(() => {
+    init();
+    initTheme();
+  }, [init, initTheme]);
 
   useEffect(() => {
     if (user) void loadModules();
@@ -123,7 +139,9 @@ export default function App() {
   if (loading || (user && !moduleError && moduleTenantId !== user.tenant_id)) {
     return (
       <div className="flex items-center justify-center h-screen bg-bg">
-        <div className="text-text-muted animate-[pulse_1.5s_infinite]">加载中...</div>
+        <div className="text-text-muted animate-[pulse_1.5s_infinite]">
+          加载中...
+        </div>
       </div>
     );
   }
@@ -133,7 +151,12 @@ export default function App() {
       <div className="flex flex-col items-center justify-center h-screen gap-3 bg-bg text-text">
         <p className="text-sm font-medium">模块配置加载失败</p>
         <p className="text-xs text-text-muted">{moduleError}</p>
-        <button onClick={() => void loadModules()} className="px-4 py-2 text-sm rounded bg-primary text-white">重新加载</button>
+        <button
+          onClick={() => void loadModules()}
+          className="px-4 py-2 text-sm rounded bg-primary text-white"
+        >
+          重新加载
+        </button>
       </div>
     );
   }
@@ -151,13 +174,17 @@ export default function App() {
   }
 
   const requiredModule = moduleForPath(location.pathname);
-  if (requiredModule && !modules[requiredModule]) return <Navigate to="/" replace />;
+  if (requiredModule && !modules[requiredModule])
+    return <Navigate to="/" replace />;
 
   return (
     <div className="flex h-screen overflow-hidden relative">
       {/* Mobile backdrop overlay */}
       {mobileSidebarOpen && (
-        <div className="md:hidden fixed inset-0 bg-black/50 z-40" onClick={() => setMobileSidebarOpen(false)} />
+        <div
+          className="md:hidden fixed inset-0 bg-black/50 z-40"
+          onClick={() => setMobileSidebarOpen(false)}
+        />
       )}
       <Sidebar
         collapsed={sidebarCollapsed}
@@ -166,47 +193,140 @@ export default function App() {
         onMobileClose={() => setMobileSidebarOpen(false)}
       />
       <div className="flex-1 flex flex-col min-w-0">
-        <Header onMobileMenuToggle={() => setMobileSidebarOpen(!mobileSidebarOpen)} />
-        <main className="flex-1 overflow-auto bg-bg">
+        <Header
+          onMobileMenuToggle={() => setMobileSidebarOpen(!mobileSidebarOpen)}
+        />
+        <main className="org-full-width flex-1 overflow-auto bg-bg">
           <Suspense fallback={<LazyFallback />}>
-          <Routes>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/org" element={<OrgChart />} />
-            <Route path="/employees" element={<EmployeesPage />} />
-            <Route path="/employees/:id" element={<EmployeeDetailPage />} />
-            <Route path="/chat" element={<ChatPage />} />
-            <Route path="/tasks" element={<TasksPage />} />
-            <Route path="/tasks/:id" element={<TaskDetailPage />} />
-            <Route path="/goals" element={<GoalPage />} />
-            <Route path="/budgets" element={<BudgetPage />} />
-            <Route path="/routines" element={<RoutinePage />} />
-            <Route path="/performance" element={<PerformancePage />} />
-            <Route path="/reflections" element={<ReflectionPage />} />
-            <Route path="/skills" element={<SkillsPage />} />
-            <Route path="/knowledge" element={<KnowledgePage />} />
-            <Route path="/audit" element={user.role === "super_admin" ? <Suspense fallback={<LazyFallback />}><AuditTrailPage /></Suspense> : <Navigate to="/" replace />} />
-            <Route path="/efficiency" element={<EfficiencyDashboard />} />
-            <Route path="/governance" element={user.role !== "user" ? <Suspense fallback={<LazyFallback />}><GovernancePage /></Suspense> : <Navigate to="/" replace />} />
-            <Route path="/workflows" element={<WorkflowPage />} />
-            <Route path="/announcements" element={<AnnouncementPage />} />
-            <Route path="/attendance" element={<AttendancePage />} />
-            <Route path="/leave" element={<LeavePage />} />
-            <Route path="/expense" element={<ExpensePage />} />
-            <Route path="/daily-report" element={<DailyReportPage />} />
-            <Route path="/settings" element={<SettingsPage />} />
-            <Route path="/contracts" element={<ContractPage />} />
-            <Route path="/assets" element={<Suspense fallback={<LazyFallback />}><AssetPage /></Suspense>} />
-            <Route path="/assets/count" element={<Suspense fallback={<LazyFallback />}><AssetCountPage /></Suspense>} />
-            <Route path="/assets/dashboard" element={<Suspense fallback={<LazyFallback />}><AssetDashboard /></Suspense>} />
-            <Route path="/assets/vehicles" element={<Suspense fallback={<LazyFallback />}><AssetVehicleExpensePage /></Suspense>} />
-            <Route path="/assets/procurement" element={<Suspense fallback={<LazyFallback />}><AssetProcurementPage /></Suspense>} />
-            <Route path="/assets/:id" element={<Suspense fallback={<LazyFallback />}><AssetDetailPage /></Suspense>} />
-            <Route path="/admin" element={user.role === "super_admin" ? <Suspense fallback={<LazyFallback />}><AdminPage /></Suspense> : <Navigate to="/" replace />} />
-            <Route path="/customers" element={<Suspense fallback={<LazyFallback />}><CustomerServicePage /></Suspense>} />
-            <Route path="/electricity" element={<Suspense fallback={<LazyFallback />}><ElectricityMarketPage /></Suspense>} />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
+            <Routes>
+              <Route path="/" element={<Dashboard />} />
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/workspace" element={<OpenDashboard />} />
+              <Route path="/org" element={<OrgChart />} />
+              <Route path="/employees" element={<EmployeesPage />} />
+              <Route path="/employees/:id" element={<EmployeeDetailPage />} />
+              <Route path="/chat" element={<ChatPage />} />
+              <Route path="/agents" element={<AgentStudioPage />} />
+              <Route path="/tasks" element={<TasksPage />} />
+              <Route path="/tasks/:id" element={<TaskDetailPage />} />
+              <Route path="/goals" element={<GoalPage />} />
+              <Route path="/budgets" element={<BudgetPage />} />
+              <Route path="/routines" element={<RoutinePage />} />
+              <Route path="/performance" element={<PerformancePage />} />
+              <Route path="/reflections" element={<ReflectionPage />} />
+              <Route path="/skills" element={<SkillsPage />} />
+              <Route path="/knowledge" element={<KnowledgePage />} />
+              <Route
+                path="/audit"
+                element={
+                  user.role === "super_admin" ? (
+                    <Suspense fallback={<LazyFallback />}>
+                      <AuditTrailPage />
+                    </Suspense>
+                  ) : (
+                    <Navigate to="/" replace />
+                  )
+                }
+              />
+              <Route path="/efficiency" element={<EfficiencyDashboard />} />
+              <Route
+                path="/governance"
+                element={
+                  user.role !== "user" ? (
+                    <Suspense fallback={<LazyFallback />}>
+                      <GovernancePage />
+                    </Suspense>
+                  ) : (
+                    <Navigate to="/" replace />
+                  )
+                }
+              />
+              <Route path="/workflows" element={<WorkflowPage />} />
+              <Route path="/announcements" element={<AnnouncementPage />} />
+              <Route path="/attendance" element={<AttendancePage />} />
+              <Route path="/leave" element={<LeavePage />} />
+              <Route path="/expense" element={<ExpensePage />} />
+              <Route path="/daily-report" element={<DailyReportPage />} />
+              <Route path="/settings" element={<SettingsPage />} />
+              <Route path="/contracts" element={<ContractPage />} />
+              <Route
+                path="/assets"
+                element={
+                  <Suspense fallback={<LazyFallback />}>
+                    <AssetPage />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="/assets/count"
+                element={
+                  <Suspense fallback={<LazyFallback />}>
+                    <AssetCountPage />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="/assets/dashboard"
+                element={
+                  <Suspense fallback={<LazyFallback />}>
+                    <AssetDashboard />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="/assets/vehicles"
+                element={
+                  <Suspense fallback={<LazyFallback />}>
+                    <AssetVehicleExpensePage />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="/assets/procurement"
+                element={
+                  <Suspense fallback={<LazyFallback />}>
+                    <AssetProcurementPage />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="/assets/:id"
+                element={
+                  <Suspense fallback={<LazyFallback />}>
+                    <AssetDetailPage />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="/admin"
+                element={
+                  user.role === "super_admin" ? (
+                    <Suspense fallback={<LazyFallback />}>
+                      <AdminPage />
+                    </Suspense>
+                  ) : (
+                    <Navigate to="/" replace />
+                  )
+                }
+              />
+              <Route
+                path="/customers"
+                element={
+                  <Suspense fallback={<LazyFallback />}>
+                    <CustomerServicePage />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="/electricity"
+                element={
+                  <Suspense fallback={<LazyFallback />}>
+                    <ElectricityMarketPage />
+                  </Suspense>
+                }
+              />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
           </Suspense>
         </main>
         <Footer />

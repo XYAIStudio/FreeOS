@@ -3,6 +3,8 @@
 **Status:** Accepted
 **Date:** 2026-09-19
 
+> Scope amendment (2026-09-19): the user requires full openXYOS UI/function/relationship parity, including App.tsx business modules and organizational chat capabilities. Open-12-only and permanent chat-exclusion clauses below are historical scope, superseded by [the full integration contract](../org-full-integration.md). The approved runtime topology is a FreeOS-managed bundled Node organization service with organization-owned registration and login.
+
 **Related:** [ADR 001](001-single-process-model.md), [architecture-integration.md](../architecture-integration.md), [org-merge-plan.md](../org-merge-plan.md), [asset-loop.md](../asset-loop.md), in-host Organization (#55)
 
 > Numbering note: `docs/adr/002-database-backends.md` already exists. This decision is **ADR 003**.
@@ -36,9 +38,9 @@ Phase 0 mapped the overlap. This ADR freezes the merge contract before any page 
 
 Ship **one** organization UI source and **two** deliveries:
 
-1. **Shell-agnostic `org-ui`** — pages, hooks, and an API-client factory with no dependency on Dashboard chrome, Vite root, or the openXYOS Express shell.
-2. **Thin Dashboard adapter** — mounts those pages under `/organization/...`, supplies FreeOS session + Ant Design / i18n / timezone, and talks to the host.
-3. **Export pipeline** — `freeos org export-standalone --out dist/openxyos-web` assembles the **same** pages into a standalone Vite + server artifact for customer self-host (commercial upsell).
+1. **完整组织应用为功能基线** — 保留 openXYOS 页面、路由和业务关系，构建到同域 `/organization/`。
+2. **FreeOS 为产品宿主** — 托管 Node 运行时、统一启动恢复、反向代理和组织身份校验，不复制一套精简 CRUD 页面。
+3. **独立站为同一产物的交付形态** — 客户自托管时仍使用相同组织前端与业务后端。
 
 ```
                     ┌─────────────────────────┐
@@ -56,12 +58,12 @@ Ship **one** organization UI source and **two** deliveries:
 
 | Rule | Meaning |
 |---|---|
-| Organization module is the SoT | Edit pages/contracts once; both deliveries consume them |
-| Dashboard is the primary shell | openXYOS pages are **sub-UIs**, not a second always-on system |
-| Standalone is generated | Self-host artifact is an export, not a fork |
-| One installer by default | No mandatory Node sidecar |
-| Sidecar is opt-in only | `FREEOS_ORG_SIDECAR` / `SHIP_OPENXYOS_RUNTIME` for advanced sync/compat |
-| Chat runtime stays FreeOS | Do not migrate or replace Octop agent chat with openXYOS Chat |
+| 完整组织应用为功能基线 | 所有已实现网页模块、页面内部能力与关系以其为对照 |
+| FreeOS 是产品宿主 | `/organization/` 同域交付，宿主负责生命周期、代理和商业化入口 |
+| 组织身份为唯一权威 | 注册、登录、令牌撤销和租户边界由组织服务决定 |
+| 一个安装器 | 内置受 FreeOS 管理的 Node 组织运行时 |
+| 独立站可生成 | 自托管是交付方式，不分叉功能代码 |
+| 两类对话均保留 | 组织协作聊天与 FreeOS Agent 对话分别保留并按入口使用 |
 
 Phase 2 proves the contract on **Announcements** (see [org-merge-plan.md](../org-merge-plan.md)). Later Open-12 pages follow the same seam. Full commercial `App.tsx` routes stay out of the Open-12 wave.
 

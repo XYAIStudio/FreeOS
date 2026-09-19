@@ -71,6 +71,7 @@ function addMonths(dateStr: string | null | undefined, months: number): string |
 }
 
 export function seedDatabase() {
+  if (process.env.FREEOS_ORG_INTEGRATED === "1") return;
   if (process.env.SEED_DEMO_DATA !== "true") {
     console.log("[seed] Demo data is disabled. Seeding local first-login accounts only.");
     ensureLocalBootstrap();

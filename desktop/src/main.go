@@ -9,6 +9,8 @@ import (
 	"os"
 	"os/exec"
 	"runtime"
+	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -20,6 +22,15 @@ import (
 var assets embed.FS
 
 const trayDoubleClick = 400 * time.Millisecond
+
+func webviewAcceptanceArgs() []string {
+	raw := strings.TrimSpace(os.Getenv("FREEOS_WEBVIEW_DEBUG_PORT"))
+	port, err := strconv.Atoi(raw)
+	if err != nil || port < 1024 || port > 65535 {
+		return nil
+	}
+	return []string{fmt.Sprintf("--remote-debugging-port=%d", port)}
+}
 
 // App is the Wails service bound to the shell UI.
 type App struct {
@@ -191,12 +202,12 @@ func (a *App) boot() {
 	}
 	root := portableDir()
 	openxyosReady := sidecarBundleReady(openxyosUserWorkDir())
-	if orgSidecarWanted() {
+	if orgRuntimeWanted() {
 		if _, perr := provisionOpenXYOS(root, locale, a.setStatus); perr != nil {
 			log.Printf("openXYOS provision: %v", perr)
 		}
 	} else {
-		log.Printf("in-host organization; Node sidecar skipped (set FREEOS_ORG_SIDECAR=1 to enable)")
+		log.Printf("organization runtime disabled by FREEOS_ORG_ENABLE")
 	}
 	port := chooseHostPort(s.Port)
 	if port != s.Port {
@@ -408,6 +419,7 @@ func main() {
 		Windows: application.WindowsOptions{
 			DisableQuitOnLastWindowClosed: true,
 			WebviewUserDataPath:           webviewData,
+			AdditionalBrowserArgs:         webviewAcceptanceArgs(),
 		},
 		PanicHandler: func(details *application.PanicDetails) {
 			log.Printf("panic: %+v", details)

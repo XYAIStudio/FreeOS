@@ -163,7 +163,7 @@ export default function Dashboard() {
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
             <ModuleCard
               icon={Building2} title={t("组织架构", "Organization")} path="/org"
-              color="#165DFF" bg="#E8F3FF"
+              color="#0033FF" bg="#F1F5FF"
               metrics={[
                 { label: t("部门数", "Departments"), value: m.org.departments },
                 { label: t("总员工", "Total employees"), value: m.org.totalEmployees, highlight: true },
@@ -172,7 +172,7 @@ export default function Dashboard() {
             />
             <ModuleCard
               icon={Users} title={t("员工管理", "People")} path="/employees"
-              color="#10B981" bg="#ECFDF5"
+              color="#3A5FE0" bg="#EEF2FF"
               metrics={[
                 { label: t("人类员工", "Human employees"), value: m.org.humanEmployees },
                 { label: t("AI员工", "AI employees"), value: m.org.aiEmployees },
@@ -181,7 +181,7 @@ export default function Dashboard() {
             />
             <ModuleCard
               icon={BarChart3} title={t("绩效评估", "Performance")} path="/performance"
-              color="#722ED1" bg="#F5E5FF"
+              color="#4B74FA" bg="#E8EEFF"
               metrics={[
                 { label: t("评估次数", "Reviews"), value: m.performance.reviews },
                 { label: t("均分", "Average score"), value: m.performance.avgScore + (isEnglish ? "" : "分"), highlight: true },
@@ -190,7 +190,7 @@ export default function Dashboard() {
             />
             <ModuleCard
               icon={Package} title={t("技能插件", "Skills & plugins")} path="/skills"
-              color="#FF7D00" bg="#FFF7ED"
+              color="#0F5BD8" bg="#EFF6FF"
               metrics={[
                 { label: t("技能库", "Skills"), value: m.skills.skills },
                 { label: t("插件", "Plugins"), value: m.skills.plugins },
@@ -206,7 +206,7 @@ export default function Dashboard() {
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
             <ModuleCard
               icon={ListTodo} title={t("任务管理", "Tasks")} path="/tasks"
-              color="#165DFF" bg="#E8F3FF"
+              color="#0033FF" bg="#F1F5FF"
               metrics={[
                 { label: t("待办", "To do"), value: m.tasks.todo },
                 { label: t("进行中", "In progress"), value: m.tasks.in_progress },
@@ -216,7 +216,7 @@ export default function Dashboard() {
             />
             <ModuleCard
               icon={MessageSquare} title={t("沟通协作", "Collaboration")} path="/chat"
-              color="#10B981" bg="#ECFDF5"
+              color="#3A5FE0" bg="#EEF2FF"
               metrics={[
                 { label: t("群聊", "Groups"), value: m.chat.chats },
                 { label: t("消息", "Messages"), value: fmtValue(m.chat.messages), highlight: true },
@@ -224,7 +224,7 @@ export default function Dashboard() {
             />
             <ModuleCard
               icon={Workflow} title={t("流程管理", "Workflows")} path="/workflows"
-              color="#722ED1" bg="#F5E5FF"
+              color="#4B74FA" bg="#E8EEFF"
               metrics={[
                 { label: t("流程总数", "Workflows"), value: m.workflows.total },
                 { label: t("运行中", "Active"), value: m.workflows.active, highlight: true },
@@ -232,7 +232,7 @@ export default function Dashboard() {
             />
             <ModuleCard
               icon={Target} title={t("目标管理", "Goals")} path="/goals"
-              color="#FF7D00" bg="#FFF7ED"
+              color="#0F5BD8" bg="#EFF6FF"
               metrics={[
                 { label: t("总目标", "Total goals"), value: m.goals.total },
                 { label: t("进行中", "In progress"), value: m.goals.active },
@@ -248,7 +248,7 @@ export default function Dashboard() {
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
             <ModuleCard
               icon={Landmark} title={t("资产管理", "Assets")} path="/assets"
-              color="#165DFF" bg="#E8F3FF"
+              color="#0033FF" bg="#F1F5FF"
               metrics={[
                 { label: t("总资产", "Total assets"), value: isEnglish ? `${m.assets.total} assets` : m.assets.total + "件" },
                 { label: t("在用", "In use"), value: m.assets.inUse },
@@ -259,7 +259,7 @@ export default function Dashboard() {
             />
             <ModuleCard
               icon={FileText} title={t("合同管理", "Contracts")} path="/contracts"
-              color="#10B981" bg="#ECFDF5"
+              color="#3A5FE0" bg="#EEF2FF"
               metrics={[
                 { label: t("合同总数", "Total contracts"), value: m.contracts.total },
                 { label: t("生效中", "Active"), value: m.contracts.active, highlight: true },
@@ -269,7 +269,7 @@ export default function Dashboard() {
             />
             <ModuleCard
               icon={DollarSign} title={t("预算管理", "Budgets")} path="/budgets"
-              color="#722ED1" bg="#F5E5FF"
+              color="#4B74FA" bg="#E8EEFF"
               metrics={[
                 { label: t("预算项", "Budget items"), value: m.budgets.total },
                 { label: t("总预算", "Total budget"), value: displayCurrency(m.budgets.totalAmount), highlight: true },
@@ -277,7 +277,7 @@ export default function Dashboard() {
             />
             <ModuleCard
               icon={Gauge} title={t("效能仪表板", "Efficiency")} path="/efficiency"
-              color="#FF7D00" bg="#FFF7ED"
+              color="#0F5BD8" bg="#EFF6FF"
               metrics={[
                 { label: t("例行事务", "Routines"), value: m.efficiency.routines, highlight: true },
                 { label: t("已启用", "Enabled"), value: m.efficiency.active },
@@ -293,28 +293,28 @@ export default function Dashboard() {
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
             <ModuleCard
               icon={BookOpen} title={t("知识库", "Knowledge base")} path="/knowledge"
-              color="#165DFF" bg="#E8F3FF"
+              color="#0033FF" bg="#F1F5FF"
               metrics={[
                 { label: t("知识笔记", "Knowledge notes"), value: m.knowledge.notes, highlight: true },
               ]}
             />
             <ModuleCard
               icon={Brain} title={t("反思引擎", "Reflection engine")} path="/reflections"
-              color="#10B981" bg="#ECFDF5"
+              color="#3A5FE0" bg="#EEF2FF"
               metrics={[
                 { label: t("反思记录", "Reflections"), value: m.reflections.total, highlight: true },
               ]}
             />
             <ModuleCard
               icon={Shield} title={t("治理引擎", "Governance engine")} path="/governance"
-              color="#722ED1" bg="#F5E5FF"
+              color="#4B74FA" bg="#E8EEFF"
               metrics={[
                 { label: t("治理规则", "Governance rules"), value: m.governance.rules, highlight: true },
               ]}
             />
             <ModuleCard
               icon={Search} title={t("审计追溯", "Audit trail")} path="/audit"
-              color="#FF7D00" bg="#FFF7ED"
+              color="#0F5BD8" bg="#EFF6FF"
               metrics={[
                 { label: t("审计日志", "Audit records"), value: m.audit.logs, highlight: true },
               ]}

@@ -320,6 +320,70 @@ class UserManager:
                 cached_user.display_name = display_name
             return cached_user
 
+    async def resolve_organization_user(self, *, issuer: str, profile: dict[str, Any]) -> User:
+        """Mirror an already validated organization principal; never copy passwords.
+
+        Tenant admins are ordinary host users. Only platform super admins may
+        receive the host-global admin role. Subjects include issuer and tenant.
+        """
+        subject = f"organization:{issuer}:{int(profile['tenant_id'])}:{int(profile['id'])}"
+        username = "org_" + hashlib.sha256(subject.encode()).hexdigest()[:40]
+        role = Role.ADMIN if profile.get("role") == "super_admin" else Role.USER
+        permissions = ["channels", "connectors", "skill_packages", "knowledge_bases"]
+        if profile.get("role") in {"admin", "super_admin"}:
+            permissions.extend(
+                [
+                    "providers",
+                    "ollama_models",
+                    "onnx_models",
+                    "voice",
+                    "search",
+                ]
+            )
+        display_name = str(profile.get("nickname") or profile.get("email") or username)
+        async with self._lock:
+            repo = self._services.user_repo
+            row = repo.get_by_username(username)
+            if row is None:
+                uid = repo.create(
+                    username=username,
+                    password_hash=None,
+                    role=role.value,
+                    display_name=display_name,
+                    sso_subject=subject,
+                    permissions=permissions,
+                )
+                row = repo.get(uid)
+            if row is None or row.disabled or row.sso_subject != subject or row.password_hash:
+                raise OctopError(
+                    ErrorCode.USER_DISABLED, "organization identity mapping unavailable"
+                )
+            if row.role != role.value:
+                repo.set_role(row.id, role.value)
+            if set(row.permissions) != set(permissions):
+                repo.set_permissions(row.id, permissions)
+                row = repo.get(row.id)
+                if row is None:
+                    raise OctopError(
+                        ErrorCode.USER_DISABLED,
+                        "organization identity mapping unavailable",
+                    )
+            if row.display_name != display_name:
+                repo.update_sso_profile(row.id, email=row.email, display_name=display_name)
+            user = User(
+                id=row.id,
+                username=username,
+                role=role,
+                display_name=display_name,
+                locale=normalize_locale(row.locale),
+                permissions=list(row.permissions),
+                organization_id=int(profile["tenant_id"]),
+                organization_user_id=int(profile["id"]),
+                organization_role=str(profile.get("role") or "user"),
+            )
+            self._users[username] = user
+            return user
+
     async def authenticate(self, username: str, password: str) -> User | None:
         identifier = (username or "").strip()
         if not identifier:

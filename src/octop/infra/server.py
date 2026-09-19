@@ -253,6 +253,7 @@ class OctopServer:
         self._started = False
         self._started_at: int | None = None
         self._sso_service: SsoService | None = None
+        self._organization_runtime: Any = None
 
     # Backward compat: expose user_manager directly
     @property
@@ -309,7 +310,15 @@ class OctopServer:
         self.plugin_manager.seed_bundled()
         self.plugin_manager.load_installed(install_deps=True)
         self._apply_desktop_org_defaults()
-        self._ensure_desktop_org_sidecar()
+        from octop.modules.org_os.integration import integrated_organization  # noqa: PLC0415
+
+        if integrated_organization():
+            from octop.modules.org_os.managed_runtime import ManagedOrganizationRuntime  # noqa: PLC0415, I001
+
+            self._organization_runtime = ManagedOrganizationRuntime(self.paths.root)
+            await self._organization_runtime.start()
+        else:
+            self._ensure_desktop_org_sidecar()
 
         import time  # noqa: PLC0415
 
@@ -320,7 +329,7 @@ class OctopServer:
             is_desktop_process,
         )
 
-        desktop = is_desktop_process()
+        desktop = is_desktop_process() or integrated_organization()
         if desktop and should_defer_control_plane_db(config, self.paths):
             from octop.config import DatabaseConfig  # noqa: PLC0415
             from octop.infra.db.rebind import persist_database_config  # noqa: PLC0415
@@ -343,7 +352,7 @@ class OctopServer:
         await self._boot_runtime(config)
         self._started = True
         assert self.user_manager is not None
-        if desktop and self.user_manager.count() == 0:
+        if desktop and not integrated_organization() and self.user_manager.count() == 0:
             await ensure_local_user(self, locale="zh")
             logger.info("desktop first-run: bound local SQLite and provisioned guest session")
         self._emit_wizard_password(user_count=self.user_manager.count())
@@ -542,6 +551,9 @@ class OctopServer:
         if not self._started:
             return
         try:
+            if self._organization_runtime is not None:
+                await self._organization_runtime.stop()
+                self._organization_runtime = None
             if self.app_runtime is not None:
                 rt = self.app_runtime
                 await rt.proactive_scheduler.shutdown()

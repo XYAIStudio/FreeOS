@@ -19,6 +19,9 @@ class User:
     display_name: str | None
     locale: str = "zh"
     permissions: list[str] = field(default_factory=list)
+    organization_id: int | None = None
+    organization_user_id: int | None = None
+    organization_role: str | None = None
 
     @property
     def label(self) -> str:

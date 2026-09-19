@@ -5,12 +5,14 @@ import { MemoryRouter, Route, Routes } from "react-router-dom";
 const localSession = vi.fn();
 const getAuthStatus = vi.fn();
 const me = vi.fn();
+const organizationIdentityStatus = vi.fn();
 
 vi.mock("../api/modules/auth", () => ({
   authApi: {
     localSession: (...args: unknown[]) => localSession(...args),
     getAuthStatus: (...args: unknown[]) => getAuthStatus(...args),
     me: (...args: unknown[]) => me(...args),
+    organizationIdentityStatus: (...args: unknown[]) => organizationIdentityStatus(...args),
   },
 }));
 
@@ -51,6 +53,11 @@ describe("AuthGuard local session", () => {
     localSession.mockReset();
     getAuthStatus.mockReset();
     me.mockReset();
+    organizationIdentityStatus.mockReset();
+    organizationIdentityStatus.mockResolvedValue({
+      integrated: false,
+      authority: "freeos",
+    });
   });
 
   it("opens the app without the login wall on first launch", async () => {

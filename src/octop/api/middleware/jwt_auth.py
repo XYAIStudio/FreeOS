@@ -24,6 +24,7 @@ from octop.api.deps import (
     maybe_sliding_renew_token,
 )
 from octop.infra.errors import OctopError
+from octop.modules.org_os.integration import integrated_organization, organization_user
 
 _INSTALL_ATTR = "_octop_jwt_auth_installed"
 logger = logging.getLogger(__name__)
@@ -48,7 +49,10 @@ def install(app: Any, server: Any) -> None:
             access_token=request.query_params.get("access_token"),
         )
         try:
-            request.state.octop_user = authenticate_request(request, server)
+            if integrated_organization():
+                request.state.octop_user = await organization_user(server, raw or "")
+            else:
+                request.state.octop_user = authenticate_request(request, server)
         except OctopError as exc:
             # Middleware returns directly (skips FastAPI exception handlers).
             if exc.status >= 500:
@@ -62,7 +66,7 @@ def install(app: Any, server: Any) -> None:
             return JSONResponse(status_code=exc.status, content=exc.to_envelope())
 
         response = await call_next(request)
-        if raw is not None:
+        if raw is not None and not integrated_organization():
             try:
                 renewed = maybe_sliding_renew_token(server, raw, request.state.octop_user)
             except OctopError:

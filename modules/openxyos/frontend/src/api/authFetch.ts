@@ -6,12 +6,31 @@ declare global {
   }
 }
 
-export function authFetch(url: string, options: RequestInit = {}): Promise<Response> {
+const freeosOrganization =
+  import.meta.env.VITE_FREEOS_ORG_INTEGRATED === "true";
+
+function organizationUrl(url: string): string {
+  if (!freeosOrganization || !url.startsWith("/api/")) return url;
+  const authPath = url.split("?", 1)[0];
+  if (authPath === "/api/auth/login") return "/api/org-module/identity/login";
+  if (authPath === "/api/auth/register")
+    return "/api/org-module/identity/register";
+  if (authPath === "/api/auth/refresh")
+    return "/api/org-module/identity/refresh";
+  return `/api/org-module/business${url}`;
+}
+
+export function authFetch(
+  url: string,
+  options: RequestInit = {},
+): Promise<Response> {
   const token = localStorage.getItem("token");
   const isFormData = options.body instanceof FormData;
 
   const apiBase = (typeof window !== "undefined" && window.__API_BASE__) || "";
-  const fullUrl = apiBase && !url.startsWith("http") ? apiBase + url : url;
+  const mappedUrl = organizationUrl(url);
+  const fullUrl =
+    apiBase && !mappedUrl.startsWith("http") ? apiBase + mappedUrl : mappedUrl;
 
   const headers: Record<string, string> = isFormData
     ? { ...((options.headers as Record<string, string>) || {}) }
@@ -20,7 +39,8 @@ export function authFetch(url: string, options: RequestInit = {}): Promise<Respo
         ...((options.headers as Record<string, string>) || {}),
       };
 
-  headers["Accept-Language"] = localStorage.getItem("openxyos.locale") === "en" ? "en" : "zh-CN";
+  headers["Accept-Language"] =
+    localStorage.getItem("openxyos.locale") === "en" ? "en" : "zh-CN";
   if (token) headers["Authorization"] = `Bearer ${token}`;
   return fetch(fullUrl, { ...options, headers, credentials: "include" });
 }

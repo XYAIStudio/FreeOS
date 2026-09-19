@@ -153,7 +153,7 @@ export class LTSProvider implements AuthProvider {
           email: decoded.email,
           nickname: principal.nickname,
           role: principal.role,
-          tenant_id: decoded.tenant_id,
+          tenant_id: principal.tenant_id,
           department_id: decoded.department_id,
           token_version: principal.token_version,
         },

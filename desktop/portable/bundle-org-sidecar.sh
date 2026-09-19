@@ -146,8 +146,8 @@ PY
     cd "$work"
     echo "[org-sidecar] npm ci" >&2
     npm ci --no-audit --no-fund
-    echo "[org-sidecar] npm run build" >&2
-    npm run build
+    echo "[org-sidecar] npm run build:freeos" >&2
+    npm run build:freeos
     echo "[org-sidecar] prune to production + tsx (sidecar starts via node --import tsx)" >&2
     npm prune --omit=dev --no-audit --no-fund
     npm install tsx@4.19.2 --omit=dev --no-audit --no-fund --no-package-lock

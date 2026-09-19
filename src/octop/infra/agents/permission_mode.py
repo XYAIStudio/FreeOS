@@ -8,6 +8,7 @@ high-risk / sandbox-boundary actions can still warn or ask.
 
 from __future__ import annotations
 
+from dataclasses import fields
 from typing import Any, Literal
 
 ChatPermissionMode = Literal["default", "auto", "full"]
@@ -25,6 +26,13 @@ def normalize_permission_mode(raw: Any) -> ChatPermissionMode | None:
     if isinstance(raw, str):
         return _MODE_BY_VALUE.get(raw)
     return None
+
+
+def supports_request_interrupt_override() -> bool:
+    """Check the actual installed invocation contract, not a version string."""
+    from harness_agent.request import ChatRequest
+
+    return any(field.name == "interrupt_on" for field in fields(ChatRequest))
 
 
 def permission_mode_security_override(mode: ChatPermissionMode) -> dict[str, Any] | None:

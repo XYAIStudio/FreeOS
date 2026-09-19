@@ -116,16 +116,16 @@ opt into `SHIP_OPENXYOS_RUNTIME=1`):
 make -f desktop/portable/Makefile green
 ```
 
-The Node sidecar is optional. Default green zips skip it (`SKIP_ORG_SIDECAR=1`).
-Package it only with `SHIP_OPENXYOS_RUNTIME=1` (or `SKIP_ORG_SIDECAR=0`) when
-you want advanced export/sync. Desktop/runtime never requires it for
-Organization.
+The managed Node sidecar is included in the 0.0.3 desktop release so the
+integrated Organization workspace works in an offline installation. Set
+`SKIP_ORG_SIDECAR=1` only for an explicitly slim, host-only development build.
 
 CI: `.github/workflows/octop-desktop.yml` (**name:** FreeOS Desktop Package)
 builds native platform/arch variants. `v*` tags and `workflow_dispatch`
 (platforms=`all`) run all six; pull requests that touch `desktop/` or
 `modules/openxyos/` build `darwin-*` and `windows-*` (amd64 + arm64). Each job
-creates the slim green zip (Python host only) and packages the Wails app.
+creates the green zip with the managed Organization runtime and packages the
+Wails app.
 
 This cloud/Linux VM cannot emit a Windows `.exe`. The job that does is
 **FreeOS Desktop Package** → matrix `windows-amd64` / `windows-arm64`

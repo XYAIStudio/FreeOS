@@ -346,7 +346,16 @@ function UserManagementTab() {
       <div>
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-sm font-semibold text-text">{t("👤 人类员工", "👤 Human employees")} ({humans.length})</h2>
-          <a href="/employees" className="text-xs text-primary hover:underline">+ {t("新增员工", "Add employee")}</a>
+          <a
+            href={
+              import.meta.env.VITE_FREEOS_ORG_INTEGRATED === "true"
+                ? "/organization-app/employees"
+                : "/employees"
+            }
+            className="text-xs text-primary hover:underline"
+          >
+            + {t("新增员工", "Add employee")}
+          </a>
         </div>
         <div className="bg-bg-card border border-border rounded overflow-hidden">
           <table className="w-full">

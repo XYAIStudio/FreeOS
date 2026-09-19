@@ -17,6 +17,7 @@ TIMEOUT_NETWORK = f"{_PREFIX}stream_errors.timeout_network"
 PROVIDER_UNAVAILABLE = f"{_PREFIX}stream_errors.provider_unavailable"
 MODEL_CALL_FAILED = f"{_PREFIX}stream_errors.model_call_failed"
 LOCAL_RUNTIME = f"{_PREFIX}stream_errors.local_runtime"
+RUNTIME_INCOMPATIBLE = f"{_PREFIX}stream_errors.runtime_incompatible"
 
 __all__ = [
     "AUTH",
@@ -58,6 +59,9 @@ def classify_stream_error_message(message: str) -> str | None:
         return None
     lower = msg.lower()
     compact = lower.replace("_", "").replace(" ", "")
+
+    if "chatrequest" in compact and "unexpected keyword argument" in lower:
+        return RUNTIME_INCOMPATIBLE
 
     if (
         "streamchunktimeouterror" in compact
@@ -174,6 +178,15 @@ def stream_error_message(error: str | None, locale: str | Locale = "en") -> str:
 
 def format_stream_error(exc: BaseException | str, locale: str | Locale = "en") -> str:
     """Classify an exception or raw message; fall back to a generic localized message."""
+    if isinstance(exc, BaseException):
+        seen: set[int] = set()
+        cause: BaseException | None = exc
+        while cause is not None and id(cause) not in seen:
+            seen.add(id(cause))
+            key = classify_stream_error_message(str(cause))
+            if key and key != MODEL_CALL_FAILED:
+                return tr(key.removeprefix(_PREFIX), locale)
+            cause = cause.__cause__ or cause.__context__
     message = str(exc) if isinstance(exc, BaseException) else exc
     classified = classify_stream_error_message(message)
     if classified is not None:

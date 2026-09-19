@@ -39,12 +39,11 @@ def _ensure_utf8_stdio(
 
 
 def _get_version() -> str:
-    try:
-        from importlib.metadata import version as pkg_version
+    # Distribution metadata can refer to a stale editable install while a
+    # desktop build runs directly from the source tree.
+    from octop import __version__
 
-        return pkg_version("octop")
-    except Exception:
-        return "unknown"
+    return __version__
 
 
 def _invoked_as_freeos() -> bool:

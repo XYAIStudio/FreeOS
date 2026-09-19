@@ -34,7 +34,7 @@ import {
   octopThreadsApi,
   type OctopThread,
 } from "../../api/modules/octopThreads";
-import { useAgent, selectEnabledExperts } from "../../context/AgentContext";
+import { useAgent } from "../../context/AgentContext";
 import { onSessionEvent } from "../Chat/hooks/chatStore";
 import { expertMentionToken } from "../Chat/utils/expertMention";
 import {
@@ -80,10 +80,7 @@ export default function ProjectsPage() {
   const rawView = searchParams.get("view");
   const view: WorkspaceView =
     rawView === "projects" || rawView === "tasks" ? rawView : "conversations";
-  const enabledExperts = useMemo(
-    () => selectEnabledExperts(agents, activeAgentId, { pinActive: false }),
-    [agents, activeAgentId],
-  );
+  const conversationAgents = agents;
 
   const setView = (next: WorkspaceView) => {
     const params = new URLSearchParams(searchParams);
@@ -107,12 +104,12 @@ export default function ProjectsPage() {
   };
 
   const loadThreads = useCallback(async () => {
-    if (enabledExperts.length === 0) {
+    if (conversationAgents.length === 0) {
       setThreads([]);
       return;
     }
     const rows = await Promise.all(
-      enabledExperts.map(async (agent) => {
+      conversationAgents.map(async (agent) => {
         try {
           const list = await octopThreadsApi.list(agent.agent_id, 40);
           return list.map((item) => ({
@@ -127,7 +124,7 @@ export default function ProjectsPage() {
     );
     setThreads(rows.flat());
     setGroups(loadGroupChats());
-  }, [enabledExperts]);
+  }, [conversationAgents]);
 
   useEffect(() => {
     void loadProjects();
@@ -246,14 +243,31 @@ export default function ProjectsPage() {
     navigate(`/chat/${item.agentId}/${item.id}`);
   };
 
-  const startNewConversation = () => {
-    const agentId = activeAgentId || enabledExperts[0]?.agent_id;
+  const startNewConversation = async () => {
+    const activeExists = conversationAgents.some(
+      (agent) => agent.agent_id === activeAgentId,
+    );
+    const agentId = activeExists
+      ? activeAgentId
+      : conversationAgents[0]?.agent_id;
     if (!agentId) {
-      navigate("/chat");
+      message.info(t("projects.noAvailableExpert"));
       return;
     }
-    setActiveAgent(agentId);
-    navigate(`/chat/${agentId}`, { state: { newChat: true } });
+    try {
+      const created = await octopThreadsApi.create(agentId);
+      setActiveAgent(agentId);
+      await loadThreads();
+      navigate(`/chat/${agentId}/${created.thread_id}`, {
+        state: { newChat: true },
+      });
+    } catch (err) {
+      message.error(
+        err instanceof Error
+          ? err.message
+          : t("projects.conversationCreateFailed"),
+      );
+    }
   };
 
   const createGroup = async () => {
@@ -264,7 +278,9 @@ export default function ProjectsPage() {
       return;
     }
     const named = members
-      .map((id) => enabledExperts.find((agent) => agent.agent_id === id)?.name)
+      .map(
+        (id) => conversationAgents.find((agent) => agent.agent_id === id)?.name,
+      )
       .filter((name): name is string => Boolean(name));
     try {
       const { record, created } = await openGroupChat({
@@ -329,7 +345,7 @@ export default function ProjectsPage() {
             <>
               <Button
                 icon={<MessageSquarePlus size={14} />}
-                onClick={startNewConversation}
+                onClick={() => void startNewConversation()}
               >
                 {t("nav.newConversation")}
               </Button>
@@ -425,7 +441,11 @@ export default function ProjectsPage() {
           renderItem={(item) => (
             <List.Item
               actions={[
-                <Button key="chat" type="link" onClick={startNewConversation}>
+                <Button
+                  key="chat"
+                  type="link"
+                  onClick={() => void startNewConversation()}
+                >
                   {t("nav.newConversation")}
                 </Button>,
                 <Button
@@ -521,7 +541,7 @@ export default function ProjectsPage() {
           >
             <Checkbox.Group
               style={{ display: "flex", flexDirection: "column", gap: 8 }}
-              options={enabledExperts.map((agent) => ({
+              options={conversationAgents.map((agent) => ({
                 label: agent.name,
                 value: agent.agent_id,
               }))}

@@ -114,6 +114,17 @@
 - First launch on desktop / loopback opens a local guest session — no login wall. Register or sign in only when saving, exporting, or publishing to an account.
 - Login, splash, favicons, and desktop icons use the circular XYAI mark. Product version remains 0.0.1.
 
+## [0.0.3] - 2026-09-20
+
+### 新增
+
+- 交付完整 Organization 集成：FreeOS 统一身份与权限桥接、宿主入口及 openXYOS 管理运行时随桌面安装包分发，离线环境也可使用组织工作台。
+- 群聊中对专家的明确 `@` 提及由后端确定性路由到实际专家调用；讨论和头脑风暴场景不再让本地小模型自行决定工具调用。
+
+### 修复
+
+- 统一源代码、CLI 与桌面安装包的 `0.0.3` 版本标识；Windows 打包工作流校验并携带 Organization sidecar。
+
 ## [0.0.2] - 2026-09-18
 
 当前 FreeOS 产品版本，与 0.0.1 边车时代 Windows 安装包区分。`1.0.0` 对本阶段过早；后续按 [semver](https://semver.org/spec/v2.0.0.html) 随产品成熟度递增。规范来源是 `pyproject.toml`（同步 `octop.__version__`、桌面 / NSIS / FnOS 回退值，以及 CI 产物名）。发布工作流需要标签时使用 `v0.0.2`；不重写已推送的历史 tag。

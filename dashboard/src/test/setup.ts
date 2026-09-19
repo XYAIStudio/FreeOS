@@ -59,6 +59,24 @@ afterEach(() => {
 });
 
 if (typeof window !== "undefined") {
+  // PDF.js creates a DOMMatrix while its module is evaluated. jsdom does not
+  // provide one, even for tests that only import a component which references
+  // the PDF viewer. A minimal 2D identity matrix is sufficient for unit tests.
+  if (!("DOMMatrix" in window)) {
+    class _DOMMatrix {
+      a = 1;
+      b = 0;
+      c = 0;
+      d = 1;
+      e = 0;
+      f = 0;
+    }
+    (window as unknown as { DOMMatrix: typeof _DOMMatrix }).DOMMatrix =
+      _DOMMatrix;
+    (globalThis as unknown as { DOMMatrix: typeof _DOMMatrix }).DOMMatrix =
+      _DOMMatrix;
+  }
+
   // matchMedia
   if (!window.matchMedia) {
     Object.defineProperty(window, "matchMedia", {

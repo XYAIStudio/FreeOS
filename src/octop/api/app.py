@@ -273,6 +273,12 @@ def build_app(server: OctopServer) -> FastAPI:
         ],
     )
 
+    # Must precede the dashboard catch-all.  This keeps the original complete
+    # organization SPA under the FreeOS origin, including deep-linked modules.
+    from octop.api.routers.org_ui import router as organization_ui_router
+
+    app.include_router(organization_ui_router)
+
     if enable_mobile:
         _mount_routers(
             app,

@@ -2,12 +2,12 @@
 @source "./";
 
 :root {
-  --primary: #10B981;
-  --primary-hover: #059669;
-  --primary-light: #D1FAE5;
-  --primary-bg: #ECFDF5;
-  --accent: #722ED1;
-  --accent-light: #F5E5FF;
+  --primary: #0033FF;
+  --primary-hover: #002EE6;
+  --primary-light: #DCE5FF;
+  --primary-bg: #F1F5FF;
+  --accent: #4B74FA;
+  --accent-light: #E8EEFF;
   --success: #10B981;
   --warning: #FF7D00;
   --danger: #F53F3F;
@@ -49,12 +49,12 @@
 }
 
 @theme {
-  --color-primary: #10B981;
-  --color-primary-hover: #059669;
-  --color-primary-light: #D1FAE5;
-  --color-primary-bg: #ECFDF5;
-  --color-accent: #722ED1;
-  --color-accent-light: #F5E5FF;
+  --color-primary: #0033FF;
+  --color-primary-hover: #002EE6;
+  --color-primary-light: #DCE5FF;
+  --color-primary-bg: #F1F5FF;
+  --color-accent: #4B74FA;
+  --color-accent-light: #E8EEFF;
   --color-success: #10B981;
   --color-warning: #FF7D00;
   --color-danger: #F53F3F;
@@ -193,7 +193,7 @@ input, button, select, textarea {
 /* 修复旧浏览器 CSS 变量降级 */
 @supports not (color: var(--primary)) {
   :root {
-    --primary: #10B981;
+    --primary: #0033FF;
     --bg: #F5F5F5;
     --bg-card: #FFFFFF;
     --text: #1D2129;
@@ -216,3 +216,11 @@ input, button, select, textarea {
 .language-select:after{position:absolute;right:10px;top:50%;width:6px;height:6px;margin-top:-4px;border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;content:"";pointer-events:none;transform:rotate(45deg)}
 .language-select select{width:100%;height:34px;padding:0 25px 0 10px;border:0;outline:0;color:inherit;background:transparent;cursor:pointer;font:600 12px/1 Inter,"PingFang SC","Microsoft YaHei",sans-serif}
 .language-select:focus-within{outline:2px solid rgba(85,199,255,.64);outline-offset:2px;border-radius:6px}
+/* In the FreeOS desktop shell, each organization page fills the space to the
+   right of the original openXYOS sidebar. Dialogs keep their own widths. */
+.org-full-width > [class*="max-w-"] {
+  width: 100%;
+  max-width: none;
+  margin-left: 0;
+  margin-right: 0;
+}

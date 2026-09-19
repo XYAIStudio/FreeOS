@@ -14,7 +14,11 @@ interface AuthState {
   token: string | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string, nickname?: string) => Promise<void>;
+  register: (
+    email: string,
+    password: string,
+    nickname?: string,
+  ) => Promise<void>;
   logout: () => void;
   init: () => void;
 }
@@ -24,53 +28,80 @@ export const useAuthStore = create<AuthState>((set) => ({
   token: localStorage.getItem("token"),
   loading: true,
 
-      login: async (email, password) => {
-        const res = await authFetch("/api/auth/login", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, password }),
-        });
-        const body = await res.text();
-        if (!body) throw new Error("后端服务未连接，请先启动 API 服务");
-        let data: any;
-        try { data = JSON.parse(body); } catch { throw new Error("后端返回了无法识别的响应"); }
-        if (!res.ok || !data.success) throw new Error(data.error || "登录失败");
-        const token = data.data.tokens?.accessToken || data.data.token;
-        localStorage.setItem("token", token);
-        localStorage.setItem("user", JSON.stringify(data.data.user));
-        set({ user: data.data.user, token });
-        // 记录登录事件
-        authFetch("/api/admin/visitor-log", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ event_type: "login", user_id: data.data.user.id, tenant_id: data.data.user.tenant_id }),
-        }).catch(() => {});
-      },
+  login: async (email, password) => {
+    const res = await authFetch("/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+    });
+    const body = await res.text();
+    if (!body) throw new Error("后端服务未连接，请先启动 API 服务");
+    let data: any;
+    try {
+      data = JSON.parse(body);
+    } catch {
+      throw new Error("后端返回了无法识别的响应");
+    }
+    if (!res.ok || !data.success) throw new Error(data.error || "登录失败");
+    const token = data.data.tokens?.accessToken || data.data.token;
+    localStorage.setItem("token", token);
+    if (import.meta.env.VITE_FREEOS_ORG_INTEGRATED === "true") {
+      localStorage.setItem("auth_token", token);
+    }
+    localStorage.setItem("user", JSON.stringify(data.data.user));
+    set({ user: data.data.user, token });
+    // 记录登录事件
+    authFetch("/api/admin/visitor-log", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        event_type: "login",
+        user_id: data.data.user.id,
+        tenant_id: data.data.user.tenant_id,
+      }),
+    }).catch(() => {});
+  },
 
-      register: async (email, password, nickname) => {
-        const res = await authFetch("/api/auth/register", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, password, nickname }),
-        });
-        const body = await res.text();
-        if (!body) throw new Error("后端服务未连接，请先启动 API 服务");
-        let data: any;
-        try { data = JSON.parse(body); } catch { throw new Error("后端返回了无法识别的响应"); }
-        if (!res.ok || !data.success) throw new Error(data.error || "登录失败");
-        localStorage.setItem("token", data.data.token);
-        localStorage.setItem("user", JSON.stringify(data.data.user));
-        set({ user: data.data.user, token: data.data.token });
-        // 记录注册事件
-        authFetch("/api/admin/visitor-log", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ event_type: "register", user_id: data.data.user.id, tenant_id: data.data.user.tenant_id }),
-        }).catch(() => {});
-      },
+  register: async (email, password, nickname) => {
+    const res = await authFetch("/api/auth/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password, nickname }),
+    });
+    const body = await res.text();
+    if (!body) throw new Error("后端服务未连接，请先启动 API 服务");
+    let data: any;
+    try {
+      data = JSON.parse(body);
+    } catch {
+      throw new Error("后端返回了无法识别的响应");
+    }
+    if (!res.ok || !data.success) throw new Error(data.error || "登录失败");
+    const token = data.data.tokens?.accessToken || data.data.token;
+    if (!token) throw new Error("注册成功但未收到登录令牌");
+    localStorage.setItem("token", token);
+    if (import.meta.env.VITE_FREEOS_ORG_INTEGRATED === "true") {
+      localStorage.setItem("auth_token", token);
+    }
+    localStorage.setItem("user", JSON.stringify(data.data.user));
+    set({ user: data.data.user, token });
+    // 记录注册事件
+    authFetch("/api/admin/visitor-log", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        event_type: "register",
+        user_id: data.data.user.id,
+        tenant_id: data.data.user.tenant_id,
+      }),
+    }).catch(() => {});
+  },
 
   logout: () => {
     localStorage.removeItem("token");
+    if (import.meta.env.VITE_FREEOS_ORG_INTEGRATED === "true") {
+      localStorage.removeItem("auth_token");
+    }
     localStorage.removeItem("user");
     set({ user: null, token: null });
   },

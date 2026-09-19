@@ -11,7 +11,7 @@ info:
   description: "FreeOS desktop — Python host with in-host organization"
   copyright: "(c) 2026, XYAI Studio"
   comments: "Wails v3 + green portable. Node sidecar optional via FREEOS_ORG_SIDECAR=1."
-  version: "0.0.2"
+  version: "0.0.3"
 
 dev_mode:
   root_path: .

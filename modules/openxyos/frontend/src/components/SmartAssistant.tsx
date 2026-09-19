@@ -1,12 +1,17 @@
 import { useState, useEffect, useRef } from "react";
 import { MessageCircle, X, Send } from "lucide-react";
+import { authFetch } from "../api/authFetch";
 
 // 生成会话级唯一 ID（页面存活期间保持不变）
 function getSessionId(): string {
   const key = "__xyos_assistant_sid";
   let sid = sessionStorage.getItem(key);
   if (!sid) {
-    sid = "asst_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 8);
+    sid =
+      "asst_" +
+      Date.now().toString(36) +
+      "_" +
+      Math.random().toString(36).slice(2, 8);
     sessionStorage.setItem(key, sid);
   }
   return sid;
@@ -17,7 +22,9 @@ const SESSION_ID = getSessionId();
 /** 右下角智能助手悬浮按钮 + 对话浮窗 */
 export default function SmartAssistant() {
   const [open, setOpen] = useState(false);
-  const [messages, setMessages] = useState<{ role: "user" | "bot"; text: string }[]>([
+  const [messages, setMessages] = useState<
+    { role: "user" | "bot"; text: string }[]
+  >([
     { role: "bot", text: "您好！我是雄元智脑智能助手小雄，有什么可以帮您的？" },
   ]);
   const [input, setInput] = useState("");
@@ -27,7 +34,7 @@ export default function SmartAssistant() {
   useEffect(() => {
     if (!open && messages.length > 1 && !closeReported.current) {
       closeReported.current = true;
-      fetch("/api/assistant/close", {
+      authFetch("/api/assistant/close", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ messages, session_id: SESSION_ID }),
@@ -43,23 +50,28 @@ export default function SmartAssistant() {
     const q = input.trim();
     if (!q) return;
     const userMsg = { role: "user" as const, text: q };
-    setMessages(prev => [...prev, userMsg]);
+    setMessages((prev) => [...prev, userMsg]);
     setInput("");
 
     // 构建历史（最近10条）
-    const history = messages.slice(-10).map(m => ({ role: m.role, content: m.text }));
+    const history = messages
+      .slice(-10)
+      .map((m) => ({ role: m.role, content: m.text }));
 
     try {
-      const res = await fetch("/api/assistant/chat", {
+      const res = await authFetch("/api/assistant/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message: q, history, session_id: SESSION_ID }),
       });
       const data = await res.json();
       const reply = data?.reply || "抱歉，AI服务暂时不可用，请稍后再试。";
-      setMessages(prev => [...prev, { role: "bot", text: reply }]);
+      setMessages((prev) => [...prev, { role: "bot", text: reply }]);
     } catch {
-      setMessages(prev => [...prev, { role: "bot", text: "网络异常，请稍后重试。" }]);
+      setMessages((prev) => [
+        ...prev,
+        { role: "bot", text: "网络异常，请稍后重试。" },
+      ]);
     }
   }
 
@@ -93,12 +105,17 @@ export default function SmartAssistant() {
           {/* 消息区 */}
           <div className="flex-1 overflow-y-auto p-4 space-y-3 text-sm">
             {messages.map((m, i) => (
-              <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
-                <div className={`max-w-[80%] px-4 py-2 rounded-xl text-sm leading-relaxed whitespace-pre-wrap break-words ${
-                  m.role === "user"
-                    ? "bg-primary text-white rounded-br-sm"
-                    : "bg-bg-muted text-text rounded-bl-sm"
-                }`}>
+              <div
+                key={i}
+                className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}
+              >
+                <div
+                  className={`max-w-[80%] px-4 py-2 rounded-xl text-sm leading-relaxed whitespace-pre-wrap break-words ${
+                    m.role === "user"
+                      ? "bg-primary text-white rounded-br-sm"
+                      : "bg-bg-muted text-text rounded-bl-sm"
+                  }`}
+                >
                   {m.text}
                 </div>
               </div>
@@ -109,8 +126,8 @@ export default function SmartAssistant() {
           <div className="border-t border-border p-3 flex gap-2">
             <input
               value={input}
-              onChange={e => setInput(e.target.value)}
-              onKeyDown={e => e.key === "Enter" && send()}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && send()}
               placeholder="输入问题..."
               className="flex-1 px-3 py-2 rounded-lg border border-border bg-bg text-sm focus:outline-none focus:ring-1 focus:ring-primary"
             />
