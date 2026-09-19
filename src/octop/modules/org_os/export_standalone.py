@@ -138,7 +138,7 @@ def _modules_manifest() -> dict[str, Any]:
             },
         },
         "not_exported": ["chat"],
-        "todo": "Phase 5: slim default installer (sidecar stays opt-in); self-contained org API",
+        "todo": "self-contained org API (export still proxies to FREEOS_UPSTREAM); optional packages/org-ui extraction",
     }
 
 
@@ -181,5 +181,5 @@ def write_standalone_scaffold(out_dir: Path) -> dict[str, Any]:
         "files": files,
         "auth": "standalone local JWT (openxyos.standalone.jwt)",
         "api": "proxies /api to FREEOS_UPSTREAM (interim); self-contained server is the target end-state",
-        "todo": "Phase 5: slim default installer (sidecar remains opt-in)",
+        "todo": "self-contained org API; optional packages/org-ui extraction",
     }

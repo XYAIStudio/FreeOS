@@ -55,8 +55,8 @@ def org_enable() -> None:
     """Turn on the organization module (does not start the sidecar)."""
     service = _service()
     service.set_enabled(True)
-    click.echo("Organization module enabled.")
-    click.echo(f"Start the sidecar with: {service.status().start_command}")
+    click.echo("Organization module enabled (in-host).")
+    click.echo("Node sidecar is optional. Set FREEOS_ORG_SIDECAR=1 only for advanced export/sync.")
 
 
 @org.command("disable")
@@ -386,7 +386,7 @@ def export_standalone(out_dir: Path) -> None:
 
     Copies dashboard/src/org-ui plus a Vite + Docker shell (local JWT
     IdentityBridge, /api proxy to a FreeOS host). Chat is not exported.
-    Sidecar stays in the default installer (Phase 5).
+    Default FreeOS installers stay zero-Node; this export is opt-in.
     """
     from octop.modules.org_os.export_standalone import write_standalone_scaffold
 

@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 """Build openxyos-runtime.zip from a green portable zip or staging tree.
 
-The Windows NSIS installer copies this zip into $INSTDIR and expands it to
-$INSTDIR\\openxyos so the finish log shows FE+BE, not only FreeOS.exe.
+Opt-in only. Default Windows/macOS/Linux packages do not call this script
+and do not ship the zip. Pass SHIP_OPENXYOS_RUNTIME=1 to stage it; NSIS
+then copies the zip into $INSTDIR but still does not extract or start Node
+unless FREEOS_ORG_SIDECAR=1 later.
 """
 
 from __future__ import annotations

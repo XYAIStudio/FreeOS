@@ -142,15 +142,15 @@ RequestExecutionLevel "${REQUEST_EXECUTION_LEVEL}"
     ${EndIf}
 !macroend
 
-# Organization is in-host. Default Setup copies no openxyos-runtime.zip.
-# Opt-in builds (-DOPENXYOS_RUNTIME_ZIP_PRESENT) copy the zip + scripts
-# but still never extract, start Node, wait for livez, or Abort.
+# Organization is in-host. Default Setup copies no openxyos-runtime.zip
+# and does not create $INSTDIR\openxyos. Opt-in builds
+# (-DOPENXYOS_RUNTIME_ZIP_PRESENT) copy the zip + scripts but still
+# never extract, start Node, wait for livez, or Abort.
 # Do not FileWrite goto-label .cmd scripts here. Do not register logon autostart.
 !macro wails.provisionOpenXYOS
     !insertmacro wails.userLocalAppData
     SetDetailsPrint both
     DetailPrint "$(OPENXYOS_WORKDIR)"
-    CreateDirectory "$INSTDIR\openxyos"
     !ifdef OPENXYOS_RUNTIME_ZIP_PRESENT
         !if /FileExists "${OPENXYOS_RUNTIME_ZIP}"
             DetailPrint "$(OPENXYOS_COPY_ZIP)"
@@ -159,6 +159,7 @@ RequestExecutionLevel "${REQUEST_EXECUTION_LEVEL}"
             File "provision-openxyos.cmd"
             File "start-sidecar.ps1"
             File "start-sidecar.cmd"
+            CreateDirectory "$INSTDIR\openxyos"
             DetailPrint "$(OPENXYOS_OPTIONAL_SKIP)"
         !else
             !error "OPENXYOS_RUNTIME_ZIP_PRESENT is set but ${OPENXYOS_RUNTIME_ZIP} is missing"

@@ -13,7 +13,8 @@ FreeOS/Octop remains the execution runtime.
 
 - [ADR 001](adr/001-single-process-model.md) — single process, no external queue
 - [ADR 003](adr/003-org-ui-single-source-dual-delivery.md) — org-ui single source, dual delivery (Accepted)
-- [org-merge-plan.md](org-merge-plan.md) — Phases 0–5; Phase 3 in progress (org chart / employees / skills / governance / knowledge / tasks / reflections / settings / agents)
+- [org-merge-plan.md](org-merge-plan.md) — Phases 0–5; Phase 5 default installer is zero-Node (sidecar opt-in)
+- [org-export.md](org-export.md) — standalone commercial Organization site (`freeos org export-standalone`)
 - [asset-loop.md](asset-loop.md) — operator self-growth loop
 - [ADR index](adr/)
 

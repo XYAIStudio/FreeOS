@@ -122,6 +122,7 @@ The TypeScript sidecar under `modules/openxyos/` is optional.
 | CLI | `uv run freeos org enable` · `uv run freeos org status` · `uv run freeos org loop run` |
 | Plugin | Admin → Plugins → **Organization OS** (`org-os`) |
 | API | `PATCH /api/org-module` with `{ "enabled": true }` |
+| Standalone commercial site | `uv run freeos org export-standalone --out dist/openxyos-web` — see [docs/org-export.md](docs/org-export.md) |
 
 Optional Node sidecar (export/sync/advanced deploy only):
 

@@ -1,5 +1,8 @@
 # =============================================================================
-# Octop — Docker Compose
+# FreeOS / Octop — Docker Compose (single Python process)
+#
+# One service. No Node / openXYOS sidecar. Organization is in-host.
+# Product home name is FREEOS_HOME; OCTOP_* and ~/.octop remain aliases.
 #
 # 用法（在仓库根目录执行）:
 #   docker compose -f docker/docker-compose.yml up -d

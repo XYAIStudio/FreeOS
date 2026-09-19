@@ -94,4 +94,4 @@ Phase 2 proves the contract on **Announcements** (see [org-merge-plan.md](../org
 
 ## Follow-through
 
-Implementation sequencing, overlap matrix, package layout, API ownership, and Phase 2 acceptance criteria live in [org-merge-plan.md](../org-merge-plan.md). This ADR does not move pages or change the installer.
+Implementation sequencing, overlap matrix, package layout, API ownership, and Phase 2–5 status live in [org-merge-plan.md](../org-merge-plan.md). Phase 5 default installer is **zero-Node**; standalone commercial deploy is [org-export.md](../org-export.md), not a second always-on runtime.

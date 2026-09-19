@@ -8,7 +8,8 @@
 
 ### 新增
 
-- Organization Phase 4（独立站导出起步）：`freeos org export-standalone --out <dir>` 从 `dashboard/src/org-ui` 生成可运行的 Vite 包（OpenApp 风格路由、本地 JWT IdentityBridge `openxyos.standalone.jwt`、登录页、Docker / docker-compose、`server/proxy.mjs` 把 `/api` 反代到 FreeOS `FREEOS_UPSTREAM`）。Chat 不导出。默认安装器与 sidecar 不变（Phase 5）。说明见 `docs/org-export.md`。
+- Organization Phase 5（默认安装器瘦身）：Windows/macOS/Linux 默认包装与 Docker Compose 保持 **单进程 FreeOS + 宿主内 Organization**，不捆绑、不解压、不自动拉起 openXYOS Node。`FREEOS_ORG_SIDECAR=1` 与 `SHIP_OPENXYOS_RUNTIME=1` 仍是可选高级路径。文档对齐 #55 / ADR 001 / ADR 003 / `docs/org-export.md`。`modules/openxyos` 保留给导出与开发，不是默认运行时。
+- Organization Phase 4（独立站导出起步）：`freeos org export-standalone --out <dir>` 从 `dashboard/src/org-ui` 生成可运行的 Vite 包（OpenApp 风格路由、本地 JWT IdentityBridge `openxyos.standalone.jwt`、登录页、Docker / docker-compose、`server/proxy.mjs` 把 `/api` 反代到 FreeOS `FREEOS_UPSTREAM`）。Chat 不导出。默认安装器零 Node（Phase 5）。说明见 `docs/org-export.md`。
 - Organization Phase 3（工作台总览切片，Open-12 收口）：宿主内薄 Workspace / OpenDashboard。Dashboard `/organization/workspace` 使用共享 `dashboard/src/org-ui` 的 `WorkspacePage`。数据复用已有 `GET /api/org-module/overview`，链到已迁的公告 / 架构 / 员工 / 技能 / 智能体 / 任务 / 知识 / 反思 / 治理 / 设置。**不是**第二套控制面（assemble / pack / loop 仍在 `/organization`）。**Chat 永久不迁。** `freeos org export-standalone` 同时列出 Workspace。Phase 3 Open-12 宿主 UI 完成，下一步 Phase 4 导出。
 - Organization Phase 3（智能体切片）：宿主内 Agent Studio / 智能体定制。Dashboard `/organization/agents` 使用共享 `dashboard/src/org-ui` 的 `AgentsPage`。列表走 `GET /api/org-module/agents`；编译 / 生命周期 / 注册复用已有 `POST /api/org-module/blueprints/compile`、`/employees/transition`、`/employees/spawn`（`{FREEOS_HOME}/tenants/<id>/employees/`）。**不是** FreeOS 个性化智能体编辑器，也不是 Chat，也不依赖未挂载的 sidecar `/api/agent-studio/*`。注册后的同事出现在 Experts。`freeos org export-standalone` 同时列出 Agents。未迁：Chat、资料上传、人才市场。
 - Organization Phase 3（设置切片）：宿主内 Organization Settings。Dashboard `/organization/settings` 使用共享 `dashboard/src/org-ui` 的 `SettingsPage`。本页只编辑 `org_os` 目录模块开关（复用 `GET/PUT /api/org-module/modules`）与组织本地偏好（`GET /api/org-module/settings` · `PUT /api/org-module/prefs`，`{FREEOS_HOME}/org-os/prefs.json`）。**不是** FreeOS 系统设置：大模型密钥、用户、时区仍链到 `/system-settings`。没有边车，也不复制 sidecar 的 AI/用户/数据库页。`freeos org export-standalone` 同时列出 Settings。未迁：Chat、边车系统设置。
@@ -22,6 +23,7 @@
 
 ### 修复
 
+> 下面若干「启动即拉起本机 openXYOS」条目记录的是 0.0.1 边车时代问题。默认路径已被 [0.0.2] 与本文件 Unreleased 的 Phase 5 取代：安装与首屏不再捆绑或自动拉起 Node。
 
 - Windows 安装预配不再把 Node 工作目录选到残留的嵌套 `openxyos\\openxyos`：顶层已有 `backend-dist/server.js` 与 `dist/index.html` 时必须用 live 根。嵌套 cwd 会让 `node backend-dist/server.js` 立刻退出且 stdout/stderr 为空，安装空等 90s 后以退出码 12 失败。`start-sidecar.ps1` / 预配 / 桌面 Go / Python 启动路径统一按此选择 cwd；每次启动截断 `start.log`；Shell.Application 若未刷新日志则改走 explorer / Start-Process，Node fail-fast 不再伪装成 livez 超时。
 - Windows 安装详情不再把 openXYOS 预配的 UTF-8 Node/PowerShell 控制台（`[Error] POST /api/auth`、`[seed]`、中文 Server/WebSocket 状态）按系统 ANSI/GBK 打成乱码。NSIS 只用 `nsExec::Exec` 等退出码，详情页只显示本地化步骤结果；完整日志写入 `%LOCALAPPDATA%\\FreeOS\\openxyos\\provision.log` / `start.log`（UTF-8）。解压前停止并等待旧的 FreeOS openXYOS Node 退出；livez 通过即成功，不把启动期 auth 日志当失败。

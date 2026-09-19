@@ -2,7 +2,13 @@
 
 ---
 
-本目录包含 Octop 的 Docker 构建与部署相关文件。
+本目录包含 Octop / FreeOS 的 Docker 构建与部署相关文件。Compose **只有一个
+Python 进程**，没有 Node / openXYOS 边车。Organization 在宿主内运行
+（`/api/org-module/*`）。
+
+**目录命名：** 产品名是 `FREEOS_HOME`。本镜像与 Compose 仍用 `OCTOP_*` 和
+`~/.octop` 作为兼容别名（`HOME=/data` → `/data/.octop`）。需要显式路径时
+设置 `FREEOS_HOME`（或遗留的 `OCTOP_HOME`）；应用优先读 `FREEOS_HOME`。
 
 ### 文件说明
 
@@ -57,6 +63,8 @@ bash docker/docker_build.sh
 | 变量 | 默认值 | 说明 |
 |------|--------|------|
 | `HOME` | `/data` | 必须为 `/data`，数据目录映射到 `~/.octop` |
+| `FREEOS_HOME` | _(未设置)_ | 产品家目录。设置后优先于 `OCTOP_HOME` / `~/.octop` |
+| `OCTOP_HOME` | _(未设置)_ | 同一家目录的遗留别名 |
 | `OCTOP_PORT` | `8088` | HTTP 服务端口 |
 | `OCTOP_DEFAULT_PASSWORD` | _(未设置)_ | 首次管理员密码（≥8 位，字母+数字）。未设置时自动生成随机密码并写入 `credential.txt` |
 | `OCTOP_ADMIN_USERNAME` | `admin` | 首次管理员用户名 |

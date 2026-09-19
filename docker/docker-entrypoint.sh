@@ -4,6 +4,8 @@
 #
 # 环境变量:
 #   HOME                      — 必须为 /data，使 ~/.octop 映射到数据卷
+#   FREEOS_HOME               — 产品家目录（可选；应用优先于 OCTOP_HOME）
+#   OCTOP_HOME                — 遗留别名。入口脚本仍用 ~/.octop 做首次 init
 #   OCTOP_DEFAULT_PASSWORD    — 首次管理员密码（须 ≥8 位且含字母和数字；
 #                               不设置则自动生成随机密码，凭据写入
 #                               /data/.octop/credential.txt）

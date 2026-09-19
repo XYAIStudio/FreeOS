@@ -6,8 +6,8 @@ Windows end-user product: **download the NSIS `.exe` → install → open FreeOS
 
 | Path | Role |
 |------|------|
-| [`portable/`](portable/) | Green zip packaging (CPython + host wheel + Node/openXYOS sidecar) |
-| [`src/`](src/) | Wails v3 shell: extract zip, start host + sidecar, tray/settings |
+| [`portable/`](portable/) | Green zip packaging (CPython + host wheel; Node/openXYOS sidecar opt-in) |
+| [`src/`](src/) | Wails v3 shell: extract zip, start host (sidecar only if `FREEOS_ORG_SIDECAR=1`), tray/settings |
 | [`package-release.sh`](package-release.sh) | Native end-to-end portable + Wails release build |
 
 ## Data directory
@@ -109,21 +109,23 @@ On first open the shell:
 
 ## Build green zip
 
-From repo root (needs Node 20+ so openXYOS can be built into the zip):
+From repo root (Node 20+ is only required to rebuild the dashboard or to
+opt into `SHIP_OPENXYOS_RUNTIME=1`):
 
 ```bash
 make -f desktop/portable/Makefile green
 ```
 
-The Node sidecar is optional. Package it with the green zip when you want
-advanced export/sync; skip it with `SKIP_ORG_SIDECAR=1`. Desktop/runtime
-never requires it for Organization.
+The Node sidecar is optional. Default green zips skip it (`SKIP_ORG_SIDECAR=1`).
+Package it only with `SHIP_OPENXYOS_RUNTIME=1` (or `SKIP_ORG_SIDECAR=0`) when
+you want advanced export/sync. Desktop/runtime never requires it for
+Organization.
 
 CI: `.github/workflows/octop-desktop.yml` (**name:** FreeOS Desktop Package)
 builds native platform/arch variants. `v*` tags and `workflow_dispatch`
 (platforms=`all`) run all six; pull requests that touch `desktop/` or
 `modules/openxyos/` build `darwin-*` and `windows-*` (amd64 + arm64). Each job
-creates the green zip (including the sidecar) and packages the Wails app.
+creates the slim green zip (Python host only) and packages the Wails app.
 
 This cloud/Linux VM cannot emit a Windows `.exe`. The job that does is
 **FreeOS Desktop Package** → matrix `windows-amd64` / `windows-arm64`
@@ -132,8 +134,9 @@ This cloud/Linux VM cannot emit a Windows `.exe`. The job that does is
 ## Build a complete desktop release
 
 Run the end-to-end script on the matching native host. It builds the Dashboard,
-creates and verifies the portable runtime (with openXYOS), embeds it into Wails,
-and produces the final native package:
+creates and verifies the portable Python host (Node/openXYOS only if
+`SHIP_OPENXYOS_RUNTIME=1`), embeds it into Wails, and produces the final
+native package:
 
 ```bash
 desktop/package-release.sh
