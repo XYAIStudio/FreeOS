@@ -1,10 +1,6 @@
 import { useState } from "react";
 import { Button, Form, Input, Typography } from "antd";
-import {
-  createLocalJwtBridge,
-  sessionFromLoginUser,
-  type LocalJwtBridge,
-} from "org-ui";
+import { sessionFromLoginUser, type LocalJwtBridge } from "org-ui";
 import styles from "./LoginPage.module.css";
 
 export function LoginPage(props: {

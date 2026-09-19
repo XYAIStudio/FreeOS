@@ -107,9 +107,10 @@ export function createLocalJwtBridge(opts?: {
       return readSession(storage);
     },
     authHeaders() {
+      const headers: Record<string, string> = {};
       const token = storage.getItem(STANDALONE_TOKEN_KEY) || "";
-      if (!token) return {};
-      return { Authorization: `Bearer ${token}` };
+      if (token) headers.Authorization = `Bearer ${token}`;
+      return headers;
     },
     setSession(token, session) {
       storage.setItem(STANDALONE_TOKEN_KEY, token);
