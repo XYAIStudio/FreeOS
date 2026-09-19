@@ -379,16 +379,14 @@ def assets_apply(pack_dir: Path | None, tenant_id: str, base_url: str) -> None:
     "out_dir",
     type=click.Path(path_type=Path),
     required=True,
-    help="Output directory for the standalone web scaffold.",
+    help="Output directory for the standalone Organization web package.",
 )
 def export_standalone(out_dir: Path) -> None:
-    """Scaffold a standalone Organization web from shared org-ui (Phase 3).
+    """Export a runnable standalone Organization web from shared org-ui.
 
-    Writes the shared module list and an App.tsx that imports AnnouncementPage,
-    OrgChartPage, EmployeesPage, SkillsPage, GovernancePage, KnowledgePage,
-    TasksPage, ReflectionsPage, SettingsPage, AgentsPage, and WorkspacePage.
-    Chat is not exported. Full Vite + Node packaging is Phase 5
-    (TODO in the generated README).
+    Copies dashboard/src/org-ui plus a Vite + Docker shell (local JWT
+    IdentityBridge, /api proxy to a FreeOS host). Chat is not exported.
+    Sidecar stays in the default installer (Phase 5).
     """
     from octop.modules.org_os.export_standalone import write_standalone_scaffold
 

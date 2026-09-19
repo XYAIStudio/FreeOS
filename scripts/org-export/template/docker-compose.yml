@@ -1,0 +1,12 @@
+# Interim commercial path: SPA + reverse proxy to a FreeOS host.
+# Target end-state: this package ships a self-contained org-module API
+# (no FreeOS process required). See README.md.
+services:
+  openxyos-web:
+    build: .
+    ports:
+      - "3780:80"
+    environment:
+      FREEOS_UPSTREAM: ${FREEOS_UPSTREAM:-http://host.docker.internal:8088}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"

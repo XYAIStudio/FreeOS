@@ -1,4 +1,4 @@
-"""``freeos org export-standalone`` writes the shared org-ui seam."""
+"""``freeos org export-standalone`` writes a runnable org-ui package."""
 
 from __future__ import annotations
 
@@ -10,12 +10,16 @@ from click.testing import CliRunner
 from octop.cli.main import cli
 
 
-def test_export_standalone_lists_shared_org_ui_modules(tmp_path: Path) -> None:
+def _export(tmp_path: Path) -> tuple[Path, dict[str, object]]:
     out = tmp_path / "openxyos-web"
     runner = CliRunner()
     result = runner.invoke(cli, ["org", "export-standalone", "--out", str(out)])
     assert result.exit_code == 0, result.output
-    payload = json.loads(result.output)
+    return out, json.loads(result.output)
+
+
+def test_export_standalone_lists_shared_org_ui_modules(tmp_path: Path) -> None:
+    out, payload = _export(tmp_path)
     assert payload["modules"] == [
         "announcements",
         "organization",
@@ -29,6 +33,8 @@ def test_export_standalone_lists_shared_org_ui_modules(tmp_path: Path) -> None:
         "agents",
         "workspace",
     ]
+    assert payload["auth"] == "standalone local JWT (openxyos.standalone.jwt)"
+    assert "FREEOS_UPSTREAM" in str(payload["api"])
     modules = json.loads((out / "src" / "modules.json").read_text(encoding="utf-8"))
     assert modules["shared_org_ui_modules"] == [
         "announcements",
@@ -43,6 +49,8 @@ def test_export_standalone_lists_shared_org_ui_modules(tmp_path: Path) -> None:
         "agents",
         "workspace",
     ]
+    assert modules["not_exported"] == ["chat"]
+    assert modules["identity"]["standalone"] == "local JWT (openxyos.standalone.jwt)"
     assert modules["pages"]["announcements"]["component"] == "AnnouncementPage"
     assert modules["pages"]["announcements"]["embedded_route"] == "/organization/announcements"
     assert modules["pages"]["organization"]["component"] == "OrgChartPage"
@@ -97,9 +105,11 @@ def test_export_standalone_lists_shared_org_ui_modules(tmp_path: Path) -> None:
     assert "SettingsPage" in app
     assert "AgentsPage" in app
     assert "WorkspacePage" in app
+    assert "createLocalJwtBridge" in app
     assert 'from "org-ui"' in app
+    assert 'path="/chat"' in app
+    assert "HostDeepLinkPage" in app
     readme = (out / "README.md").read_text(encoding="utf-8")
-    assert "Phase 5" in readme
     assert "AnnouncementPage" in readme
     assert "OrgChartPage" in readme
     assert "EmployeesPage" in readme
@@ -112,3 +122,38 @@ def test_export_standalone_lists_shared_org_ui_modules(tmp_path: Path) -> None:
     assert "AgentsPage" in readme
     assert "WorkspacePage" in readme
     assert "Chat is **not** migrated" in readme
+    assert "openxyos.standalone.jwt" in readme
+    assert "docker compose" in readme
+    assert "FREEOS_UPSTREAM" in readme
+
+
+def test_export_standalone_is_runnable_vite_package(tmp_path: Path) -> None:
+    out, _payload = _export(tmp_path)
+    package = json.loads((out / "package.json").read_text(encoding="utf-8"))
+    assert package["scripts"]["dev"] == "vite"
+    assert "vite build" in package["scripts"]["build"]
+    assert package["scripts"]["start"] == "node server/proxy.mjs"
+    vite = (out / "vite.config.ts").read_text(encoding="utf-8")
+    assert 'alias: {\n        "org-ui"' in vite or '"org-ui"' in vite
+    assert "FREEOS_UPSTREAM" in vite
+    assert (out / "Dockerfile").is_file()
+    compose = (out / "docker-compose.yml").read_text(encoding="utf-8")
+    assert "FREEOS_UPSTREAM" in compose
+    assert "3780:80" in compose
+    nginx = (out / "nginx.conf.template").read_text(encoding="utf-8")
+    assert "${FREEOS_UPSTREAM}" in nginx
+    proxy = (out / "server" / "proxy.mjs").read_text(encoding="utf-8")
+    assert "FREEOS_UPSTREAM" in proxy
+    assert "/api" in proxy
+    login = (out / "src" / "auth" / "LoginPage.tsx").read_text(encoding="utf-8")
+    assert "/auth/login" in login
+    assert "openxyos.standalone.jwt" in login or "setSession" in login
+    assert (out / "src" / "org-ui" / "index.ts").is_file()
+    assert (out / "src" / "org-ui" / "bridges" / "localJwt.ts").is_file()
+    assert (out / "src" / "org-ui" / "pages" / "workspace" / "WorkspacePage.tsx").is_file()
+    assert (out / "src" / "org-ui" / "pages" / "announcements" / "AnnouncementPage.tsx").is_file()
+    copied_tests = list((out / "src" / "org-ui").rglob("*.test.tsx"))
+    assert copied_tests == []
+    env_example = (out / ".env.example").read_text(encoding="utf-8")
+    assert "VITE_API_BASE=/api" in env_example
+    assert "FREEOS_UPSTREAM" in env_example

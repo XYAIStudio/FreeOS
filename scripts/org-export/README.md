@@ -1,59 +1,45 @@
-# Organization standalone export (Phase 3 skeleton)
+# Organization standalone export (Phase 4)
 
-`freeos org export-standalone --out dist/openxyos-web` writes a scaffold that
-**imports the same org-ui pages** Dashboard mounts under `/organization/...`.
+`freeos org export-standalone --out dist/openxyos-web` copies this
+`template/` plus `dashboard/src/org-ui` into a **runnable** Vite package.
 
-Phase 3 includes **Announcements**, **Org chart**, **Employees**, **Skills**,
-**Governance**, **Knowledge**, **Tasks**, **Reflections**, **Settings**,
-and **Agents**:
+OpenApp-like routes: `/app`, `/announcements`, `/org`, `/employees`,
+`/skills`, `/agents`, `/tasks`, `/knowledge`, `/reflections`,
+`/governance`, `/settings`. Chat is **not** exported.
 
 | Delivery | Route | Component |
 |---|---|---|
-| Dashboard | `/organization/announcements` | `dashboard/src/org-ui` → `AnnouncementPage` |
-| Standalone (this export) | `/announcements` | same import |
-| Dashboard | `/organization/org` | `dashboard/src/org-ui` → `OrgChartPage` |
-| Standalone (this export) | `/org` | same import |
-| Dashboard | `/organization/employees` | `dashboard/src/org-ui` → `EmployeesPage` |
-| Dashboard | `/organization/employees/:id` | `dashboard/src/org-ui` → `EmployeeDetailPage` |
-| Standalone (this export) | `/employees` | same import |
-| Dashboard | `/organization/skills` | `dashboard/src/org-ui` → `SkillsPage` |
-| Standalone (this export) | `/skills` | same import |
-| Dashboard | `/organization/governance` | `dashboard/src/org-ui` → `GovernancePage` |
-| Standalone (this export) | `/governance` | same import |
-| Dashboard | `/organization/knowledge` | `dashboard/src/org-ui` → `KnowledgePage` |
-| Standalone (this export) | `/knowledge` | same import |
-| Dashboard | `/organization/tasks` | `dashboard/src/org-ui` → `TasksPage` |
-| Dashboard | `/organization/tasks/:id` | `dashboard/src/org-ui` → `TaskDetailPage` |
-| Standalone (this export) | `/tasks` | same import |
-| Dashboard | `/organization/reflections` | `dashboard/src/org-ui` → `ReflectionsPage` |
-| Standalone (this export) | `/reflections` | same import |
-| Dashboard | `/organization/settings` | `dashboard/src/org-ui` → `SettingsPage` |
-| Standalone (this export) | `/settings` | same import |
-| Dashboard | `/organization/agents` | `dashboard/src/org-ui` → `AgentsPage` |
-| Standalone (this export) | `/agents` | same import |
+| Dashboard | `/organization/workspace` | `WorkspacePage` |
+| Standalone | `/app` | same |
+| Dashboard | `/organization/announcements` | `AnnouncementPage` |
+| Standalone | `/announcements` | same |
+| Dashboard | `/organization/org` | `OrgChartPage` |
+| Standalone | `/org` | same |
+| Dashboard | `/organization/employees` | `EmployeesPage` / `EmployeeDetailPage` |
+| Standalone | `/employees` | same |
+| Dashboard | `/organization/skills` | `SkillsPage` |
+| Standalone | `/skills` | same |
+| Dashboard | `/organization/agents` | `AgentsPage` |
+| Standalone | `/agents` | same |
+| Dashboard | `/organization/tasks` | `TasksPage` / `TaskDetailPage` |
+| Standalone | `/tasks` | same |
+| Dashboard | `/organization/knowledge` | `KnowledgePage` |
+| Standalone | `/knowledge` | same |
+| Dashboard | `/organization/reflections` | `ReflectionsPage` |
+| Standalone | `/reflections` | same |
+| Dashboard | `/organization/governance` | `GovernancePage` |
+| Standalone | `/governance` | same |
+| Dashboard | `/organization/settings` | `SettingsPage` |
+| Standalone | `/settings` | same |
 
-Directory employees share `{FREEOS_HOME}/org/org_chart.sqlite` with the org
-chart. Organization skills live under `{FREEOS_HOME}/org-skills/` (skill_bridge).
-Governance pauses/audit live under `{FREEOS_HOME}/governance/`.
-Organization Knowledge lists host FreeOS knowledge bases (same rows as
-`/knowledge-bases`); it does not clone the sidecar notes/files DB.
-Organization Tasks live in `{FREEOS_HOME}/org/tasks.sqlite` — not Octop cron
-and not agent/project chat.
-Organization Reflections live in `{FREEOS_HOME}/org/reflections.sqlite` —
-lessons learned, not Chat and not a second skill runtime.
-Organization Settings are org-module only: catalog toggles and
-`{FREEOS_HOME}/org-os/prefs.json`. They do **not** duplicate FreeOS
-system settings (LLM keys, users, timezone).
-Organization Agents compile `openxyos.agent-blueprint.v1` into host
-lifecycle colleagues. This is **not** the FreeOS personalization editor,
-Chat runtime, or sidecar `/api/agent-studio/*`.
-Do not copy the pages into a second tree.
+Identity: standalone `createLocalJwtBridge` (`openxyos.standalone.jwt`),
+not the embedded FreeOS Dashboard session.
 
-## Phase 5 TODO
+Interim API: SPA + proxy to a FreeOS host (`FREEOS_UPSTREAM`).
+Target end-state: self-contained server in the export (see
+[docs/org-export.md](../../docs/org-export.md)).
 
-- Full Vite + minimal server packaging
-- Local JWT IdentityBridge for customer self-host
-- Remaining Open-12 pages after they land in `org-ui`
+## Phase 5 (deferred)
+
+- Slim the default installer (sidecar remains opt-in here)
 - Optional `packages/org-ui` extraction if the Dashboard Vite graph must be left behind
-
-Default FreeOS installers stay **zero-Node**. This export is an explicit operator action.

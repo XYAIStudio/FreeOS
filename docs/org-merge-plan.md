@@ -1,6 +1,6 @@
 # 组织模块合并计划（openXYOS → FreeOS Dashboard）
 
-**状态：** Phase 3 Open-12 宿主 UI **已完成**（Chat 永久不迁，属明确非目标）。已落地：工作台总览、组织架构、员工目录、技能、治理 UI、知识、任务、反思、设置与智能体（`/organization/workspace` + `/organization/org` + `/organization/employees` + `/organization/skills` + `/organization/governance` + `/organization/knowledge` + `/organization/tasks` + `/organization/reflections` + `/organization/settings` + `/organization/agents` + `org-ui` WorkspacePage / OrgChartPage / EmployeesPage / SkillsPage / GovernancePage / KnowledgePage / TasksPage / ReflectionsPage / SettingsPage / AgentsPage + export-standalone 模块列表）。**下一步：Phase 4 导出与 IdentityBridge。**
+**状态：** Phase 3 Open-12 宿主 UI **已完成**（Chat 永久不迁）。Phase 4 独立站导出 **已起步**：`freeos org export-standalone` 产出可运行 Vite + Docker 包（共享 `org-ui` + 本地 JWT IdentityBridge + 代理到宿主 `/api/org-module`）。自包含 org API 与默认安装器瘦身仍是 Phase 5。详见 [org-export.md](org-export.md)。
 **日期：** 2026-09-19
 **依据：** Phase 0 迁移图、[architecture-integration.md](architecture-integration.md)、[asset-loop.md](asset-loop.md)、[ADR 001](adr/001-single-process-model.md)、#55 宿主内 Organization
 
@@ -26,8 +26,8 @@ Phase 1 冻结了合同。Phase 2（通知公告）与 Phase 3 Open-12 宿主页
 | **1** 合同冻结 | ADR + 本计划：单源双交付、包布局、API 归属、IdentityBridge、Phase 2 验收 | **本文** |
 | **2** 垂直切片 | **通知公告 Announcements** 按合同落地（Dashboard 路由 + 可导出同一页面） | **已完成** |
 | **3** Open-12 其余页 | 工作台、组织架构、员工、技能、智能体、任务、知识、反思、治理 UI、设置 | **已完成（Chat 除外）**：架构 / 员工 / 技能 / 治理 / 知识 / 任务 / 反思 / 设置 / 智能体 / 薄 Workspace overview 已迁。**Chat 永久不迁** |
-| **4** 身份与 CRUD | 已迁页面走 IdentityBridge；业务 CRUD 按切片迁入宿主；未迁路由仍可代理到可选 sidecar | 与 2–3 交叉推进 |
-| **5** 导出与安装器 | `freeos org export-standalone` 产出独立站；默认安装器保持零 Node | 未开始 |
+| **4** 身份与导出 | 已迁页面走 IdentityBridge；`export-standalone` 产出可运行独立站（Vite SPA + 本地 JWT + 代理到宿主 org-module API） | **进行中**：可运行包已落地；自包含 Node API 仍是目标终态 |
+| **5** 安装器瘦身 | 默认安装器去掉 sidecar / 保持零 Node；可选 `packages/org-ui` 抽取 | **未开始**（明确推迟；sidecar 仍可选） |
 
 Phase 0 已落地、Phase 1 **只冻结合同**。Phase 2 起才允许搬页面。
 
@@ -95,13 +95,11 @@ scripts/org-export/                   # 独立 Vite + 最小 server，import 同
 
 后续若导出必须脱离 Dashboard Vite 图，再升为 `packages/org-ui` + `packages/org-contract`。**不要**在 Phase 2 为了洁癖先拆包。
 
-命令草图（Phase 5，本文不实现）：
-
 ```bash
 uv run freeos org export-standalone --out dist/openxyos-web
 ```
 
-导出物是可部署的独立 Web（自带或可接客户的 openXYOS 后端），**不是** 再维护一份 `AnnouncementPage.tsx`。
+导出物是可部署的独立 Web（Vite SPA + Docker；过渡期代理到 FreeOS `/api/org-module`），**不是** 再维护一份 `AnnouncementPage.tsx`。客户说明见 [org-export.md](org-export.md)。
 
 ---
 
@@ -183,7 +181,7 @@ org-ui  →  IdentityBridge.getSession()
 1. 壳无关组件：`dashboard/src/org-ui/pages/announcements`，数据经 `createOrgApiClient`。
 2. Dashboard 子路由：`/organization/announcements`（工作台 path tabs + 入口卡）。
 3. 宿主 API：`/api/org-module/announcements*`，SQLite 在 `{FREEOS_HOME}/org/announcements.sqlite`；嵌入模式打宿主 JWT，不打 `:3780`。
-4. 导出骨架：`freeos org export-standalone --out …` 写出共享模块列表 + 导入同一 `AnnouncementPage` 的 `App.tsx`（完整 Vite/Node 打包仍是 Phase 5 TODO）。
+4. 导出骨架：`freeos org export-standalone --out …` 写出共享模块列表 + 导入同一 `AnnouncementPage` 的 `App.tsx`。Phase 4 已把该骨架做成可运行 Vite/Docker 包（见下方）。
 
 ### 验收标准
 
@@ -519,6 +517,28 @@ Phase 3 Open-12 宿主 UI 至此收口。下一步是 Phase 4 导出与 Identity
 
 ---
 
+## Phase 4 进度：独立站导出（本波）
+
+按 ADR 003 把骨架导出做成 **客户能解开就跑** 的包。不搬安装器、不删 sidecar。
+
+### 已落地
+
+1. `freeos org export-standalone --out <dir>` 复制 `scripts/org-export/template/` + `dashboard/src/org-ui`（不含测试）。
+2. 独立壳：Vite、OpenApp 风格路由、登录页、`createLocalJwtBridge`（`openxyos.standalone.jwt`，与 Dashboard `auth_token` 分离）。
+3. 过渡 API：同源 `/api`，由 Vite / `server/proxy.mjs` / nginx 反代到 `FREEOS_UPSTREAM`（FreeOS `/api/org-module/*` + `/api/auth/login`）。
+4. 部署物：`Dockerfile`、`docker-compose.yml`、导出目录 `README.md`、仓库 [org-export.md](org-export.md)。
+5. Chat 仍不导出；`/chat`、`/experts`、`/system-settings` 为深链说明页。
+
+### 本阶段明确推迟（Phase 5）
+
+| 推迟项 | 原因 |
+|---|---|
+| 从默认安装器摘掉 sidecar | 用户明确本波不做；`FREEOS_ORG_SIDECAR` 仍可选 |
+| 自包含 org-module Node/Fastify 服务 | 过渡期复用宿主 BFF；`server/proxy.mjs` 是占位 |
+| `packages/org-ui` 抽包 | 导出已拷贝 org-ui；不必先拆 monorepo |
+
+---
+
 ## 明确非目标
 
 | 非目标 | 说明 |
@@ -537,6 +557,7 @@ Phase 3 Open-12 宿主 UI 至此收口。下一步是 Phase 4 导出与 Identity
 
 ## 相关文档
 
+- [独立站导出说明](org-export.md)
 - [ADR 003 — 单源双交付](adr/003-org-ui-single-source-dual-delivery.md)
 - [FreeOS × openXYOS 集成架构](architecture-integration.md)
 - [自增长 loop](asset-loop.md)
