@@ -2,8 +2,8 @@
 
 Full Vite + Node server packaging is Phase 5. This writes a snapshot that
 lists the shared org-ui modules and points at the same AnnouncementPage,
-OrgChartPage, EmployeesPage, SkillsPage, and GovernancePage sources
-Dashboard mounts under ``/organization/...``.
+OrgChartPage, EmployeesPage, SkillsPage, GovernancePage, and KnowledgePage
+sources Dashboard mounts under ``/organization/...``.
 """
 
 from __future__ import annotations
@@ -29,6 +29,7 @@ Dashboard and this export consume the **same** org-ui pages:
 | employees | `/organization/employees` | `/employees` | `dashboard/src/org-ui` → `EmployeesPage` / `EmployeeDetailPage` |
 | skills | `/organization/skills` | `/skills` | `dashboard/src/org-ui` → `SkillsPage` |
 | governance | `/organization/governance` | `/governance` | `dashboard/src/org-ui` → `GovernancePage` |
+| knowledge | `/organization/knowledge` | `/knowledge` | `dashboard/src/org-ui` → `KnowledgePage` |
 
 Do **not** copy those pages into a second tree. Edit `dashboard/src/org-ui`.
 
@@ -37,6 +38,8 @@ chart. Host lifecycle colleagues stay on `GET /api/org-module/employees`.
 Governance pauses and audit stay on `{FREEOS_HOME}/governance/`.
 Organization skills stay on `{FREEOS_HOME}/org-skills/` (skill_bridge).
 Host Agent Skills remain FreeOS skill packages — not a second runtime.
+Organization Knowledge lists the same FreeOS knowledge bases Chat retrieves
+from. It does not clone the openXYOS sidecar notes/files DB.
 
 ## Phase 3 vs Phase 5
 
@@ -44,7 +47,7 @@ Phase 3 (this scaffold):
 
 - Shared module list (`src/modules.json`)
 - Thin `src/App.tsx` that imports `AnnouncementPage`, `OrgChartPage`,
-  `EmployeesPage`, `SkillsPage`, and `GovernancePage`
+  `EmployeesPage`, `SkillsPage`, `GovernancePage`, and `KnowledgePage`
 - Documents IdentityBridge: embedded mode uses FreeOS JWT; standalone uses local JWT
 
 Phase 5 (TODO — not implemented here):
@@ -69,6 +72,7 @@ import {
   EmployeeDetailPage,
   EmployeesPage,
   GovernancePage,
+  KnowledgePage,
   OrgChartPage,
   SHARED_ORG_UI_MODULES,
   SkillsPage,
@@ -78,6 +82,7 @@ import type {
   OrgChartClient,
   OrgEmployeesClient,
   OrgGovernanceClient,
+  OrgKnowledgeClient,
   OrgSession,
   OrgSkillsClient,
 } from "org-ui";
@@ -86,7 +91,7 @@ import type {
  * Standalone shell stub. Phase 5 wires a real IdentityBridge + local JWT.
  * Page components are the same ones Dashboard mounts at
  * /organization/announcements, /organization/org, /organization/employees,
- * /organization/skills, and /organization/governance.
+ * /organization/skills, /organization/governance, and /organization/knowledge.
  */
 const session: OrgSession = {
   userId: 0,
@@ -101,6 +106,7 @@ export default function App(props: {
   employeesClient: OrgEmployeesClient;
   skillsClient: OrgSkillsClient;
   governanceClient: OrgGovernanceClient;
+  knowledgeClient: OrgKnowledgeClient;
   locale?: "zh" | "en";
 }) {
   return (
@@ -142,6 +148,12 @@ export default function App(props: {
         locale={props.locale ?? "en"}
         modules={SHARED_ORG_UI_MODULES}
       />
+      <KnowledgePage
+        client={props.knowledgeClient}
+        session={session}
+        locale={props.locale ?? "en"}
+        modules={SHARED_ORG_UI_MODULES}
+      />
     </>
   );
 }
@@ -154,7 +166,7 @@ _PACKAGE_JSON = {
     "description": (
         "Standalone Organization web export skeleton. "
         "Pages come from dashboard/src/org-ui "
-        "(Phase 3: Announcements + Org chart + Employees + Skills + Governance). "
+        "(Phase 3: Announcements + Org chart + Employees + Skills + Governance + Knowledge). "
         "Full Node packaging is Phase 5."
     ),
     "type": "module",
@@ -213,6 +225,13 @@ def write_standalone_scaffold(out_dir: Path) -> dict[str, Any]:
                 "standalone_route": "/governance",
                 "api": "/api/org-module/governance",
                 "store": "{FREEOS_HOME}/governance",
+            },
+            "knowledge": {
+                "component": "KnowledgePage",
+                "embedded_route": "/organization/knowledge",
+                "standalone_route": "/knowledge",
+                "api": "/api/org-module/knowledge",
+                "store": "host knowledge_bases / knowledge_documents",
             },
         },
         "todo": "Phase 5: full Vite + server packaging; do not fork org-ui pages",

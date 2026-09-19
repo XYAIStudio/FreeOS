@@ -1,6 +1,6 @@
 # 组织模块合并计划（openXYOS → FreeOS Dashboard）
 
-**状态：** Phase 3 组织架构、员工目录、技能与治理 UI 切片已落地（宿主 org tree / 员工 CRUD + skill_bridge list/read + 治理 pauses/audit + `/organization/org` + `/organization/employees` + `/organization/skills` + `/organization/governance` + `org-ui` OrgChartPage / EmployeesPage / SkillsPage / GovernancePage + export-standalone 模块列表）。其余 Open-12 仍待切片。
+**状态：** Phase 3 组织架构、员工目录、技能、治理 UI 与知识切片已落地（宿主 org tree / 员工 CRUD + skill_bridge list/read + 治理 pauses/audit + 宿主知识库桥接 + `/organization/org` + `/organization/employees` + `/organization/skills` + `/organization/governance` + `/organization/knowledge` + `org-ui` OrgChartPage / EmployeesPage / SkillsPage / GovernancePage / KnowledgePage + export-standalone 模块列表）。其余 Open-12 仍待切片。
 **日期：** 2026-09-19
 **依据：** Phase 0 迁移图、[architecture-integration.md](architecture-integration.md)、[asset-loop.md](asset-loop.md)、[ADR 001](adr/001-single-process-model.md)、#55 宿主内 Organization
 
@@ -25,7 +25,7 @@ Phase 1 冻结了合同。Phase 2（通知公告）与 Phase 3 的组织架构�
 | **0** 宿主内地基 | `org_os` 控制面、`/api/org-module/*` BFF、Dashboard 原生工作台、sidecar 改为可选 | **已完成**（#55） |
 | **1** 合同冻结 | ADR + 本计划：单源双交付、包布局、API 归属、IdentityBridge、Phase 2 验收 | **本文** |
 | **2** 垂直切片 | **通知公告 Announcements** 按合同落地（Dashboard 路由 + 可导出同一页面） | **已完成** |
-| **3** Open-12 其余页 | 工作台、组织架构、员工、技能、智能体、任务、知识、反思、治理 UI、设置 | **进行中**：组织架构、员工目录、技能与治理 UI 已迁；其余未开始 |
+| **3** Open-12 其余页 | 工作台、组织架构、员工、技能、智能体、任务、知识、反思、治理 UI、设置 | **进行中**：组织架构、员工目录、技能、治理 UI 与知识已迁；其余未开始 |
 | **4** 身份与 CRUD | 已迁页面走 IdentityBridge；业务 CRUD 按切片迁入宿主；未迁路由仍可代理到可选 sidecar | 与 2–3 交叉推进 |
 | **5** 导出与安装器 | `freeos org export-standalone` 产出独立站；默认安装器保持零 Node | 未开始 |
 
@@ -62,7 +62,7 @@ Catalog 十二键（`catalog.py` ↔ `open-module-catalog.ts`）：
 | **chat** | OpenApp `/chat` | sidecar `/api/chats` | **不迁。** 对话走 FreeOS/Octop |
 | agents | OpenApp `/agents`（Agent Studio） | 源码有 `routes/agent-studio.ts`，**`server.ts` 当前未 `app.use`** | Phase 3 前必须先核实挂载；未挂载则只迁 UI、API 在宿主补齐 |
 | tasks | OpenApp `/tasks` | sidecar `/api/tasks` | Phase 3 |
-| knowledge | OpenApp `/knowledge` | sidecar `/api/knowledge` | Phase 3；与宿主知识库边界保持「组织资料 ≠ Octop RAG 库」直到单独立项 |
+| knowledge | OpenApp `/knowledge` | sidecar `/api/knowledge` | **Phase 3 切片已落地**：`/organization/knowledge` 列出宿主 `/api/knowledge-bases` 同一套行；不克隆 sidecar notes/files DB |
 | reflections | OpenApp `/reflections` | sidecar `/api/reflections` | Phase 3 |
 | governance UI | OpenApp `/governance` | sidecar `/api/governance` + 宿主 `org_os/governance` | **Phase 3 切片已落地**：`/organization/governance` 展示待审批 / 审计 / 裁决；PEP/PDP 与 durable pause **已在宿主，勿重写引擎**。未迁：边车权限矩阵、通信规则、流程模板 |
 | settings | OpenApp `/settings` | sidecar `/api/settings`、`/api/module-settings` | Phase 3：租户/模块开关；宿主已有 `PATCH /api/org-module` 与 `/modules` |
@@ -118,6 +118,7 @@ uv run freeos org export-standalone --out dist/openxyos-web
 | `employees` · `employees/transition` · `employees/spawn` | 宿主 lifecycle | 保持；与员工 **目录 CRUD** 分开 |
 | `assets/*` · `blueprints/compile` · `skills` list/read/generate/publish | 宿主工厂 | **已挂 UI**。list/read 补目录；generate/publish 仍管理员/`plugins` 门控 |
 | `governance/check\|resolve\|audit` · `pauses` | 宿主 PEP/PDP | **已挂 UI**。`GET /pauses` 补列出待审批；resolve 仍管理员/`plugins` 门控 |
+| `knowledge` list/read/create/notes | 宿主知识库桥接 | **已挂 UI**。包装 `KnowledgeService`；写操作 `knowledge_bases` 门控。不克隆 sidecar notes DB |
 | `sidecar/*` · `source/download` | 可选兼容 | 留在 Advanced；默认路径不依赖 |
 
 ### 业务 CRUD（当前 sidecar Express → 按切片迁入宿主）
@@ -127,7 +128,8 @@ uv run freeos org export-standalone --out dist/openxyos-web
 | 公告 | `GET/POST/PUT/DELETE /api/announcements` | **先迁。** 宿主实现（建议 `/api/org-module/announcements` 或宿主挂 `/api/announcements`），`org-ui` client factory 指向宿主。独立导出站可同路径或经适配器改 base URL |
 | 组织树 | sidecar `/api/org` | **已迁。** 宿主 `/api/org-module/org`（tree / departments / employees 目录 CRUD），`{FREEOS_HOME}/org/org_chart.sqlite`。未迁：versions、reporting-lines、skills、import、头像上传 |
 | 员工目录 | sidecar `/api/employees` | **已迁目录 CRUD。** 宿主 `/api/org-module/org/employees*`，与 org chart **同一** `{FREEOS_HOME}/org/org_chart.sqlite`。lifecycle 仍是 `GET /api/org-module/employees`（同事 registry）。未迁：人才市场、备选入职、资产离职清算、绩效、汇报线、技能绑定、头像上传 |
-| 任务 / 知识 / 反思 / 设置 | sidecar `/api/tasks` 等 | Phase 3 其余页：同一模式，迁完才摘代理 |
+| 任务 / 反思 / 设置 | sidecar `/api/tasks` 等 | Phase 3 其余页：同一模式，迁完才摘代理 |
+| 知识 | sidecar `/api/knowledge` | **已迁为宿主桥接。** `GET /api/org-module/knowledge*` 读 Octop `knowledge_bases` / `knowledge_documents`；笔记写成宿主 markdown 文档。sidecar notes DB 仍是可选兼容 |
 | 未迁资源 | sidecar 或 `/api/org-module/sidecar/api/<resource>` 代理 | 可选 sidecar 仍可用；默认安装不启动它 |
 | Chat | sidecar `/api/chats` | **永久不迁** |
 
@@ -276,7 +278,7 @@ openXYOS sidecar `/api/skills`（市场、插件中心、付费安装）仍是�
 | Chat / 从技能页发起会话 | 对话运行时留在 FreeOS/Octop |
 | 边车技能市场 / 插件中心 / 付费安装 | sidecar SQL.js；本波不迁商业市场 |
 | 在组织页里编辑 Agent Skills | 运行时已在个性化；本页只读列出并跳转 |
-| 其余 Open-12（智能体、任务、知识、反思、设置） | 后续切片 |
+| 其余 Open-12（智能体、任务、反思、设置） | 后续切片 |
 | `freeos org export-standalone` 完整 Vite/Node 打包 | Phase 5 |
 
 ---
@@ -309,7 +311,40 @@ openXYOS sidecar `/api/governance`（权限矩阵、通信规则、流程模板�
 | Chat / 从治理页发起会话 | 对话运行时留在 FreeOS/Octop |
 | 边车权限矩阵 / 通信规则 / 流程模板 CRUD | sidecar SQL.js；本波不重写引擎、不迁商业矩阵编辑器 |
 | IM `/approve` 接线 | 引擎与 CLI 已能裁决；IM 另切片 |
-| 其余 Open-12（智能体、任务、知识、反思、设置） | 后续切片 |
+| 其余 Open-12（智能体、任务、反思、设置） | 后续切片 |
+| `freeos org export-standalone` 完整 Vite/Node 打包 | Phase 5 |
+
+---
+
+## Phase 3 进度：知识（本切片）
+
+按同一缝落地，**只迁组织知识目录**。不另造笔记/文件 SQLite：列出并写入的是宿主 FreeOS 知识库（Chat / Agent RAG 同一套行）。
+
+### 与 FreeOS 知识库的关系
+
+| 表面 | 存储 | API | 含义 |
+|---|---|---|---|
+| 组织知识页 | Octop `knowledge_bases` / `knowledge_documents` | `GET /api/org-module/knowledge` · `GET …/{kb_id}` · `POST …` · `POST …/{kb_id}/notes` | **桥接宿主 KB**。卡片/笔记 UX 参考 openXYOS KnowledgePage，数据不是 sidecar SQL.js |
+| 宿主知识库页 | 同上 | `/api/knowledge-bases*` · Dashboard `/knowledge-bases` | 上传、文件夹、嵌入模型、IMA 挂载仍在这里 |
+| sidecar 知识 | openXYOS notes + files | 可选 `/api/knowledge` | **不迁、不克隆。** 默认路径不读它 |
+
+组织知识 **不是** 第二套「组织资料」表，也 **没有** 把 sidecar 笔记合并进 Octop RAG。它只是 Organization 壳下的同一套宿主知识库视图；笔记会变成所选 KB 里的 markdown 文档，因此对话检索能看到。
+
+### 已落地
+
+1. 壳无关组件：`dashboard/src/org-ui/pages/knowledge`（`KnowledgePage`），数据经 `createOrgApiClient().knowledge`。
+2. Dashboard 子路由：`/organization/knowledge`（工作台 path tabs + 入口卡）。
+3. 宿主 API：本切片补 `/api/org-module/knowledge*`，包装已有 `KnowledgeService`。写操作走 `require_permission("knowledge_bases")`（管理员绕过）。
+4. 导出骨架：`freeos org export-standalone` 模块列表与 `App.tsx` 同时导入 `KnowledgePage`。
+
+### 本切片明确推迟
+
+| 推迟项 | 原因 |
+|---|---|
+| Chat / 从知识页发起检索对话 | 对话运行时留在 FreeOS/Octop |
+| 边车 notes/files CRUD 与解析流水线 | sidecar SQL.js；本波不克隆第二套知识库 |
+| 上传、文件夹、嵌入设置、IMA 挂载 | 已在宿主 `/knowledge-bases`；本页只列并加笔记 |
+| 其余 Open-12（智能体、任务、反思、设置） | 后续切片 |
 | `freeos org export-standalone` 完整 Vite/Node 打包 | Phase 5 |
 
 ---
@@ -325,7 +360,7 @@ openXYOS sidecar `/api/governance`（权限矩阵、通信规则、流程模板�
 | 手维护第二份独立站 | 独立站必须从 `org-ui` 生成 |
 | 先重写全部 Express → FastAPI | 按切片迁 CRUD |
 | 重写 `GovernanceEngine` | 治理执行已在宿主；本波只迁 UI |
-| 把 Octop 知识库与组织知识混成一个表 | 除非单独立项 |
+| 克隆 sidecar 知识库 / 另造组织笔记表 | 组织知识桥接宿主 KB；不把 sidecar notes 与 Octop RAG 合成新表 |
 | 本 PR 搬页面或改安装器 | Phase 1 只文档 |
 
 ---

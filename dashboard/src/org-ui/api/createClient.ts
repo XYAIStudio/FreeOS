@@ -281,12 +281,97 @@ export interface OrgSkillsClient {
   }): Promise<OrgSkillPublishResult>;
 }
 
+export interface OrgKnowledgeCapability {
+  feature_enabled: boolean;
+  usable: boolean;
+  prerequisites_ok: boolean;
+  selected_model: string;
+  backend: string;
+}
+
+export interface OrgKnowledgeBase {
+  id: string;
+  knowledge_base_id: string;
+  name: string;
+  description: string;
+  shared: boolean;
+  default_open: boolean;
+  icon_name: string;
+  document_count: number;
+  owner_user_id: number;
+  owned: boolean;
+  documents?: OrgKnowledgeDocument[];
+}
+
+export interface OrgKnowledgeDocument {
+  id: string;
+  document_id: string;
+  kb_id: string;
+  filename: string;
+  path: string;
+  content_type: string;
+  byte_size: number;
+  is_dir: boolean;
+  status: string;
+  chunk_count: number;
+  created_at: number;
+  kind: "note" | "file" | string;
+}
+
+export interface OrgKnowledgePreview {
+  id: string;
+  document_id: string;
+  kb_id: string;
+  filename: string;
+  content_type: string;
+  text: string;
+  kind: "note" | "file" | string;
+}
+
+export interface OrgKnowledgeStats {
+  bases: number;
+  documents: number;
+  shared: number;
+  owned: number;
+}
+
+export interface OrgKnowledgeList {
+  host_route: string;
+  store: string;
+  capability: OrgKnowledgeCapability;
+  bases: OrgKnowledgeBase[];
+  stats: OrgKnowledgeStats;
+}
+
+export interface OrgKnowledgeWrite {
+  name: string;
+  description?: string;
+  shared?: boolean;
+}
+
+export interface OrgKnowledgeNoteWrite {
+  title: string;
+  content?: string;
+}
+
+export interface OrgKnowledgeClient {
+  list(): Promise<OrgKnowledgeList>;
+  get(kbId: string): Promise<OrgKnowledgeBase>;
+  preview(kbId: string, docId: string): Promise<OrgKnowledgePreview>;
+  createBase(body: OrgKnowledgeWrite): Promise<OrgKnowledgeBase>;
+  createNote(
+    kbId: string,
+    body: OrgKnowledgeNoteWrite,
+  ): Promise<OrgKnowledgeDocument>;
+}
+
 export interface OrgApiClient {
   announcements: OrgAnnouncementsClient;
   org: OrgChartClient;
   employees: OrgEmployeesClient;
   governance: OrgGovernanceClient;
   skills: OrgSkillsClient;
+  knowledge: OrgKnowledgeClient;
 }
 
 async function unwrap<T>(payload: OrgEnvelope<T>): Promise<T> {
@@ -306,11 +391,13 @@ export function createOrgApiClient(opts: {
   orgPrefix?: string;
   governancePrefix?: string;
   skillsPrefix?: string;
+  knowledgePrefix?: string;
 }): OrgApiClient {
   const prefix = opts.announcementsPrefix ?? "/org-module/announcements";
   const orgPrefix = opts.orgPrefix ?? "/org-module/org";
   const governancePrefix = opts.governancePrefix ?? "/org-module/governance";
   const skillsPrefix = opts.skillsPrefix ?? "/org-module/skills";
+  const knowledgePrefix = opts.knowledgePrefix ?? "/org-module/knowledge";
   const fetchJson = opts.fetchJson;
 
   const announcements: OrgAnnouncementsClient = {
@@ -560,5 +647,47 @@ export function createOrgApiClient(opts: {
     },
   };
 
-  return { announcements, org, employees, governance, skills };
+  const knowledge: OrgKnowledgeClient = {
+    async list() {
+      return fetchJson<OrgKnowledgeList>(knowledgePrefix);
+    },
+    async get(kbId) {
+      return fetchJson<OrgKnowledgeBase>(
+        `${knowledgePrefix}/${encodeURIComponent(kbId)}`,
+      );
+    },
+    async preview(kbId, docId) {
+      return fetchJson<OrgKnowledgePreview>(
+        `${knowledgePrefix}/${encodeURIComponent(
+          kbId,
+        )}/documents/${encodeURIComponent(docId)}`,
+      );
+    },
+    async createBase(body) {
+      return fetchJson<OrgKnowledgeBase>(knowledgePrefix, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: body.name,
+          description: body.description || "",
+          shared: Boolean(body.shared),
+        }),
+      });
+    },
+    async createNote(kbId, body) {
+      return fetchJson<OrgKnowledgeDocument>(
+        `${knowledgePrefix}/${encodeURIComponent(kbId)}/notes`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            title: body.title,
+            content: body.content || "",
+          }),
+        },
+      );
+    },
+  };
+
+  return { announcements, org, employees, governance, skills, knowledge };
 }

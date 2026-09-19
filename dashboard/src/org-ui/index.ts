@@ -24,6 +24,15 @@ export type {
   OrgEmployeesClient,
   OrgEnvelope,
   OrgGovernanceClient,
+  OrgKnowledgeBase,
+  OrgKnowledgeCapability,
+  OrgKnowledgeClient,
+  OrgKnowledgeDocument,
+  OrgKnowledgeList,
+  OrgKnowledgeNoteWrite,
+  OrgKnowledgePreview,
+  OrgKnowledgeStats,
+  OrgKnowledgeWrite,
   OrgSkill,
   OrgSkillCatalogRow,
   OrgSkillGenerateResult,
@@ -43,6 +52,8 @@ export { SkillsPage } from "./pages/skills/SkillsPage";
 export type { SkillsPageProps } from "./pages/skills/SkillsPage";
 export { GovernancePage } from "./pages/governance/GovernancePage";
 export type { GovernancePageProps } from "./pages/governance/GovernancePage";
+export { KnowledgePage } from "./pages/knowledge/KnowledgePage";
+export type { KnowledgePageProps } from "./pages/knowledge/KnowledgePage";
 export type {
   IdentityBridge,
   OrgFetcher,

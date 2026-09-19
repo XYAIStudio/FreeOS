@@ -187,6 +187,7 @@
     "navEmployees": "员工目录",
     "navSkills": "技能",
     "navGovernance": "治理",
+    "navKnowledge": "知识",
     "announcementsTitle": "通知公告",
     "announcementsBody": "发布公告并跟踪已读。此页跑在宿主内，不需要边车或第二端口。",
     "openAnnouncements": "打开通知公告",
@@ -201,7 +202,10 @@
     "openSkills": "打开技能",
     "governanceTitle": "治理",
     "governanceBody": "待人工复核与宿主审计日志。高风险工具在有人拍板前保持拦截，不需要边车或第二端口。",
-    "openGovernance": "打开治理"
+    "openGovernance": "打开治理",
+    "knowledgeTitle": "知识",
+    "knowledgeBody": "列出 Chat 检索用的同一套 FreeOS 知识库。笔记写入宿主文档，没有边车知识库。",
+    "openKnowledge": "打开知识"
   },
   "systemSettings": {
     "subtitle": "工作台、远程桌面与主机管理集中在这里。"

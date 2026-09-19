@@ -59,6 +59,7 @@ def _client(tmp_path: Path, user: User, *, packages: list[object] | None = None)
 def test_shared_skills_module_is_in_catalog() -> None:
     assert "skills" in SHARED_ORG_UI_MODULES
     assert "governance" in SHARED_ORG_UI_MODULES
+    assert "knowledge" in SHARED_ORG_UI_MODULES
     assert_shared_modules_in_catalog()
 
 

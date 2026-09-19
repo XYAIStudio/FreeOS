@@ -1,4 +1,5 @@
 import {
+  BookOpen,
   Building2,
   Megaphone,
   Network,
@@ -17,7 +18,8 @@ export function useOrgPathTabs(
     | "org"
     | "employees"
     | "skills"
-    | "governance",
+    | "governance"
+    | "knowledge",
 ): PathTabsConfig {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -54,6 +56,11 @@ export function useOrgPathTabs(
         label: t("organization.navGovernance"),
         icon: <Shield size={14} />,
       },
+      {
+        value: "knowledge",
+        label: t("organization.navKnowledge"),
+        icon: <BookOpen size={14} />,
+      },
     ],
     onChange: (value) => {
       if (value === "announcements") {
@@ -74,6 +81,10 @@ export function useOrgPathTabs(
       }
       if (value === "governance") {
         navigate("/organization/governance");
+        return;
+      }
+      if (value === "knowledge") {
+        navigate("/organization/knowledge");
         return;
       }
       navigate("/organization");
