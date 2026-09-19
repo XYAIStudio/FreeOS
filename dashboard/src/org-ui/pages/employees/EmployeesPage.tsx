@@ -201,6 +201,9 @@ export function EmployeesPage({
         <p className={styles.empty}>{labels.loading}</p>
       ) : visible.length === 0 ? (
         <div className={styles.empty} data-testid="org-employees-empty">
+          <div className={styles.emptyIcon} aria-hidden>
+            <Users size={48} />
+          </div>
           <p>{departments.length === 0 ? labels.emptyHint : labels.empty}</p>
           {query ? <p>{labels.noMatch}</p> : null}
         </div>

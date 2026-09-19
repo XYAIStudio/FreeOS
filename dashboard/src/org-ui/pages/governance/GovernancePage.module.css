@@ -1,10 +1,5 @@
 .page {
-  max-width: 1040px;
-  margin: 0 auto;
-  padding: 8px 4px 32px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
+  composes: page from "../../layout/orgPage.module.css";
 }
 
 .header {
@@ -72,6 +67,7 @@
 }
 
 .tableWrap {
+  width: 100%;
   overflow-x: auto;
   border: 1px solid var(--fn-border, #e5e7eb);
   border-radius: 12px;

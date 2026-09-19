@@ -42,7 +42,10 @@ interface PageShellProps {
   pathTabsPlacement?: "title-row" | "below-title";
   /** Render agent picker below the title row, outside the scrollable content card. */
   agentScoped?: boolean;
-  /** When true, the content area does not scroll; children fill remaining height. */
+  /**
+   * Pin title / path-tab chrome and let the remaining body scroll.
+   * Children that manage their own height (FillTabs) still fill this region.
+   */
   fill?: boolean;
   children: React.ReactNode;
 }
@@ -241,7 +244,13 @@ function PageShell({
             <PathTabsBar pathTabs={pathTabs} compact />
           </div>
         )}
-        {children}
+        {pinBody ? (
+          <div className={styles.fillBody} data-testid="page-shell-scroll-body">
+            {children}
+          </div>
+        ) : (
+          children
+        )}
       </div>
     </div>
   );

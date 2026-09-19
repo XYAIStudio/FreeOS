@@ -1,7 +1,7 @@
 import type { OrgLocale } from "../../shell";
 
 const EN = {
-  title: "Tasks",
+  title: "Task management",
   subtitle:
     "Organization work items on the host. Stored under FREEOS_HOME/org — not Octop cron, not project chat, and not a sidecar.",
   hostHint:
@@ -58,7 +58,7 @@ const EN = {
 };
 
 const ZH: typeof EN = {
-  title: "任务",
+  title: "任务管理",
   subtitle:
     "宿主内的组织待办。存在 FREEOS_HOME/org，不是 Octop 定时任务，也不是项目对话或边车。",
   hostHint:

@@ -8,7 +8,7 @@ import {
   createOrgApiClient,
   type OrgSession,
 } from "../../../org-ui";
-import { useOrgPathTabs } from "../orgPathTabs";
+import { ORG_PAGE_SHELL, useOrgPathTabs } from "../orgPathTabs";
 
 export default function OrganizationWorkspacePage() {
   const { t, i18n } = useTranslation();
@@ -33,7 +33,7 @@ export default function OrganizationWorkspacePage() {
     <PageShell
       title={t("organization.workspaceTitle")}
       subtitle={t("organization.workspaceBody")}
-      fill
+      {...ORG_PAGE_SHELL}
       pathTabs={pathTabs}
     >
       <WorkspacePage

@@ -88,4 +88,15 @@ describe("PageShell path tabs", () => {
       container.querySelector("div[class*='pathTabsBelowTitle']"),
     ).toBeTruthy();
   });
+
+  it("scrolls the body when fill pins the title chrome", () => {
+    render(
+      <PageShell title="组织 / 公告" fill>
+        <div data-testid="tall-body">body</div>
+      </PageShell>,
+    );
+    const body = screen.getByTestId("page-shell-scroll-body");
+    expect(body).toContainElement(screen.getByTestId("tall-body"));
+    expect(body.className).toMatch(/fillBody/);
+  });
 });

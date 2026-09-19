@@ -10,7 +10,7 @@ import {
   type OrgSession,
 } from "../../../org-ui";
 import { userCan } from "../../../utils/permissions";
-import { useOrgPathTabs } from "../orgPathTabs";
+import { ORG_PAGE_SHELL, useOrgPathTabs } from "../orgPathTabs";
 
 export default function OrganizationKnowledgePage() {
   const { t, i18n } = useTranslation();
@@ -36,7 +36,7 @@ export default function OrganizationKnowledgePage() {
     <PageShell
       title={t("organization.knowledgeTitle")}
       subtitle={t("organization.knowledgeBody")}
-      fill
+      {...ORG_PAGE_SHELL}
       pathTabs={pathTabs}
     >
       <KnowledgePage

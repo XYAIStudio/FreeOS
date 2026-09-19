@@ -208,25 +208,13 @@ export function TasksPage({
 
       <div className={styles.filters}>
         <Input
+          className={styles.search}
           prefix={<Search size={14} />}
           value={search}
           onChange={(event) => setSearch(event.target.value)}
           placeholder={labels.search}
           allowClear
           data-testid="org-tasks-search"
-        />
-        <Select
-          value={filterStatus}
-          onChange={setFilterStatus}
-          style={{ minWidth: 140 }}
-          options={[
-            { value: "all", label: labels.all },
-            { value: "todo", label: labels.todo },
-            { value: "in_progress", label: labels.inProgress },
-            { value: "review", label: labels.review },
-            { value: "done", label: labels.done },
-          ]}
-          data-testid="org-tasks-status"
         />
         <Select
           value={filterPriority}
@@ -242,22 +230,52 @@ export function TasksPage({
           data-testid="org-tasks-priority"
         />
       </div>
+      <div className={styles.statusPills} data-testid="org-tasks-status">
+        {(
+          [
+            ["all", labels.all, stats.total],
+            ["todo", labels.todo, stats.todo],
+            ["in_progress", labels.inProgress, stats.in_progress],
+            ["review", labels.review, stats.review],
+            ["done", labels.done, stats.done],
+          ] as const
+        ).map(([value, label, count]) => (
+          <Button
+            key={value}
+            size="small"
+            type={filterStatus === value ? "primary" : "default"}
+            onClick={() => setFilterStatus(value)}
+          >
+            {label} ({count})
+          </Button>
+        ))}
+      </div>
 
       {loading ? (
         <p className={styles.empty}>{labels.loading}</p>
       ) : visible.length === 0 ? (
         <div className={styles.empty} data-testid="org-tasks-empty">
+          <div className={styles.emptyIcon} aria-hidden>
+            <ListTodo size={48} />
+          </div>
           <p>{items.length === 0 ? labels.empty : labels.noMatch}</p>
           <p>{labels.emptyHint}</p>
         </div>
       ) : (
         <div className={styles.list} data-testid="org-tasks-list">
           {visible.map((task) => (
-            <button
+            <div
               key={task.id}
-              type="button"
+              role="button"
+              tabIndex={0}
               className={styles.row}
               onClick={() => onOpenTask?.(task.id)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  onOpenTask?.(task.id);
+                }
+              }}
               data-testid={`org-task-row-${task.id}`}
             >
               <Tag>{statusLabel(task.status)}</Tag>
@@ -282,7 +300,7 @@ export function TasksPage({
                   {nextLabel(task.status)}
                 </Button>
               ) : null}
-            </button>
+            </div>
           ))}
         </div>
       )}

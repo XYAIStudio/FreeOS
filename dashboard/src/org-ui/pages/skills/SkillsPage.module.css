@@ -1,10 +1,5 @@
 .page {
-  max-width: 1040px;
-  margin: 0 auto;
-  padding: 8px 4px 32px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
+  composes: page from "../../layout/orgPage.module.css";
 }
 
 .header {
@@ -31,7 +26,6 @@
   margin: 4px 0 0;
   color: var(--fn-text-secondary, #667085);
   font-size: 13px;
-  max-width: 640px;
   line-height: 1.5;
 }
 
@@ -94,6 +88,8 @@
 
 .card:hover {
   border-color: var(--fn-primary, #1677ff);
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06);
+  transform: translateY(-1px);
 }
 
 .cardTitle {
@@ -123,6 +119,7 @@
 }
 
 .tableWrap {
+  width: 100%;
   overflow-x: auto;
   border: 1px solid var(--fn-border, #e5e7eb);
   border-radius: 12px;

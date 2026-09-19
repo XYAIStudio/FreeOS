@@ -1,0 +1,84 @@
+/**
+ * Shared Organization page body. Hosted under FreeOS PageShell and in the
+ * export-standalone shell — stretch to the content column instead of a
+ * centered card (openXYOS OpenApp used max-w-* inside a full-viewport app;
+ * Dashboard already insets by sidebar + PageShell padding).
+ */
+.page {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: none;
+  min-width: 0;
+  margin: 0;
+  padding: 0 0 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.titleRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 650;
+  line-height: 1.3;
+}
+
+.subtitle {
+  margin: 4px 0 0;
+  color: var(--fn-text-secondary, #667085);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.empty {
+  text-align: center;
+  padding: 64px 16px;
+  color: var(--fn-text-secondary, #667085);
+}
+
+.emptyIcon {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 12px;
+  opacity: 0.35;
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 10px;
+}
+
+.stat {
+  border: 1px solid var(--fn-border, #e5e7eb);
+  border-radius: 10px;
+  padding: 12px 14px;
+  background: var(--fn-bg-container, #fff);
+}
+
+.statValue {
+  font-size: 22px;
+  font-weight: 650;
+  line-height: 1.2;
+}
+
+.statLabel {
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--fn-text-secondary, #667085);
+}

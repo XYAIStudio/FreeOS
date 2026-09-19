@@ -36,7 +36,7 @@ import {
 } from "../../utils/desktopFolder";
 import { message } from "../../utils/antdMessage";
 import { resolveOpenxyosSourceDest } from "./pickSourceDest";
-import { useOrgPathTabs } from "./orgPathTabs";
+import { ORG_PAGE_SHELL, useOrgPathTabs } from "./orgPathTabs";
 import styles from "./Organization.module.less";
 
 type ActionKey = "assemble" | "pack" | "loop" | "sidecar" | "produce" | null;
@@ -362,7 +362,11 @@ export default function OrganizationPage() {
   const pathTabs = useOrgPathTabs("workbench");
 
   return (
-    <PageShell title={t("organization.title")} fill pathTabs={pathTabs}>
+    <PageShell
+      title={t("organization.title")}
+      {...ORG_PAGE_SHELL}
+      pathTabs={pathTabs}
+    >
       <div className={styles.page}>
         <section className={styles.statusBar}>
           <div className={styles.statusMeta}>

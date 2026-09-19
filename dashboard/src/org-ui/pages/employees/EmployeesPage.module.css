@@ -1,10 +1,5 @@
 .page {
-  max-width: 960px;
-  margin: 0 auto;
-  padding: 8px 4px 32px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
+  composes: page from "../../layout/orgPage.module.css";
 }
 
 .header {
@@ -80,6 +75,16 @@
   cursor: pointer;
   text-align: left;
   width: 100%;
+  transition:
+    box-shadow 0.15s ease,
+    border-color 0.15s ease,
+    transform 0.15s ease;
+}
+
+.card:hover {
+  border-color: var(--fn-primary, #1677ff);
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06);
+  transform: translateY(-1px);
 }
 
 .cardHead {
@@ -121,8 +126,15 @@
 
 .empty {
   text-align: center;
-  padding: 48px 12px;
+  padding: 64px 12px;
   color: var(--fn-text-secondary, #667085);
+}
+
+.emptyIcon {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 12px;
+  opacity: 0.35;
 }
 
 .detailGrid {

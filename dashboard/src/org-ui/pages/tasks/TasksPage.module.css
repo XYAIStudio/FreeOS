@@ -1,10 +1,5 @@
 .page {
-  max-width: 960px;
-  margin: 0 auto;
-  padding: 8px 4px 32px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
+  composes: page from "../../layout/orgPage.module.css";
 }
 
 .header {
@@ -65,6 +60,17 @@
   gap: 12px;
 }
 
+.statusPills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.search {
+  flex: 1;
+  min-width: 200px;
+}
+
 .hint {
   margin: 0;
   color: var(--fn-text-secondary, #667085);
@@ -89,6 +95,14 @@
   cursor: pointer;
   text-align: left;
   width: 100%;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.row:hover {
+  background: var(--fn-bg, #f9fafb);
+  border-color: var(--fn-border, #d0d5dd);
 }
 
 .rowBody {
@@ -110,8 +124,15 @@
 
 .empty {
   text-align: center;
-  padding: 48px 12px;
+  padding: 64px 12px;
   color: var(--fn-text-secondary, #667085);
+}
+
+.emptyIcon {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 12px;
+  opacity: 0.35;
 }
 
 .detailGrid {

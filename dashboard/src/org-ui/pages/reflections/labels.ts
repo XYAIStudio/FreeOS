@@ -1,7 +1,7 @@
 import type { OrgLocale } from "../../shell";
 
 const EN = {
-  title: "Reflections",
+  title: "Reflection Engine",
   subtitle:
     "Capture lessons, failures, and reusable experience on the host. Stored under FREEOS_HOME/org — not a sidecar and not Chat.",
   hostHint:

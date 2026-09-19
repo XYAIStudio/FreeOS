@@ -46,7 +46,7 @@ describe("EmployeesPage", () => {
       />,
     );
     expect(await screen.findByTestId("org-ui-employees")).toBeInTheDocument();
-    expect(screen.getByText("Employees")).toBeInTheDocument();
+    expect(screen.getByText("Human–AI resources")).toBeInTheDocument();
     expect(screen.getByTestId("org-employees-empty")).toBeInTheDocument();
     expect(document.querySelector("iframe")).toBeNull();
     expect(client.list).toHaveBeenCalled();

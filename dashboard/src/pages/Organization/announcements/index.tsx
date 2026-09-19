@@ -10,7 +10,7 @@ import {
   type OrgSession,
 } from "../../../org-ui";
 import { formatServerIsoDateTime } from "../../../utils/formatMessageTime";
-import { useOrgPathTabs } from "../orgPathTabs";
+import { ORG_PAGE_SHELL, useOrgPathTabs } from "../orgPathTabs";
 
 export default function OrganizationAnnouncementsPage() {
   const { t, i18n } = useTranslation();
@@ -36,7 +36,7 @@ export default function OrganizationAnnouncementsPage() {
     <PageShell
       title={t("organization.announcementsTitle")}
       subtitle={t("organization.announcementsBody")}
-      fill
+      {...ORG_PAGE_SHELL}
       pathTabs={pathTabs}
     >
       <AnnouncementPage

@@ -9,7 +9,7 @@ import {
   createOrgApiClient,
   type OrgSession,
 } from "../../../org-ui";
-import { useOrgPathTabs } from "../orgPathTabs";
+import { ORG_PAGE_SHELL, useOrgPathTabs } from "../orgPathTabs";
 
 export default function OrganizationTaskDetailPage() {
   const { t, i18n } = useTranslation();
@@ -37,7 +37,7 @@ export default function OrganizationTaskDetailPage() {
     <PageShell
       title={t("organization.tasksTitle")}
       subtitle={t("organization.tasksBody")}
-      fill
+      {...ORG_PAGE_SHELL}
       pathTabs={pathTabs}
     >
       <TaskDetailPage

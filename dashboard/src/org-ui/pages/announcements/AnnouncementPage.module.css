@@ -1,10 +1,5 @@
 .page {
-  max-width: 880px;
-  margin: 0 auto;
-  padding: 8px 4px 32px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
+  composes: page from "../../layout/orgPage.module.css";
 }
 
 .header {
@@ -36,7 +31,36 @@
 }
 
 .card {
+  position: relative;
   cursor: pointer;
+  border: 1px solid var(--fn-border, #e5e7eb);
+  border-radius: 10px;
+  padding: 16px;
+  background: var(--fn-bg-container, #fff);
+  transition:
+    box-shadow 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.card:hover {
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.08);
+}
+
+.cardPinned {
+  border-color: color-mix(in srgb, var(--fn-color-brand, #1677ff) 30%, #e5e7eb);
+  box-shadow: 0 0 0 1px
+    color-mix(in srgb, var(--fn-color-brand, #1677ff) 12%, transparent);
+}
+
+.cardExpired {
+  opacity: 0.65;
+}
+
+.pinBadge {
+  position: absolute;
+  top: -8px;
+  left: -6px;
+  color: var(--fn-color-brand, #1677ff);
 }
 
 .cardTitle {
@@ -64,6 +88,7 @@
   margin-top: 8px;
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 12px;
   font-size: 12px;
   color: var(--fn-text-secondary, #667085);
@@ -71,8 +96,15 @@
 
 .empty {
   text-align: center;
-  padding: 48px 12px;
+  padding: 64px 12px;
   color: var(--fn-text-secondary, #667085);
+}
+
+.emptyIcon {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 12px;
+  opacity: 0.35;
 }
 
 .detailBody {

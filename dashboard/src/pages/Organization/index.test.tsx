@@ -198,6 +198,8 @@ describe("OrganizationPage", () => {
     expect(screen.queryByTestId("org-restart-overlay")).toBeNull();
     expect(orgModuleApi.startSidecar).not.toHaveBeenCalled();
     expect(orgModuleApi.probeLivez).not.toHaveBeenCalled();
+    expect(screen.getByTestId("page-shell-scroll-body")).toBeInTheDocument();
+    expect(screen.getAllByTestId("path-tabs-row")).toHaveLength(2);
   });
 
   it("does not auto-start or gate login when the optional sidecar is down", async () => {
