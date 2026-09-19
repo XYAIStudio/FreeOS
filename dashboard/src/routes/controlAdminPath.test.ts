@@ -73,6 +73,7 @@ describe("pathPermissionKeys", () => {
     expect(pathPermissionKeys("/organization/skills")).toBeNull();
     expect(pathPermissionKeys("/organization/governance")).toBeNull();
     expect(pathPermissionKeys("/organization/knowledge")).toBeNull();
+    expect(pathPermissionKeys("/organization/tasks")).toBeNull();
     expect(pathPermissionKeys("/projects")).toBeNull();
     expect(pathPermissionKeys("/tasks")).toBeNull();
     expect(pathPermissionKeys("/token-usage")).toBeNull();
@@ -161,6 +162,8 @@ describe("unknown dashboard paths", () => {
     expect(resolveSelectedKey("/organization/skills")).toBe("organization");
     expect(resolveSelectedKey("/organization/governance")).toBe("organization");
     expect(resolveSelectedKey("/organization/knowledge")).toBe("organization");
+    expect(resolveSelectedKey("/organization/tasks")).toBe("organization");
+    expect(resolveSelectedKey("/organization/tasks/3")).toBe("organization");
   });
 
   it("are caught by the not-found route", () => {

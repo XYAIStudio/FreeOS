@@ -13,7 +13,7 @@ FreeOS/Octop remains the execution runtime.
 
 - [ADR 001](adr/001-single-process-model.md) — single process, no external queue
 - [ADR 003](adr/003-org-ui-single-source-dual-delivery.md) — org-ui single source, dual delivery (Accepted)
-- [org-merge-plan.md](org-merge-plan.md) — Phases 0–5; Phase 2 = Announcements; Phase 3 org chart slice in progress
+- [org-merge-plan.md](org-merge-plan.md) — Phases 0–5; Phase 3 in progress (org chart / employees / skills / governance / knowledge / tasks)
 - [asset-loop.md](asset-loop.md) — operator self-growth loop
 - [ADR index](adr/)
 

@@ -188,6 +188,7 @@
     "navSkills": "技能",
     "navGovernance": "治理",
     "navKnowledge": "知识",
+    "navTasks": "任务",
     "announcementsTitle": "通知公告",
     "announcementsBody": "发布公告并跟踪已读。此页跑在宿主内，不需要边车或第二端口。",
     "openAnnouncements": "打开通知公告",
@@ -205,7 +206,10 @@
     "openGovernance": "打开治理",
     "knowledgeTitle": "知识",
     "knowledgeBody": "列出 Chat 检索用的同一套 FreeOS 知识库。笔记写入宿主文档，没有边车知识库。",
-    "openKnowledge": "打开知识"
+    "openKnowledge": "打开知识",
+    "tasksTitle": "任务",
+    "tasksBody": "宿主组织库里的待办（FREEOS_HOME/org）。不是 Octop 定时任务，也不是项目对话或边车。",
+    "openTasks": "打开任务"
   },
   "systemSettings": {
     "subtitle": "工作台、远程桌面与主机管理集中在这里。"

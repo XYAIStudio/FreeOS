@@ -762,6 +762,15 @@
       "title_content_required": "Title and content are required",
       "unavailable": "Announcement service is temporarily unavailable. Please try again"
     },
+    "tasks": {
+      "not_found": "Task not found",
+      "title_required": "Title is required",
+      "content_required": "Content is required",
+      "invalid_status": "Invalid task status",
+      "no_updates": "No changes were provided",
+      "assignee_invalid": "The assignee does not exist or is not an active directory employee",
+      "unavailable": "Task service is temporarily unavailable. Please try again"
+    },
     "chart": {
       "forbidden": "Permission denied",
       "name_required": "Department or employee name is required",

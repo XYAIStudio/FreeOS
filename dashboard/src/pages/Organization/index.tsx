@@ -6,6 +6,7 @@ import {
   BookOpen,
   Building2,
   Download,
+  ListTodo,
   Package,
   Play,
   Settings2,
@@ -497,6 +498,20 @@ export default function OrganizationPage() {
                 data-testid="org-open-knowledge"
               >
                 {t("organization.openKnowledge")}
+              </Button>
+            </div>
+            <div className={styles.action}>
+              <ListTodo size={18} />
+              <p className={styles.actionTitle}>
+                {t("organization.tasksTitle")}
+              </p>
+              <p className={styles.actionBody}>{t("organization.tasksBody")}</p>
+              <Button
+                type="primary"
+                onClick={() => navigate("/organization/tasks")}
+                data-testid="org-open-tasks"
+              >
+                {t("organization.openTasks")}
               </Button>
             </div>
           </section>

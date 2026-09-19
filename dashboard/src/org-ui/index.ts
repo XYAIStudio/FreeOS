@@ -33,6 +33,15 @@ export type {
   OrgKnowledgePreview,
   OrgKnowledgeStats,
   OrgKnowledgeWrite,
+  OrgTask,
+  OrgTaskComment,
+  OrgTaskListParams,
+  OrgTaskPriority,
+  OrgTaskStats,
+  OrgTaskStatus,
+  OrgTaskSubtask,
+  OrgTaskWrite,
+  OrgTasksClient,
   OrgSkill,
   OrgSkillCatalogRow,
   OrgSkillGenerateResult,
@@ -54,6 +63,10 @@ export { GovernancePage } from "./pages/governance/GovernancePage";
 export type { GovernancePageProps } from "./pages/governance/GovernancePage";
 export { KnowledgePage } from "./pages/knowledge/KnowledgePage";
 export type { KnowledgePageProps } from "./pages/knowledge/KnowledgePage";
+export { TasksPage } from "./pages/tasks/TasksPage";
+export type { TasksPageProps } from "./pages/tasks/TasksPage";
+export { TaskDetailPage } from "./pages/tasks/TaskDetailPage";
+export type { TaskDetailPageProps } from "./pages/tasks/TaskDetailPage";
 export type {
   IdentityBridge,
   OrgFetcher,

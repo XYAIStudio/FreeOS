@@ -188,6 +188,7 @@
     "navSkills": "Skills",
     "navGovernance": "Governance",
     "navKnowledge": "Knowledge",
+    "navTasks": "Tasks",
     "announcementsTitle": "Announcements",
     "announcementsBody": "Publish notices and track who has read them. This page lives in the host — no sidecar or second port.",
     "openAnnouncements": "Open announcements",
@@ -205,7 +206,10 @@
     "openGovernance": "Open governance",
     "knowledgeTitle": "Knowledge",
     "knowledgeBody": "Lists the same FreeOS knowledge bases Chat retrieves from. Notes become host documents — no sidecar knowledge DB.",
-    "openKnowledge": "Open knowledge"
+    "openKnowledge": "Open knowledge",
+    "tasksTitle": "Tasks",
+    "tasksBody": "Organization work items on the host org store (FREEOS_HOME/org). Not Octop cron, not project chat, and not a sidecar.",
+    "openTasks": "Open tasks"
   },
   "systemSettings": {
     "subtitle": "Workbench, remote desktop, and host administration in one place."

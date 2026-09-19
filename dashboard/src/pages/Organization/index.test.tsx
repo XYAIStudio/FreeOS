@@ -37,6 +37,10 @@ function renderOrg() {
           element={<div data-testid="org-knowledge-page">knowledge</div>}
         />
         <Route
+          path="/organization/tasks"
+          element={<div data-testid="org-tasks-page">tasks</div>}
+        />
+        <Route
           path="/experts"
           element={<div data-testid="experts-page">experts</div>}
         />
@@ -260,6 +264,13 @@ describe("OrganizationPage", () => {
     renderOrg();
     fireEvent.click(await screen.findByTestId("org-open-knowledge"));
     expect(await screen.findByTestId("org-knowledge-page")).toBeInTheDocument();
+    expect(screen.queryByTestId("org-browser-frame")).toBeNull();
+  });
+
+  it("opens in-host tasks without a sidecar iframe", async () => {
+    renderOrg();
+    fireEvent.click(await screen.findByTestId("org-open-tasks"));
+    expect(await screen.findByTestId("org-tasks-page")).toBeInTheDocument();
     expect(screen.queryByTestId("org-browser-frame")).toBeNull();
   });
 

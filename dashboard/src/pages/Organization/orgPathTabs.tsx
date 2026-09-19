@@ -1,6 +1,7 @@
 import {
   BookOpen,
   Building2,
+  ListTodo,
   Megaphone,
   Network,
   Package,
@@ -19,7 +20,8 @@ export function useOrgPathTabs(
     | "employees"
     | "skills"
     | "governance"
-    | "knowledge",
+    | "knowledge"
+    | "tasks",
 ): PathTabsConfig {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -61,6 +63,11 @@ export function useOrgPathTabs(
         label: t("organization.navKnowledge"),
         icon: <BookOpen size={14} />,
       },
+      {
+        value: "tasks",
+        label: t("organization.navTasks"),
+        icon: <ListTodo size={14} />,
+      },
     ],
     onChange: (value) => {
       if (value === "announcements") {
@@ -85,6 +92,10 @@ export function useOrgPathTabs(
       }
       if (value === "knowledge") {
         navigate("/organization/knowledge");
+        return;
+      }
+      if (value === "tasks") {
+        navigate("/organization/tasks");
         return;
       }
       navigate("/organization");

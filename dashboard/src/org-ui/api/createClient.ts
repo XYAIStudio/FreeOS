@@ -365,6 +365,86 @@ export interface OrgKnowledgeClient {
   ): Promise<OrgKnowledgeDocument>;
 }
 
+export type OrgTaskStatus = "todo" | "in_progress" | "review" | "done";
+export type OrgTaskPriority = "low" | "medium" | "high" | "critical";
+
+export interface OrgTask {
+  id: number;
+  title: string;
+  description?: string;
+  status: OrgTaskStatus | string;
+  priority: OrgTaskPriority | string;
+  assigned_to?: number | null;
+  assignee_name?: string | null;
+  created_by?: number;
+  creator_name?: string;
+  created_at?: string;
+  updated_at?: string | null;
+  subtask_count?: number;
+  subtask_done?: number;
+  comment_count?: number;
+  subtasks?: OrgTaskSubtask[];
+  comments?: OrgTaskComment[];
+}
+
+export interface OrgTaskSubtask {
+  id: number;
+  task_id: number;
+  title: string;
+  completed: number;
+  sort_order: number;
+}
+
+export interface OrgTaskComment {
+  id: number;
+  task_id: number;
+  user_id?: number | null;
+  user_name?: string;
+  content: string;
+  comment_type: string;
+  created_at: string;
+}
+
+export interface OrgTaskStats {
+  total: number;
+  todo: number;
+  in_progress: number;
+  review: number;
+  done: number;
+}
+
+export interface OrgTaskWrite {
+  title?: string;
+  description?: string;
+  priority?: string;
+  assigned_to?: number | null;
+}
+
+export interface OrgTaskListParams {
+  status?: string;
+  priority?: string;
+  assigned_to?: number;
+  search?: string;
+}
+
+export interface OrgTasksClient {
+  list(params?: OrgTaskListParams): Promise<OrgTask[]>;
+  stats(): Promise<OrgTaskStats>;
+  get(id: number): Promise<OrgTask>;
+  create(body: OrgTaskWrite): Promise<OrgTask>;
+  update(id: number, body: OrgTaskWrite): Promise<OrgTask>;
+  remove(id: number): Promise<void>;
+  transition(id: number, to: string): Promise<OrgTask>;
+  addSubtask(id: number, title: string): Promise<OrgTaskSubtask>;
+  updateSubtask(
+    id: number,
+    subtaskId: number,
+    body: { title?: string; completed?: boolean | number },
+  ): Promise<OrgTaskSubtask>;
+  removeSubtask(id: number, subtaskId: number): Promise<void>;
+  addComment(id: number, content: string): Promise<OrgTaskComment>;
+}
+
 export interface OrgApiClient {
   announcements: OrgAnnouncementsClient;
   org: OrgChartClient;
@@ -372,6 +452,7 @@ export interface OrgApiClient {
   governance: OrgGovernanceClient;
   skills: OrgSkillsClient;
   knowledge: OrgKnowledgeClient;
+  tasks: OrgTasksClient;
 }
 
 async function unwrap<T>(payload: OrgEnvelope<T>): Promise<T> {
@@ -392,12 +473,14 @@ export function createOrgApiClient(opts: {
   governancePrefix?: string;
   skillsPrefix?: string;
   knowledgePrefix?: string;
+  tasksPrefix?: string;
 }): OrgApiClient {
   const prefix = opts.announcementsPrefix ?? "/org-module/announcements";
   const orgPrefix = opts.orgPrefix ?? "/org-module/org";
   const governancePrefix = opts.governancePrefix ?? "/org-module/governance";
   const skillsPrefix = opts.skillsPrefix ?? "/org-module/skills";
   const knowledgePrefix = opts.knowledgePrefix ?? "/org-module/knowledge";
+  const tasksPrefix = opts.tasksPrefix ?? "/org-module/tasks";
   const fetchJson = opts.fetchJson;
 
   const announcements: OrgAnnouncementsClient = {
@@ -689,5 +772,120 @@ export function createOrgApiClient(opts: {
     },
   };
 
-  return { announcements, org, employees, governance, skills, knowledge };
+  const tasks: OrgTasksClient = {
+    async list(params = {}) {
+      const query = new URLSearchParams();
+      if (params.status) query.set("status", params.status);
+      if (params.priority) query.set("priority", params.priority);
+      if (params.assigned_to != null) {
+        query.set("assigned_to", String(params.assigned_to));
+      }
+      if (params.search) query.set("search", params.search);
+      const suffix = query.toString() ? `?${query.toString()}` : "";
+      return unwrap(
+        await fetchJson<OrgEnvelope<OrgTask[]>>(`${tasksPrefix}${suffix}`),
+      );
+    },
+    async stats() {
+      return unwrap(
+        await fetchJson<OrgEnvelope<OrgTaskStats>>(`${tasksPrefix}/stats`),
+      );
+    },
+    async get(id) {
+      return unwrap(
+        await fetchJson<OrgEnvelope<OrgTask>>(`${tasksPrefix}/${id}`),
+      );
+    },
+    async create(body) {
+      return unwrap(
+        await fetchJson<OrgEnvelope<OrgTask>>(tasksPrefix, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        }),
+      );
+    },
+    async update(id, body) {
+      return unwrap(
+        await fetchJson<OrgEnvelope<OrgTask>>(`${tasksPrefix}/${id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        }),
+      );
+    },
+    async remove(id) {
+      await unwrap(
+        await fetchJson<OrgEnvelope<undefined>>(`${tasksPrefix}/${id}`, {
+          method: "DELETE",
+        }),
+      );
+    },
+    async transition(id, to) {
+      return unwrap(
+        await fetchJson<OrgEnvelope<OrgTask>>(
+          `${tasksPrefix}/${id}/transition`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ to }),
+          },
+        ),
+      );
+    },
+    async addSubtask(id, title) {
+      return unwrap(
+        await fetchJson<OrgEnvelope<OrgTaskSubtask>>(
+          `${tasksPrefix}/${id}/subtasks`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ title }),
+          },
+        ),
+      );
+    },
+    async updateSubtask(id, subtaskId, body) {
+      return unwrap(
+        await fetchJson<OrgEnvelope<OrgTaskSubtask>>(
+          `${tasksPrefix}/${id}/subtasks/${subtaskId}`,
+          {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body),
+          },
+        ),
+      );
+    },
+    async removeSubtask(id, subtaskId) {
+      await unwrap(
+        await fetchJson<OrgEnvelope<undefined>>(
+          `${tasksPrefix}/${id}/subtasks/${subtaskId}`,
+          { method: "DELETE" },
+        ),
+      );
+    },
+    async addComment(id, content) {
+      return unwrap(
+        await fetchJson<OrgEnvelope<OrgTaskComment>>(
+          `${tasksPrefix}/${id}/comments`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ content }),
+          },
+        ),
+      );
+    },
+  };
+
+  return {
+    announcements,
+    org,
+    employees,
+    governance,
+    skills,
+    knowledge,
+    tasks,
+  };
 }
