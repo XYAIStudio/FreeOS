@@ -8,6 +8,7 @@ import {
   Brain,
   Building2,
   Download,
+  LayoutDashboard,
   ListTodo,
   Package,
   Play,
@@ -342,14 +343,14 @@ export default function OrganizationPage() {
     busy === "assemble"
       ? t("organization.progressAssemble")
       : busy === "pack"
-      ? t("organization.progressPack")
-      : busy === "loop"
-      ? t("organization.progressLoop")
-      : busy === "produce"
-      ? t("organization.progressProduce")
-      : busy === "sidecar"
-      ? t("organization.autoStartingSidecar")
-      : null;
+        ? t("organization.progressPack")
+        : busy === "loop"
+          ? t("organization.progressLoop")
+          : busy === "produce"
+            ? t("organization.progressProduce")
+            : busy === "sidecar"
+              ? t("organization.autoStartingSidecar")
+              : null;
 
   const lastLoop = (loopProof ?? overview?.last_loop) as OrgLoopProof | null;
   const lastSync = overview?.last_sync
@@ -407,6 +408,22 @@ export default function OrganizationPage() {
           <p className={styles.heroStory}>{t("organization.glossary")}</p>
 
           <section className={styles.actions} data-testid="org-in-host-pages">
+            <div className={styles.action}>
+              <LayoutDashboard size={18} />
+              <p className={styles.actionTitle}>
+                {t("organization.workspaceTitle")}
+              </p>
+              <p className={styles.actionBody}>
+                {t("organization.workspaceBody")}
+              </p>
+              <Button
+                type="primary"
+                onClick={() => navigate("/organization/workspace")}
+                data-testid="org-open-workspace"
+              >
+                {t("organization.openWorkspace")}
+              </Button>
+            </div>
             <div className={styles.action}>
               <Building2 size={18} />
               <p className={styles.actionTitle}>
@@ -936,8 +953,8 @@ export default function OrganizationPage() {
                       {row.locked
                         ? t("organization.locked")
                         : moduleToggles[row.key] === false
-                        ? t("organization.catalogDisabled")
-                        : t("organization.catalogEnabled")}
+                          ? t("organization.catalogDisabled")
+                          : t("organization.catalogEnabled")}
                     </Tag>
                   </p>
                   <p className={styles.catalogDesc}>

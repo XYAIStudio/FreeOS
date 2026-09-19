@@ -10,6 +10,7 @@ export const SHARED_ORG_UI_MODULES = [
   "reflections",
   "settings",
   "agents",
+  "workspace",
 ] as const;
 
 export type SharedOrgUiModule = (typeof SHARED_ORG_UI_MODULES)[number];

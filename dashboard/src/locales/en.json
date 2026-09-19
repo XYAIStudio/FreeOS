@@ -182,6 +182,7 @@
     "packLanded": "Signed-in tenant {{tenant}}: employees {{employees}}, talent {{talent}}, skills {{skills}}, plugins {{plugins}}",
     "packPreviewEmployees": "The preview now opens Employees so you can confirm the result.",
     "navWorkbench": "Workbench",
+    "navWorkspace": "Workspace",
     "navAnnouncements": "Announcements",
     "navOrgChart": "Org chart",
     "navEmployees": "Employees",
@@ -221,7 +222,10 @@
     "openSettings": "Open settings",
     "agentsTitle": "Agent Studio",
     "agentsBody": "Compile organization digital colleagues from blueprints and manage lifecycle on the host. FreeOS Agents, Experts, and personalization stay where they are — no sidecar Agent Studio and no Chat page.",
-    "openAgents": "Open Agent Studio"
+    "openAgents": "Open Agent Studio",
+    "workspaceTitle": "Workspace",
+    "workspaceBody": "Organization landing overview: host status and links into already-migrated pages. Not a second control plane, and Chat stays on FreeOS.",
+    "openWorkspace": "Open workspace"
   },
   "systemSettings": {
     "subtitle": "Workbench, remote desktop, and host administration in one place."

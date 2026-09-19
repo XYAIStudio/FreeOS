@@ -53,6 +53,10 @@ function renderOrg() {
           element={<div data-testid="org-agents-page">agents</div>}
         />
         <Route
+          path="/organization/workspace"
+          element={<div data-testid="org-workspace-page">workspace</div>}
+        />
+        <Route
           path="/experts"
           element={<div data-testid="experts-page">experts</div>}
         />
@@ -306,6 +310,13 @@ describe("OrganizationPage", () => {
     renderOrg();
     fireEvent.click(await screen.findByTestId("org-open-agents"));
     expect(await screen.findByTestId("org-agents-page")).toBeInTheDocument();
+    expect(screen.queryByTestId("org-browser-frame")).toBeNull();
+  });
+
+  it("opens in-host workspace overview without a sidecar iframe", async () => {
+    renderOrg();
+    fireEvent.click(await screen.findByTestId("org-open-workspace"));
+    expect(await screen.findByTestId("org-workspace-page")).toBeInTheDocument();
     expect(screen.queryByTestId("org-browser-frame")).toBeNull();
   });
 

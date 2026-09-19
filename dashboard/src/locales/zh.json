@@ -182,6 +182,7 @@
     "packLanded": "当前登录租户 {{tenant}}：员工 {{employees}}，人才 {{talent}}，技能 {{skills}}，插件 {{plugins}}",
     "packPreviewEmployees": "右侧预览已打开员工页，可直接核对。",
     "navWorkbench": "工作台",
+    "navWorkspace": "总览",
     "navAnnouncements": "通知公告",
     "navOrgChart": "组织架构",
     "navEmployees": "员工目录",
@@ -221,7 +222,10 @@
     "openSettings": "打开设置",
     "agentsTitle": "智能体定制",
     "agentsBody": "在宿主内把蓝图编译成组织数字同事并管理生命周期。FreeOS 智能体、专家页和个性化保持原位——没有边车 Agent Studio，也不迁对话页。",
-    "openAgents": "打开智能体定制"
+    "openAgents": "打开智能体定制",
+    "workspaceTitle": "工作台总览",
+    "workspaceBody": "组织落地页：宿主状态摘要，并链到已迁入的子页。不是第二套控制面，对话仍在 FreeOS。",
+    "openWorkspace": "打开总览"
   },
   "systemSettings": {
     "subtitle": "工作台、远程桌面与主机管理集中在这里。"

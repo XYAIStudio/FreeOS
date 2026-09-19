@@ -16,6 +16,7 @@ SHARED_ORG_UI_MODULES: tuple[str, ...] = (
     "reflections",
     "settings",
     "agents",
+    "workspace",
 )
 
 
