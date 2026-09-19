@@ -30,6 +30,7 @@ import {
 } from "../../utils/desktopFolder";
 import { message } from "../../utils/antdMessage";
 import { resolveOpenxyosSourceDest } from "./pickSourceDest";
+import { useOrgPathTabs } from "./orgPathTabs";
 import styles from "./Organization.module.less";
 
 type ActionKey = "assemble" | "pack" | "loop" | "sidecar" | "produce" | null;
@@ -352,9 +353,10 @@ export default function OrganizationPage() {
   const catalog = overview?.catalog ?? [];
   const colleagues = overview?.colleagues ?? [];
   const orgSurfaces = overview?.org_surfaces;
+  const pathTabs = useOrgPathTabs("workbench");
 
   return (
-    <PageShell title={t("organization.title")} fill>
+    <PageShell title={t("organization.title")} fill pathTabs={pathTabs}>
       <div className={styles.page}>
         <section className={styles.statusBar}>
           <div className={styles.statusMeta}>
@@ -398,6 +400,25 @@ export default function OrganizationPage() {
         <div className={styles.workbench} data-testid="org-native-workbench">
           <p className={styles.heroStory}>{t("organization.heroStory")}</p>
           <p className={styles.heroStory}>{t("organization.glossary")}</p>
+
+          <section className={styles.actions} data-testid="org-in-host-pages">
+            <div className={styles.action}>
+              <Building2 size={18} />
+              <p className={styles.actionTitle}>
+                {t("organization.announcementsTitle")}
+              </p>
+              <p className={styles.actionBody}>
+                {t("organization.announcementsBody")}
+              </p>
+              <Button
+                type="primary"
+                onClick={() => navigate("/organization/announcements")}
+                data-testid="org-open-announcements"
+              >
+                {t("organization.openAnnouncements")}
+              </Button>
+            </div>
+          </section>
 
           {firstRun && (
             <section className={styles.empty}>

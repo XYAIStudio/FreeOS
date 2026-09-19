@@ -180,7 +180,12 @@
     "assemblePreviewExperts": "正在打开「专家」页，导入的同事可在那里选用。",
     "packReceipt": "已打包并推送到当前登录的 openXYOS 租户。",
     "packLanded": "当前登录租户 {{tenant}}：员工 {{employees}}，人才 {{talent}}，技能 {{skills}}，插件 {{plugins}}",
-    "packPreviewEmployees": "右侧预览已打开员工页，可直接核对。"
+    "packPreviewEmployees": "右侧预览已打开员工页，可直接核对。",
+    "navWorkbench": "工作台",
+    "navAnnouncements": "通知公告",
+    "announcementsTitle": "通知公告",
+    "announcementsBody": "发布公告并跟踪已读。此页跑在宿主内，不需要边车或第二端口。",
+    "openAnnouncements": "打开通知公告"
   },
   "systemSettings": {
     "subtitle": "工作台、远程桌面与主机管理集中在这里。"

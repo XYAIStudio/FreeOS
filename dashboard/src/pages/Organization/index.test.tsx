@@ -11,6 +11,12 @@ function renderOrg() {
       <Routes>
         <Route path="/organization" element={<OrganizationPage />} />
         <Route
+          path="/organization/announcements"
+          element={
+            <div data-testid="org-announcements-page">announcements</div>
+          }
+        />
+        <Route
           path="/experts"
           element={<div data-testid="experts-page">experts</div>}
         />
@@ -140,6 +146,7 @@ describe("OrganizationPage", () => {
     expect(screen.getByText("organization.loopAction")).toBeInTheDocument();
     expect(screen.getByTestId("org-colleagues")).toHaveTextContent("Ops");
     expect(screen.getByTestId("org-surfaces")).toBeInTheDocument();
+    expect(screen.getByTestId("org-open-announcements")).toBeInTheDocument();
     expect(screen.queryByTestId("org-mini-browser")).toBeNull();
     expect(screen.queryByTestId("org-browser-frame")).toBeNull();
     expect(screen.queryByTestId("org-sidecar-gate")).toBeNull();
@@ -184,6 +191,15 @@ describe("OrganizationPage", () => {
     expect(message.success).toHaveBeenCalledWith(
       "organization.downloadSourceDone",
     );
+  });
+
+  it("opens in-host announcements without a sidecar iframe", async () => {
+    renderOrg();
+    fireEvent.click(await screen.findByTestId("org-open-announcements"));
+    expect(
+      await screen.findByTestId("org-announcements-page"),
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId("org-browser-frame")).toBeNull();
   });
 
   it("imports into FreeOS and opens Experts so colleagues are selectable", async () => {

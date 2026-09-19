@@ -373,6 +373,26 @@ def assets_apply(pack_dir: Path | None, tenant_id: str, base_url: str) -> None:
     click.echo(json.dumps(result.to_dict(), indent=2))
 
 
+@org.command("export-standalone")
+@click.option(
+    "--out",
+    "out_dir",
+    type=click.Path(path_type=Path),
+    required=True,
+    help="Output directory for the standalone web scaffold.",
+)
+def export_standalone(out_dir: Path) -> None:
+    """Scaffold a standalone Organization web from shared org-ui (Phase 2: Announcements).
+
+    Writes the shared module list and an App.tsx that imports AnnouncementPage.
+    Full Vite + Node packaging is Phase 5 (TODO in the generated README).
+    """
+    from octop.modules.org_os.export_standalone import write_standalone_scaffold
+
+    written = write_standalone_scaffold(out_dir)
+    click.echo(json.dumps(written, indent=2))
+
+
 @org.group("loop")
 def org_loop() -> None:
     """Finished self-growth loop: produce → assemble → feed back → govern."""

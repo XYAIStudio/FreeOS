@@ -756,6 +756,12 @@
       "imported_plugin": "已导入 openXYOS 插件 {slug}",
       "imported_mcp": "已导入 openXYOS MCP {slug}"
     },
+    "announcements": {
+      "not_found": "公告不存在或已删除",
+      "forbidden": "无权限",
+      "title_content_required": "标题和内容不能为空",
+      "unavailable": "公告服务暂时不可用，请稍后重试"
+    },
     "sidecar": {
       "already": "边车已可达",
       "started_pending": "已启动但尚未可达；请查看 logs/org-sidecar.log",

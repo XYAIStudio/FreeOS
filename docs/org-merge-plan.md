@@ -1,10 +1,10 @@
 # 组织模块合并计划（openXYOS → FreeOS Dashboard）
 
-**状态：** Phase 1 合同已冻结（[ADR 003](adr/003-org-ui-single-source-dual-delivery.md)）
+**状态：** Phase 2 Announcements 垂直切片已落地（宿主 CRUD + `/organization/announcements` + `org-ui` + `freeos org export-standalone` 骨架）
 **日期：** 2026-09-19
 **依据：** Phase 0 迁移图、[architecture-integration.md](architecture-integration.md)、[asset-loop.md](asset-loop.md)、[ADR 001](adr/001-single-process-model.md)、#55 宿主内 Organization
 
-本文是**规划**，不实现页面搬迁或安装器改动。
+Phase 1 冻结了合同。Phase 2（通知公告）已按该合同落地；其余 Open-12 页仍按阶段推进。
 
 ---
 
@@ -24,7 +24,7 @@
 |---|---|---|
 | **0** 宿主内地基 | `org_os` 控制面、`/api/org-module/*` BFF、Dashboard 原生工作台、sidecar 改为可选 | **已完成**（#55） |
 | **1** 合同冻结 | ADR + 本计划：单源双交付、包布局、API 归属、IdentityBridge、Phase 2 验收 | **本文** |
-| **2** 垂直切片 | **通知公告 Announcements** 按合同落地（Dashboard 路由 + 可导出同一页面） | 未开始 |
+| **2** 垂直切片 | **通知公告 Announcements** 按合同落地（Dashboard 路由 + 可导出同一页面） | **本切片已完成** |
 | **3** Open-12 其余页 | 工作台、组织架构、员工、技能、智能体、任务、知识、反思、治理 UI、设置 | 未开始 |
 | **4** 身份与 CRUD | 已迁页面走 IdentityBridge；业务 CRUD 按切片迁入宿主；未迁路由仍可代理到可选 sidecar | 与 2–3 交叉推进 |
 | **5** 导出与安装器 | `freeos org export-standalone` 产出独立站；默认安装器保持零 Node | 未开始 |
@@ -169,12 +169,12 @@ org-ui  →  IdentityBridge.getSession()
 
 最低风险：只读+CRUD 清晰，不碰 Agent 运行时，OpenApp 与商业 `App.tsx` 都引用同一 `AnnouncementPage`。
 
-### 要做（实现波，非本 PR）
+### 已落地（Phase 2 实现）
 
-1. 把公告页抽成壳无关组件（`org-ui/pages/announcements`），数据经 `createOrgApiClient`。
-2. Dashboard 增加子路由：`/organization/announcements`（及详情/编辑若需要）。
-3. 宿主提供公告 API（见上表）；嵌入模式打宿主，不打 `:3780`。
-4. 导出流水线最小闭环：同一页面能出现在 `export-standalone` 产物里（可用 fixture / 快照验收，不必先做完整商业打包）。
+1. 壳无关组件：`dashboard/src/org-ui/pages/announcements`，数据经 `createOrgApiClient`。
+2. Dashboard 子路由：`/organization/announcements`（工作台 path tabs + 入口卡）。
+3. 宿主 API：`/api/org-module/announcements*`，SQLite 在 `{FREEOS_HOME}/org/announcements.sqlite`；嵌入模式打宿主 JWT，不打 `:3780`。
+4. 导出骨架：`freeos org export-standalone --out …` 写出共享模块列表 + 导入同一 `AnnouncementPage` 的 `App.tsx`（完整 Vite/Node 打包仍是 Phase 5 TODO）。
 
 ### 验收标准
 

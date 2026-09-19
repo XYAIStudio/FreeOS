@@ -756,6 +756,12 @@
       "imported_plugin": "imported openXYOS plugin {slug}",
       "imported_mcp": "imported openXYOS MCP {slug}"
     },
+    "announcements": {
+      "not_found": "Announcement not found or deleted",
+      "forbidden": "Permission denied",
+      "title_content_required": "Title and content are required",
+      "unavailable": "Announcement service is temporarily unavailable. Please try again"
+    },
     "sidecar": {
       "already": "sidecar already reachable",
       "started_pending": "started but not reachable yet; check logs/org-sidecar.log",
