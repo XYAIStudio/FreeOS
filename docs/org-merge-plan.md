@@ -1,6 +1,6 @@
 # 组织模块合并计划（openXYOS → FreeOS Dashboard）
 
-**状态：** Phase 3 组织架构、员工目录、技能、治理 UI、知识、任务与反思切片已落地（宿主 org tree / 员工 CRUD + skill_bridge list/read + 治理 pauses/audit + 宿主知识库桥接 + `{FREEOS_HOME}/org/tasks.sqlite` + `{FREEOS_HOME}/org/reflections.sqlite` + `/organization/org` + `/organization/employees` + `/organization/skills` + `/organization/governance` + `/organization/knowledge` + `/organization/tasks` + `/organization/reflections` + `org-ui` OrgChartPage / EmployeesPage / SkillsPage / GovernancePage / KnowledgePage / TasksPage / ReflectionsPage + export-standalone 模块列表）。其余 Open-12 仍待切片。
+**状态：** Phase 3 组织架构、员工目录、技能、治理 UI、知识、任务、反思与设置切片已落地（宿主 org tree / 员工 CRUD + skill_bridge list/read + 治理 pauses/audit + 宿主知识库桥接 + `{FREEOS_HOME}/org/tasks.sqlite` + `{FREEOS_HOME}/org/reflections.sqlite` + `{FREEOS_HOME}/org-os/prefs.json` + `/organization/org` + `/organization/employees` + `/organization/skills` + `/organization/governance` + `/organization/knowledge` + `/organization/tasks` + `/organization/reflections` + `/organization/settings` + `org-ui` OrgChartPage / EmployeesPage / SkillsPage / GovernancePage / KnowledgePage / TasksPage / ReflectionsPage / SettingsPage + export-standalone 模块列表）。其余 Open-12 仍待切片。
 **日期：** 2026-09-19
 **依据：** Phase 0 迁移图、[architecture-integration.md](architecture-integration.md)、[asset-loop.md](asset-loop.md)、[ADR 001](adr/001-single-process-model.md)、#55 宿主内 Organization
 
@@ -25,7 +25,7 @@ Phase 1 冻结了合同。Phase 2（通知公告）与 Phase 3 的组织架构�
 | **0** 宿主内地基 | `org_os` 控制面、`/api/org-module/*` BFF、Dashboard 原生工作台、sidecar 改为可选 | **已完成**（#55） |
 | **1** 合同冻结 | ADR + 本计划：单源双交付、包布局、API 归属、IdentityBridge、Phase 2 验收 | **本文** |
 | **2** 垂直切片 | **通知公告 Announcements** 按合同落地（Dashboard 路由 + 可导出同一页面） | **已完成** |
-| **3** Open-12 其余页 | 工作台、组织架构、员工、技能、智能体、任务、知识、反思、治理 UI、设置 | **进行中**：架构 / 员工 / 技能 / 治理 / 知识 / 任务 / 反思已迁；智能体、设置、工作台扩展未开始 |
+| **3** Open-12 其余页 | 工作台、组织架构、员工、技能、智能体、任务、知识、反思、治理 UI、设置 | **进行中**：架构 / 员工 / 技能 / 治理 / 知识 / 任务 / 反思 / 设置已迁；智能体、工作台扩展未开始 |
 | **4** 身份与 CRUD | 已迁页面走 IdentityBridge；业务 CRUD 按切片迁入宿主；未迁路由仍可代理到可选 sidecar | 与 2–3 交叉推进 |
 | **5** 导出与安装器 | `freeos org export-standalone` 产出独立站；默认安装器保持零 Node | 未开始 |
 
@@ -65,7 +65,7 @@ Catalog 十二键（`catalog.py` ↔ `open-module-catalog.ts`）：
 | knowledge | OpenApp `/knowledge` | sidecar `/api/knowledge` | **Phase 3 切片已落地**：`/organization/knowledge` 列出宿主 `/api/knowledge-bases` 同一套行；不克隆 sidecar notes/files DB |
 | reflections | OpenApp `/reflections` | sidecar `/api/reflections` | **Phase 3 切片已落地**：`/organization/reflections` + `/api/org-module/reflections*`，`{FREEOS_HOME}/org/reflections.sqlite`。不是 Chat，也不是第二套技能运行时。未迁：边车技能统计、部署铁律样例 |
 | governance UI | OpenApp `/governance` | sidecar `/api/governance` + 宿主 `org_os/governance` | **Phase 3 切片已落地**：`/organization/governance` 展示待审批 / 审计 / 裁决；PEP/PDP 与 durable pause **已在宿主，勿重写引擎**。未迁：边车权限矩阵、通信规则、流程模板 |
-| settings | OpenApp `/settings` | sidecar `/api/settings`、`/api/module-settings` | Phase 3：租户/模块开关；宿主已有 `PATCH /api/org-module` 与 `/modules` |
+| settings | OpenApp `/settings` | sidecar `/api/settings`、`/api/module-settings` | **Phase 3 切片已落地**：`/organization/settings` 只改 `org_os` 目录开关（复用 `PUT /api/org-module/modules`）与组织本地偏好（`/prefs`）。**不是** FreeOS 系统设置（密钥、用户、时区）。未迁：边车公司/AI/用户/数据库页 |
 
 **商业 `App.tsx` 多出来的路由（本波不迁）：** workflows、contracts、assets、attendance/leave、expense、daily-report、goals、budgets、performance、efficiency、audit 等。它们不是 Open-12。
 
@@ -121,6 +121,7 @@ uv run freeos org export-standalone --out dist/openxyos-web
 | `knowledge` list/read/create/notes | 宿主知识库桥接 | **已挂 UI**。包装 `KnowledgeService`；写操作 `knowledge_bases` 门控。不克隆 sidecar notes DB |
 | `tasks` list/stats/detail/CRUD/transition/subtasks/comments | 宿主组织待办 | **已挂 UI**。`{FREEOS_HOME}/org/tasks.sqlite`。不是 cron / 项目任务 / Chat |
 | `reflections` list/stats/detail/create/delete | 宿主组织复盘 | **已挂 UI**。`{FREEOS_HOME}/org/reflections.sqlite`。不是 Chat / 第二套技能运行时 |
+| `settings` snapshot · `prefs` · `modules` | 宿主组织模块设置 | **已挂 UI**。复用 `/modules`；prefs 在 `{FREEOS_HOME}/org-os/prefs.json`。不是系统设置 |
 | `sidecar/*` · `source/download` | 可选兼容 | 留在 Advanced；默认路径不依赖 |
 
 ### 业务 CRUD（当前 sidecar Express → 按切片迁入宿主）
@@ -132,7 +133,7 @@ uv run freeos org export-standalone --out dist/openxyos-web
 | 员工目录 | sidecar `/api/employees` | **已迁目录 CRUD。** 宿主 `/api/org-module/org/employees*`，与 org chart **同一** `{FREEOS_HOME}/org/org_chart.sqlite`。lifecycle 仍是 `GET /api/org-module/employees`（同事 registry）。未迁：人才市场、备选入职、资产离职清算、绩效、汇报线、技能绑定、头像上传 |
 | 任务 | sidecar `/api/tasks` | **已迁。** 宿主 `/api/org-module/tasks*`，`{FREEOS_HOME}/org/tasks.sqlite`。不桥接 cron，不迁 Chat |
 | 反思 | sidecar `/api/reflections` | **已迁。** 宿主 `/api/org-module/reflections*`，`{FREEOS_HOME}/org/reflections.sqlite`。不迁 Chat，不迁边车技能统计 |
-| 设置 | sidecar `/api/settings` 等 | Phase 3 其余页：同一模式，迁完才摘代理 |
+| 设置 | sidecar `/api/settings` 等 | **已迁组织模块设置。** `GET /api/org-module/settings` + `PUT /prefs` + 复用 `PUT /modules`。不迁 sidecar 公司/AI/用户/数据库，也不复制 FreeOS 系统设置 |
 | 知识 | sidecar `/api/knowledge` | **已迁为宿主桥接。** `GET /api/org-module/knowledge*` 读 Octop `knowledge_bases` / `knowledge_documents`；笔记写成宿主 markdown 文档。sidecar notes DB 仍是可选兼容 |
 | 未迁资源 | sidecar 或 `/api/org-module/sidecar/api/<resource>` 代理 | 可选 sidecar 仍可用；默认安装不启动它 |
 | Chat | sidecar `/api/chats` | **永久不迁** |
@@ -415,7 +416,40 @@ openXYOS sidecar `/api/governance`（权限矩阵、通信规则、流程模板�
 | Chat / 从反思页发起会话 | 对话运行时留在 FreeOS/Octop |
 | 边车 `employee_skill_stats` / 技能使用统计 | 组织技能已有独立切片；本页不另造技能库 |
 | 边车「系统部署铁律」样例文案 | openXYOS 自身部署备忘，不是组织复盘数据 |
-| 其余 Open-12（智能体、设置、工作台扩展） | 后续切片 |
+| 其余 Open-12（智能体、工作台扩展） | 后续切片 |
+| `freeos org export-standalone` 完整 Vite/Node 打包 | Phase 5 |
+
+---
+
+## Phase 3 进度：设置（本切片）
+
+按同一缝落地，**只迁组织模块设置**。不复制 FreeOS 系统设置（大模型密钥、用户、时区、模型、安全）。
+
+### 数据模型（单一 SoT）
+
+| 表面 | 存储 | API | 含义 |
+|---|---|---|---|
+| 目录模块开关 | `{FREEOS_HOME}/org-os/module-toggles.json` | `GET/PUT /api/org-module/modules`（本页复用，不另造） | openXYOS catalog 十二键的显示/隐藏；`workspace` / `settings` 锁定为开 |
+| 组织本地偏好 | `{FREEOS_HOME}/org-os/prefs.json` | `GET /api/org-module/settings` · `PUT /api/org-module/prefs` | 组织显示名与简介；不是实例名 |
+| FreeOS 系统设置 | Octop 用户/供应商/config.json | `/system-settings` 等 | **本页不编辑。** 只外链 |
+| sidecar 设置 | openXYOS SQL.js | 可选 `/api/settings` | **不迁、不克隆。** 默认路径不读它 |
+
+本页明确 **没有**：LLM API Key、用户注册、空中模式、数据库备份、边车角色矩阵。
+
+### 已落地
+
+1. 壳无关组件：`dashboard/src/org-ui/pages/settings`（`SettingsPage`），数据经 `createOrgApiClient().settings`。
+2. Dashboard 子路由：`/organization/settings`（工作台 path tabs + 入口卡）。
+3. 宿主 API：snapshot / prefs；模块开关复用已有 `/modules`。写操作仅管理员。
+4. 导出骨架：`freeos org export-standalone` 模块列表与 `App.tsx` 同时导入 `SettingsPage`。
+
+### 本切片明确推迟
+
+| 推迟项 | 原因 |
+|---|---|
+| 把系统设置搬进组织页 | FreeOS 已有系统设置；本页只链出去 |
+| 边车公司/AI/用户/数据库 Tab | sidecar SQL.js；密钥与用户在宿主 |
+| Chat / Agents / Workspace 批量搬迁 | 不在本 PR |
 | `freeos org export-standalone` 完整 Vite/Node 打包 | Phase 5 |
 
 ---

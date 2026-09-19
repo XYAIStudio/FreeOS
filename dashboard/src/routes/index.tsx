@@ -44,6 +44,9 @@ const OrganizationTaskDetailPage = lazy(
 const OrganizationReflectionsPage = lazy(
   () => import("../pages/Organization/reflections"),
 );
+const OrganizationSettingsPage = lazy(
+  () => import("../pages/Organization/settings"),
+);
 const ProjectsPage = lazy(() => import("../pages/Projects"));
 
 // Misc
@@ -105,6 +108,7 @@ export const pathToKey: Record<string, string> = {
   "/organization/knowledge": "organization",
   "/organization/tasks": "organization",
   "/organization/reflections": "organization",
+  "/organization/settings": "organization",
   "/projects": "projects",
   "/tasks": "projects",
   "/connectors": "personalization",
@@ -274,6 +278,10 @@ export const routeConfigs: RouteConfig[] = [
   {
     path: "/organization/reflections",
     element: <OrganizationReflectionsPage />,
+  },
+  {
+    path: "/organization/settings",
+    element: <OrganizationSettingsPage />,
   },
   { path: "/projects", element: <ProjectsPage /> },
   { path: "/tasks", element: <TasksToProjects /> },

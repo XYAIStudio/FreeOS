@@ -14,6 +14,7 @@ SHARED_ORG_UI_MODULES: tuple[str, ...] = (
     "knowledge",
     "tasks",
     "reflections",
+    "settings",
 )
 
 

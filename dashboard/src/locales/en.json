@@ -190,6 +190,7 @@
     "navKnowledge": "Knowledge",
     "navTasks": "Tasks",
     "navReflections": "Reflections",
+    "navSettings": "Settings",
     "announcementsTitle": "Announcements",
     "announcementsBody": "Publish notices and track who has read them. This page lives in the host — no sidecar or second port.",
     "openAnnouncements": "Open announcements",
@@ -213,7 +214,10 @@
     "openTasks": "Open tasks",
     "reflectionsTitle": "Reflections",
     "reflectionsBody": "Capture lessons and reusable experience on the host org store (FREEOS_HOME/org). Not a sidecar and not Chat.",
-    "openReflections": "Open reflections"
+    "openReflections": "Open reflections",
+    "settingsTitle": "Organization settings",
+    "settingsBody": "Org-module catalog toggles and local preferences. LLM keys, users, and timezone stay on FreeOS system settings — no sidecar.",
+    "openSettings": "Open settings"
   },
   "systemSettings": {
     "subtitle": "Workbench, remote desktop, and host administration in one place."

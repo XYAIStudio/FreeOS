@@ -6,6 +6,7 @@ import {
   Megaphone,
   Network,
   Package,
+  Settings,
   Shield,
   Users,
 } from "lucide-react";
@@ -23,7 +24,8 @@ export function useOrgPathTabs(
     | "governance"
     | "knowledge"
     | "tasks"
-    | "reflections",
+    | "reflections"
+    | "settings",
 ): PathTabsConfig {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -75,6 +77,11 @@ export function useOrgPathTabs(
         label: t("organization.navReflections"),
         icon: <Brain size={14} />,
       },
+      {
+        value: "settings",
+        label: t("organization.navSettings"),
+        icon: <Settings size={14} />,
+      },
     ],
     onChange: (value) => {
       if (value === "announcements") {
@@ -107,6 +114,10 @@ export function useOrgPathTabs(
       }
       if (value === "reflections") {
         navigate("/organization/reflections");
+        return;
+      }
+      if (value === "settings") {
+        navigate("/organization/settings");
         return;
       }
       navigate("/organization");

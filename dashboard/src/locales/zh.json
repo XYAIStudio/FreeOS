@@ -190,6 +190,7 @@
     "navKnowledge": "知识",
     "navTasks": "任务",
     "navReflections": "反思",
+    "navSettings": "设置",
     "announcementsTitle": "通知公告",
     "announcementsBody": "发布公告并跟踪已读。此页跑在宿主内，不需要边车或第二端口。",
     "openAnnouncements": "打开通知公告",
@@ -213,7 +214,10 @@
     "openTasks": "打开任务",
     "reflectionsTitle": "反思引擎",
     "reflectionsBody": "在宿主组织库里整理复盘与经验（FREEOS_HOME/org）。不是边车，也不是对话。",
-    "openReflections": "打开反思"
+    "openReflections": "打开反思",
+    "settingsTitle": "组织设置",
+    "settingsBody": "组织模块的目录开关与本地偏好。大模型密钥、用户和时区仍在 FreeOS 系统设置，没有边车。",
+    "openSettings": "打开设置"
   },
   "systemSettings": {
     "subtitle": "工作台、远程桌面与主机管理集中在这里。"

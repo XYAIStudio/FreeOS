@@ -779,6 +779,10 @@
       "task_invalid": "The linked organization task does not exist",
       "unavailable": "Reflection service is temporarily unavailable. Please try again"
     },
+    "settings": {
+      "forbidden": "Permission denied",
+      "invalid": "Organization name or description is too long or invalid"
+    },
     "chart": {
       "forbidden": "Permission denied",
       "name_required": "Department or employee name is required",
