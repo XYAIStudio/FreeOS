@@ -51,11 +51,15 @@ export default function HeroWaterScene() {
         const fall = t / 1.5;
         const y = 15 + (water - 22) * fall * fall;
         ctx.save(); ctx.translate(x, y);
-        const drop = ctx.createLinearGradient(-9, 0, 9, 20);
-        drop.addColorStop(0, "#e0fbff"); drop.addColorStop(.3, "#5cd9ff"); drop.addColorStop(1, "#1262b5");
-        ctx.fillStyle = drop; ctx.shadowColor = "#40bfff"; ctx.shadowBlur = 16;
+        const drop = ctx.createLinearGradient(-9, -12, 10, 22);
+        drop.addColorStop(0, "rgba(238,253,255,.22)");
+        drop.addColorStop(.24, "rgba(181,240,255,.62)");
+        drop.addColorStop(.58, "rgba(72,190,249,.56)");
+        drop.addColorStop(1, "rgba(20,101,190,.70)");
+        ctx.fillStyle = drop; ctx.shadowColor = "rgba(58,178,241,.34)"; ctx.shadowBlur = 12;
         ctx.beginPath(); ctx.moveTo(0, -16); ctx.bezierCurveTo(-2, -4, -11, 2, -9, 10);
         ctx.bezierCurveTo(-7, 22, 8, 22, 10, 10); ctx.bezierCurveTo(11, 2, 2, -5, 0, -16); ctx.fill();
+        ctx.shadowBlur = 0; ctx.beginPath(); ctx.ellipse(-3.1, 2.5, 1.6, 5.6, -.36, 0, Math.PI * 2); ctx.fillStyle = "rgba(255,255,255,.50)"; ctx.fill();
         ctx.restore();
       }
       const impact = t - 1.5;
