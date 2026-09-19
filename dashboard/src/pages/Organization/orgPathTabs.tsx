@@ -16,6 +16,12 @@ import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import type { PathTabsConfig } from "../../layouts/PageShell";
 
+/** Shared PageShell chrome for /organization/* — full-bleed, scrollable body. */
+export const ORG_PAGE_SHELL = {
+  fill: true,
+  pathTabsPlacement: "below-title",
+} as const;
+
 export function useOrgPathTabs(
   active:
     | "workbench"

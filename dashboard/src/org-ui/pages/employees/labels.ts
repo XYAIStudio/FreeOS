@@ -1,8 +1,8 @@
 import type { OrgLocale } from "../../shell";
 
 const EN = {
-  title: "Employees",
-  subtitle: "People and AI colleagues on the host org directory.",
+  title: "Human–AI resources",
+  subtitle: "Human–AI collaboration · host directory · full lifecycle",
   search: "Search name, role, or skills...",
   loading: "Loading employees...",
   empty: "No employees yet. Add a person after a department exists.",
@@ -41,8 +41,8 @@ const EN = {
 };
 
 const ZH: typeof EN = {
-  title: "员工目录",
-  subtitle: "宿主内的人机员工名册。",
+  title: "人机资源",
+  subtitle: "人机共融 · 宿主名册 · 全生命周期",
   search: "搜索姓名、岗位或技能...",
   loading: "加载员工...",
   empty: "还没有员工。先有部门后再添加人员。",

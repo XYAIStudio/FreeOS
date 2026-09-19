@@ -68,7 +68,7 @@ describe("GovernancePage", () => {
       <GovernancePage client={client} session={adminSession} locale="en" />,
     );
     expect(await screen.findByTestId("org-ui-governance")).toBeInTheDocument();
-    expect(screen.getByText("Governance")).toBeInTheDocument();
+    expect(screen.getByText("Governance Engine")).toBeInTheDocument();
     expect(screen.getByText("delete_employee")).toBeInTheDocument();
     expect(document.querySelector("iframe")).toBeNull();
     expect(client.pauses).toHaveBeenCalled();

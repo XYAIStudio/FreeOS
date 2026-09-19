@@ -19,6 +19,11 @@ body,
   min-height: 100%;
 }
 
+/* Match OpenApp inset when pages are not inside FreeOS PageShell. */
+[data-testid^="org-ui-"] {
+  padding: 16px 20px 32px;
+}
+
 a {
   color: inherit;
 }

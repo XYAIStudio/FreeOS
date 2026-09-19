@@ -59,7 +59,7 @@ describe("TasksPage", () => {
     const client = mockClient();
     render(<TasksPage client={client} session={session} locale="en" />);
     expect(await screen.findByTestId("org-ui-tasks")).toBeInTheDocument();
-    expect(screen.getByText("Tasks")).toBeInTheDocument();
+    expect(screen.getByText("Task management")).toBeInTheDocument();
     expect(screen.getByText("Ship Tasks slice")).toBeInTheDocument();
     expect(document.querySelector("iframe")).toBeNull();
     expect(client.list).toHaveBeenCalled();

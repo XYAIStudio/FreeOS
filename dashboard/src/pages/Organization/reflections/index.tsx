@@ -8,7 +8,7 @@ import {
   createOrgApiClient,
   type OrgSession,
 } from "../../../org-ui";
-import { useOrgPathTabs } from "../orgPathTabs";
+import { ORG_PAGE_SHELL, useOrgPathTabs } from "../orgPathTabs";
 
 export default function OrganizationReflectionsPage() {
   const { t, i18n } = useTranslation();
@@ -33,7 +33,7 @@ export default function OrganizationReflectionsPage() {
     <PageShell
       title={t("organization.reflectionsTitle")}
       subtitle={t("organization.reflectionsBody")}
-      fill
+      {...ORG_PAGE_SHELL}
       pathTabs={pathTabs}
     >
       <ReflectionsPage

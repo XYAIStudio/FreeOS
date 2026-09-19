@@ -160,6 +160,21 @@
 }
 
 /**
+ * When `fill` or mobile path-tabs pin the chrome, scroll the remaining
+ * body so tall pages are not clipped by overflow:hidden on the card.
+ */
+.fillBody {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  width: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+/**
  * Pin Ant Design Tabs nav; only the active pane scrolls.
  * Use inside PageShell with `fill` (desktop).
  */
