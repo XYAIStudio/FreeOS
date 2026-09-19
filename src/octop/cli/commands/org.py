@@ -382,10 +382,11 @@ def assets_apply(pack_dir: Path | None, tenant_id: str, base_url: str) -> None:
     help="Output directory for the standalone web scaffold.",
 )
 def export_standalone(out_dir: Path) -> None:
-    """Scaffold a standalone Organization web from shared org-ui (Phase 3: Announcements + Org chart).
+    """Scaffold a standalone Organization web from shared org-ui (Phase 3).
 
-    Writes the shared module list and an App.tsx that imports AnnouncementPage
-    and OrgChartPage. Full Vite + Node packaging is Phase 5 (TODO in the generated README).
+    Writes the shared module list and an App.tsx that imports AnnouncementPage,
+    OrgChartPage, and EmployeesPage. Full Vite + Node packaging is Phase 5
+    (TODO in the generated README).
     """
     from octop.modules.org_os.export_standalone import write_standalone_scaffold
 

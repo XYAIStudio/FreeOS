@@ -5,7 +5,11 @@ from __future__ import annotations
 from octop.modules.org_os.catalog import catalog_keys
 
 # Pages extracted into dashboard/src/org-ui and listed by export-standalone.
-SHARED_ORG_UI_MODULES: tuple[str, ...] = ("announcements", "organization")
+SHARED_ORG_UI_MODULES: tuple[str, ...] = (
+    "announcements",
+    "organization",
+    "employees",
+)
 
 
 def shared_org_ui_modules() -> list[str]:

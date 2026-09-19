@@ -184,12 +184,16 @@
     "navWorkbench": "工作台",
     "navAnnouncements": "通知公告",
     "navOrgChart": "组织架构",
+    "navEmployees": "员工目录",
     "announcementsTitle": "通知公告",
     "announcementsBody": "发布公告并跟踪已读。此页跑在宿主内，不需要边车或第二端口。",
     "openAnnouncements": "打开通知公告",
     "orgChartTitle": "组织架构图",
     "orgChartBody": "宿主内的部门与人员树。此页跑在宿主内，不需要边车或第二端口。",
-    "openOrgChart": "打开组织架构"
+    "openOrgChart": "打开组织架构",
+    "employeesTitle": "员工目录",
+    "employeesBody": "宿主组织树上的人机员工名册。与组织架构共用同一份数据，不需要边车或第二端口。",
+    "openEmployees": "打开员工目录"
   },
   "systemSettings": {
     "subtitle": "工作台、远程桌面与主机管理集中在这里。"

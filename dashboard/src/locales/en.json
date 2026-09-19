@@ -184,12 +184,16 @@
     "navWorkbench": "Workbench",
     "navAnnouncements": "Announcements",
     "navOrgChart": "Org chart",
+    "navEmployees": "Employees",
     "announcementsTitle": "Announcements",
     "announcementsBody": "Publish notices and track who has read them. This page lives in the host — no sidecar or second port.",
     "openAnnouncements": "Open announcements",
     "orgChartTitle": "Organization chart",
     "orgChartBody": "Departments and people on the host org tree. This page lives in the host — no sidecar or second port.",
-    "openOrgChart": "Open org chart"
+    "openOrgChart": "Open org chart",
+    "employeesTitle": "Employees",
+    "employeesBody": "Directory of people and AI colleagues on the host org tree. Same store as the org chart — no sidecar or second port.",
+    "openEmployees": "Open employees"
   },
   "systemSettings": {
     "subtitle": "Workbench, remote desktop, and host administration in one place."
