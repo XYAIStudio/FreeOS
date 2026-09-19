@@ -501,6 +501,48 @@ export interface OrgReflectionsClient {
   remove(id: number): Promise<void>;
 }
 
+export interface OrgCapability {
+  key: string;
+  label: string;
+  label_zh: string;
+  description: string;
+  description_zh: string;
+  locked: boolean;
+}
+
+export interface OrgPrefs {
+  name: string;
+  description: string;
+}
+
+export interface OrgSystemSettingsLinks {
+  overview: string;
+  models: string;
+  users: string;
+}
+
+export interface OrgSettingsSnapshot {
+  scope: string;
+  catalog: OrgCapability[];
+  modules: Record<string, boolean>;
+  prefs: OrgPrefs;
+  system_settings: OrgSystemSettingsLinks;
+  not_on_this_page: string[];
+}
+
+export interface OrgPrefsWrite {
+  name?: string;
+  description?: string;
+}
+
+export interface OrgSettingsClient {
+  snapshot(): Promise<OrgSettingsSnapshot>;
+  savePrefs(body: OrgPrefsWrite): Promise<OrgPrefs>;
+  saveModules(
+    updates: Record<string, boolean>,
+  ): Promise<Record<string, boolean>>;
+}
+
 export interface OrgApiClient {
   announcements: OrgAnnouncementsClient;
   org: OrgChartClient;
@@ -510,6 +552,7 @@ export interface OrgApiClient {
   knowledge: OrgKnowledgeClient;
   tasks: OrgTasksClient;
   reflections: OrgReflectionsClient;
+  settings: OrgSettingsClient;
 }
 
 async function unwrap<T>(payload: OrgEnvelope<T>): Promise<T> {
@@ -532,6 +575,7 @@ export function createOrgApiClient(opts: {
   knowledgePrefix?: string;
   tasksPrefix?: string;
   reflectionsPrefix?: string;
+  settingsPrefix?: string;
 }): OrgApiClient {
   const prefix = opts.announcementsPrefix ?? "/org-module/announcements";
   const orgPrefix = opts.orgPrefix ?? "/org-module/org";
@@ -540,6 +584,7 @@ export function createOrgApiClient(opts: {
   const knowledgePrefix = opts.knowledgePrefix ?? "/org-module/knowledge";
   const tasksPrefix = opts.tasksPrefix ?? "/org-module/tasks";
   const reflectionsPrefix = opts.reflectionsPrefix ?? "/org-module/reflections";
+  const settingsPrefix = opts.settingsPrefix ?? "/org-module";
   const fetchJson = opts.fetchJson;
 
   const announcements: OrgAnnouncementsClient = {
@@ -985,6 +1030,39 @@ export function createOrgApiClient(opts: {
     },
   };
 
+  const settings: OrgSettingsClient = {
+    async snapshot() {
+      return unwrap(
+        await fetchJson<OrgEnvelope<OrgSettingsSnapshot>>(
+          `${settingsPrefix}/settings`,
+        ),
+      );
+    },
+    async savePrefs(body) {
+      return unwrap(
+        await fetchJson<OrgEnvelope<OrgPrefs>>(`${settingsPrefix}/prefs`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        }),
+      );
+    },
+    async saveModules(updates) {
+      const raw = await fetchJson<{
+        updates?: Record<string, boolean>;
+        success?: boolean;
+        data?: { updates?: Record<string, boolean> };
+      }>(`${settingsPrefix}/modules`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ updates }),
+      });
+      if (raw.updates) return raw.updates;
+      if (raw.data?.updates) return raw.data.updates;
+      throw new Error("request failed");
+    },
+  };
+
   return {
     announcements,
     org,
@@ -994,5 +1072,6 @@ export function createOrgApiClient(opts: {
     knowledge,
     tasks,
     reflections,
+    settings,
   };
 }

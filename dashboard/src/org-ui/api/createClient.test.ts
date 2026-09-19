@@ -81,6 +81,22 @@ describe("createOrgApiClient", () => {
           ],
         };
       }
+      if (path === "/org-module/settings") {
+        return {
+          success: true,
+          data: {
+            scope: "org_module",
+            catalog: [{ key: "settings", locked: true }],
+            modules: { settings: true, chat: false },
+            prefs: { name: "Acme", description: "" },
+            system_settings: { overview: "/system-settings" },
+            not_on_this_page: ["llm_keys"],
+          },
+        };
+      }
+      if (path === "/org-module/modules") {
+        return { updates: { settings: true, chat: false } };
+      }
       throw new Error(`unexpected ${path}`);
     });
     const client = createOrgApiClient({ fetchJson });
@@ -101,6 +117,11 @@ describe("createOrgApiClient", () => {
     expect((await client.reflections.list())[0]?.failure_reasons).toBe(
       "const dead zone",
     );
+    expect((await client.settings.snapshot()).prefs.name).toBe("Acme");
+    expect(await client.settings.saveModules({ chat: false })).toEqual({
+      settings: true,
+      chat: false,
+    });
     expect(fetchJson).toHaveBeenCalled();
   });
 

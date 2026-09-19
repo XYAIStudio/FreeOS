@@ -75,6 +75,7 @@ describe("pathPermissionKeys", () => {
     expect(pathPermissionKeys("/organization/knowledge")).toBeNull();
     expect(pathPermissionKeys("/organization/tasks")).toBeNull();
     expect(pathPermissionKeys("/organization/reflections")).toBeNull();
+    expect(pathPermissionKeys("/organization/settings")).toBeNull();
     expect(pathPermissionKeys("/projects")).toBeNull();
     expect(pathPermissionKeys("/tasks")).toBeNull();
     expect(pathPermissionKeys("/token-usage")).toBeNull();
@@ -168,6 +169,7 @@ describe("unknown dashboard paths", () => {
     expect(resolveSelectedKey("/organization/reflections")).toBe(
       "organization",
     );
+    expect(resolveSelectedKey("/organization/settings")).toBe("organization");
   });
 
   it("are caught by the not-found route", () => {

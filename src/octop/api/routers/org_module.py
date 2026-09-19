@@ -15,6 +15,7 @@ from octop.api.routers.org_announcements import router as announcements_router
 from octop.api.routers.org_chart import router as org_chart_router
 from octop.api.routers.org_knowledge import router as knowledge_router
 from octop.api.routers.org_reflections import router as reflections_router
+from octop.api.routers.org_settings import router as settings_router
 from octop.api.routers.org_tasks import router as tasks_router
 from octop.infra.server import OctopServer
 from octop.infra.utils.locale import resolve_request_locale
@@ -44,6 +45,7 @@ router.include_router(org_chart_router)
 router.include_router(knowledge_router)
 router.include_router(tasks_router)
 router.include_router(reflections_router)
+router.include_router(settings_router)
 
 
 class OrgModulePatch(BaseModel):

@@ -3,7 +3,7 @@
 Full Vite + Node server packaging is Phase 5. This writes a snapshot that
 lists the shared org-ui modules and points at the same AnnouncementPage,
 OrgChartPage, EmployeesPage, SkillsPage, GovernancePage, KnowledgePage,
-TasksPage, and ReflectionsPage sources Dashboard mounts under
+TasksPage, ReflectionsPage, and SettingsPage sources Dashboard mounts under
 ``/organization/...``.
 """
 
@@ -33,6 +33,7 @@ Dashboard and this export consume the **same** org-ui pages:
 | knowledge | `/organization/knowledge` | `/knowledge` | `dashboard/src/org-ui` → `KnowledgePage` |
 | tasks | `/organization/tasks` | `/tasks` | `dashboard/src/org-ui` → `TasksPage` / `TaskDetailPage` |
 | reflections | `/organization/reflections` | `/reflections` | `dashboard/src/org-ui` → `ReflectionsPage` |
+| settings | `/organization/settings` | `/settings` | `dashboard/src/org-ui` → `SettingsPage` |
 
 Do **not** copy those pages into a second tree. Edit `dashboard/src/org-ui`.
 
@@ -47,6 +48,10 @@ Organization Tasks live in `{FREEOS_HOME}/org/tasks.sqlite`. They are **not**
 Octop cron jobs and **not** agent/project chat.
 Organization Reflections live in `{FREEOS_HOME}/org/reflections.sqlite`.
 They are lessons learned, not Chat and not a second skill runtime.
+Organization Settings are **org-module only**: catalog toggles
+(`{FREEOS_HOME}/org-os/module-toggles.json`) and org-local prefs
+(`{FREEOS_HOME}/org-os/prefs.json`). LLM keys, users, timezone, and
+models stay on FreeOS system settings (`/system-settings`).
 
 ## Phase 3 vs Phase 5
 
@@ -55,7 +60,7 @@ Phase 3 (this scaffold):
 - Shared module list (`src/modules.json`)
 - Thin `src/App.tsx` that imports `AnnouncementPage`, `OrgChartPage`,
   `EmployeesPage`, `SkillsPage`, `GovernancePage`, `KnowledgePage`,
-  `TasksPage`, and `ReflectionsPage`
+  `TasksPage`, `ReflectionsPage`, and `SettingsPage`
 - Documents IdentityBridge: embedded mode uses FreeOS JWT; standalone uses local JWT
 
 Phase 5 (TODO — not implemented here):
@@ -84,6 +89,7 @@ import {
   OrgChartPage,
   ReflectionsPage,
   SHARED_ORG_UI_MODULES,
+  SettingsPage,
   SkillsPage,
   TaskDetailPage,
   TasksPage,
@@ -96,6 +102,7 @@ import type {
   OrgKnowledgeClient,
   OrgReflectionsClient,
   OrgSession,
+  OrgSettingsClient,
   OrgSkillsClient,
   OrgTasksClient,
 } from "org-ui";
@@ -105,7 +112,8 @@ import type {
  * Page components are the same ones Dashboard mounts at
  * /organization/announcements, /organization/org, /organization/employees,
  * /organization/skills, /organization/governance, /organization/knowledge,
- * /organization/tasks, and /organization/reflections.
+ * /organization/tasks, /organization/reflections, and
+ * /organization/settings.
  */
 const session: OrgSession = {
   userId: 0,
@@ -123,6 +131,7 @@ export default function App(props: {
   knowledgeClient: OrgKnowledgeClient;
   tasksClient: OrgTasksClient;
   reflectionsClient: OrgReflectionsClient;
+  settingsClient: OrgSettingsClient;
   locale?: "zh" | "en";
 }) {
   return (
@@ -189,6 +198,12 @@ export default function App(props: {
         locale={props.locale ?? "en"}
         modules={SHARED_ORG_UI_MODULES}
       />
+      <SettingsPage
+        client={props.settingsClient}
+        session={session}
+        locale={props.locale ?? "en"}
+        modules={SHARED_ORG_UI_MODULES}
+      />
     </>
   );
 }
@@ -201,7 +216,7 @@ _PACKAGE_JSON = {
     "description": (
         "Standalone Organization web export skeleton. "
         "Pages come from dashboard/src/org-ui "
-        "(Phase 3: Announcements + Org chart + Employees + Skills + Governance + Knowledge + Tasks + Reflections). "
+        "(Phase 3: Announcements + Org chart + Employees + Skills + Governance + Knowledge + Tasks + Reflections + Settings). "
         "Full Node packaging is Phase 5."
     ),
     "type": "module",
@@ -282,6 +297,15 @@ def write_standalone_scaffold(out_dir: Path) -> dict[str, Any]:
                 "standalone_route": "/reflections",
                 "api": "/api/org-module/reflections",
                 "store": "{FREEOS_HOME}/org/reflections.sqlite",
+            },
+            "settings": {
+                "component": "SettingsPage",
+                "embedded_route": "/organization/settings",
+                "standalone_route": "/settings",
+                "api": "/api/org-module/settings",
+                "modules_api": "/api/org-module/modules",
+                "prefs_api": "/api/org-module/prefs",
+                "store": "{FREEOS_HOME}/org-os/prefs.json",
             },
         },
         "todo": "Phase 5: full Vite + server packaging; do not fork org-ui pages",

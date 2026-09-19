@@ -10,6 +10,7 @@ import {
   ListTodo,
   Package,
   Play,
+  Settings,
   Settings2,
   Shield,
   Users,
@@ -529,6 +530,22 @@ export default function OrganizationPage() {
                 data-testid="org-open-reflections"
               >
                 {t("organization.openReflections")}
+              </Button>
+            </div>
+            <div className={styles.action}>
+              <Settings size={18} />
+              <p className={styles.actionTitle}>
+                {t("organization.settingsTitle")}
+              </p>
+              <p className={styles.actionBody}>
+                {t("organization.settingsBody")}
+              </p>
+              <Button
+                type="primary"
+                onClick={() => navigate("/organization/settings")}
+                data-testid="org-open-settings"
+              >
+                {t("organization.openSettings")}
               </Button>
             </div>
           </section>

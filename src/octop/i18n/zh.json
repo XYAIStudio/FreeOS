@@ -779,6 +779,10 @@
       "task_invalid": "关联的组织任务不存在",
       "unavailable": "反思服务暂时不可用，请稍后重试"
     },
+    "settings": {
+      "forbidden": "无权限",
+      "invalid": "组织名称或简介过长或无效"
+    },
     "chart": {
       "forbidden": "无权限",
       "name_required": "部门或员工名称不能为空",

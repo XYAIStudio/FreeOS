@@ -25,6 +25,7 @@ def test_export_standalone_lists_shared_org_ui_modules(tmp_path: Path) -> None:
         "knowledge",
         "tasks",
         "reflections",
+        "settings",
     ]
     modules = json.loads((out / "src" / "modules.json").read_text(encoding="utf-8"))
     assert modules["shared_org_ui_modules"] == [
@@ -36,6 +37,7 @@ def test_export_standalone_lists_shared_org_ui_modules(tmp_path: Path) -> None:
         "knowledge",
         "tasks",
         "reflections",
+        "settings",
     ]
     assert modules["pages"]["announcements"]["component"] == "AnnouncementPage"
     assert modules["pages"]["announcements"]["embedded_route"] == "/organization/announcements"
@@ -61,6 +63,12 @@ def test_export_standalone_lists_shared_org_ui_modules(tmp_path: Path) -> None:
     assert modules["pages"]["reflections"]["embedded_route"] == "/organization/reflections"
     assert modules["pages"]["reflections"]["api"] == "/api/org-module/reflections"
     assert modules["pages"]["reflections"]["store"] == "{FREEOS_HOME}/org/reflections.sqlite"
+    assert modules["pages"]["settings"]["component"] == "SettingsPage"
+    assert modules["pages"]["settings"]["embedded_route"] == "/organization/settings"
+    assert modules["pages"]["settings"]["api"] == "/api/org-module/settings"
+    assert modules["pages"]["settings"]["modules_api"] == "/api/org-module/modules"
+    assert modules["pages"]["settings"]["prefs_api"] == "/api/org-module/prefs"
+    assert modules["pages"]["settings"]["store"] == "{FREEOS_HOME}/org-os/prefs.json"
     app = (out / "src" / "App.tsx").read_text(encoding="utf-8")
     assert "AnnouncementPage" in app
     assert "OrgChartPage" in app
@@ -72,6 +80,7 @@ def test_export_standalone_lists_shared_org_ui_modules(tmp_path: Path) -> None:
     assert "TasksPage" in app
     assert "TaskDetailPage" in app
     assert "ReflectionsPage" in app
+    assert "SettingsPage" in app
     assert 'from "org-ui"' in app
     readme = (out / "README.md").read_text(encoding="utf-8")
     assert "Phase 5" in readme
@@ -83,3 +92,4 @@ def test_export_standalone_lists_shared_org_ui_modules(tmp_path: Path) -> None:
     assert "KnowledgePage" in readme
     assert "TasksPage" in readme
     assert "ReflectionsPage" in readme
+    assert "SettingsPage" in readme
