@@ -1,11 +1,12 @@
 @font-face{font-family:"OpenXYOS Source Han";src:url("/fonts/openxyos-source-han-bold.otf") format("opentype");font-style:normal;font-weight:700;font-display:swap}
-.ox-water-scene{grid-column:1/-1;position:relative;z-index:0;isolation:isolate;overflow:hidden;width:100%;height:300px;margin-top:0;pointer-events:none;background:radial-gradient(ellipse at 50% 70%,rgba(94,145,242,.15),transparent 66%)}
+.ox-water-scene{grid-column:1/-1;position:relative;z-index:0;isolation:isolate;overflow:hidden;width:100%;height:300px;margin-top:0;pointer-events:none;background:radial-gradient(ellipse at 50% 68%,rgba(111,169,239,.26),transparent 40%),linear-gradient(180deg,rgba(249,252,255,.05) 0%,rgba(222,238,255,.42) 58%,rgba(184,217,248,.5) 100%)}
 .ox-hero:has(.ox-water-scene) .ox-hero-copy,.ox-hero:has(.ox-water-scene) .ox-console{position:relative;z-index:4}
 .ox-hero:has(.ox-water-scene) .ox-actions,.ox-hero:has(.ox-water-scene) .ox-scroll{z-index:5}
 .ox-hero:has(.ox-water-scene) .ox-mascot{z-index:1;top:auto;bottom:115px;right:14px;width:92px;display:block}
 .ox-hero:has(.ox-water-scene) .ox-console>header,.ox-hero:has(.ox-water-scene) .ox-console>footer{position:relative;z-index:3}
 .ox-hero:has(.ox-water-scene) .ox-terminal p{position:relative;z-index:3;padding-right:90px;overflow-wrap:anywhere}
 .ox-hero:has(.ox-water-scene) .ox-terminal button{z-index:4}
+.ox-hero:has(.ox-water-scene) .ox-mascot{display:grid;place-items:center;padding:8px;border:1px solid rgba(127,169,233,.42);border-radius:50%;background:radial-gradient(circle at 42% 32%,rgba(255,255,255,.98),rgba(213,232,255,.82) 57%,rgba(151,193,241,.38));box-shadow:0 12px 28px rgba(49,94,171,.18),inset 0 1px 1px rgba(255,255,255,.8)}
 .ox-water-scene canvas{display:block;width:100%;height:100%}
 .ox-hero:has(.ox-water-scene){row-gap:28px;padding-bottom:40px}
 @media(max-width:900px){.ox-water-scene{margin-top:0;height:280px}}

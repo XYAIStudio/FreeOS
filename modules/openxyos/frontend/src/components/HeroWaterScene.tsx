@@ -29,6 +29,13 @@ export default function HeroWaterScene() {
       const x = width / 2, water = height * .7;
       const spread = Math.min(width * .46, 480);
       ctx.clearRect(0, 0, width, height);
+      // A real water plane gives the falling drop, splash and reflection one
+      // shared physical surface instead of floating on an empty white canvas.
+      const surface = ctx.createLinearGradient(0, height * .42, 0, height);
+      surface.addColorStop(0, "rgba(220,237,255,0)");
+      surface.addColorStop(.4, "rgba(168,206,244,.22)");
+      surface.addColorStop(1, "rgba(102,163,224,.26)");
+      ctx.fillStyle = surface; ctx.fillRect(0, height * .42, width, height * .58);
       ctx.save(); ctx.translate(x, water); ctx.scale(1, .25);
       const light = ctx.createRadialGradient(0, 0, 5, 0, 0, spread);
       light.addColorStop(0, "#174c6a99"); light.addColorStop(.42, "#123f694d"); light.addColorStop(1, "#05101900");
@@ -53,6 +60,16 @@ export default function HeroWaterScene() {
       }
       const impact = t - 1.5;
       if (impact >= 0) {
+        // A short, asymmetric crown makes the instant of impact legible.
+        if (impact < .72) {
+          const crown = Math.sin(impact / .72 * Math.PI) * 30;
+          ctx.save(); ctx.strokeStyle = `rgba(188,231,255,${.5 - impact * .35})`;
+          ctx.shadowColor = "rgba(83,163,239,.55)"; ctx.shadowBlur = 10; ctx.lineWidth = 1.7;
+          ctx.beginPath(); ctx.moveTo(x - crown * 1.7, water + 2);
+          ctx.bezierCurveTo(x - crown, water - crown * .55, x - crown * .28, water - crown * .72, x, water - crown * .1);
+          ctx.bezierCurveTo(x + crown * .32, water - crown * .8, x + crown * 1.04, water - crown * .5, x + crown * 1.65, water + 2);
+          ctx.stroke(); ctx.restore();
+        }
         for (let i = 0; i < 7; i++) {
           const age = impact - i * .26;
           if (age < 0) continue;
@@ -97,10 +114,7 @@ export default function HeroWaterScene() {
         }
         ctx.save(); ctx.translate(x, y); ctx.scale(1, tilt);
         ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.clip();
-        // The source mark is multicolour. Tint it into the landing palette so
-        // the animation reads as part of openXYOS instead of a separate badge.
-        ctx.filter = "grayscale(1) sepia(1) saturate(3) hue-rotate(165deg) brightness(1.08) contrast(.9)";
-        ctx.drawImage(logo, 8, 4, 149, 148, -r, -r, r*2, r*2); ctx.filter = "none";
+        ctx.drawImage(logo, 8, 4, 149, 148, -r, -r, r*2, r*2);
         const sheen = ctx.createLinearGradient(-r, -r, r, r);
         sheen.addColorStop(0, "#ffffff77"); sheen.addColorStop(.45, "#ffffff00"); sheen.addColorStop(1, "#06345633");
         ctx.fillStyle = sheen; ctx.fillRect(-r,-r,r*2,r*2); ctx.restore();
