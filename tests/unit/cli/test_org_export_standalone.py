@@ -27,6 +27,7 @@ def test_export_standalone_lists_shared_org_ui_modules(tmp_path: Path) -> None:
         "reflections",
         "settings",
         "agents",
+        "workspace",
     ]
     modules = json.loads((out / "src" / "modules.json").read_text(encoding="utf-8"))
     assert modules["shared_org_ui_modules"] == [
@@ -40,6 +41,7 @@ def test_export_standalone_lists_shared_org_ui_modules(tmp_path: Path) -> None:
         "reflections",
         "settings",
         "agents",
+        "workspace",
     ]
     assert modules["pages"]["announcements"]["component"] == "AnnouncementPage"
     assert modules["pages"]["announcements"]["embedded_route"] == "/organization/announcements"
@@ -76,6 +78,11 @@ def test_export_standalone_lists_shared_org_ui_modules(tmp_path: Path) -> None:
     assert modules["pages"]["agents"]["api"] == "/api/org-module/agents"
     assert modules["pages"]["agents"]["compile_api"] == "/api/org-module/blueprints/compile"
     assert modules["pages"]["agents"]["store"] == "{FREEOS_HOME}/tenants/<id>/employees"
+    assert modules["pages"]["workspace"]["component"] == "WorkspacePage"
+    assert modules["pages"]["workspace"]["embedded_route"] == "/organization/workspace"
+    assert modules["pages"]["workspace"]["standalone_route"] == "/app"
+    assert modules["pages"]["workspace"]["api"] == "/api/org-module/overview"
+    assert modules["pages"]["workspace"]["not_migrated"] == ["chat"]
     app = (out / "src" / "App.tsx").read_text(encoding="utf-8")
     assert "AnnouncementPage" in app
     assert "OrgChartPage" in app
@@ -89,6 +96,7 @@ def test_export_standalone_lists_shared_org_ui_modules(tmp_path: Path) -> None:
     assert "ReflectionsPage" in app
     assert "SettingsPage" in app
     assert "AgentsPage" in app
+    assert "WorkspacePage" in app
     assert 'from "org-ui"' in app
     readme = (out / "README.md").read_text(encoding="utf-8")
     assert "Phase 5" in readme
@@ -102,3 +110,5 @@ def test_export_standalone_lists_shared_org_ui_modules(tmp_path: Path) -> None:
     assert "ReflectionsPage" in readme
     assert "SettingsPage" in readme
     assert "AgentsPage" in readme
+    assert "WorkspacePage" in readme
+    assert "Chat is **not** migrated" in readme

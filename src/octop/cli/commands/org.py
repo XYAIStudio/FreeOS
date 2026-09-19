@@ -386,7 +386,8 @@ def export_standalone(out_dir: Path) -> None:
 
     Writes the shared module list and an App.tsx that imports AnnouncementPage,
     OrgChartPage, EmployeesPage, SkillsPage, GovernancePage, KnowledgePage,
-    TasksPage, and ReflectionsPage. Full Vite + Node packaging is Phase 5
+    TasksPage, ReflectionsPage, SettingsPage, AgentsPage, and WorkspacePage.
+    Chat is not exported. Full Vite + Node packaging is Phase 5
     (TODO in the generated README).
     """
     from octop.modules.org_os.export_standalone import write_standalone_scaffold

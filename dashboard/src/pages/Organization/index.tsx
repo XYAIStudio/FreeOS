@@ -8,6 +8,7 @@ import {
   Brain,
   Building2,
   Download,
+  LayoutDashboard,
   ListTodo,
   Package,
   Play,
@@ -407,6 +408,22 @@ export default function OrganizationPage() {
           <p className={styles.heroStory}>{t("organization.glossary")}</p>
 
           <section className={styles.actions} data-testid="org-in-host-pages">
+            <div className={styles.action}>
+              <LayoutDashboard size={18} />
+              <p className={styles.actionTitle}>
+                {t("organization.workspaceTitle")}
+              </p>
+              <p className={styles.actionBody}>
+                {t("organization.workspaceBody")}
+              </p>
+              <Button
+                type="primary"
+                onClick={() => navigate("/organization/workspace")}
+                data-testid="org-open-workspace"
+              >
+                {t("organization.openWorkspace")}
+              </Button>
+            </div>
             <div className={styles.action}>
               <Building2 size={18} />
               <p className={styles.actionTitle}>

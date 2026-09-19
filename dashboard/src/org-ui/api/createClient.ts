@@ -633,6 +633,53 @@ export interface OrgAgentsClient {
   spawn(slug: string): Promise<OrgSpawnedColleague>;
 }
 
+export interface OrgWorkspaceFreeos {
+  employees: number;
+  employee_states?: Record<string, number>;
+  agents?: number;
+  spawned_colleagues?: number;
+  org_skills?: number;
+  skill_packages?: number;
+  mcp?: number;
+  tasks?: number;
+}
+
+export interface OrgWorkspaceOpenxyos {
+  reachable?: boolean;
+  url?: string;
+  detail?: string;
+  modules?: number;
+  governance?: boolean;
+  tenant_id?: string;
+  approvals?: number;
+}
+
+export interface OrgWorkspaceColleague {
+  slug: string;
+  name: string;
+  lifecycle: string;
+  agent_id?: string;
+  spawned?: boolean;
+}
+
+export interface OrgWorkspaceOverview {
+  enabled: boolean;
+  runtime?: string;
+  sidecar_optional?: boolean;
+  last_sync?: string | null;
+  freeos: OrgWorkspaceFreeos;
+  openxyos: OrgWorkspaceOpenxyos;
+  colleagues?: OrgWorkspaceColleague[];
+  org_surfaces?: Record<string, number>;
+  catalog?: OrgCapability[];
+  module_toggles?: Record<string, boolean>;
+  notes?: string[];
+}
+
+export interface OrgWorkspaceClient {
+  overview(): Promise<OrgWorkspaceOverview>;
+}
+
 export interface OrgApiClient {
   announcements: OrgAnnouncementsClient;
   org: OrgChartClient;
@@ -644,6 +691,7 @@ export interface OrgApiClient {
   reflections: OrgReflectionsClient;
   settings: OrgSettingsClient;
   agents: OrgAgentsClient;
+  workspace: OrgWorkspaceClient;
 }
 
 async function unwrap<T>(payload: OrgEnvelope<T>): Promise<T> {
@@ -668,6 +716,7 @@ export function createOrgApiClient(opts: {
   reflectionsPrefix?: string;
   settingsPrefix?: string;
   agentsPrefix?: string;
+  workspacePrefix?: string;
 }): OrgApiClient {
   const prefix = opts.announcementsPrefix ?? "/org-module/announcements";
   const orgPrefix = opts.orgPrefix ?? "/org-module/org";
@@ -678,6 +727,7 @@ export function createOrgApiClient(opts: {
   const reflectionsPrefix = opts.reflectionsPrefix ?? "/org-module/reflections";
   const settingsPrefix = opts.settingsPrefix ?? "/org-module";
   const agentsPrefix = opts.agentsPrefix ?? "/org-module";
+  const workspacePrefix = opts.workspacePrefix ?? "/org-module";
   const fetchJson = opts.fetchJson;
 
   const announcements: OrgAnnouncementsClient = {
@@ -1206,6 +1256,25 @@ export function createOrgApiClient(opts: {
     },
   };
 
+  const workspace: OrgWorkspaceClient = {
+    async overview() {
+      const raw = await fetchJson<
+        OrgWorkspaceOverview &
+          OrgEnvelope<OrgWorkspaceOverview> & { error?: string }
+      >(`${workspacePrefix}/overview`);
+      if (raw && typeof raw === "object" && raw.freeos) {
+        return raw;
+      }
+      if (raw && typeof raw === "object" && raw.success === false) {
+        throw new Error(raw.error || "request failed");
+      }
+      if (raw?.data?.freeos) {
+        return raw.data;
+      }
+      throw new Error(raw?.error || "request failed");
+    },
+  };
+
   return {
     announcements,
     org,
@@ -1217,5 +1286,6 @@ export function createOrgApiClient(opts: {
     reflections,
     settings,
     agents,
+    workspace,
   };
 }

@@ -111,6 +111,15 @@ describe("createOrgApiClient", () => {
       if (path === "/org-module/blueprints/compile") {
         return { slug: "policy-analyst", workspace: "/tmp/policy-analyst" };
       }
+      if (path === "/org-module/overview") {
+        return {
+          enabled: true,
+          runtime: "in_host",
+          freeos: { employees: 2, spawned_colleagues: 1, org_skills: 3 },
+          openxyos: { modules: 12, tenant_id: "acme" },
+          catalog: [{ key: "workspace", locked: true }],
+        };
+      }
       throw new Error(`unexpected ${path}`);
     });
     const client = createOrgApiClient({ fetchJson });
@@ -148,6 +157,7 @@ describe("createOrgApiClient", () => {
         })
       ).slug,
     ).toBe("policy-analyst");
+    expect((await client.workspace.overview()).freeos.employees).toBe(2);
     expect(fetchJson).toHaveBeenCalled();
   });
 

@@ -63,6 +63,11 @@ export type {
   OrgColleagueStats,
   OrgCompiledColleague,
   OrgSpawnedColleague,
+  OrgWorkspaceClient,
+  OrgWorkspaceColleague,
+  OrgWorkspaceFreeos,
+  OrgWorkspaceOpenxyos,
+  OrgWorkspaceOverview,
   OrgSkill,
   OrgSkillCatalogRow,
   OrgSkillGenerateResult,
@@ -94,6 +99,11 @@ export { SettingsPage } from "./pages/settings/SettingsPage";
 export type { SettingsPageProps } from "./pages/settings/SettingsPage";
 export { AgentsPage } from "./pages/agents/AgentsPage";
 export type { AgentsPageProps } from "./pages/agents/AgentsPage";
+export { WorkspacePage } from "./pages/workspace/WorkspacePage";
+export type {
+  OrgWorkspaceLinks,
+  WorkspacePageProps,
+} from "./pages/workspace/WorkspacePage";
 export type {
   IdentityBridge,
   OrgFetcher,

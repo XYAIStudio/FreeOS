@@ -3,8 +3,8 @@
 Full Vite + Node server packaging is Phase 5. This writes a snapshot that
 lists the shared org-ui modules and points at the same AnnouncementPage,
 OrgChartPage, EmployeesPage, SkillsPage, GovernancePage, KnowledgePage,
-TasksPage, ReflectionsPage, SettingsPage, and AgentsPage sources Dashboard
-mounts under ``/organization/...``.
+TasksPage, ReflectionsPage, SettingsPage, AgentsPage, and WorkspacePage
+sources Dashboard mounts under ``/organization/...``.
 """
 
 from __future__ import annotations
@@ -35,6 +35,7 @@ Dashboard and this export consume the **same** org-ui pages:
 | reflections | `/organization/reflections` | `/reflections` | `dashboard/src/org-ui` → `ReflectionsPage` |
 | settings | `/organization/settings` | `/settings` | `dashboard/src/org-ui` → `SettingsPage` |
 | agents | `/organization/agents` | `/agents` | `dashboard/src/org-ui` → `AgentsPage` |
+| workspace | `/organization/workspace` | `/app` | `dashboard/src/org-ui` → `WorkspacePage` |
 
 Do **not** copy those pages into a second tree. Edit `dashboard/src/org-ui`.
 
@@ -57,6 +58,10 @@ Organization Agents compile `openxyos.agent-blueprint.v1` into host
 lifecycle colleagues (`{FREEOS_HOME}/tenants/<id>/employees/`). This is
 **not** the FreeOS personalization editor, Chat runtime, or sidecar
 `/api/agent-studio/*`. Spawned colleagues appear on FreeOS Experts.
+Organization Workspace is a thin OpenDashboard landing page. It reads
+`GET /api/org-module/overview` and links into already-migrated pages.
+It is **not** a second control plane (assemble / pack / loop stay on
+the Organization workbench). Chat is **not** migrated.
 
 ## Phase 3 vs Phase 5
 
@@ -65,7 +70,8 @@ Phase 3 (this scaffold):
 - Shared module list (`src/modules.json`)
 - Thin `src/App.tsx` that imports `AnnouncementPage`, `OrgChartPage`,
   `EmployeesPage`, `SkillsPage`, `GovernancePage`, `KnowledgePage`,
-  `TasksPage`, `ReflectionsPage`, `SettingsPage`, and `AgentsPage`
+  `TasksPage`, `ReflectionsPage`, `SettingsPage`, `AgentsPage`,
+  and `WorkspacePage`
 - Documents IdentityBridge: embedded mode uses FreeOS JWT; standalone uses local JWT
 
 Phase 5 (TODO — not implemented here):
@@ -99,6 +105,7 @@ import {
   SkillsPage,
   TaskDetailPage,
   TasksPage,
+  WorkspacePage,
 } from "org-ui";
 import type {
   OrgAgentsClient,
@@ -112,6 +119,7 @@ import type {
   OrgSettingsClient,
   OrgSkillsClient,
   OrgTasksClient,
+  OrgWorkspaceClient,
 } from "org-ui";
 
 /**
@@ -120,7 +128,8 @@ import type {
  * /organization/announcements, /organization/org, /organization/employees,
  * /organization/skills, /organization/governance, /organization/knowledge,
  * /organization/tasks, /organization/reflections,
- * /organization/settings, and /organization/agents.
+ * /organization/settings, /organization/agents, and
+ * /organization/workspace.
  */
 const session: OrgSession = {
   userId: 0,
@@ -140,6 +149,7 @@ export default function App(props: {
   reflectionsClient: OrgReflectionsClient;
   settingsClient: OrgSettingsClient;
   agentsClient: OrgAgentsClient;
+  workspaceClient: OrgWorkspaceClient;
   locale?: "zh" | "en";
 }) {
   return (
@@ -218,6 +228,27 @@ export default function App(props: {
         locale={props.locale ?? "en"}
         modules={SHARED_ORG_UI_MODULES}
       />
+      <WorkspacePage
+        client={props.workspaceClient}
+        session={session}
+        locale={props.locale ?? "en"}
+        modules={SHARED_ORG_UI_MODULES}
+        workbenchHref="/organization"
+        links={{
+          workbench: "/organization",
+          announcements: "/announcements",
+          organization: "/org",
+          employees: "/employees",
+          skills: "/skills",
+          agents: "/agents",
+          tasks: "/tasks",
+          knowledge: "/knowledge",
+          reflections: "/reflections",
+          governance: "/governance",
+          settings: "/settings",
+          chat: "/chat",
+        }}
+      />
     </>
   );
 }
@@ -230,7 +261,7 @@ _PACKAGE_JSON = {
     "description": (
         "Standalone Organization web export skeleton. "
         "Pages come from dashboard/src/org-ui "
-        "(Phase 3: Announcements + Org chart + Employees + Skills + Governance + Knowledge + Tasks + Reflections + Settings + Agents). "
+        "(Phase 3: Announcements + Org chart + Employees + Skills + Governance + Knowledge + Tasks + Reflections + Settings + Agents + Workspace). "
         "Full Node packaging is Phase 5."
     ),
     "type": "module",
@@ -330,6 +361,13 @@ def write_standalone_scaffold(out_dir: Path) -> dict[str, Any]:
                 "transition_api": "/api/org-module/employees/transition",
                 "spawn_api": "/api/org-module/employees/spawn",
                 "store": "{FREEOS_HOME}/tenants/<id>/employees",
+            },
+            "workspace": {
+                "component": "WorkspacePage",
+                "embedded_route": "/organization/workspace",
+                "standalone_route": "/app",
+                "api": "/api/org-module/overview",
+                "not_migrated": ["chat"],
             },
         },
         "todo": "Phase 5: full Vite + server packaging; do not fork org-ui pages",
