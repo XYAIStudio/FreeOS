@@ -6,6 +6,10 @@
 
 ## [Unreleased]
 
+### 新增
+
+- Organization Phase 2：宿主内通知公告。Dashboard `/organization/announcements` 使用共享 `dashboard/src/org-ui` 页面；CRUD 走 `/api/org-module/announcements`（`{FREEOS_HOME}/org/announcements.sqlite`），不需要 Node sidecar。`freeos org export-standalone` 写出同一页面的独立站骨架（完整打包仍待 Phase 5）。
+
 ### 修复
 
 

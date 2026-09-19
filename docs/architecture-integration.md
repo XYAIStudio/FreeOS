@@ -289,8 +289,8 @@ The Phase A work sits on the existing FreeOS bootstrap:
 | Asset factory | Bridge | `freeos org assets publish\|import\|apply` · `{home}/asset-packs/` · `{home}/openxyos-mirror/` |
 | Self-growth loop | Bridge | `freeos org loop run` · `/api/org-module/loop/run` |
 | Colleague agents | Host agents table | `org-<slug>` · `{home}/org-agents/` · tenant `routing.json` |
-| Org APIs | Host BFF + optional sidecar | `/api/org-module/*` in-host; sidecar `/api/org`, `/api/employees`, … until each CRUD slice moves (see [org-merge-plan.md](org-merge-plan.md)) |
-| Org UI | Host Dashboard (target: `org-ui`) | Native `/organization` workbench (#55). Open-12 pages become Dashboard sub-UIs; standalone site is **exported** from the same source ([ADR 003](adr/003-org-ui-single-source-dual-delivery.md)). Sidecar `:3780` iframe is opt-in compat only |
+| Org APIs | Host BFF + optional sidecar | `/api/org-module/*` in-host (announcements CRUD is in-host); sidecar `/api/org`, `/api/employees`, … until each remaining CRUD slice moves (see [org-merge-plan.md](org-merge-plan.md)) |
+| Org UI | Host Dashboard (`org-ui`) | Native `/organization` workbench + `/organization/announcements` (shared `dashboard/src/org-ui`). Standalone site is **exported** from the same source (`freeos org export-standalone`). Sidecar `:3780` iframe is opt-in compat only |
 
 ### Auth and tenant mapping
 

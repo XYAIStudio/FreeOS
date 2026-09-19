@@ -67,6 +67,7 @@ describe("pathPermissionKeys", () => {
     expect(pathPermissionKeys("/chat")).toBeNull();
     expect(pathPermissionKeys("/experts")).toBeNull();
     expect(pathPermissionKeys("/organization")).toBeNull();
+    expect(pathPermissionKeys("/organization/announcements")).toBeNull();
     expect(pathPermissionKeys("/projects")).toBeNull();
     expect(pathPermissionKeys("/tasks")).toBeNull();
     expect(pathPermissionKeys("/token-usage")).toBeNull();
@@ -143,6 +144,9 @@ describe("unknown dashboard paths", () => {
     expect(resolveSelectedKey("/chat/exp-1/thr_1")).toBe("chat");
     expect(resolveSelectedKey("/personalization/connectors")).toBe(
       "personalization",
+    );
+    expect(resolveSelectedKey("/organization/announcements")).toBe(
+      "organization",
     );
   });
 

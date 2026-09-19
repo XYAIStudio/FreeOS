@@ -18,6 +18,9 @@ const ModelsPage = lazy(() => import("../pages/Settings/Models"));
 const RemoteDesktopPage = lazy(() => import("../pages/Control/RemoteDesktop"));
 
 const OrganizationPage = lazy(() => import("../pages/Organization"));
+const OrganizationAnnouncementsPage = lazy(
+  () => import("../pages/Organization/announcements"),
+);
 const ProjectsPage = lazy(() => import("../pages/Projects"));
 
 // Misc
@@ -71,6 +74,7 @@ export const pathToKey: Record<string, string> = {
   // Common
   "/experts": "experts",
   "/organization": "organization",
+  "/organization/announcements": "organization",
   "/projects": "projects",
   "/tasks": "projects",
   "/connectors": "personalization",
@@ -181,6 +185,7 @@ export function resolveSelectedKey(pathname: string, search = ""): string {
   const workspaceKey = resolveWorkspaceNavKey(pathname, search);
   if (workspaceKey) return workspaceKey;
   if (pathToKey[pathname]) return pathToKey[pathname];
+  if (pathname.startsWith("/organization/")) return "organization";
   if (pathname.startsWith("/personalization/")) return "personalization";
   if (pathname === "/models" || pathname.startsWith("/models/"))
     return "models";
@@ -200,6 +205,10 @@ export const routeConfigs: RouteConfig[] = [
   // Common
   { path: "/experts", element: <ExpertsPage /> },
   { path: "/organization", element: <OrganizationPage /> },
+  {
+    path: "/organization/announcements",
+    element: <OrganizationAnnouncementsPage />,
+  },
   { path: "/projects", element: <ProjectsPage /> },
   { path: "/tasks", element: <TasksToProjects /> },
   {
