@@ -156,7 +156,9 @@ checkpoint and are pushed to the dashboard / IM channel by
 ## See also
 
 - [AGENTS.md](../AGENTS.md) — module boundaries, hard bans, change workflow
-- [Architecture Decision Records](./adr/) — single-process, no queue (ADR 001)
+- [Architecture Decision Records](./adr/) — single-process (ADR 001), dual DB (ADR 002), org-ui dual delivery (ADR 003)
+- [FreeOS × openXYOS integration](./architecture-integration.md)
+- [Organization merge plan](./org-merge-plan.md)
 - [Configuration](configuration.md) — `~/.octop/` layout + env vars
 - [API reference](api.md) — every route, body, and error
 - [CLI reference](cli.md) — every subcommand

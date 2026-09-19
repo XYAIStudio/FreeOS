@@ -444,6 +444,8 @@ OctopServer
 
 详见 [docs/architecture.md](docs/architecture.md)、[docs/adr/001-single-process-model.md](docs/adr/001-single-process-model.md) 与 [docs/adr/002-database-backends.md](docs/adr/002-database-backends.md)。
 
+组织模块目标架构（Dashboard 子 UI + 可导出独立站，单源双交付）见 [docs/adr/003-org-ui-single-source-dual-delivery.md](docs/adr/003-org-ui-single-source-dual-delivery.md) 与 [docs/org-merge-plan.md](docs/org-merge-plan.md)。
+
 ### 📁 项目结构
 
 ```
