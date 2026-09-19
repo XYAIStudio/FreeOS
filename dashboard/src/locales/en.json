@@ -185,6 +185,7 @@
     "navAnnouncements": "Announcements",
     "navOrgChart": "Org chart",
     "navEmployees": "Employees",
+    "navGovernance": "Governance",
     "announcementsTitle": "Announcements",
     "announcementsBody": "Publish notices and track who has read them. This page lives in the host — no sidecar or second port.",
     "openAnnouncements": "Open announcements",
@@ -193,7 +194,10 @@
     "openOrgChart": "Open org chart",
     "employeesTitle": "Employees",
     "employeesBody": "Directory of people and AI colleagues on the host org tree. Same store as the org chart — no sidecar or second port.",
-    "openEmployees": "Open employees"
+    "openEmployees": "Open employees",
+    "governanceTitle": "Governance",
+    "governanceBody": "Pending approvals and the host audit log. High-risk tools stay blocked until a human decides — no sidecar or second port.",
+    "openGovernance": "Open governance"
   },
   "systemSettings": {
     "subtitle": "Workbench, remote desktop, and host administration in one place."

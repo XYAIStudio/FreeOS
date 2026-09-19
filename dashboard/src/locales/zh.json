@@ -185,6 +185,7 @@
     "navAnnouncements": "通知公告",
     "navOrgChart": "组织架构",
     "navEmployees": "员工目录",
+    "navGovernance": "治理",
     "announcementsTitle": "通知公告",
     "announcementsBody": "发布公告并跟踪已读。此页跑在宿主内，不需要边车或第二端口。",
     "openAnnouncements": "打开通知公告",
@@ -193,7 +194,10 @@
     "openOrgChart": "打开组织架构",
     "employeesTitle": "员工目录",
     "employeesBody": "宿主组织树上的人机员工名册。与组织架构共用同一份数据，不需要边车或第二端口。",
-    "openEmployees": "打开员工目录"
+    "openEmployees": "打开员工目录",
+    "governanceTitle": "治理",
+    "governanceBody": "待人工复核与宿主审计日志。高风险工具在有人拍板前保持拦截，不需要边车或第二端口。",
+    "openGovernance": "打开治理"
   },
   "systemSettings": {
     "subtitle": "工作台、远程桌面与主机管理集中在这里。"

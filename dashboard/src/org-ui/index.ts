@@ -9,6 +9,12 @@ export type {
   EmployeeListParams,
   EmployeeStats,
   EmployeeWrite,
+  GovernanceAuditEvent,
+  GovernanceAuditList,
+  GovernanceDecision,
+  GovernancePause,
+  GovernancePauseList,
+  GovernancePauseStatus,
   OrgAnnouncementsClient,
   OrgApiClient,
   OrgChartClient,
@@ -16,6 +22,7 @@ export type {
   OrgEmployee,
   OrgEmployeesClient,
   OrgEnvelope,
+  OrgGovernanceClient,
 } from "./api/createClient";
 export { AnnouncementPage } from "./pages/announcements/AnnouncementPage";
 export type { AnnouncementPageProps } from "./pages/announcements/AnnouncementPage";
@@ -25,6 +32,8 @@ export { EmployeesPage } from "./pages/employees/EmployeesPage";
 export type { EmployeesPageProps } from "./pages/employees/EmployeesPage";
 export { EmployeeDetailPage } from "./pages/employees/EmployeeDetailPage";
 export type { EmployeeDetailPageProps } from "./pages/employees/EmployeeDetailPage";
+export { GovernancePage } from "./pages/governance/GovernancePage";
+export type { GovernancePageProps } from "./pages/governance/GovernancePage";
 export type {
   IdentityBridge,
   OrgFetcher,

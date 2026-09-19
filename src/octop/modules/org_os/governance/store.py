@@ -140,6 +140,21 @@ class DurableGovernanceStore:
             handle.write(json.dumps(row, ensure_ascii=False, default=str) + "\n")
         return audit_id
 
+    def list_pauses(self, status: str | None = None) -> list[PauseRecord]:
+        """List durable pauses. ``get()`` applies TTL so expired rows surface."""
+        if not self.pauses_dir.is_dir():
+            return []
+        rows: list[PauseRecord] = []
+        for path in self.pauses_dir.glob("*.json"):
+            record = self.get(path.stem)
+            if record is None:
+                continue
+            if status and record.status != status:
+                continue
+            rows.append(record)
+        rows.sort(key=lambda item: item.created_at, reverse=True)
+        return rows
+
     def tail_audit(self, limit: int = 50) -> list[dict[str, Any]]:
         if not self.audit_file.is_file():
             return []

@@ -1,6 +1,6 @@
 # 组织模块合并计划（openXYOS → FreeOS Dashboard）
 
-**状态：** Phase 3 组织架构与员工目录切片已落地（宿主 org tree / 员工 CRUD + `/organization/org` + `/organization/employees` + `org-ui` OrgChartPage / EmployeesPage + export-standalone 模块列表）。其余 Open-12 仍待切片。
+**状态：** Phase 3 组织架构、员工目录与治理 UI 切片已落地（宿主 org tree / 员工 CRUD + 治理 pauses/audit + `/organization/org` + `/organization/employees` + `/organization/governance` + `org-ui` OrgChartPage / EmployeesPage / GovernancePage + export-standalone 模块列表）。其余 Open-12 仍待切片。
 **日期：** 2026-09-19
 **依据：** Phase 0 迁移图、[architecture-integration.md](architecture-integration.md)、[asset-loop.md](asset-loop.md)、[ADR 001](adr/001-single-process-model.md)、#55 宿主内 Organization
 
@@ -25,7 +25,7 @@ Phase 1 冻结了合同。Phase 2（通知公告）与 Phase 3 的组织架构�
 | **0** 宿主内地基 | `org_os` 控制面、`/api/org-module/*` BFF、Dashboard 原生工作台、sidecar 改为可选 | **已完成**（#55） |
 | **1** 合同冻结 | ADR + 本计划：单源双交付、包布局、API 归属、IdentityBridge、Phase 2 验收 | **本文** |
 | **2** 垂直切片 | **通知公告 Announcements** 按合同落地（Dashboard 路由 + 可导出同一页面） | **已完成** |
-| **3** Open-12 其余页 | 工作台、组织架构、员工、技能、智能体、任务、知识、反思、治理 UI、设置 | **进行中**：组织架构与员工目录已迁；其余未开始 |
+| **3** Open-12 其余页 | 工作台、组织架构、员工、技能、智能体、任务、知识、反思、治理 UI、设置 | **进行中**：组织架构、员工目录与治理 UI 已迁；其余未开始 |
 | **4** 身份与 CRUD | 已迁页面走 IdentityBridge；业务 CRUD 按切片迁入宿主；未迁路由仍可代理到可选 sidecar | 与 2–3 交叉推进 |
 | **5** 导出与安装器 | `freeos org export-standalone` 产出独立站；默认安装器保持零 Node | 未开始 |
 
@@ -64,7 +64,7 @@ Catalog 十二键（`catalog.py` ↔ `open-module-catalog.ts`）：
 | tasks | OpenApp `/tasks` | sidecar `/api/tasks` | Phase 3 |
 | knowledge | OpenApp `/knowledge` | sidecar `/api/knowledge` | Phase 3；与宿主知识库边界保持「组织资料 ≠ Octop RAG 库」直到单独立项 |
 | reflections | OpenApp `/reflections` | sidecar `/api/reflections` | Phase 3 |
-| governance UI | OpenApp `/governance` | sidecar `/api/governance` + 宿主 `org_os/governance` | Phase 3：策略/审计 **展示** 迁入；PEP/PDP 与 durable pause **已在宿主，勿重写引擎** |
+| governance UI | OpenApp `/governance` | sidecar `/api/governance` + 宿主 `org_os/governance` | **Phase 3 切片已落地**：`/organization/governance` 展示待审批 / 审计 / 裁决；PEP/PDP 与 durable pause **已在宿主，勿重写引擎**。未迁：边车权限矩阵、通信规则、流程模板 |
 | settings | OpenApp `/settings` | sidecar `/api/settings`、`/api/module-settings` | Phase 3：租户/模块开关；宿主已有 `PATCH /api/org-module` 与 `/modules` |
 
 **商业 `App.tsx` 多出来的路由（本波不迁）：** workflows、contracts、assets、attendance/leave、expense、daily-report、goals、budgets、performance、efficiency、audit 等。它们不是 Open-12。
@@ -117,7 +117,7 @@ uv run freeos org export-standalone --out dist/openxyos-web
 | `assemble` · `produce` · `pack` · `loop/run` | 宿主 loop | 保持 |
 | `employees` · `employees/transition` · `employees/spawn` | 宿主 lifecycle | 保持；与员工 **目录 CRUD** 分开 |
 | `assets/*` · `blueprints/compile` · `skills/generate\|publish` | 宿主工厂 | 保持 |
-| `governance/check\|resolve\|audit` | 宿主 PEP/PDP | 保持；治理 **UI** 另切片 |
+| `governance/check\|resolve\|audit` · `pauses` | 宿主 PEP/PDP | **已挂 UI**。`GET /pauses` 补列出待审批；resolve 仍管理员/`plugins` 门控 |
 | `sidecar/*` · `source/download` | 可选兼容 | 留在 Advanced；默认路径不依赖 |
 
 ### 业务 CRUD（当前 sidecar Express → 按切片迁入宿主）
@@ -211,7 +211,7 @@ org-ui  →  IdentityBridge.getSession()
 | 汇报线、职级、技能绑定、架构版本 | 商业 OrgChart 扩展，不是本垂直切片的最低可用集 |
 | 导入文件 / 导出 PNG·SVG·PDF | 依赖 sidecar 上传与 html-to-image/jsPDF |
 | 头像上传与预设图 | 需要独立文件存储 |
-| 其余 Open-12（工作台扩展、技能、智能体、任务、知识、反思、治理 UI、设置） | 后续切片 |
+| 其余 Open-12（工作台扩展、技能、智能体、任务、知识、反思、设置） | 后续切片 |
 | `freeos org export-standalone` 完整 Vite/Node 打包 | Phase 5 |
 
 ---
@@ -244,7 +244,40 @@ openXYOS sidecar `/api/employees`（人才市场、备选、资产离职清算�
 | lifecycle spawn / transition UI | 已在宿主；工作台同事列表与 Experts 已覆盖 |
 | 人才市场、备选入职、reserve ↔ internal | sidecar 另表；本切片不做第二套 talent DB |
 | 资产离职清算、绩效、汇报线、技能绑定、头像上传 | 依赖未迁资源或文件存储 |
-| 其余 Open-12（技能、智能体、任务、知识、反思、治理 UI、设置） | 后续切片 |
+| 其余 Open-12（技能、智能体、任务、知识、反思、设置） | 后续切片 |
+| `freeos org export-standalone` 完整 Vite/Node 打包 | Phase 5 |
+
+---
+
+## Phase 3 进度：治理 UI（本切片）
+
+按同一缝落地，**只迁治理展示与裁决**。PEP/PDP、durable pause、audit JSONL **已在宿主**，不重写 `GovernanceEngine`。
+
+### 数据模型（单一 SoT）
+
+| 表面 | 存储 | API | 含义 |
+|---|---|---|---|
+| 待审批 pause | `{FREEOS_HOME}/governance/pauses/<id>.json` | `GET /api/org-module/governance/pauses` · `POST …/resolve` | 高风险工具默认拒绝后的人工复核 |
+| 本地审计 | `{FREEOS_HOME}/governance/audit.jsonl` | `GET /api/org-module/governance/audit` | 宿主事实来源；不是 sidecar SQL.js |
+| 策略检查 | 同上 | `POST /api/org-module/governance/check` | 引擎已有；UI 不另造检查器 |
+
+openXYOS sidecar `/api/governance`（权限矩阵、通信规则、流程模板、stats）仍是可选兼容面，默认路径不读它。
+
+### 已落地
+
+1. 壳无关组件：`dashboard/src/org-ui/pages/governance`（`GovernancePage`），数据经 `createOrgApiClient().governance`。
+2. Dashboard 子路由：`/organization/governance`（工作台 path tabs + 入口卡）。
+3. 宿主 API：已有 check / resolve / audit；本切片补 `GET /governance/pauses` 供列表。裁决走 `require_permission("plugins")`（管理员绕过）。
+4. 导出骨架：`freeos org export-standalone` 模块列表与 `App.tsx` 同时导入 `GovernancePage`。
+
+### 本切片明确推迟
+
+| 推迟项 | 原因 |
+|---|---|
+| Chat / 从治理页发起会话 | 对话运行时留在 FreeOS/Octop |
+| 边车权限矩阵 / 通信规则 / 流程模板 CRUD | sidecar SQL.js；本波不重写引擎、不迁商业矩阵编辑器 |
+| IM `/approve` 接线 | 引擎与 CLI 已能裁决；IM 另切片 |
+| 其余 Open-12（技能、智能体、任务、知识、反思、设置） | 后续切片 |
 | `freeos org export-standalone` 完整 Vite/Node 打包 | Phase 5 |
 
 ---
