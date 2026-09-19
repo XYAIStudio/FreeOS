@@ -42,7 +42,9 @@ describe("AnnouncementPage", () => {
         locale="en"
       />,
     );
-    expect(await screen.findByTestId("org-ui-announcements")).toBeInTheDocument();
+    expect(
+      await screen.findByTestId("org-ui-announcements"),
+    ).toBeInTheDocument();
     expect(screen.getByText("Announcements")).toBeInTheDocument();
     expect(screen.getByTestId("org-announcements-empty")).toBeInTheDocument();
     expect(document.querySelector("iframe")).toBeNull();
@@ -70,7 +72,7 @@ describe("AnnouncementPage", () => {
     fireEvent.change(screen.getByTestId("org-announcement-content"), {
       target: { value: "World" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Publish announcement" }));
+    fireEvent.click(screen.getByTestId("org-announcement-submit"));
     await waitFor(() => {
       expect(client.create).toHaveBeenCalledWith(
         expect.objectContaining({ title: "Hello", content: "World" }),

@@ -124,9 +124,7 @@ def write_standalone_scaffold(out_dir: Path) -> dict[str, Any]:
         "todo": "Phase 5: full Vite + server packaging; do not fork AnnouncementPage",
     }
     (dest / "README.md").write_text(_README, encoding="utf-8")
-    (dest / "package.json").write_text(
-        json.dumps(_PACKAGE_JSON, indent=2) + "\n", encoding="utf-8"
-    )
+    (dest / "package.json").write_text(json.dumps(_PACKAGE_JSON, indent=2) + "\n", encoding="utf-8")
     (src / "modules.json").write_text(json.dumps(modules, indent=2) + "\n", encoding="utf-8")
     (src / "App.tsx").write_text(_APP_TSX, encoding="utf-8")
     return {

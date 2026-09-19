@@ -7,7 +7,12 @@ describe("createOrgApiClient", () => {
       if (path.startsWith("/org-module/announcements?")) {
         return {
           success: true,
-          data: { list: [{ id: 1, title: "Hi" }], total: 1, page: 1, limit: 10 },
+          data: {
+            list: [{ id: 1, title: "Hi" }],
+            total: 1,
+            page: 1,
+            limit: 10,
+          },
         };
       }
       if (path === "/org-module/announcements/action/unread") {

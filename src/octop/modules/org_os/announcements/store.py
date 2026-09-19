@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import sqlite3
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -39,7 +39,7 @@ CREATE TABLE IF NOT EXISTS announcement_reads (
 
 
 def utc_now() -> str:
-    return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+    return datetime.now(UTC).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
 
 def normalize_type(value: str | None) -> str:
@@ -114,7 +114,7 @@ class AnnouncementStore:
                     now,
                 ),
             )
-            row_id = int(cur.lastrowid)
+            row_id = int(cur.lastrowid or 0)
         row = self.get(row_id, tenant_id=tenant_id)
         assert row is not None
         return row
@@ -130,7 +130,7 @@ class AnnouncementStore:
             ).fetchone()
         return dict(row) if row is not None else None
 
-    def list(
+    def list_page(
         self,
         *,
         tenant_id: str,
@@ -175,8 +175,7 @@ class AnnouncementStore:
             counts = self._read_counts(conn, ids)
         users = max(1, total_users)
         items = [
-            self._decorate(dict(row), reads=reads, counts=counts, total_users=users)
-            for row in rows
+            self._decorate(dict(row), reads=reads, counts=counts, total_users=users) for row in rows
         ]
         return {"list": items, "total": total, "page": page, "limit": limit}
 
@@ -330,9 +329,7 @@ class AnnouncementStore:
             total_users=max(1, total_users),
         )
 
-    def _read_set(
-        self, conn: sqlite3.Connection, user_id: int, ids: list[int]
-    ) -> set[int]:
+    def _read_set(self, conn: sqlite3.Connection, user_id: int, ids: list[int]) -> set[int]:
         if not ids:
             return set()
         placeholders = ",".join("?" for _ in ids)

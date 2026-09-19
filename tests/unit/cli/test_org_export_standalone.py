@@ -20,10 +20,7 @@ def test_export_standalone_lists_announcements(tmp_path: Path) -> None:
     modules = json.loads((out / "src" / "modules.json").read_text(encoding="utf-8"))
     assert modules["shared_org_ui_modules"] == ["announcements"]
     assert modules["pages"]["announcements"]["component"] == "AnnouncementPage"
-    assert (
-        modules["pages"]["announcements"]["embedded_route"]
-        == "/organization/announcements"
-    )
+    assert modules["pages"]["announcements"]["embedded_route"] == "/organization/announcements"
     app = (out / "src" / "App.tsx").read_text(encoding="utf-8")
     assert "AnnouncementPage" in app
     assert 'from "org-ui"' in app

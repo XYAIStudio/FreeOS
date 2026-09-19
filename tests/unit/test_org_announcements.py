@@ -9,6 +9,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from octop.api.deps import current_user, get_server
+from octop.api.routers.org_announcements import router as announcements_router
 from octop.api.routers.org_module import router
 from octop.infra.users.identity import Role, User
 from octop.modules.org_os.announcements.store import AnnouncementStore
@@ -56,13 +57,13 @@ def test_store_create_list_read(tmp_path: Path) -> None:
     )
     assert row["id"] == 1
     assert row["is_pinned"] == 1
-    listed = store.list(tenant_id="default", user_id=2, total_users=2)
+    listed = store.list_page(tenant_id="default", user_id=2, total_users=2)
     assert listed["total"] == 1
     item = listed["list"][0]
     assert item["is_read"] is False
     assert item["title"] == "Hello"
     store.mark_read(1, user_id=2)
-    listed = store.list(tenant_id="default", user_id=2, total_users=2)
+    listed = store.list_page(tenant_id="default", user_id=2, total_users=2)
     assert listed["list"][0]["is_read"] is True
     assert listed["list"][0]["read_count"] == 1
     assert listed["list"][0]["read_percent"] == 50
@@ -87,11 +88,11 @@ def test_store_search_and_soft_delete(tmp_path: Path) -> None:
         creator_name="Ada",
         type="news",
     )
-    found = store.list(tenant_id="default", user_id=1, search="secrets")
+    found = store.list_page(tenant_id="default", user_id=1, search="secrets")
     assert found["total"] == 1
     assert found["list"][0]["title"] == "Policy A"
     store.soft_delete(found["list"][0]["id"], tenant_id="default")
-    assert store.list(tenant_id="default", user_id=1)["total"] == 1
+    assert store.list_page(tenant_id="default", user_id=1)["total"] == 1
 
 
 def test_store_isolates_tenants(tmp_path: Path) -> None:
@@ -110,7 +111,7 @@ def test_store_isolates_tenants(tmp_path: Path) -> None:
         created_by=1,
         creator_name="Ada",
     )
-    assert store.list(tenant_id="a", user_id=1)["total"] == 1
+    assert store.list_page(tenant_id="a", user_id=1)["total"] == 1
     assert store.get(1, tenant_id="b") is None
 
 
@@ -181,7 +182,7 @@ def test_api_update_pin_delete(tmp_path: Path) -> None:
 
 
 def test_announcement_routes_registered() -> None:
-    paths = {getattr(route, "path", "") for route in router.routes}
+    paths = {getattr(route, "path", "") for route in announcements_router.routes}
     assert "/announcements" in paths
     assert "/announcements/action/unread" in paths
     assert "/announcements/{announcement_id}" in paths

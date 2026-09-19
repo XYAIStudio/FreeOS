@@ -85,7 +85,6 @@ def _user_id(user: Any) -> int:
 
 @router.get("/announcements", summary="List organization announcements")
 async def list_announcements(
-    request: Request,
     page: int = Query(default=1, ge=1),
     limit: int = Query(default=20, ge=1, le=50),
     type: str = Query(default="all"),
@@ -95,7 +94,7 @@ async def list_announcements(
 ) -> dict[str, Any]:
     store = _store(server)
     data = await asyncio.to_thread(
-        store.list,
+        store.list_page,
         tenant_id=_tenant_id(server),
         user_id=_user_id(user),
         page=page,
@@ -145,7 +144,11 @@ async def read_all_announcements(
     return _ok({"marked": marked})
 
 
-@router.get("/announcements/{announcement_id}", summary="Announcement detail (marks read)")
+@router.get(
+    "/announcements/{announcement_id}",
+    summary="Announcement detail (marks read)",
+    response_model=None,
+)
 async def get_announcement(
     announcement_id: int,
     request: Request,
@@ -168,7 +171,11 @@ async def get_announcement(
     return _ok(decorated)
 
 
-@router.post("/announcements/{announcement_id}/read", summary="Mark one announcement read")
+@router.post(
+    "/announcements/{announcement_id}/read",
+    summary="Mark one announcement read",
+    response_model=None,
+)
 async def read_announcement(
     announcement_id: int,
     request: Request,
@@ -176,16 +183,14 @@ async def read_announcement(
     user: Any = Depends(current_user),
 ) -> dict[str, Any] | JSONResponse:
     store = _store(server)
-    row = await asyncio.to_thread(
-        store.get, announcement_id, tenant_id=_tenant_id(server)
-    )
+    row = await asyncio.to_thread(store.get, announcement_id, tenant_id=_tenant_id(server))
     if row is None:
         return _fail(request, "org.announcements.not_found", 404)
     await asyncio.to_thread(store.mark_read, announcement_id, user_id=_user_id(user))
     return _ok()
 
 
-@router.post("/announcements", summary="Publish an announcement")
+@router.post("/announcements", summary="Publish an announcement", response_model=None)
 async def create_announcement(
     body: AnnouncementWriteBody,
     request: Request,
@@ -214,7 +219,11 @@ async def create_announcement(
     return _ok(row)
 
 
-@router.put("/announcements/{announcement_id}", summary="Update an announcement")
+@router.put(
+    "/announcements/{announcement_id}",
+    summary="Update an announcement",
+    response_model=None,
+)
 async def update_announcement(
     announcement_id: int,
     body: AnnouncementWriteBody,
@@ -245,7 +254,11 @@ async def update_announcement(
     return _ok(row)
 
 
-@router.delete("/announcements/{announcement_id}", summary="Soft-delete an announcement")
+@router.delete(
+    "/announcements/{announcement_id}",
+    summary="Soft-delete an announcement",
+    response_model=None,
+)
 async def delete_announcement(
     announcement_id: int,
     request: Request,
@@ -263,7 +276,11 @@ async def delete_announcement(
     return _ok()
 
 
-@router.put("/announcements/{announcement_id}/toggle-pin", summary="Toggle announcement pin")
+@router.put(
+    "/announcements/{announcement_id}/toggle-pin",
+    summary="Toggle announcement pin",
+    response_model=None,
+)
 async def toggle_pin_announcement(
     announcement_id: int,
     request: Request,
@@ -273,9 +290,7 @@ async def toggle_pin_announcement(
     if not _can_publish(user):
         return _fail(request, "org.announcements.forbidden", 403)
     store = _store(server)
-    data = await asyncio.to_thread(
-        store.toggle_pin, announcement_id, tenant_id=_tenant_id(server)
-    )
+    data = await asyncio.to_thread(store.toggle_pin, announcement_id, tenant_id=_tenant_id(server))
     if data is None:
         return _fail(request, "org.announcements.not_found", 404)
     return _ok(data)

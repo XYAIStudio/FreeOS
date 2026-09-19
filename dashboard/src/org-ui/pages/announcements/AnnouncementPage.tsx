@@ -37,7 +37,10 @@ export interface AnnouncementPageProps {
 }
 
 function stripTags(html: string): string {
-  return html.replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim();
+  return html
+    .replace(/<[^>]*>/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 function defaultFormat(iso: string): string {
@@ -202,7 +205,9 @@ export function AnnouncementPage({
           ) : null}
         </div>
         <Space>
-          <Button onClick={() => void markAllRead()}>{labels.markAllRead}</Button>
+          <Button onClick={() => void markAllRead()}>
+            {labels.markAllRead}
+          </Button>
           {session.isAdmin ? (
             <Button
               type="primary"
@@ -390,10 +395,13 @@ export function AnnouncementPage({
         onCancel={() => setShowForm(false)}
         onOk={() => void submitForm()}
         okText={editId ? labels.save : labels.publish}
+        okButtonProps={{ "data-testid": "org-announcement-submit" }}
       >
         <Space direction="vertical" style={{ width: "100%" }} size={12}>
           <div>
-            <Typography.Text type="secondary">{labels.fieldTitle}</Typography.Text>
+            <Typography.Text type="secondary">
+              {labels.fieldTitle}
+            </Typography.Text>
             <Input
               value={form.title}
               onChange={(event) =>
@@ -448,7 +456,9 @@ export function AnnouncementPage({
             </Checkbox>
           </Space>
           <div>
-            <Typography.Text type="secondary">{labels.expiresAt}</Typography.Text>
+            <Typography.Text type="secondary">
+              {labels.expiresAt}
+            </Typography.Text>
             <Input
               type="datetime-local"
               value={form.expires_at ? form.expires_at.slice(0, 16) : ""}
