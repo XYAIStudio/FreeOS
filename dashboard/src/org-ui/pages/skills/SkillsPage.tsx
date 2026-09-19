@@ -1,5 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Button, Input, Modal, Space, Table, Tabs, Tag, Typography } from "antd";
+import {
+  Button,
+  Input,
+  Modal,
+  Space,
+  Table,
+  Tabs,
+  Tag,
+  Typography,
+} from "antd";
 import { Package, RefreshCw, Search } from "lucide-react";
 import type {
   HostSkillPackage,
@@ -77,7 +86,8 @@ export function SkillsPage({
     () =>
       query
         ? catalog.filter((row) => {
-            const hay = `${row.key} ${row.slug} ${row.label} ${row.label_zh} ${row.description} ${row.description_zh}`.toLowerCase();
+            const hay =
+              `${row.key} ${row.slug} ${row.label} ${row.label_zh} ${row.description} ${row.description_zh}`.toLowerCase();
             return hay.includes(query);
           })
         : catalog,
@@ -87,7 +97,8 @@ export function SkillsPage({
     () =>
       query
         ? hostPackages.filter((row) => {
-            const hay = `${row.name} ${row.description} ${row.id}`.toLowerCase();
+            const hay =
+              `${row.name} ${row.description} ${row.id}`.toLowerCase();
             return hay.includes(query);
           })
         : hostPackages,
@@ -246,11 +257,18 @@ export function SkillsPage({
                 ) : (
                   <div className={styles.grid} data-testid="org-skills-grid">
                     {visibleCatalog.map((row) => (
-                      <button
+                      <div
                         key={row.key}
-                        type="button"
+                        role="button"
+                        tabIndex={0}
                         className={styles.card}
                         onClick={() => void openDetail(row)}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter" || event.key === " ") {
+                            event.preventDefault();
+                            void openDetail(row);
+                          }
+                        }}
                         data-testid={`org-skill-card-${row.slug}`}
                       >
                         <p className={styles.cardTitle}>
@@ -267,8 +285,8 @@ export function SkillsPage({
                             {row.published
                               ? labels.draftReady
                               : row.generated
-                                ? labels.generatedOnly
-                                : labels.notGenerated}
+                              ? labels.generatedOnly
+                              : labels.notGenerated}
                           </Tag>
                           {session.isAdmin && !row.generated ? (
                             <Button
@@ -284,7 +302,7 @@ export function SkillsPage({
                             </Button>
                           ) : null}
                         </Space>
-                      </button>
+                      </div>
                     ))}
                   </div>
                 )}
@@ -309,7 +327,10 @@ export function SkillsPage({
                 {loading ? (
                   <p className={styles.empty}>{labels.loading}</p>
                 ) : visibleHost.length === 0 ? (
-                  <div className={styles.empty} data-testid="org-skills-host-empty">
+                  <div
+                    className={styles.empty}
+                    data-testid="org-skills-host-empty"
+                  >
                     <p>{labels.emptyHost}</p>
                     <p>{labels.emptyHostHint}</p>
                   </div>

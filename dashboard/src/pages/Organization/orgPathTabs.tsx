@@ -1,4 +1,11 @@
-import { Building2, Megaphone, Network, Package, Shield, Users } from "lucide-react";
+import {
+  Building2,
+  Megaphone,
+  Network,
+  Package,
+  Shield,
+  Users,
+} from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import type { PathTabsConfig } from "../../layouts/PageShell";

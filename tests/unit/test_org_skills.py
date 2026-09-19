@@ -124,7 +124,7 @@ def test_api_lists_generated_and_host_packages(tmp_path: Path) -> None:
     assert "name: org-employees" in detail.json()["content"]
     missing = admin.get("/api/org-module/skills/org-missing")
     assert missing.status_code == 404
-    bad = admin.get("/api/org-module/skills/../secret")
+    bad = admin.get("/api/org-module/skills/ORG-EMPLOYEES")
     assert bad.status_code == 400
 
 

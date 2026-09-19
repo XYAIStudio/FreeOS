@@ -275,7 +275,10 @@ export interface OrgSkillsClient {
   list(): Promise<OrgSkillList>;
   get(slug: string): Promise<OrgSkill>;
   generate(modules?: string[]): Promise<OrgSkillGenerateResult>;
-  publish(opts: { slug?: string; skillDir?: string }): Promise<OrgSkillPublishResult>;
+  publish(opts: {
+    slug?: string;
+    skillDir?: string;
+  }): Promise<OrgSkillPublishResult>;
 }
 
 export interface OrgApiClient {

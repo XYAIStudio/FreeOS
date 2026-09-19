@@ -74,8 +74,7 @@ const ZH: typeof EN = {
   emptyHostHint:
     "请到「个性化 → 技能包」创建或编辑。智能体运行那些技能；本页只列出，不另造运行时。",
   adminOnly: "生成与发布仅管理员可用。",
-  hostHint:
-    "这些技能包就是 FreeOS Agent Skills 目录。安装与编辑请到个性化页。",
+  hostHint: "这些技能包就是 FreeOS Agent Skills 目录。安装与编辑请到个性化页。",
   openHost: "打开 Agent Skills",
   detail: "技能内容",
   close: "关闭",
