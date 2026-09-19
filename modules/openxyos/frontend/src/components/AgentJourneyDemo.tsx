@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { ArrowRight, Bot, BriefcaseBusiness, Building2, Check, FileText, Network, Send, Sparkles, UserRoundPlus, UsersRound } from "lucide-react";
 import { useLocale } from "../i18n";
 import "./agent-journey-demo.css";
+import "./agent-journey-light.css";
 
 const STEPS = [
   { zh: ["画像与资料", "定位 · 能力 · 行业经验"], en: ["Profile & sources", "Positioning · skills · experience"], icon: FileText },

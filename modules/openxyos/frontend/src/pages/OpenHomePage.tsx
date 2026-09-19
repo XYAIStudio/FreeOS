@@ -5,7 +5,6 @@ import { useAuthStore } from "../stores/auth";
 import { authFetch } from "../api/authFetch";
 import { EXPERIENCE_MODELS, type ExperienceModelId } from "../llm-providers";
 import "../openxyos.css";
-import HeroWaterScene from "../components/HeroWaterScene";
 import AgentJourneyDemo from "../components/AgentJourneyDemo";
 import { LanguageToggle, useLocale } from "../i18n";
 import { XYAI_MASCOT_SRC } from "../brandAssets";
@@ -154,7 +153,9 @@ function HeroRippleField() {
     const pointer = { x: .5, y: .5, active: false };
     const field = { x: 0, y: 0, tilt: 0, lift: 0 };
     const rings = [.16, .29, .43, .59, .76];
-    const palette = ["255,211,61", "83,240,159", "255,91,115"];
+    // Keep the motion language inside the landing-page blue spectrum. The
+    // previous yellow/green/red lanes fought the light FreeOS canvas.
+    const palette = ["49,94,251", "78,129,255", "79,174,255"];
     const motes = Array.from({ length: 420 }, (_, index) => ({
       ring: index % rings.length,
       angle: Math.random() * Math.PI * 2,
@@ -222,17 +223,17 @@ function HeroRippleField() {
       const squash = (compact ? .34 : .255) + field.lift * .0014;
 
       const sky = ctx.createLinearGradient(0, 0, 0, height * .74);
-      sky.addColorStop(0, "rgba(26,22,112,.16)");
-      sky.addColorStop(.42, "rgba(24,73,205,.105)");
-      sky.addColorStop(.64, "rgba(31,167,255,.06)");
-      sky.addColorStop(1, "rgba(2,8,11,0)");
+      sky.addColorStop(0, "rgba(49,94,251,.075)");
+      sky.addColorStop(.42, "rgba(76,125,255,.052)");
+      sky.addColorStop(.64, "rgba(107,181,255,.028)");
+      sky.addColorStop(1, "rgba(245,248,255,0)");
       ctx.fillStyle = sky; ctx.fillRect(0, 0, width, height * .78);
 
       const horizon = ctx.createRadialGradient(cx, cy, 0, cx, cy, scale * 1.2);
-      horizon.addColorStop(0, "rgba(80,230,255,.19)");
-      horizon.addColorStop(.22, "rgba(45,113,255,.1)");
-      horizon.addColorStop(.58, "rgba(85,41,220,.04)");
-      horizon.addColorStop(1, "rgba(2,7,10,0)");
+      horizon.addColorStop(0, "rgba(116,174,255,.14)");
+      horizon.addColorStop(.22, "rgba(49,94,251,.075)");
+      horizon.addColorStop(.58, "rgba(137,163,255,.028)");
+      horizon.addColorStop(1, "rgba(245,248,255,0)");
       ctx.fillStyle = horizon; ctx.fillRect(0, cy - scale * .42, width, scale * .84);
 
       rings.forEach((factor, index) => strokeOrbit(cx, cy, scale * factor, time + index * .55, .2 + (1 - index / rings.length) * .43));
@@ -300,7 +301,7 @@ function HeroRippleField() {
         ctx.lineWidth = .55; ctx.stroke();
         ctx.save(); ctx.translate(mx, my); ctx.rotate(a * .22);
         ctx.strokeStyle = `rgba(${index % 3 === 1 ? "74,239,174" : "91,202,255"},${pulse})`;
-        ctx.fillStyle = "rgba(6,24,39,.76)"; ctx.lineWidth = .7;
+        ctx.fillStyle = "rgba(235,242,255,.88)"; ctx.lineWidth = .7;
         ctx.beginPath(); ctx.roundRect(-4.5, -4.5, 9, 9, 1.8); ctx.fill(); ctx.stroke();
         ctx.fillStyle = `rgba(${index % 3 === 1 ? "74,239,174" : "91,202,255"},.7)`;
         ctx.fillRect(-1.1, -1.1, 2.2, 2.2);
@@ -320,8 +321,8 @@ function HeroRippleField() {
 
       // Human and AI are two equal, interlocking sources—not a single central machine.
       const partners = [
-        { x: cx - 13, color: "255,214,92" },
-        { x: cx + 13, color: "75,226,255" },
+        { x: cx - 13, color: "73,112,255" },
+        { x: cx + 13, color: "91,179,255" },
       ];
       ctx.beginPath();
       for (let step = 0; step <= 120; step++) {
@@ -346,8 +347,8 @@ function HeroRippleField() {
       ctx.font = "700 8px ui-monospace, SFMono-Regular, Consolas, monospace";
       ctx.letterSpacing = "1.2px";
       ctx.textAlign = "center";
-      ctx.fillStyle = "rgba(255,225,131,.68)"; ctx.fillText("HUMAN", cx - 23, cy + 22);
-      ctx.fillStyle = "rgba(112,232,255,.72)"; ctx.fillText("AI", cx + 24, cy + 22);
+      ctx.fillStyle = "rgba(49,94,251,.7)"; ctx.fillText("HUMAN", cx - 23, cy + 22);
+      ctx.fillStyle = "rgba(68,148,255,.74)"; ctx.fillText("AI", cx + 24, cy + 22);
       ctx.font = "600 7px ui-monospace, SFMono-Regular, Consolas, monospace";
       ctx.fillStyle = "rgba(129,190,209,.45)"; ctx.fillText("CO-GOVERNED CORE", cx, cy + 34);
 
@@ -458,7 +459,6 @@ export default function OpenHomePage() {
           <div className="ox-terminal"><p><b>$</b> npm ci</p><p><b>$</b> npm run dev</p><hr/><p className="dim">✓ tenant isolation ready</p><p className="dim">✓ organization graph mounted</p><p className="dim">✓ agent governance online</p><p className="ready"><Sparkles size={14}/> openXYOS is running</p><button onClick={() => void copyInstall()}><Copy size={13}/> {copied ? tx("已复制", "Copied") : tx("复制命令", "Copy command")}</button></div>
           <footer><span>{tx("组织", "Organization")}</span><i/><span>{tx("智能体", "Agents")}</span><i/><span>{tx("协作", "Collaboration")}</span><i/><span>{tx("审计", "Audit")}</span></footer>
         </div>
-        <HeroWaterScene/>
         <a className="ox-scroll" href="#capabilities"><ChevronDown size={20}/></a>
       </section>
       <section id="capabilities" className="ox-section"><div className="ox-heading"><small>CORE / 01</small><h2>{tx("精简产品表面，保留组织智能底座", "A focused product surface, with the organizational intelligence core intact")}</h2><p>{tx("不复制庞杂行业应用，只保留构建人机组织所需的核心机制与可运行示例。", "Keep the core mechanisms and working examples required to build human–AI organizations.")}</p></div><div className="ox-cards">{CAPABILITIES.map(({icon: Icon,title,text},i) => <article key={title[0]}><em>0{i+1}</em><Icon size={23}/><h3>{isEnglish ? title[1] : title[0]}</h3><p>{isEnglish ? text[1] : text[0]}</p></article>)}</div></section>
