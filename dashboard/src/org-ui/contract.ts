@@ -7,6 +7,7 @@ export const SHARED_ORG_UI_MODULES = [
   "governance",
   "knowledge",
   "tasks",
+  "reflections",
 ] as const;
 
 export type SharedOrgUiModule = (typeof SHARED_ORG_UI_MODULES)[number];

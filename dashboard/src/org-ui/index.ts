@@ -42,6 +42,12 @@ export type {
   OrgTaskSubtask,
   OrgTaskWrite,
   OrgTasksClient,
+  OrgReflection,
+  OrgReflectionListParams,
+  OrgReflectionStats,
+  OrgReflectionType,
+  OrgReflectionWrite,
+  OrgReflectionsClient,
   OrgSkill,
   OrgSkillCatalogRow,
   OrgSkillGenerateResult,
@@ -67,6 +73,8 @@ export { TasksPage } from "./pages/tasks/TasksPage";
 export type { TasksPageProps } from "./pages/tasks/TasksPage";
 export { TaskDetailPage } from "./pages/tasks/TaskDetailPage";
 export type { TaskDetailPageProps } from "./pages/tasks/TaskDetailPage";
+export { ReflectionsPage } from "./pages/reflections/ReflectionsPage";
+export type { ReflectionsPageProps } from "./pages/reflections/ReflectionsPage";
 export type {
   IdentityBridge,
   OrgFetcher,

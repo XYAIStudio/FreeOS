@@ -290,7 +290,7 @@ The Phase A work sits on the existing FreeOS bootstrap:
 | Self-growth loop | Bridge | `freeos org loop run` · `/api/org-module/loop/run` |
 | Colleague agents | Host agents table | `org-<slug>` · `{home}/org-agents/` · tenant `routing.json` |
 | Org APIs | Host BFF + optional sidecar | `/api/org-module/*` in-host (announcements + org chart CRUD are in-host); sidecar `/api/org`, `/api/employees`, … until each remaining CRUD slice moves (see [org-merge-plan.md](org-merge-plan.md)) |
-| Org UI | Host Dashboard (`org-ui`) | Native `/organization` workbench + `/organization/announcements` + `/organization/org` + `/organization/employees` + `/organization/skills` + `/organization/governance` (shared `dashboard/src/org-ui`; directory employees reuse org-chart SQLite; skills list host `org-skills` + Agent skill packages; governance reads host pauses/audit). Standalone site is **exported** from the same source (`freeos org export-standalone`). Sidecar `:3780` iframe is opt-in compat only |
+| Org UI | Host Dashboard (`org-ui`) | Native `/organization` workbench + `/organization/announcements` + `/organization/org` + `/organization/employees` + `/organization/skills` + `/organization/governance` + `/organization/knowledge` + `/organization/tasks` + `/organization/reflections` (shared `dashboard/src/org-ui`; directory employees reuse org-chart SQLite; skills list host `org-skills` + Agent skill packages; governance reads host pauses/audit; knowledge bridges host KBs; tasks/reflections live under `{FREEOS_HOME}/org`). Standalone site is **exported** from the same source (`freeos org export-standalone`). Sidecar `:3780` iframe is opt-in compat only |
 
 ### Auth and tenant mapping
 

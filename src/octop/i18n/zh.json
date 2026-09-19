@@ -771,6 +771,14 @@
       "assignee_invalid": "受派员工不存在或未在职",
       "unavailable": "任务服务暂时不可用，请稍后重试"
     },
+    "reflections": {
+      "not_found": "反思记录不存在",
+      "content_required": "至少填写一项经验、计划或沉淀知识",
+      "invalid_type": "无效的反思类型",
+      "employee_invalid": "员工不存在或未在职",
+      "task_invalid": "关联的组织任务不存在",
+      "unavailable": "反思服务暂时不可用，请稍后重试"
+    },
     "chart": {
       "forbidden": "无权限",
       "name_required": "部门或员工名称不能为空",

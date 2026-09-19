@@ -189,6 +189,7 @@
     "navGovernance": "Governance",
     "navKnowledge": "Knowledge",
     "navTasks": "Tasks",
+    "navReflections": "Reflections",
     "announcementsTitle": "Announcements",
     "announcementsBody": "Publish notices and track who has read them. This page lives in the host — no sidecar or second port.",
     "openAnnouncements": "Open announcements",
@@ -209,7 +210,10 @@
     "openKnowledge": "Open knowledge",
     "tasksTitle": "Tasks",
     "tasksBody": "Organization work items on the host org store (FREEOS_HOME/org). Not Octop cron, not project chat, and not a sidecar.",
-    "openTasks": "Open tasks"
+    "openTasks": "Open tasks",
+    "reflectionsTitle": "Reflections",
+    "reflectionsBody": "Capture lessons and reusable experience on the host org store (FREEOS_HOME/org). Not a sidecar and not Chat.",
+    "openReflections": "Open reflections"
   },
   "systemSettings": {
     "subtitle": "Workbench, remote desktop, and host administration in one place."

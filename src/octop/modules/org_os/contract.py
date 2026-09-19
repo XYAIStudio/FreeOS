@@ -13,6 +13,7 @@ SHARED_ORG_UI_MODULES: tuple[str, ...] = (
     "governance",
     "knowledge",
     "tasks",
+    "reflections",
 )
 
 

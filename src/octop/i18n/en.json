@@ -771,6 +771,14 @@
       "assignee_invalid": "The assignee does not exist or is not an active directory employee",
       "unavailable": "Task service is temporarily unavailable. Please try again"
     },
+    "reflections": {
+      "not_found": "Reflection not found",
+      "content_required": "Add at least one lesson, plan, or captured knowledge",
+      "invalid_type": "Invalid reflection type",
+      "employee_invalid": "The employee does not exist or is not an active directory employee",
+      "task_invalid": "The linked organization task does not exist",
+      "unavailable": "Reflection service is temporarily unavailable. Please try again"
+    },
     "chart": {
       "forbidden": "Permission denied",
       "name_required": "Department or employee name is required",
