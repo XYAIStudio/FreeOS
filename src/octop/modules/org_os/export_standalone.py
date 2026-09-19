@@ -1,291 +1,58 @@
-"""Minimal ``freeos org export-standalone`` scaffold (Phase 3).
-
-Full Vite + Node server packaging is Phase 5. This writes a snapshot that
-lists the shared org-ui modules and points at the same AnnouncementPage,
-OrgChartPage, EmployeesPage, SkillsPage, GovernancePage, KnowledgePage,
-TasksPage, ReflectionsPage, SettingsPage, AgentsPage, and WorkspacePage
-sources Dashboard mounts under ``/organization/...``.
-"""
+"""``freeos org export-standalone`` — runnable Vite package from org-ui."""
 
 from __future__ import annotations
 
 import json
+import shutil
 from pathlib import Path
 from typing import Any
 
 from octop.modules.org_os.contract import SHARED_ORG_UI_MODULES
 
-_README = """# Standalone Organization web (export skeleton)
-
-This directory is produced by `freeos org export-standalone`.
-
-## Shared UI (single source)
-
-Dashboard and this export consume the **same** org-ui pages:
-
-| Module | Dashboard route | Standalone route | Import |
-|---|---|---|---|
-| announcements | `/organization/announcements` | `/announcements` | `dashboard/src/org-ui` → `AnnouncementPage` |
-| organization | `/organization/org` | `/org` | `dashboard/src/org-ui` → `OrgChartPage` |
-| employees | `/organization/employees` | `/employees` | `dashboard/src/org-ui` → `EmployeesPage` / `EmployeeDetailPage` |
-| skills | `/organization/skills` | `/skills` | `dashboard/src/org-ui` → `SkillsPage` |
-| governance | `/organization/governance` | `/governance` | `dashboard/src/org-ui` → `GovernancePage` |
-| knowledge | `/organization/knowledge` | `/knowledge` | `dashboard/src/org-ui` → `KnowledgePage` |
-| tasks | `/organization/tasks` | `/tasks` | `dashboard/src/org-ui` → `TasksPage` / `TaskDetailPage` |
-| reflections | `/organization/reflections` | `/reflections` | `dashboard/src/org-ui` → `ReflectionsPage` |
-| settings | `/organization/settings` | `/settings` | `dashboard/src/org-ui` → `SettingsPage` |
-| agents | `/organization/agents` | `/agents` | `dashboard/src/org-ui` → `AgentsPage` |
-| workspace | `/organization/workspace` | `/app` | `dashboard/src/org-ui` → `WorkspacePage` |
-
-Do **not** copy those pages into a second tree. Edit `dashboard/src/org-ui`.
-
-Directory employees share `{FREEOS_HOME}/org/org_chart.sqlite` with the org
-chart. Host lifecycle colleagues stay on `GET /api/org-module/employees`.
-Governance pauses and audit stay on `{FREEOS_HOME}/governance/`.
-Organization skills stay on `{FREEOS_HOME}/org-skills/` (skill_bridge).
-Host Agent Skills remain FreeOS skill packages — not a second runtime.
-Organization Knowledge lists the same FreeOS knowledge bases Chat retrieves
-from. It does not clone the openXYOS sidecar notes/files DB.
-Organization Tasks live in `{FREEOS_HOME}/org/tasks.sqlite`. They are **not**
-Octop cron jobs and **not** agent/project chat.
-Organization Reflections live in `{FREEOS_HOME}/org/reflections.sqlite`.
-They are lessons learned, not Chat and not a second skill runtime.
-Organization Settings are **org-module only**: catalog toggles
-(`{FREEOS_HOME}/org-os/module-toggles.json`) and org-local prefs
-(`{FREEOS_HOME}/org-os/prefs.json`). LLM keys, users, timezone, and
-models stay on FreeOS system settings (`/system-settings`).
-Organization Agents compile `openxyos.agent-blueprint.v1` into host
-lifecycle colleagues (`{FREEOS_HOME}/tenants/<id>/employees/`). This is
-**not** the FreeOS personalization editor, Chat runtime, or sidecar
-`/api/agent-studio/*`. Spawned colleagues appear on FreeOS Experts.
-Organization Workspace is a thin OpenDashboard landing page. It reads
-`GET /api/org-module/overview` and links into already-migrated pages.
-It is **not** a second control plane (assemble / pack / loop stay on
-the Organization workbench). Chat is **not** migrated.
-
-## Phase 3 vs Phase 5
-
-Phase 3 (this scaffold):
-
-- Shared module list (`src/modules.json`)
-- Thin `src/App.tsx` that imports `AnnouncementPage`, `OrgChartPage`,
-  `EmployeesPage`, `SkillsPage`, `GovernancePage`, `KnowledgePage`,
-  `TasksPage`, `ReflectionsPage`, `SettingsPage`, `AgentsPage`,
-  and `WorkspacePage`
-- Documents IdentityBridge: embedded mode uses FreeOS JWT; standalone uses local JWT
-
-Phase 5 (TODO — not implemented here):
-
-- Full Vite + minimal server packaging
-- Commercial `App.tsx` routes
-- Independent `packages/org-ui` extraction if the Dashboard Vite graph must be left behind
-- Default installer stays zero-Node; this export is an explicit operator action
-
-## Next
-
-```bash
-# from a FreeOS checkout
-uv run freeos org export-standalone --out dist/openxyos-web
-# then (Phase 5) npm install && npm run build inside the out dir
-```
-"""
-
-_APP_TSX = """\
-import {
-  AgentsPage,
-  AnnouncementPage,
-  EmployeeDetailPage,
-  EmployeesPage,
-  GovernancePage,
-  KnowledgePage,
-  OrgChartPage,
-  ReflectionsPage,
-  SHARED_ORG_UI_MODULES,
-  SettingsPage,
-  SkillsPage,
-  TaskDetailPage,
-  TasksPage,
-  WorkspacePage,
-} from "org-ui";
-import type {
-  OrgAgentsClient,
-  OrgAnnouncementsClient,
-  OrgChartClient,
-  OrgEmployeesClient,
-  OrgGovernanceClient,
-  OrgKnowledgeClient,
-  OrgReflectionsClient,
-  OrgSession,
-  OrgSettingsClient,
-  OrgSkillsClient,
-  OrgTasksClient,
-  OrgWorkspaceClient,
-} from "org-ui";
-
-/**
- * Standalone shell stub. Phase 5 wires a real IdentityBridge + local JWT.
- * Page components are the same ones Dashboard mounts at
- * /organization/announcements, /organization/org, /organization/employees,
- * /organization/skills, /organization/governance, /organization/knowledge,
- * /organization/tasks, /organization/reflections,
- * /organization/settings, /organization/agents, and
- * /organization/workspace.
- */
-const session: OrgSession = {
-  userId: 0,
-  displayName: "standalone",
-  role: "admin",
-  isAdmin: true,
-};
-
-export default function App(props: {
-  client: OrgAnnouncementsClient;
-  orgClient: OrgChartClient;
-  employeesClient: OrgEmployeesClient;
-  skillsClient: OrgSkillsClient;
-  governanceClient: OrgGovernanceClient;
-  knowledgeClient: OrgKnowledgeClient;
-  tasksClient: OrgTasksClient;
-  reflectionsClient: OrgReflectionsClient;
-  settingsClient: OrgSettingsClient;
-  agentsClient: OrgAgentsClient;
-  workspaceClient: OrgWorkspaceClient;
-  locale?: "zh" | "en";
-}) {
-  return (
-    <>
-      <AnnouncementPage
-        client={props.client}
-        session={session}
-        locale={props.locale ?? "en"}
-        modules={SHARED_ORG_UI_MODULES}
-      />
-      <OrgChartPage
-        client={props.orgClient}
-        session={session}
-        locale={props.locale ?? "en"}
-        modules={SHARED_ORG_UI_MODULES}
-      />
-      <EmployeesPage
-        client={props.employeesClient}
-        session={session}
-        locale={props.locale ?? "en"}
-        modules={SHARED_ORG_UI_MODULES}
-      />
-      <EmployeeDetailPage
-        client={props.employeesClient}
-        session={session}
-        locale={props.locale ?? "en"}
-        employeeId={0}
-        modules={SHARED_ORG_UI_MODULES}
-      />
-      <SkillsPage
-        client={props.skillsClient}
-        session={session}
-        locale={props.locale ?? "en"}
-        modules={SHARED_ORG_UI_MODULES}
-      />
-      <GovernancePage
-        client={props.governanceClient}
-        session={session}
-        locale={props.locale ?? "en"}
-        modules={SHARED_ORG_UI_MODULES}
-      />
-      <KnowledgePage
-        client={props.knowledgeClient}
-        session={session}
-        locale={props.locale ?? "en"}
-        modules={SHARED_ORG_UI_MODULES}
-      />
-      <TasksPage
-        client={props.tasksClient}
-        session={session}
-        locale={props.locale ?? "en"}
-        modules={SHARED_ORG_UI_MODULES}
-      />
-      <TaskDetailPage
-        client={props.tasksClient}
-        session={session}
-        locale={props.locale ?? "en"}
-        taskId={0}
-        modules={SHARED_ORG_UI_MODULES}
-      />
-      <ReflectionsPage
-        client={props.reflectionsClient}
-        session={session}
-        locale={props.locale ?? "en"}
-        modules={SHARED_ORG_UI_MODULES}
-      />
-      <SettingsPage
-        client={props.settingsClient}
-        session={session}
-        locale={props.locale ?? "en"}
-        modules={SHARED_ORG_UI_MODULES}
-      />
-      <AgentsPage
-        client={props.agentsClient}
-        session={session}
-        locale={props.locale ?? "en"}
-        modules={SHARED_ORG_UI_MODULES}
-      />
-      <WorkspacePage
-        client={props.workspaceClient}
-        session={session}
-        locale={props.locale ?? "en"}
-        modules={SHARED_ORG_UI_MODULES}
-        workbenchHref="/organization"
-        links={{
-          workbench: "/organization",
-          announcements: "/announcements",
-          organization: "/org",
-          employees: "/employees",
-          skills: "/skills",
-          agents: "/agents",
-          tasks: "/tasks",
-          knowledge: "/knowledge",
-          reflections: "/reflections",
-          governance: "/governance",
-          settings: "/settings",
-          chat: "/chat",
-        }}
-      />
-    </>
-  );
-}
-"""
-
-_PACKAGE_JSON = {
-    "name": "openxyos-web",
-    "private": True,
-    "version": "0.0.0",
-    "description": (
-        "Standalone Organization web export skeleton. "
-        "Pages come from dashboard/src/org-ui "
-        "(Phase 3: Announcements + Org chart + Employees + Skills + Governance + Knowledge + Tasks + Reflections + Settings + Agents + Workspace). "
-        "Full Node packaging is Phase 5."
-    ),
-    "type": "module",
-    "scripts": {
-        "dev": "echo 'TODO Phase 5: Vite + server packaging'",
-        "build": "echo 'TODO Phase 5: Vite + server packaging'",
-    },
-    "peerDependencies": {
-        "antd": "^5",
-        "react": "^18",
-        "react-dom": "^18",
-    },
-}
+_ORG_UI_IGNORE = (
+    "*.test.ts",
+    "*.test.tsx",
+    "*.spec.ts",
+    "*.spec.tsx",
+    "__snapshots__",
+    ".DS_Store",
+)
 
 
-def write_standalone_scaffold(out_dir: Path) -> dict[str, Any]:
-    dest = Path(out_dir)
-    dest.mkdir(parents=True, exist_ok=True)
-    src = dest / "src"
-    src.mkdir(parents=True, exist_ok=True)
+def _repo_root() -> Path:
+    here = Path(__file__).resolve()
+    packaged = here.parents[4]
+    if _looks_like_checkout(packaged):
+        return packaged
+    cwd = Path.cwd()
+    if _looks_like_checkout(cwd):
+        return cwd
+    raise FileNotFoundError(
+        "freeos org export-standalone needs a FreeOS source checkout "
+        "(dashboard/src/org-ui and scripts/org-export/template). "
+        "Installed wheels without those trees cannot generate the package."
+    )
 
-    modules = {
+
+def _looks_like_checkout(root: Path) -> bool:
+    return (root / "dashboard" / "src" / "org-ui").is_dir() and (
+        root / "scripts" / "org-export" / "template"
+    ).is_dir()
+
+
+def _modules_manifest() -> dict[str, Any]:
+    return {
         "shared_org_ui_modules": list(SHARED_ORG_UI_MODULES),
         "import": "dashboard/src/org-ui",
+        "identity": {
+            "embedded": "FreeOS Dashboard session (auth_token)",
+            "standalone": "local JWT (openxyos.standalone.jwt)",
+            "bridge": "org-ui createLocalJwtBridge",
+        },
+        "api": {
+            "interim": "same-origin /api proxied to FREEOS_UPSTREAM (FreeOS /api/org-module)",
+            "target": "self-contained server implementing /api/org-module/* in this package",
+        },
         "pages": {
             "announcements": {
                 "component": "AnnouncementPage",
@@ -370,15 +137,49 @@ def write_standalone_scaffold(out_dir: Path) -> dict[str, Any]:
                 "not_migrated": ["chat"],
             },
         },
-        "todo": "Phase 5: full Vite + server packaging; do not fork org-ui pages",
+        "not_exported": ["chat"],
+        "todo": "Phase 5: slim default installer (sidecar stays opt-in); self-contained org API",
     }
-    (dest / "README.md").write_text(_README, encoding="utf-8")
-    (dest / "package.json").write_text(json.dumps(_PACKAGE_JSON, indent=2) + "\n", encoding="utf-8")
-    (src / "modules.json").write_text(json.dumps(modules, indent=2) + "\n", encoding="utf-8")
-    (src / "App.tsx").write_text(_APP_TSX, encoding="utf-8")
+
+
+def write_standalone_scaffold(out_dir: Path) -> dict[str, Any]:
+    dest = Path(out_dir)
+    dest.mkdir(parents=True, exist_ok=True)
+    root = _repo_root()
+    template = root / "scripts" / "org-export" / "template"
+    org_ui = root / "dashboard" / "src" / "org-ui"
+    shutil.copytree(template, dest, dirs_exist_ok=True, ignore=shutil.ignore_patterns(".DS_Store"))
+    shutil.copytree(
+        org_ui,
+        dest / "src" / "org-ui",
+        dirs_exist_ok=True,
+        ignore=shutil.ignore_patterns(*_ORG_UI_IGNORE),
+    )
+    src = dest / "src"
+    src.mkdir(parents=True, exist_ok=True)
+    (src / "modules.json").write_text(
+        json.dumps(_modules_manifest(), indent=2) + "\n",
+        encoding="utf-8",
+    )
+    files = [
+        "README.md",
+        "package.json",
+        "vite.config.ts",
+        "Dockerfile",
+        "docker-compose.yml",
+        "nginx.conf.template",
+        "server/proxy.mjs",
+        "src/App.tsx",
+        "src/modules.json",
+        "src/org-ui/index.ts",
+        "src/org-ui/bridges/localJwt.ts",
+        "src/auth/LoginPage.tsx",
+    ]
     return {
         "out_dir": str(dest),
         "modules": list(SHARED_ORG_UI_MODULES),
-        "files": ["README.md", "package.json", "src/modules.json", "src/App.tsx"],
-        "todo": "Phase 5: full Vite + server packaging",
+        "files": files,
+        "auth": "standalone local JWT (openxyos.standalone.jwt)",
+        "api": "proxies /api to FREEOS_UPSTREAM (interim); self-contained server is the target end-state",
+        "todo": "Phase 5: slim default installer (sidecar remains opt-in)",
     }

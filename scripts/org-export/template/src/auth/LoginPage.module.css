@@ -1,0 +1,32 @@
+.page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.card {
+  width: min(420px, 100%);
+  background: #fff;
+  border-radius: 12px;
+  padding: 28px 24px 24px;
+  box-shadow: 0 8px 32px rgb(0 0 0 / 8%);
+}
+
+.title {
+  margin: 0 0 8px !important;
+}
+
+.hint {
+  margin: 0 0 20px;
+  color: #666;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.error {
+  color: #cf1322;
+  margin: 0 0 12px;
+  font-size: 13px;
+}
