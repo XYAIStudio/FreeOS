@@ -14,6 +14,7 @@ from octop.api.deps import current_user, get_server, require_permission
 from octop.api.routers.org_announcements import router as announcements_router
 from octop.api.routers.org_chart import router as org_chart_router
 from octop.api.routers.org_knowledge import router as knowledge_router
+from octop.api.routers.org_tasks import router as tasks_router
 from octop.infra.server import OctopServer
 from octop.infra.utils.locale import resolve_request_locale
 from octop.modules.org_os.catalog import OPENXYOS_MODULES
@@ -40,6 +41,7 @@ router = APIRouter()
 router.include_router(announcements_router)
 router.include_router(org_chart_router)
 router.include_router(knowledge_router)
+router.include_router(tasks_router)
 
 
 class OrgModulePatch(BaseModel):

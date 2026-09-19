@@ -2,8 +2,8 @@
 
 Full Vite + Node server packaging is Phase 5. This writes a snapshot that
 lists the shared org-ui modules and points at the same AnnouncementPage,
-OrgChartPage, EmployeesPage, SkillsPage, GovernancePage, and KnowledgePage
-sources Dashboard mounts under ``/organization/...``.
+OrgChartPage, EmployeesPage, SkillsPage, GovernancePage, KnowledgePage,
+and TasksPage sources Dashboard mounts under ``/organization/...``.
 """
 
 from __future__ import annotations
@@ -30,6 +30,7 @@ Dashboard and this export consume the **same** org-ui pages:
 | skills | `/organization/skills` | `/skills` | `dashboard/src/org-ui` → `SkillsPage` |
 | governance | `/organization/governance` | `/governance` | `dashboard/src/org-ui` → `GovernancePage` |
 | knowledge | `/organization/knowledge` | `/knowledge` | `dashboard/src/org-ui` → `KnowledgePage` |
+| tasks | `/organization/tasks` | `/tasks` | `dashboard/src/org-ui` → `TasksPage` / `TaskDetailPage` |
 
 Do **not** copy those pages into a second tree. Edit `dashboard/src/org-ui`.
 
@@ -40,6 +41,8 @@ Organization skills stay on `{FREEOS_HOME}/org-skills/` (skill_bridge).
 Host Agent Skills remain FreeOS skill packages — not a second runtime.
 Organization Knowledge lists the same FreeOS knowledge bases Chat retrieves
 from. It does not clone the openXYOS sidecar notes/files DB.
+Organization Tasks live in `{FREEOS_HOME}/org/tasks.sqlite`. They are **not**
+Octop cron jobs and **not** agent/project chat.
 
 ## Phase 3 vs Phase 5
 
@@ -47,7 +50,8 @@ Phase 3 (this scaffold):
 
 - Shared module list (`src/modules.json`)
 - Thin `src/App.tsx` that imports `AnnouncementPage`, `OrgChartPage`,
-  `EmployeesPage`, `SkillsPage`, `GovernancePage`, and `KnowledgePage`
+  `EmployeesPage`, `SkillsPage`, `GovernancePage`, `KnowledgePage`,
+  and `TasksPage`
 - Documents IdentityBridge: embedded mode uses FreeOS JWT; standalone uses local JWT
 
 Phase 5 (TODO — not implemented here):
@@ -76,6 +80,8 @@ import {
   OrgChartPage,
   SHARED_ORG_UI_MODULES,
   SkillsPage,
+  TaskDetailPage,
+  TasksPage,
 } from "org-ui";
 import type {
   OrgAnnouncementsClient,
@@ -85,13 +91,15 @@ import type {
   OrgKnowledgeClient,
   OrgSession,
   OrgSkillsClient,
+  OrgTasksClient,
 } from "org-ui";
 
 /**
  * Standalone shell stub. Phase 5 wires a real IdentityBridge + local JWT.
  * Page components are the same ones Dashboard mounts at
  * /organization/announcements, /organization/org, /organization/employees,
- * /organization/skills, /organization/governance, and /organization/knowledge.
+ * /organization/skills, /organization/governance, /organization/knowledge,
+ * and /organization/tasks.
  */
 const session: OrgSession = {
   userId: 0,
@@ -107,6 +115,7 @@ export default function App(props: {
   skillsClient: OrgSkillsClient;
   governanceClient: OrgGovernanceClient;
   knowledgeClient: OrgKnowledgeClient;
+  tasksClient: OrgTasksClient;
   locale?: "zh" | "en";
 }) {
   return (
@@ -154,6 +163,19 @@ export default function App(props: {
         locale={props.locale ?? "en"}
         modules={SHARED_ORG_UI_MODULES}
       />
+      <TasksPage
+        client={props.tasksClient}
+        session={session}
+        locale={props.locale ?? "en"}
+        modules={SHARED_ORG_UI_MODULES}
+      />
+      <TaskDetailPage
+        client={props.tasksClient}
+        session={session}
+        locale={props.locale ?? "en"}
+        taskId={0}
+        modules={SHARED_ORG_UI_MODULES}
+      />
     </>
   );
 }
@@ -166,7 +188,7 @@ _PACKAGE_JSON = {
     "description": (
         "Standalone Organization web export skeleton. "
         "Pages come from dashboard/src/org-ui "
-        "(Phase 3: Announcements + Org chart + Employees + Skills + Governance + Knowledge). "
+        "(Phase 3: Announcements + Org chart + Employees + Skills + Governance + Knowledge + Tasks). "
         "Full Node packaging is Phase 5."
     ),
     "type": "module",
@@ -232,6 +254,14 @@ def write_standalone_scaffold(out_dir: Path) -> dict[str, Any]:
                 "standalone_route": "/knowledge",
                 "api": "/api/org-module/knowledge",
                 "store": "host knowledge_bases / knowledge_documents",
+            },
+            "tasks": {
+                "component": "TasksPage",
+                "detail_component": "TaskDetailPage",
+                "embedded_route": "/organization/tasks",
+                "standalone_route": "/tasks",
+                "api": "/api/org-module/tasks",
+                "store": "{FREEOS_HOME}/org/tasks.sqlite",
             },
         },
         "todo": "Phase 5: full Vite + server packaging; do not fork org-ui pages",

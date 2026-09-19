@@ -63,6 +63,12 @@ describe("createOrgApiClient", () => {
           stats: { bases: 1, documents: 0, shared: 0, owned: 1 },
         };
       }
+      if (path === "/org-module/tasks") {
+        return {
+          success: true,
+          data: [{ id: 3, title: "Ship Tasks slice", status: "todo" }],
+        };
+      }
       throw new Error(`unexpected ${path}`);
     });
     const client = createOrgApiClient({ fetchJson });
@@ -79,6 +85,7 @@ describe("createOrgApiClient", () => {
     expect((await client.governance.pauses()).pauses[0]?.pause_id).toBe("p1");
     expect((await client.skills.list()).skills[0]?.slug).toBe("org-employees");
     expect((await client.knowledge.list()).bases[0]?.name).toBe("Policies");
+    expect((await client.tasks.list())[0]?.title).toBe("Ship Tasks slice");
     expect(fetchJson).toHaveBeenCalled();
   });
 

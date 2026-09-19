@@ -762,6 +762,15 @@
       "title_content_required": "标题和内容不能为空",
       "unavailable": "公告服务暂时不可用，请稍后重试"
     },
+    "tasks": {
+      "not_found": "任务不存在",
+      "title_required": "标题不能为空",
+      "content_required": "内容不能为空",
+      "invalid_status": "无效的任务状态",
+      "no_updates": "没有可更新的字段",
+      "assignee_invalid": "受派员工不存在或未在职",
+      "unavailable": "任务服务暂时不可用，请稍后重试"
+    },
     "chart": {
       "forbidden": "无权限",
       "name_required": "部门或员工名称不能为空",
