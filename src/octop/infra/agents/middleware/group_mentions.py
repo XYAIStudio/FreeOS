@@ -18,6 +18,7 @@ from langgraph.prebuilt.tool_node import ToolCallRequest
 from langgraph.types import Command
 
 _CALL_PREFIX = "freeos_mention_"
+_COMPOSER_CONTEXT_KEY = "octop_composer_context"
 _PEER_TURN: ContextVar[tuple[str | None, bool] | None] = ContextVar(
     "freeos_explicit_peer_turn", default=None
 )
@@ -40,6 +41,20 @@ def has_mention(text: str, name: str) -> bool:
     return bool(name.strip()) and bool(
         re.search(r"(?<!\S)" + re.escape(token) + r"(?=$|\s|[，。！？、,:：!?])", text)
     )
+
+
+def selected_peer_ids(message: HumanMessage) -> list[str]:
+    """Read the dashboard's explicit @ selection from the persisted turn.
+
+    The visible @ token is useful for people, but it is not a reliable routing
+    contract: a renamed expert, punctuation, or a localized display name can
+    make text matching fail.  The composer has already resolved the selected
+    roster entries to ids, so use those ids when they are available.
+    """
+    extra = message.additional_kwargs
+    context = extra.get(_COMPOSER_CONTEXT_KEY) if isinstance(extra, dict) else None
+    raw_ids = context.get("targetAgents") if isinstance(context, dict) else None
+    return [str(item) for item in raw_ids] if isinstance(raw_ids, list) else []
 
 
 class GroupMentionMiddleware(AgentMiddleware[Any, Any]):
@@ -87,12 +102,20 @@ class GroupMentionMiddleware(AgentMiddleware[Any, Any]):
         if user_id is None or not agent_id:
             return await handler(request)
         peers = manager.team.list_peers(str(user_id), exclude_agent_id=str(agent_id))
-        targets = [
-            peer
+        peers_by_id = {
+            peer.agent_id: peer
             for peer in peers
             if str(peer.metadata.get("user_id")) == str(user_id)
-            and has_mention(text, manager.team.peer_display_name(peer))
-        ]
+        }
+        selected_ids = selected_peer_ids(request.messages[latest])
+        targets = [peers_by_id[peer_id] for peer_id in selected_ids if peer_id in peers_by_id]
+        if not targets:
+            targets = [
+                peer
+                for peer in peers
+                if str(peer.metadata.get("user_id")) == str(user_id)
+                and has_mention(text, manager.team.peer_display_name(peer))
+            ]
         if not targets:
             return await handler(request)
         tool_names = {
@@ -108,7 +131,14 @@ class GroupMentionMiddleware(AgentMiddleware[Any, Any]):
             for call in message.tool_calls
             if call.get("name") == "ask_agent" and str(call.get("id", "")).startswith(_CALL_PREFIX)
         }
-        discussion = bool(re.search(r"头脑风暴|讨论|brainstorm|discuss", text, re.I))
+        # A multi-member group turn is a discussion even if the user does not
+        # use a specific keyword.  Keep its tool surface deterministic: only
+        # the middleware-created peer calls run, never an incidental cron or
+        # other tool selected by a small local model.
+        discussion = (
+            bool(re.search(r"头脑风暴|脑暴|讨论|brainstorm|discuss", text, re.I))
+            or len(targets) > 1
+        )
         for peer in targets:
             if peer.agent_id in called:
                 continue

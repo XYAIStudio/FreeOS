@@ -79,6 +79,28 @@ async def test_disabled_collaboration_is_respected(setup):
     await middleware.awrap_model_call(request, handler)
 
 
+async def test_explicit_selected_ids_route_even_when_display_tokens_do_not_match(setup):
+    middleware, request, _ = setup
+    request = request.override(
+        messages=[
+            HumanMessage(
+                content="请分别给出建议",
+                additional_kwargs={
+                    "octop_composer_context": {"targetAgents": ["b", "a"]}
+                },
+            )
+        ]
+    )
+
+    async def unexpected(r):
+        pytest.fail("Explicit selected ids must be dispatched before model selection")
+
+    first = await middleware.awrap_model_call(request, unexpected)
+    assert first.result[0].tool_calls[0]["args"]["agent"] == "b"
+    # Multiple selected peers are always a controlled discussion turn.
+    assert first.result[0].tool_calls[0]["id"].startswith("freeos_mention_discussion_")
+
+
 async def test_new_turn_does_not_reuse_old_dispatch_progress(setup):
     middleware, request, _ = setup
 
