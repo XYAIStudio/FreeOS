@@ -8,6 +8,7 @@ import "../openxyos.css";
 import AgentJourneyDemo from "../components/AgentJourneyDemo";
 import { LanguageToggle, useLocale } from "../i18n";
 import { XYAI_MASCOT_SRC } from "../brandAssets";
+import HeroWaterScene from "../components/HeroWaterScene";
 
 const GITHUB_URL = (import.meta.env.VITE_GITHUB_URL as string | undefined)?.trim() || "https://github.com/XYAIStudio/openXYOS";
 const freeosOrganization =
@@ -459,6 +460,7 @@ export default function OpenHomePage() {
           <div className="ox-terminal"><p><b>$</b> npm ci</p><p><b>$</b> npm run dev</p><hr/><p className="dim">✓ tenant isolation ready</p><p className="dim">✓ organization graph mounted</p><p className="dim">✓ agent governance online</p><p className="ready"><Sparkles size={14}/> openXYOS is running</p><button onClick={() => void copyInstall()}><Copy size={13}/> {copied ? tx("已复制", "Copied") : tx("复制命令", "Copy command")}</button></div>
           <footer><span>{tx("组织", "Organization")}</span><i/><span>{tx("智能体", "Agents")}</span><i/><span>{tx("协作", "Collaboration")}</span><i/><span>{tx("审计", "Audit")}</span></footer>
         </div>
+        <HeroWaterScene/>
         <a className="ox-scroll" href="#capabilities"><ChevronDown size={20}/></a>
       </section>
       <section id="capabilities" className="ox-section"><div className="ox-heading"><small>CORE / 01</small><h2>{tx("精简产品表面，保留组织智能底座", "A focused product surface, with the organizational intelligence core intact")}</h2><p>{tx("不复制庞杂行业应用，只保留构建人机组织所需的核心机制与可运行示例。", "Keep the core mechanisms and working examples required to build human–AI organizations.")}</p></div><div className="ox-cards">{CAPABILITIES.map(({icon: Icon,title,text},i) => <article key={title[0]}><em>0{i+1}</em><Icon size={23}/><h3>{isEnglish ? title[1] : title[0]}</h3><p>{isEnglish ? text[1] : text[0]}</p></article>)}</div></section>

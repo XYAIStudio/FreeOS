@@ -85,7 +85,9 @@ export default function HeroWaterScene() {
         const turn = Math.max(0, Math.min(1, (t - 2.5) / 2));
         const tilt = .23 + (1 - Math.pow(1 - turn, 3)) * .77;
         ctx.save(); ctx.globalAlpha = fade * eased;
-        ellipse(x, water + 8, r * 1.3, 12); ctx.fillStyle = "#02090dc0"; ctx.fill();
+        // Keep the reflection soft on the light landing canvas; a black oval
+        // makes the water mark look detached from the rest of the page.
+        ellipse(x, water + 8, r * 1.3, 12); ctx.fillStyle = "rgba(82,112,156,.26)"; ctx.fill();
         ctx.save(); ctx.translate(x, water + 27); ctx.scale(1, -.22);
         ctx.globalAlpha *= .12; ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.clip();
         ctx.drawImage(logo, 8, 4, 149, 148, -r, -r, r*2, r*2); ctx.restore();
@@ -95,7 +97,10 @@ export default function HeroWaterScene() {
         }
         ctx.save(); ctx.translate(x, y); ctx.scale(1, tilt);
         ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.clip();
-        ctx.drawImage(logo, 8, 4, 149, 148, -r, -r, r*2, r*2);
+        // The source mark is multicolour. Tint it into the landing palette so
+        // the animation reads as part of openXYOS instead of a separate badge.
+        ctx.filter = "grayscale(1) sepia(1) saturate(3) hue-rotate(165deg) brightness(1.08) contrast(.9)";
+        ctx.drawImage(logo, 8, 4, 149, 148, -r, -r, r*2, r*2); ctx.filter = "none";
         const sheen = ctx.createLinearGradient(-r, -r, r, r);
         sheen.addColorStop(0, "#ffffff77"); sheen.addColorStop(.45, "#ffffff00"); sheen.addColorStop(1, "#06345633");
         ctx.fillStyle = sheen; ctx.fillRect(-r,-r,r*2,r*2); ctx.restore();
@@ -115,12 +120,12 @@ export default function HeroWaterScene() {
           ctx.fillText("openXYOS", 0, 0); ctx.restore();
           ctx.translate(x, textY); ctx.scale(textScale, .25 + .75 * eased);
           for (let depth = 5; depth > 0; depth--) {
-            ctx.fillStyle = depth > 2 ? "#11364c" : "#39788f";
+          ctx.fillStyle = depth > 2 ? "#3a63a8" : "#79a7e2";
             ctx.fillText("openXYOS", depth * .35, depth * .75);
           }
           const face = ctx.createLinearGradient(0, -size, 0, 3);
-          face.addColorStop(0, "#f0fcff"); face.addColorStop(.42, "#b0eaff");
-          face.addColorStop(.65, "#5cb8d5"); face.addColorStop(1, "#c5f6ff");
+          face.addColorStop(0, "#f5f9ff"); face.addColorStop(.42, "#bfd4ff");
+          face.addColorStop(.65, "#5f8fe4"); face.addColorStop(1, "#d5e4ff");
           ctx.fillStyle = face; ctx.shadowColor = "#54c6ed66"; ctx.shadowBlur = 7;
           ctx.fillText("openXYOS", 0, 0); ctx.restore();
         }
