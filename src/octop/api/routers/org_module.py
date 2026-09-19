@@ -11,6 +11,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from pydantic import BaseModel, Field
 
 from octop.api.deps import current_user, get_server, require_permission
+from octop.api.routers.org_agents import router as agents_router
 from octop.api.routers.org_announcements import router as announcements_router
 from octop.api.routers.org_chart import router as org_chart_router
 from octop.api.routers.org_knowledge import router as knowledge_router
@@ -46,6 +47,7 @@ router.include_router(knowledge_router)
 router.include_router(tasks_router)
 router.include_router(reflections_router)
 router.include_router(settings_router)
+router.include_router(agents_router)
 
 
 class OrgModulePatch(BaseModel):
@@ -555,13 +557,16 @@ async def compile_blueprint_api(
     else:
         raise HTTPException(status_code=400, detail="blueprint or blueprint_path required")
     tid = body.tenant_id or service.tenant_id() or "default"
-    compiled = compile_blueprint(
-        source,
-        home=service.home,
-        tenant_id=tid,
-        sidecar_url=service.sidecar_url(),
-        out_dir=Path(body.out_dir) if body.out_dir else None,
-    )
+    try:
+        compiled = compile_blueprint(
+            source,
+            home=service.home,
+            tenant_id=tid,
+            sidecar_url=service.sidecar_url(),
+            out_dir=Path(body.out_dir) if body.out_dir else None,
+        )
+    except (ValueError, FileNotFoundError) as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     register_compiled(
         LifecycleStore(service.home, tid),
         slug=compiled.slug,

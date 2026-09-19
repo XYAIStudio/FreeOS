@@ -191,6 +191,7 @@
     "navTasks": "任务",
     "navReflections": "反思",
     "navSettings": "设置",
+    "navAgents": "智能体定制",
     "announcementsTitle": "通知公告",
     "announcementsBody": "发布公告并跟踪已读。此页跑在宿主内，不需要边车或第二端口。",
     "openAnnouncements": "打开通知公告",
@@ -217,7 +218,10 @@
     "openReflections": "打开反思",
     "settingsTitle": "组织设置",
     "settingsBody": "组织模块的目录开关与本地偏好。大模型密钥、用户和时区仍在 FreeOS 系统设置，没有边车。",
-    "openSettings": "打开设置"
+    "openSettings": "打开设置",
+    "agentsTitle": "智能体定制",
+    "agentsBody": "在宿主内把蓝图编译成组织数字同事并管理生命周期。FreeOS 智能体、专家页和个性化保持原位——没有边车 Agent Studio，也不迁对话页。",
+    "openAgents": "打开智能体定制"
   },
   "systemSettings": {
     "subtitle": "工作台、远程桌面与主机管理集中在这里。"

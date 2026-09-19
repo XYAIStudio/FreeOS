@@ -543,6 +543,96 @@ export interface OrgSettingsClient {
   ): Promise<Record<string, boolean>>;
 }
 
+export type OrgColleagueLifecycle =
+  | "draft"
+  | "market"
+  | "recruit"
+  | "shadow"
+  | "active"
+  | "offboard";
+
+export interface OrgColleague {
+  slug: string;
+  tenant_id: string;
+  name: string;
+  lifecycle: OrgColleagueLifecycle | string;
+  workspace: string;
+  agent_id?: string;
+  spawned: boolean;
+  next: string[];
+  created_at?: number;
+  updated_at?: number;
+  read_only?: boolean;
+  cron_enabled?: boolean;
+}
+
+export interface OrgColleagueStats {
+  total: number;
+  spawned: number;
+  by_lifecycle: Record<string, number>;
+}
+
+export interface OrgAgentHostSurfaces {
+  experts: string;
+  personalization: string;
+  employees: string;
+  chat: string;
+  workbench: string;
+}
+
+export interface OrgAgentsSnapshot {
+  scope: string;
+  tenant_id: string;
+  schema: string;
+  states: string[];
+  next_states: Record<string, string[]>;
+  colleagues: OrgColleague[];
+  stats: OrgColleagueStats;
+  host_surfaces: OrgAgentHostSurfaces;
+  not_on_this_page: string[];
+  compile: string;
+  transition: string;
+  spawn: string;
+}
+
+export interface OrgBlueprintWrite {
+  name: string;
+  positioning: string;
+  capabilities: string[];
+  industry?: string;
+  experience?: string;
+  ima_url?: string;
+}
+
+export interface OrgCompiledColleague {
+  slug: string;
+  tenant_id: string;
+  workspace: string;
+  soul?: string;
+  skill_files?: string[];
+}
+
+export interface OrgSpawnedColleague {
+  agent_id: string;
+  slug: string;
+  name: string;
+  tenant_id: string;
+  workspace: string;
+  persisted_to_db?: boolean;
+  notes?: string[];
+}
+
+export interface OrgAgentsClient {
+  snapshot(): Promise<OrgAgentsSnapshot>;
+  compile(body: OrgBlueprintWrite): Promise<OrgCompiledColleague>;
+  transition(
+    slug: string,
+    state: string,
+    reason?: string,
+  ): Promise<OrgColleague>;
+  spawn(slug: string): Promise<OrgSpawnedColleague>;
+}
+
 export interface OrgApiClient {
   announcements: OrgAnnouncementsClient;
   org: OrgChartClient;
@@ -553,6 +643,7 @@ export interface OrgApiClient {
   tasks: OrgTasksClient;
   reflections: OrgReflectionsClient;
   settings: OrgSettingsClient;
+  agents: OrgAgentsClient;
 }
 
 async function unwrap<T>(payload: OrgEnvelope<T>): Promise<T> {
@@ -576,6 +667,7 @@ export function createOrgApiClient(opts: {
   tasksPrefix?: string;
   reflectionsPrefix?: string;
   settingsPrefix?: string;
+  agentsPrefix?: string;
 }): OrgApiClient {
   const prefix = opts.announcementsPrefix ?? "/org-module/announcements";
   const orgPrefix = opts.orgPrefix ?? "/org-module/org";
@@ -585,6 +677,7 @@ export function createOrgApiClient(opts: {
   const tasksPrefix = opts.tasksPrefix ?? "/org-module/tasks";
   const reflectionsPrefix = opts.reflectionsPrefix ?? "/org-module/reflections";
   const settingsPrefix = opts.settingsPrefix ?? "/org-module";
+  const agentsPrefix = opts.agentsPrefix ?? "/org-module";
   const fetchJson = opts.fetchJson;
 
   const announcements: OrgAnnouncementsClient = {
@@ -1063,6 +1156,56 @@ export function createOrgApiClient(opts: {
     },
   };
 
+  const agents: OrgAgentsClient = {
+    async snapshot() {
+      return unwrap(
+        await fetchJson<OrgEnvelope<OrgAgentsSnapshot>>(
+          `${agentsPrefix}/agents`,
+        ),
+      );
+    },
+    async compile(body) {
+      const ima = body.ima_url?.trim();
+      return fetchJson<OrgCompiledColleague>(
+        `${agentsPrefix}/blueprints/compile`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            blueprint: {
+              schema: "openxyos.agent-blueprint.v1",
+              name: body.name,
+              positioning: body.positioning,
+              capabilities: body.capabilities,
+              industry: body.industry || "professional-services",
+              experience: body.experience || "",
+              ima: ima ? { url: ima, status: "linked-unverified" } : undefined,
+              lifecycle: "draft",
+            },
+          }),
+        },
+      );
+    },
+    async transition(slug, state, reason) {
+      return fetchJson<OrgColleague>(`${agentsPrefix}/employees/transition`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          slug,
+          state,
+          reason: reason || "",
+        }),
+      });
+    },
+    async spawn(slug) {
+      return fetchJson<OrgSpawnedColleague>(`${agentsPrefix}/employees/spawn`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ slug }),
+      });
+    },
+  };
+
   return {
     announcements,
     org,
@@ -1073,5 +1216,6 @@ export function createOrgApiClient(opts: {
     tasks,
     reflections,
     settings,
+    agents,
   };
 }

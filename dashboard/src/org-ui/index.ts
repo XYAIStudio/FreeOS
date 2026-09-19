@@ -54,6 +54,15 @@ export type {
   OrgSettingsClient,
   OrgSettingsSnapshot,
   OrgSystemSettingsLinks,
+  OrgAgentHostSurfaces,
+  OrgAgentsClient,
+  OrgAgentsSnapshot,
+  OrgBlueprintWrite,
+  OrgColleague,
+  OrgColleagueLifecycle,
+  OrgColleagueStats,
+  OrgCompiledColleague,
+  OrgSpawnedColleague,
   OrgSkill,
   OrgSkillCatalogRow,
   OrgSkillGenerateResult,
@@ -83,6 +92,8 @@ export { ReflectionsPage } from "./pages/reflections/ReflectionsPage";
 export type { ReflectionsPageProps } from "./pages/reflections/ReflectionsPage";
 export { SettingsPage } from "./pages/settings/SettingsPage";
 export type { SettingsPageProps } from "./pages/settings/SettingsPage";
+export { AgentsPage } from "./pages/agents/AgentsPage";
+export type { AgentsPageProps } from "./pages/agents/AgentsPage";
 export type {
   IdentityBridge,
   OrgFetcher,

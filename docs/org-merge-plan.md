@@ -1,6 +1,6 @@
 # 组织模块合并计划（openXYOS → FreeOS Dashboard）
 
-**状态：** Phase 3 组织架构、员工目录、技能、治理 UI、知识、任务、反思与设置切片已落地（宿主 org tree / 员工 CRUD + skill_bridge list/read + 治理 pauses/audit + 宿主知识库桥接 + `{FREEOS_HOME}/org/tasks.sqlite` + `{FREEOS_HOME}/org/reflections.sqlite` + `{FREEOS_HOME}/org-os/prefs.json` + `/organization/org` + `/organization/employees` + `/organization/skills` + `/organization/governance` + `/organization/knowledge` + `/organization/tasks` + `/organization/reflections` + `/organization/settings` + `org-ui` OrgChartPage / EmployeesPage / SkillsPage / GovernancePage / KnowledgePage / TasksPage / ReflectionsPage / SettingsPage + export-standalone 模块列表）。其余 Open-12 仍待切片。
+**状态：** Phase 3 组织架构、员工目录、技能、治理 UI、知识、任务、反思、设置与智能体切片已落地（宿主 org tree / 员工 CRUD + skill_bridge list/read + 治理 pauses/audit + 宿主知识库桥接 + `{FREEOS_HOME}/org/tasks.sqlite` + `{FREEOS_HOME}/org/reflections.sqlite` + `{FREEOS_HOME}/org-os/prefs.json` + lifecycle 同事 / 蓝图编译 + `/organization/org` + `/organization/employees` + `/organization/skills` + `/organization/governance` + `/organization/knowledge` + `/organization/tasks` + `/organization/reflections` + `/organization/settings` + `/organization/agents` + `org-ui` OrgChartPage / EmployeesPage / SkillsPage / GovernancePage / KnowledgePage / TasksPage / ReflectionsPage / SettingsPage / AgentsPage + export-standalone 模块列表）。其余 Open-12 仍待切片。
 **日期：** 2026-09-19
 **依据：** Phase 0 迁移图、[architecture-integration.md](architecture-integration.md)、[asset-loop.md](asset-loop.md)、[ADR 001](adr/001-single-process-model.md)、#55 宿主内 Organization
 
@@ -25,7 +25,7 @@ Phase 1 冻结了合同。Phase 2（通知公告）与 Phase 3 的组织架构�
 | **0** 宿主内地基 | `org_os` 控制面、`/api/org-module/*` BFF、Dashboard 原生工作台、sidecar 改为可选 | **已完成**（#55） |
 | **1** 合同冻结 | ADR + 本计划：单源双交付、包布局、API 归属、IdentityBridge、Phase 2 验收 | **本文** |
 | **2** 垂直切片 | **通知公告 Announcements** 按合同落地（Dashboard 路由 + 可导出同一页面） | **已完成** |
-| **3** Open-12 其余页 | 工作台、组织架构、员工、技能、智能体、任务、知识、反思、治理 UI、设置 | **进行中**：架构 / 员工 / 技能 / 治理 / 知识 / 任务 / 反思 / 设置已迁；智能体、工作台扩展未开始 |
+| **3** Open-12 其余页 | 工作台、组织架构、员工、技能、智能体、任务、知识、反思、治理 UI、设置 | **进行中**：架构 / 员工 / 技能 / 治理 / 知识 / 任务 / 反思 / 设置 / 智能体已迁；工作台扩展（薄 Workspace overview）未开始 |
 | **4** 身份与 CRUD | 已迁页面走 IdentityBridge；业务 CRUD 按切片迁入宿主；未迁路由仍可代理到可选 sidecar | 与 2–3 交叉推进 |
 | **5** 导出与安装器 | `freeos org export-standalone` 产出独立站；默认安装器保持零 Node | 未开始 |
 
@@ -60,7 +60,7 @@ Catalog 十二键（`catalog.py` ↔ `open-module-catalog.ts`）：
 | employees | OpenApp `/employees` | sidecar `/api/employees` + 宿主 lifecycle `/api/org-module/employees` | **Phase 3 切片已落地**：`/organization/employees` 目录 CRUD 复用 `org_chart.sqlite`；lifecycle / spawn **已在宿主，勿重复造** |
 | skills | OpenApp `/skills` | sidecar `/api/skills` + 宿主 `skill_bridge` | **Phase 3 切片已落地**：`/organization/skills` 列出 `{FREEOS_HOME}/org-skills` 并 generate/publish；宿主 skill packages 只读列出（Agent Skills 运行时仍在个性化）。未迁：边车市场 / 插件中心 / 付费安装 |
 | **chat** | OpenApp `/chat` | sidecar `/api/chats` | **不迁。** 对话走 FreeOS/Octop |
-| agents | OpenApp `/agents`（Agent Studio） | 源码有 `routes/agent-studio.ts`，**`server.ts` 当前未 `app.use`** | Phase 3 前必须先核实挂载；未挂载则只迁 UI、API 在宿主补齐 |
+| agents | OpenApp `/agents`（Agent Studio） | 源码有 `routes/agent-studio.ts`，**`server.ts` 当前未 `app.use`** | **Phase 3 切片已落地**：`/organization/agents` 桥接宿主 `GET /api/org-module/agents` + 已有 `/blueprints/compile` 与 employees lifecycle / spawn。**不是** FreeOS 个性化编辑器或 Chat。未迁：边车 `/api/agent-studio/*`、资料上传、人才市场 |
 | tasks | OpenApp `/tasks` | sidecar `/api/tasks` | **Phase 3 切片已落地**：`/organization/tasks` + `/api/org-module/tasks*`，`{FREEOS_HOME}/org/tasks.sqlite`。不是 Octop cron，也不是项目/Chat。未迁：附件、边车任务库 |
 | knowledge | OpenApp `/knowledge` | sidecar `/api/knowledge` | **Phase 3 切片已落地**：`/organization/knowledge` 列出宿主 `/api/knowledge-bases` 同一套行；不克隆 sidecar notes/files DB |
 | reflections | OpenApp `/reflections` | sidecar `/api/reflections` | **Phase 3 切片已落地**：`/organization/reflections` + `/api/org-module/reflections*`，`{FREEOS_HOME}/org/reflections.sqlite`。不是 Chat，也不是第二套技能运行时。未迁：边车技能统计、部署铁律样例 |
@@ -115,8 +115,8 @@ uv run freeos org export-standalone --out dist/openxyos-web
 |---|---|---|
 | `status` · `catalog` · `overview` · `PATCH ""` · `modules` | 宿主 | 保持 |
 | `assemble` · `produce` · `pack` · `loop/run` | 宿主 loop | 保持 |
-| `employees` · `employees/transition` · `employees/spawn` | 宿主 lifecycle | 保持；与员工 **目录 CRUD** 分开 |
-| `assets/*` · `blueprints/compile` · `skills` list/read/generate/publish | 宿主工厂 | **已挂 UI**。list/read 补目录；generate/publish 仍管理员/`plugins` 门控 |
+| `employees` · `employees/transition` · `employees/spawn` | 宿主 lifecycle | **已挂 UI**（Agents）。与员工 **目录 CRUD** 分开 |
+| `assets/*` · `blueprints/compile` · `skills` list/read/generate/publish | 宿主工厂 | **已挂 UI**。compile 在 Agents；skills list/read 补目录；generate/publish 仍管理员/`plugins` 门控 |
 | `governance/check\|resolve\|audit` · `pauses` | 宿主 PEP/PDP | **已挂 UI**。`GET /pauses` 补列出待审批；resolve 仍管理员/`plugins` 门控 |
 | `knowledge` list/read/create/notes | 宿主知识库桥接 | **已挂 UI**。包装 `KnowledgeService`；写操作 `knowledge_bases` 门控。不克隆 sidecar notes DB |
 | `tasks` list/stats/detail/CRUD/transition/subtasks/comments | 宿主组织待办 | **已挂 UI**。`{FREEOS_HOME}/org/tasks.sqlite`。不是 cron / 项目任务 / Chat |
@@ -416,7 +416,7 @@ openXYOS sidecar `/api/governance`（权限矩阵、通信规则、流程模板�
 | Chat / 从反思页发起会话 | 对话运行时留在 FreeOS/Octop |
 | 边车 `employee_skill_stats` / 技能使用统计 | 组织技能已有独立切片；本页不另造技能库 |
 | 边车「系统部署铁律」样例文案 | openXYOS 自身部署备忘，不是组织复盘数据 |
-| 其余 Open-12（智能体、工作台扩展） | 后续切片 |
+| 其余 Open-12（工作台扩展） | 后续切片 |
 | `freeos org export-standalone` 完整 Vite/Node 打包 | Phase 5 |
 
 ---
@@ -449,7 +449,40 @@ openXYOS sidecar `/api/governance`（权限矩阵、通信规则、流程模板�
 |---|---|
 | 把系统设置搬进组织页 | FreeOS 已有系统设置；本页只链出去 |
 | 边车公司/AI/用户/数据库 Tab | sidecar SQL.js；密钥与用户在宿主 |
-| Chat / Agents / Workspace 批量搬迁 | 不在本 PR |
+| Chat / Workspace 批量搬迁 | 不在本 PR |
+| `freeos org export-standalone` 完整 Vite/Node 打包 | Phase 5 |
+
+---
+
+## Phase 3 进度：智能体（本切片）
+
+按同一缝落地，**只迁组织智能体定制（Agent Studio）**。不替换 FreeOS/Octop 对话运行时，也不把个性化智能体编辑器搬进组织页。
+
+### 与 FreeOS Agents / Experts 的关系
+
+| 表面 | 存储 | API | 含义 |
+|---|---|---|---|
+| 组织智能体页 | `{FREEOS_HOME}/tenants/<id>/employees/` + `registry.json` | `GET /api/org-module/agents` · 已有 `POST /blueprints/compile` · `/employees/transition` · `/employees/spawn` | 编译 `openxyos.agent-blueprint.v1`，管理数字同事生命周期，注册为宿主聊天智能体 |
+| FreeOS Experts / 个性化 | Octop `agents` 表 + 个性化编辑器 | `/experts` · `/personalization` | **运行时编辑与专家目录仍在这里。** 本页只深链 |
+| sidecar Agent Studio | `routes/agent-studio.ts` | `/api/agent-studio/*` | **未挂载，不依赖。** 资料上传 / 人才市场不迁 |
+
+目录员工（人/AI 名册）仍在 `/organization/employees`（`org_chart.sqlite`）。本页管的是 **lifecycle 数字同事**，不是第二套名册。
+
+### 已落地
+
+1. 壳无关组件：`dashboard/src/org-ui/pages/agents`（`AgentsPage`），数据经 `createOrgApiClient().agents`。
+2. Dashboard 子路由：`/organization/agents`（工作台 path tabs + 入口卡）。
+3. 宿主 API：本切片补 `GET /api/org-module/agents` 快照（同事列表、下一状态、宿主深链）。编译 / 流转 / 注册复用已有 lifecycle 路由；写操作走 `require_permission("plugins")`（管理员绕过）。
+4. 导出骨架：`freeos org export-standalone` 模块列表与 `App.tsx` 同时导入 `AgentsPage`。
+
+### 本切片明确推迟
+
+| 推迟项 | 原因 |
+|---|---|
+| Chat / 从智能体页发起会话 | 对话运行时留在 FreeOS/Octop |
+| 边车 `/api/agent-studio/*` 资料上传与人才市场 | sidecar 未挂载；本页不克隆上传工作室 |
+| 在组织页里编辑 FreeOS 智能体 / 专家 | 运行时已在个性化与 Experts；本页只编译并深链 |
+| 其余 Open-12（薄 Workspace overview） | 后续切片 |
 | `freeos org export-standalone` 完整 Vite/Node 打包 | Phase 5 |
 
 ---
