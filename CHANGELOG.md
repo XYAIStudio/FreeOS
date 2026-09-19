@@ -23,6 +23,8 @@
 
 ### 修复
 
+- Organization 子页（公告 / 架构 / 员工 / 技能 / 治理 / 知识 / 任务 / 反思 / 设置 / 智能体 / 工作台）去掉居中窄列 `max-width`，与知识库、设置等 Dashboard 系统页同宽；`PageShell` 在 `fill` 时滚动内容区，避免被固定标题/路径 Tab 裁切。路径 Tab 改到标题下方两行，页面主体更接近 openXYOS OpenApp（Ant Design 控件 vs 原 Tailwind 仍保留）。Chat 仍是 FreeOS 原生。
+
 > 下面若干「启动即拉起本机 openXYOS」条目记录的是 0.0.1 边车时代问题。默认路径已被 [0.0.2] 与本文件 Unreleased 的 Phase 5 取代：安装与首屏不再捆绑或自动拉起 Node。
 
 - Windows 安装预配不再把 Node 工作目录选到残留的嵌套 `openxyos\\openxyos`：顶层已有 `backend-dist/server.js` 与 `dist/index.html` 时必须用 live 根。嵌套 cwd 会让 `node backend-dist/server.js` 立刻退出且 stdout/stderr 为空，安装空等 90s 后以退出码 12 失败。`start-sidecar.ps1` / 预配 / 桌面 Go / Python 启动路径统一按此选择 cwd；每次启动截断 `start.log`；Shell.Application 若未刷新日志则改走 explorer / Start-Process，Node fail-fast 不再伪装成 livez 超时。
