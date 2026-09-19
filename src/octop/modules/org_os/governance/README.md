@@ -55,7 +55,14 @@ uv run freeos org governance reject <pause_id>
 uv run freeos org governance audit
 ```
 
-HTTP (host JWT): `POST /api/org-module/governance/check`.
+HTTP (host JWT):
+
+- `POST /api/org-module/governance/check`
+- `POST /api/org-module/governance/resolve` (plugins / admin)
+- `GET /api/org-module/governance/pauses`
+- `GET /api/org-module/governance/audit`
+
+Dashboard: `/organization/governance` (shared `org-ui` GovernancePage).
 
 ## Approval must block
 

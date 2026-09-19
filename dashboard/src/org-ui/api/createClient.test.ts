@@ -40,6 +40,12 @@ describe("createOrgApiClient", () => {
           ],
         };
       }
+      if (path === "/org-module/governance/pauses") {
+        return {
+          pauses: [{ pause_id: "p1", status: "pending", tool_name: "delete" }],
+          enabled: true,
+        };
+      }
       throw new Error(`unexpected ${path}`);
     });
     const client = createOrgApiClient({ fetchJson });
@@ -53,6 +59,7 @@ describe("createOrgApiClient", () => {
     expect(await client.announcements.unread()).toEqual({ count: 2 });
     expect((await client.org.tree())[0]?.name).toBe("HQ");
     expect((await client.employees.list())[0]?.name).toBe("Ada");
+    expect((await client.governance.pauses()).pauses[0]?.pause_id).toBe("p1");
     expect(fetchJson).toHaveBeenCalled();
   });
 

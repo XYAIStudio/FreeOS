@@ -149,10 +149,77 @@ export interface OrgEmployeesClient {
   remove(id: number): Promise<void>;
 }
 
+export type GovernancePauseStatus =
+  | "pending"
+  | "approved"
+  | "rejected"
+  | "expired";
+
+export interface GovernancePause {
+  pause_id: string;
+  tool_name: string;
+  category: string;
+  action: string;
+  actor_id: string;
+  tenant_id: string;
+  args_digest: string;
+  reason: string;
+  status: GovernancePauseStatus | string;
+  created_at: number;
+  resolved_at: number | null;
+  ttl_seconds: number;
+}
+
+export interface GovernanceAuditEvent {
+  audit_id?: string;
+  event?: string;
+  tool_name?: string;
+  category?: string;
+  action?: string;
+  actor_id?: string;
+  tenant_id?: string;
+  args_digest?: string;
+  result?: string;
+  execute?: boolean;
+  reason?: string;
+  pause_id?: string;
+  rule_source?: string;
+  ts?: number;
+  [key: string]: unknown;
+}
+
+export interface GovernanceDecision {
+  status: string;
+  execute: boolean;
+  blocked: boolean;
+  reason: string;
+  category?: string;
+  pause_id?: string;
+  rule_source?: string;
+  sidecar_reached?: boolean;
+  audit_id?: string;
+}
+
+export interface GovernancePauseList {
+  pauses: GovernancePause[];
+  enabled?: boolean;
+}
+
+export interface GovernanceAuditList {
+  events: GovernanceAuditEvent[];
+}
+
+export interface OrgGovernanceClient {
+  pauses(status?: string): Promise<GovernancePauseList>;
+  audit(limit?: number): Promise<GovernanceAuditList>;
+  resolve(pauseId: string, approve: boolean): Promise<GovernanceDecision>;
+}
+
 export interface OrgApiClient {
   announcements: OrgAnnouncementsClient;
   org: OrgChartClient;
   employees: OrgEmployeesClient;
+  governance: OrgGovernanceClient;
 }
 
 async function unwrap<T>(payload: OrgEnvelope<T>): Promise<T> {
@@ -170,9 +237,11 @@ export function createOrgApiClient(opts: {
   fetchJson: OrgFetcher;
   announcementsPrefix?: string;
   orgPrefix?: string;
+  governancePrefix?: string;
 }): OrgApiClient {
   const prefix = opts.announcementsPrefix ?? "/org-module/announcements";
   const orgPrefix = opts.orgPrefix ?? "/org-module/org";
+  const governancePrefix = opts.governancePrefix ?? "/org-module/governance";
   const fetchJson = opts.fetchJson;
 
   const announcements: OrgAnnouncementsClient = {
@@ -375,5 +444,26 @@ export function createOrgApiClient(opts: {
     },
   };
 
-  return { announcements, org, employees };
+  const governance: OrgGovernanceClient = {
+    async pauses(status) {
+      const query = status ? `?status=${encodeURIComponent(status)}` : "";
+      return fetchJson<GovernancePauseList>(
+        `${governancePrefix}/pauses${query}`,
+      );
+    },
+    async audit(limit = 50) {
+      return fetchJson<GovernanceAuditList>(
+        `${governancePrefix}/audit?limit=${limit}`,
+      );
+    },
+    async resolve(pauseId, approve) {
+      return fetchJson<GovernanceDecision>(`${governancePrefix}/resolve`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pause_id: pauseId, approve }),
+      });
+    },
+  };
+
+  return { announcements, org, employees, governance };
 }

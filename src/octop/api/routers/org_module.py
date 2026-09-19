@@ -363,6 +363,25 @@ async def governance_resolve(
     return decision.to_dict()
 
 
+@router.get("/governance/pauses", summary="List durable governance pauses")
+async def governance_pauses(
+    status: str = "",
+    server: OctopServer = Depends(get_server),
+    _user: Any = Depends(current_user),
+) -> dict[str, Any]:
+    from octop.modules.org_os.governance.engine import GovernanceEngine
+
+    wanted = status.strip() or None
+    if wanted and wanted not in {"pending", "approved", "rejected", "expired"}:
+        raise HTTPException(status_code=400, detail="invalid pause status")
+    service = _service(server)
+    engine = GovernanceEngine.from_home(service.home, sidecar_url=service.sidecar_url())
+    return {
+        "pauses": [row.to_dict() for row in engine.store.list_pauses(wanted)],
+        "enabled": service.governance_enabled(),
+    }
+
+
 @router.get("/governance/audit", summary="Tail local governance audit JSONL")
 async def governance_audit(
     limit: int = 50,

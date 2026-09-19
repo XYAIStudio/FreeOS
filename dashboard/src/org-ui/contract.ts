@@ -3,6 +3,7 @@ export const SHARED_ORG_UI_MODULES = [
   "announcements",
   "organization",
   "employees",
+  "governance",
 ] as const;
 
 export type SharedOrgUiModule = (typeof SHARED_ORG_UI_MODULES)[number];

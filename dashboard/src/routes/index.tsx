@@ -28,6 +28,9 @@ const OrganizationEmployeesPage = lazy(
 const OrganizationEmployeeDetailPage = lazy(
   () => import("../pages/Organization/employees/detail"),
 );
+const OrganizationGovernancePage = lazy(
+  () => import("../pages/Organization/governance"),
+);
 const ProjectsPage = lazy(() => import("../pages/Projects"));
 
 // Misc
@@ -84,6 +87,7 @@ export const pathToKey: Record<string, string> = {
   "/organization/announcements": "organization",
   "/organization/org": "organization",
   "/organization/employees": "organization",
+  "/organization/governance": "organization",
   "/projects": "projects",
   "/tasks": "projects",
   "/connectors": "personalization",
@@ -229,6 +233,10 @@ export const routeConfigs: RouteConfig[] = [
   {
     path: "/organization/employees/:id",
     element: <OrganizationEmployeeDetailPage />,
+  },
+  {
+    path: "/organization/governance",
+    element: <OrganizationGovernancePage />,
   },
   { path: "/projects", element: <ProjectsPage /> },
   { path: "/tasks", element: <TasksToProjects /> },

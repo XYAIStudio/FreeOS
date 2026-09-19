@@ -450,6 +450,22 @@ export default function OrganizationPage() {
                 {t("organization.openEmployees")}
               </Button>
             </div>
+            <div className={styles.action}>
+              <Shield size={18} />
+              <p className={styles.actionTitle}>
+                {t("organization.governanceTitle")}
+              </p>
+              <p className={styles.actionBody}>
+                {t("organization.governanceBody")}
+              </p>
+              <Button
+                type="primary"
+                onClick={() => navigate("/organization/governance")}
+                data-testid="org-open-governance"
+              >
+                {t("organization.openGovernance")}
+              </Button>
+            </div>
           </section>
 
           {firstRun && (

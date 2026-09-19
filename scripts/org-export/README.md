@@ -3,7 +3,7 @@
 `freeos org export-standalone --out dist/openxyos-web` writes a scaffold that
 **imports the same org-ui pages** Dashboard mounts under `/organization/...`.
 
-Phase 3 includes **Announcements**, **Org chart**, and **Employees**:
+Phase 3 includes **Announcements**, **Org chart**, **Employees**, and **Governance**:
 
 | Delivery | Route | Component |
 |---|---|---|
@@ -14,9 +14,12 @@ Phase 3 includes **Announcements**, **Org chart**, and **Employees**:
 | Dashboard | `/organization/employees` | `dashboard/src/org-ui` → `EmployeesPage` |
 | Dashboard | `/organization/employees/:id` | `dashboard/src/org-ui` → `EmployeeDetailPage` |
 | Standalone (this export) | `/employees` | same import |
+| Dashboard | `/organization/governance` | `dashboard/src/org-ui` → `GovernancePage` |
+| Standalone (this export) | `/governance` | same import |
 
 Directory employees share `{FREEOS_HOME}/org/org_chart.sqlite` with the org
-chart. Do not copy the pages into a second tree.
+chart. Governance pauses/audit live under `{FREEOS_HOME}/governance/`.
+Do not copy the pages into a second tree.
 
 ## Phase 5 TODO
 

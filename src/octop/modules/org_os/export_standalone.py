@@ -2,8 +2,8 @@
 
 Full Vite + Node server packaging is Phase 5. This writes a snapshot that
 lists the shared org-ui modules and points at the same AnnouncementPage,
-OrgChartPage, and EmployeesPage sources Dashboard mounts under
-``/organization/...``.
+OrgChartPage, EmployeesPage, and GovernancePage sources Dashboard mounts
+under ``/organization/...``.
 """
 
 from __future__ import annotations
@@ -27,18 +27,21 @@ Dashboard and this export consume the **same** org-ui pages:
 | announcements | `/organization/announcements` | `/announcements` | `dashboard/src/org-ui` → `AnnouncementPage` |
 | organization | `/organization/org` | `/org` | `dashboard/src/org-ui` → `OrgChartPage` |
 | employees | `/organization/employees` | `/employees` | `dashboard/src/org-ui` → `EmployeesPage` / `EmployeeDetailPage` |
+| governance | `/organization/governance` | `/governance` | `dashboard/src/org-ui` → `GovernancePage` |
 
 Do **not** copy those pages into a second tree. Edit `dashboard/src/org-ui`.
 
 Directory employees share `{FREEOS_HOME}/org/org_chart.sqlite` with the org
 chart. Host lifecycle colleagues stay on `GET /api/org-module/employees`.
+Governance pauses and audit stay on `{FREEOS_HOME}/governance/`.
 
 ## Phase 3 vs Phase 5
 
 Phase 3 (this scaffold):
 
 - Shared module list (`src/modules.json`)
-- Thin `src/App.tsx` that imports `AnnouncementPage`, `OrgChartPage`, and `EmployeesPage`
+- Thin `src/App.tsx` that imports `AnnouncementPage`, `OrgChartPage`,
+  `EmployeesPage`, and `GovernancePage`
 - Documents IdentityBridge: embedded mode uses FreeOS JWT; standalone uses local JWT
 
 Phase 5 (TODO — not implemented here):
@@ -62,6 +65,7 @@ import {
   AnnouncementPage,
   EmployeeDetailPage,
   EmployeesPage,
+  GovernancePage,
   OrgChartPage,
   SHARED_ORG_UI_MODULES,
 } from "org-ui";
@@ -69,13 +73,15 @@ import type {
   OrgAnnouncementsClient,
   OrgChartClient,
   OrgEmployeesClient,
+  OrgGovernanceClient,
   OrgSession,
 } from "org-ui";
 
 /**
  * Standalone shell stub. Phase 5 wires a real IdentityBridge + local JWT.
  * Page components are the same ones Dashboard mounts at
- * /organization/announcements, /organization/org, and /organization/employees.
+ * /organization/announcements, /organization/org, /organization/employees,
+ * and /organization/governance.
  */
 const session: OrgSession = {
   userId: 0,
@@ -88,6 +94,7 @@ export default function App(props: {
   client: OrgAnnouncementsClient;
   orgClient: OrgChartClient;
   employeesClient: OrgEmployeesClient;
+  governanceClient: OrgGovernanceClient;
   locale?: "zh" | "en";
 }) {
   return (
@@ -117,6 +124,12 @@ export default function App(props: {
         employeeId={0}
         modules={SHARED_ORG_UI_MODULES}
       />
+      <GovernancePage
+        client={props.governanceClient}
+        session={session}
+        locale={props.locale ?? "en"}
+        modules={SHARED_ORG_UI_MODULES}
+      />
     </>
   );
 }
@@ -129,7 +142,7 @@ _PACKAGE_JSON = {
     "description": (
         "Standalone Organization web export skeleton. "
         "Pages come from dashboard/src/org-ui "
-        "(Phase 3: Announcements + Org chart + Employees). "
+        "(Phase 3: Announcements + Org chart + Employees + Governance). "
         "Full Node packaging is Phase 5."
     ),
     "type": "module",
@@ -174,6 +187,13 @@ def write_standalone_scaffold(out_dir: Path) -> dict[str, Any]:
                 "standalone_route": "/employees",
                 "api": "/api/org-module/org/employees",
                 "store": "{FREEOS_HOME}/org/org_chart.sqlite",
+            },
+            "governance": {
+                "component": "GovernancePage",
+                "embedded_route": "/organization/governance",
+                "standalone_route": "/governance",
+                "api": "/api/org-module/governance",
+                "store": "{FREEOS_HOME}/governance",
             },
         },
         "todo": "Phase 5: full Vite + server packaging; do not fork org-ui pages",
