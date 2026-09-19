@@ -8,6 +8,7 @@
 
 ### 新增
 
+- Organization Phase 3（技能切片）：宿主内 Skills。Dashboard `/organization/skills` 使用共享 `dashboard/src/org-ui` 的 `SkillsPage`。列表/详情走 `GET /api/org-module/skills` 与 `GET /api/org-module/skills/{slug}`，生成/发布仍是已有 `POST …/generate|publish`（`{FREEOS_HOME}/org-skills`，`skill_bridge`）。宿主 skill packages 只读列出，编辑仍在「个性化 → 技能包」。这不是第二套技能运行时。`freeos org export-standalone` 同时列出 Skills。未迁：Chat、边车市场/插件中心、其余 Open-12。
 - Organization Phase 3（员工目录切片）：宿主内 Employees。Dashboard `/organization/employees` 与 `/organization/employees/:id` 使用共享 `dashboard/src/org-ui` 的 `EmployeesPage` / `EmployeeDetailPage`。目录 list/detail/create/update 走 `/api/org-module/org/employees*`，与组织架构共用 `{FREEOS_HOME}/org/org_chart.sqlite`，不另开第二套员工库。lifecycle 同事仍是 `GET /api/org-module/employees`。`freeos org export-standalone` 同时列出 Announcements、Org chart、Employees。未迁：Chat、人才市场/备选/离职清算、绩效、汇报线、技能绑定、头像、其余 Open-12。
 - Organization Phase 3（组织架构切片）：宿主内 org chart。Dashboard `/organization/org` 使用共享 `dashboard/src/org-ui` 的 `OrgChartPage`；树与 CRUD 走 `/api/org-module/org`（`{FREEOS_HOME}/org/org_chart.sqlite`），不需要 Node sidecar。`freeos org export-standalone` 同时列出 Announcements 与 Org chart。未迁：Chat、汇报线/版本/导入导出图、其余 Open-12。
 - Organization Phase 2：宿主内通知公告。Dashboard `/organization/announcements` 使用共享 `dashboard/src/org-ui` 页面；CRUD 走 `/api/org-module/announcements`（`{FREEOS_HOME}/org/announcements.sqlite`），不需要 Node sidecar。`freeos org export-standalone` 写出同一页面的独立站骨架（完整打包仍待 Phase 5）。

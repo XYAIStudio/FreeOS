@@ -185,6 +185,7 @@
     "navAnnouncements": "通知公告",
     "navOrgChart": "组织架构",
     "navEmployees": "员工目录",
+    "navSkills": "技能",
     "navGovernance": "治理",
     "announcementsTitle": "通知公告",
     "announcementsBody": "发布公告并跟踪已读。此页跑在宿主内，不需要边车或第二端口。",
@@ -195,6 +196,9 @@
     "employeesTitle": "员工目录",
     "employeesBody": "宿主组织树上的人机员工名册。与组织架构共用同一份数据，不需要边车或第二端口。",
     "openEmployees": "打开员工目录",
+    "skillsTitle": "技能",
+    "skillsBody": "组织技能是调用组织 API 的生成包装。智能体真正执行的仍是「个性化」里的 Agent Skills，没有第二套运行时或边车。",
+    "openSkills": "打开技能",
     "governanceTitle": "治理",
     "governanceBody": "待人工复核与宿主审计日志。高风险工具在有人拍板前保持拦截，不需要边车或第二端口。",
     "openGovernance": "打开治理"

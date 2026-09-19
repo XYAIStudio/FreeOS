@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 from contextlib import suppress
+from pathlib import Path
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
@@ -317,8 +318,35 @@ class SkillsGenerateBody(BaseModel):
 
 
 class SkillsPublishBody(BaseModel):
-    skill_dir: str
+    skill_dir: str = ""
+    slug: str = ""
     out_dir: str | None = None
+
+
+def _org_skills_root(server: OctopServer) -> Path:
+    from octop.modules.org_os.skill_bridge.inventory import default_org_skills_dir
+
+    return default_org_skills_dir(_service(server).home)
+
+
+def _host_skill_packages(server: OctopServer) -> list[dict[str, Any]]:
+    services = getattr(server, "services", None)
+    repo = getattr(services, "skill_package_repo", None) if services is not None else None
+    if repo is None:
+        return []
+    try:
+        rows = repo.list_all()
+    except Exception:
+        return []
+    return [
+        {
+            "id": row.id,
+            "name": row.name,
+            "description": row.description,
+            "skill_count": int(getattr(row, "skill_count", 0) or 0),
+        }
+        for row in rows
+    ]
 
 
 @router.post("/governance/check", summary="Policy-check a tool (default-deny high-risk)")
@@ -395,6 +423,42 @@ async def governance_audit(
     return {"events": engine.store.tail_audit(limit)}
 
 
+@router.get("/skills", summary="List generated org-module skills and host skill packages")
+async def skills_list(
+    server: OctopServer = Depends(get_server),
+    _user: Any = Depends(current_user),
+) -> dict[str, Any]:
+    from octop.modules.org_os.skill_bridge.inventory import (
+        catalog_coverage,
+        list_generated_skills,
+    )
+
+    root = _org_skills_root(server)
+    return {
+        "out_dir": str(root),
+        "skills": [item.to_list_dict() for item in list_generated_skills(root)],
+        "catalog": catalog_coverage(root),
+        "host_packages": _host_skill_packages(server),
+    }
+
+
+@router.get("/skills/{slug}", summary="Read a generated org-module skill")
+async def skills_get(
+    slug: str,
+    server: OctopServer = Depends(get_server),
+    _user: Any = Depends(current_user),
+) -> dict[str, Any]:
+    from octop.modules.org_os.skill_bridge.inventory import read_generated_skill
+
+    try:
+        record = read_generated_skill(_org_skills_root(server), slug)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=f"unknown skill: {slug}") from exc
+    return record.to_detail_dict()
+
+
 @router.post("/skills/generate", summary="Generate FreeOS skills from the openXYOS catalog")
 async def skills_generate(
     body: SkillsGenerateBody,
@@ -419,11 +483,22 @@ async def skills_publish(
 ) -> dict[str, Any]:
     from pathlib import Path
 
+    from octop.modules.org_os.skill_bridge.inventory import read_generated_skill
     from octop.modules.org_os.skill_bridge.publish import publish_skill
 
+    skill_dir = Path(body.skill_dir) if body.skill_dir else None
+    if skill_dir is None and body.slug:
+        try:
+            skill_dir = read_generated_skill(_org_skills_root(server), body.slug).directory
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        except FileNotFoundError as exc:
+            raise HTTPException(status_code=404, detail=f"unknown skill: {body.slug}") from exc
+    if skill_dir is None:
+        raise HTTPException(status_code=400, detail="skill_dir or slug required")
     out = Path(body.out_dir) if body.out_dir else None
     try:
-        draft = publish_skill(Path(body.skill_dir), out_dir=out)
+        draft = publish_skill(skill_dir, out_dir=out)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     return draft.to_dict()

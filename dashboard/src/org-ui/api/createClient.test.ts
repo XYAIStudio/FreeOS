@@ -46,6 +46,14 @@ describe("createOrgApiClient", () => {
           enabled: true,
         };
       }
+      if (path === "/org-module/skills") {
+        return {
+          out_dir: "/tmp/org-skills",
+          skills: [{ slug: "org-employees", module_key: "employees" }],
+          catalog: [{ key: "employees", generated: true }],
+          host_packages: [{ id: "pkg-1", name: "Ops", skill_count: 2 }],
+        };
+      }
       throw new Error(`unexpected ${path}`);
     });
     const client = createOrgApiClient({ fetchJson });
@@ -60,6 +68,7 @@ describe("createOrgApiClient", () => {
     expect((await client.org.tree())[0]?.name).toBe("HQ");
     expect((await client.employees.list())[0]?.name).toBe("Ada");
     expect((await client.governance.pauses()).pauses[0]?.pause_id).toBe("p1");
+    expect((await client.skills.list()).skills[0]?.slug).toBe("org-employees");
     expect(fetchJson).toHaveBeenCalled();
   });
 

@@ -451,6 +451,22 @@ export default function OrganizationPage() {
               </Button>
             </div>
             <div className={styles.action}>
+              <Package size={18} />
+              <p className={styles.actionTitle}>
+                {t("organization.skillsTitle")}
+              </p>
+              <p className={styles.actionBody}>
+                {t("organization.skillsBody")}
+              </p>
+              <Button
+                type="primary"
+                onClick={() => navigate("/organization/skills")}
+                data-testid="org-open-skills"
+              >
+                {t("organization.openSkills")}
+              </Button>
+            </div>
+            <div className={styles.action}>
               <Shield size={18} />
               <p className={styles.actionTitle}>
                 {t("organization.governanceTitle")}

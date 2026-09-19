@@ -3,7 +3,8 @@
 `freeos org export-standalone --out dist/openxyos-web` writes a scaffold that
 **imports the same org-ui pages** Dashboard mounts under `/organization/...`.
 
-Phase 3 includes **Announcements**, **Org chart**, **Employees**, and **Governance**:
+Phase 3 includes **Announcements**, **Org chart**, **Employees**, **Skills**,
+and **Governance**:
 
 | Delivery | Route | Component |
 |---|---|---|
@@ -14,11 +15,14 @@ Phase 3 includes **Announcements**, **Org chart**, **Employees**, and **Governan
 | Dashboard | `/organization/employees` | `dashboard/src/org-ui` → `EmployeesPage` |
 | Dashboard | `/organization/employees/:id` | `dashboard/src/org-ui` → `EmployeeDetailPage` |
 | Standalone (this export) | `/employees` | same import |
+| Dashboard | `/organization/skills` | `dashboard/src/org-ui` → `SkillsPage` |
+| Standalone (this export) | `/skills` | same import |
 | Dashboard | `/organization/governance` | `dashboard/src/org-ui` → `GovernancePage` |
 | Standalone (this export) | `/governance` | same import |
 
 Directory employees share `{FREEOS_HOME}/org/org_chart.sqlite` with the org
-chart. Governance pauses/audit live under `{FREEOS_HOME}/governance/`.
+chart. Organization skills live under `{FREEOS_HOME}/org-skills/` (skill_bridge).
+Governance pauses/audit live under `{FREEOS_HOME}/governance/`.
 Do not copy the pages into a second tree.
 
 ## Phase 5 TODO

@@ -20,6 +20,7 @@ def test_export_standalone_lists_shared_org_ui_modules(tmp_path: Path) -> None:
         "announcements",
         "organization",
         "employees",
+        "skills",
         "governance",
     ]
     modules = json.loads((out / "src" / "modules.json").read_text(encoding="utf-8"))
@@ -27,6 +28,7 @@ def test_export_standalone_lists_shared_org_ui_modules(tmp_path: Path) -> None:
         "announcements",
         "organization",
         "employees",
+        "skills",
         "governance",
     ]
     assert modules["pages"]["announcements"]["component"] == "AnnouncementPage"
@@ -36,6 +38,9 @@ def test_export_standalone_lists_shared_org_ui_modules(tmp_path: Path) -> None:
     assert modules["pages"]["employees"]["component"] == "EmployeesPage"
     assert modules["pages"]["employees"]["embedded_route"] == "/organization/employees"
     assert modules["pages"]["employees"]["api"] == "/api/org-module/org/employees"
+    assert modules["pages"]["skills"]["component"] == "SkillsPage"
+    assert modules["pages"]["skills"]["embedded_route"] == "/organization/skills"
+    assert modules["pages"]["skills"]["api"] == "/api/org-module/skills"
     assert modules["pages"]["governance"]["component"] == "GovernancePage"
     assert modules["pages"]["governance"]["embedded_route"] == "/organization/governance"
     assert modules["pages"]["governance"]["api"] == "/api/org-module/governance"
@@ -44,6 +49,7 @@ def test_export_standalone_lists_shared_org_ui_modules(tmp_path: Path) -> None:
     assert "OrgChartPage" in app
     assert "EmployeesPage" in app
     assert "EmployeeDetailPage" in app
+    assert "SkillsPage" in app
     assert "GovernancePage" in app
     assert 'from "org-ui"' in app
     readme = (out / "README.md").read_text(encoding="utf-8")
@@ -51,4 +57,5 @@ def test_export_standalone_lists_shared_org_ui_modules(tmp_path: Path) -> None:
     assert "AnnouncementPage" in readme
     assert "OrgChartPage" in readme
     assert "EmployeesPage" in readme
+    assert "SkillsPage" in readme
     assert "GovernancePage" in readme

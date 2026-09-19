@@ -22,6 +22,11 @@ uv run freeos org skills generate --module employees
 
 Default output: `{FREEOS_HOME}/org-skills/org-<module>/`.
 
+In-host UI: `GET /api/org-module/skills` lists generated trees and host
+skill packages; `GET /api/org-module/skills/{slug}` reads `SKILL.md`.
+Generate / publish stay admin-gated (`plugins`). This is **not** a second
+skill runtime — Agent Skills still live under Personalization.
+
 Each skill:
 
 - YAML frontmatter (`name`, `description`, `metadata.freeos.module_key`)
