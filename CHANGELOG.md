@@ -6,6 +6,10 @@
 
 ## [Unreleased]
 
+### 文档
+
+- 增加阿拉伯语（`README.ar.md`）与葡萄牙语（`README.pt.md`）项目简介，并在各语言 README 的语言切换链接中列出。
+
 ## [0.0.4] - 2026-09-20
 
 面向桌面用户的版本：自 [0.0.3] 起纳入产品契约与迁移图（P0）、双向资产总线 / 可商业化导出 / 双身份 UX / 本机模型与知识库（P1）、Node 过渡卫生（P2），以及宿主原生组织 Wave 1 / Wave 2。桌面 CI 仍显式 `SHIP_OPENXYOS_RUNTIME=1`（延续 0.0.3 iframe 过渡桥，不是永久产品）；`uv run` / Docker / 默认绿色包为零 Node。规范来源是 `pyproject.toml`；发布标签 `v0.0.4`。

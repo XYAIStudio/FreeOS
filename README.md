@@ -33,7 +33,9 @@
   <a href="README.ko.md">한국어</a> ·
   <a href="README.fr.md">Français</a> ·
   <a href="README.es.md">Español</a> ·
-  <a href="README.ru.md">Русский</a>
+  <a href="README.pt.md">Português</a> ·
+  <a href="README.ru.md">Русский</a> ·
+  <a href="README.ar.md">العربية</a>
 </p>
 
 **FreeOS** is an independent open-source host. The data plane is derived from [Octop](https://github.com/TencentCloud/Octop) (MIT). The organization control plane comes from [openXYOS](https://github.com/XYAIStudio/openXYOS) (Apache-2.0). They are complementary: FreeOS **produces** experts / assistants (not yet in a department), skills, plugins, and MCPs; those assets **assemble into openXYOS** as department employees; openXYOS blueprints, catalog, policies, and talent **feed back** into FreeOS as colleagues.
