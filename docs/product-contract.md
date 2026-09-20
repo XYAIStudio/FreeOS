@@ -12,6 +12,8 @@ Related but subordinate: [architecture-integration.md](architecture-integration.
 
 ## Founding intent (canonical vision)
 
+> **FreeOS: a free AI studio — the space for imagination is yours to open.**
+
 Chinese original: [product-contract.zh-CN.md](product-contract.zh-CN.md). Do not drift from that meaning.
 
 FreeOS was created for a simple, clear purpose: on top of Octop’s self-hosted multi-agent capabilities, anyone should be able to have the power of **both** Octop and openXYOS — without choosing between “chat and automation” and “organization and governance.”

@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <strong>FreeOS — 自托管多智能体 OS，能生产并回收自己的 AI 员工。</strong>
+  <strong>FreeOS：自由的 AI 工作室，想象空间由你来打开</strong>
 </p>
 
 <p align="center">产品闭环：<code>uv run freeos org loop run</code>。详见 <a href="README.md">README.md</a> 与 <a href="docs/asset-loop.md">docs/asset-loop.md</a>。</p>

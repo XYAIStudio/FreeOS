@@ -7,6 +7,8 @@
   <a href="https://github.com/XYAIStudio/openXYOS"><img alt="Organization module: openXYOS" src="https://img.shields.io/badge/organization-openXYOS-Apache--2.0-0f766e" /></a>
 </p>
 
+**FreeOS：自由的 AI 工作室，想象空间由你来打开**
+
 ## 创立初心
 
 FreeOS 诞生于一个简单而清晰的目标：在 Octop 的自托管多智能体能力之上，让每个人都能同时拥有 Octop + openXYOS 两套系统的力量——不必在「对话与自动化」和「组织与治理」之间二选一。

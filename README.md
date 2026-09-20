@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <strong>FreeOS — a self-hosted multi-agent OS that grows its own AI workforce.</strong>
+  <strong>FreeOS: a free AI studio — the space for imagination is yours to open.</strong>
 </p>
 
 <p align="center">
