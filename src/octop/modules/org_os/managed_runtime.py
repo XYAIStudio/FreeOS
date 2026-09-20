@@ -190,7 +190,7 @@ class ManagedOrganizationRuntime:
                         env=env,
                         stdout=log,
                         stderr=log,
-                        creationflags=subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0,
+                        creationflags=int(getattr(subprocess, "CREATE_NO_WINDOW", 0)),
                     )
                     if self.process.pid:
                         await asyncio.to_thread(

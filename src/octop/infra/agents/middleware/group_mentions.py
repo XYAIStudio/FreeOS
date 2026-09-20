@@ -96,7 +96,10 @@ class GroupMentionMiddleware(AgentMiddleware[Any, Any]):
         )
         if latest is None:
             return await handler(request)
-        text = _text(request.messages[latest].content)
+        latest_message = request.messages[latest]
+        if not isinstance(latest_message, HumanMessage):
+            return await handler(request)
+        text = _text(latest_message.content)
         config = runtime_config(request).get("configurable") or {}
         user_id, agent_id = config.get("user"), config.get("agent_id")
         if user_id is None or not agent_id:
@@ -107,7 +110,7 @@ class GroupMentionMiddleware(AgentMiddleware[Any, Any]):
             for peer in peers
             if str(peer.metadata.get("user_id")) == str(user_id)
         }
-        selected_ids = selected_peer_ids(request.messages[latest])
+        selected_ids = selected_peer_ids(latest_message)
         targets = [peers_by_id[peer_id] for peer_id in selected_ids if peer_id in peers_by_id]
         if not targets:
             targets = [

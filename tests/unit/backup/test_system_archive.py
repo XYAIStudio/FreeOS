@@ -190,7 +190,9 @@ def test_backup_packs_and_restores_host_org_trees(layout: PathLayout, tmp_path: 
     restore_pool.close()
     assert result["org_files"] >= 4
     assert (restore_layout.org_dir / "org_chart.sqlite").read_bytes() == b"org-sqlite"
-    assert (restore_layout.org_os_dir / "prefs.json").read_text(encoding="utf-8") == '{"name":"studio"}\n'
+    assert (restore_layout.org_os_dir / "prefs.json").read_text(
+        encoding="utf-8"
+    ) == '{"name":"studio"}\n'
 
 
 def test_legacy_backup_without_includes_org_keeps_live_org_files(

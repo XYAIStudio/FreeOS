@@ -17,9 +17,7 @@ def test_resolve_organization_command_returns_none_without_runtime(
 ) -> None:
     monkeypatch.delenv("OCTOP_GREEN_PACKAGES", raising=False)
     monkeypatch.setattr("octop.modules.org_os.managed_runtime.shutil.which", lambda _name: None)
-    monkeypatch.setattr(
-        "octop.modules.org_os.managed_runtime.find_sidecar_runtime", lambda: None
-    )
+    monkeypatch.setattr("octop.modules.org_os.managed_runtime.find_sidecar_runtime", lambda: None)
     assert resolve_organization_command() is None
 
 
