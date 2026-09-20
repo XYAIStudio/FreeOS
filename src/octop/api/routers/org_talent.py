@@ -97,7 +97,11 @@ async def get_talent(
     return _ok(row)
 
 
-@router.post("/talent/{talent_id}/recruit", summary="Recruit talent into the host directory")
+@router.post(
+    "/talent/{talent_id}/recruit",
+    summary="Recruit talent into the host directory",
+    response_model=None,
+)
 async def recruit_talent(
     talent_id: int,
     request: Request,

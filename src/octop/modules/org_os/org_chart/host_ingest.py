@@ -151,8 +151,10 @@ def _touch_lifecycle(
     existing = store.get(slug)
     if existing is not None and already_at_or_beyond(existing.lifecycle, desired):
         return
-    workspace = Path(existing.workspace) if existing and existing.workspace else (
-        home / "tenants" / store.tenant_id / "employees" / slug
+    workspace = (
+        Path(existing.workspace)
+        if existing and existing.workspace
+        else (home / "tenants" / store.tenant_id / "employees" / slug)
     )
     workspace.mkdir(parents=True, exist_ok=True)
     register_compiled(store, slug=slug, name=name, workspace=workspace, lifecycle=desired)

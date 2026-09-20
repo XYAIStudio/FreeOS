@@ -11,6 +11,7 @@ from fastapi.testclient import TestClient
 from octop.api.deps import current_user, get_server
 from octop.api.routers.org_chart import router as org_chart_router
 from octop.api.routers.org_module import router
+from octop.api.routers.org_talent import router as talent_router
 from octop.infra.users.identity import Role, User
 from octop.modules.org_os.contract import (
     SHARED_ORG_UI_MODULES,
@@ -197,8 +198,9 @@ def test_org_chart_routes_registered() -> None:
     module_paths = {getattr(route, "path", "") for route in router.routes}
     assert "/employees" in module_paths
     assert "/employees/spawn" in module_paths
-    assert "/talent" in module_paths
-    assert "/talent/{talent_id}/recruit" in module_paths
+    talent_paths = {getattr(route, "path", "") for route in talent_router.routes}
+    assert "/talent" in talent_paths
+    assert "/talent/{talent_id}/recruit" in talent_paths
 
 
 def test_store_talent_upsert_and_recruit(tmp_path: Path) -> None:
