@@ -54,6 +54,7 @@ class BackupFileInfo:
     includes_skill_packages: bool = True
     includes_plugins: bool = True
     includes_knowledge: bool = True
+    includes_org: bool = True
     includes_chats: bool = True
 
     def to_dict(self) -> dict[str, str | int | bool]:
@@ -67,6 +68,7 @@ class BackupFileInfo:
             "includes_skill_packages": self.includes_skill_packages,
             "includes_plugins": self.includes_plugins,
             "includes_knowledge": self.includes_knowledge,
+            "includes_org": self.includes_org,
             "includes_chats": self.includes_chats,
         }
 
@@ -114,6 +116,7 @@ def backup_file_info(path: Path) -> BackupFileInfo:
         includes_skill_packages=contents.includes_skill_packages,
         includes_plugins=contents.includes_plugins,
         includes_knowledge=contents.includes_knowledge,
+        includes_org=contents.includes_org,
         includes_chats=contents.includes_chats,
     )
 
@@ -125,6 +128,7 @@ class BackupContentFlags:
     includes_skill_packages: bool = True
     includes_plugins: bool = True
     includes_knowledge: bool = True
+    includes_org: bool = True
     includes_chats: bool = True
 
 
@@ -172,6 +176,7 @@ def peek_backup_contents(path: Path) -> BackupContentFlags:
         includes_skill_packages=bool(manifest.includes_skill_packages),
         includes_plugins=bool(manifest.includes_plugins),
         includes_knowledge=bool(manifest.includes_knowledge),
+        includes_org=bool(manifest.includes_org),
         includes_chats=bool(manifest.includes_chats),
     )
 

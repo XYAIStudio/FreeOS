@@ -243,9 +243,9 @@ def test_nsis_runs_openxyos_provisioner_subprocess() -> None:
     assert "PersistOpenXYOS" not in nsh
     assert "Call PersistOpenXYOS" not in nsh
     workflow = (REPO / ".github" / "workflows" / "octop-desktop.yml").read_text(encoding="utf-8")
-    assert 'SKIP_ORG_SIDECAR: "1"' in workflow
-    assert "SHIP_OPENXYOS_RUNTIME=0" in workflow
-    assert "must not embed org-sidecar" in workflow
+    assert 'SKIP_ORG_SIDECAR: "0"' in workflow
+    assert "SHIP_OPENXYOS_RUNTIME=1" in workflow
+    assert "transitional" in workflow.lower()
     assert "org-sidecar/openxyos/dist/index.html" not in workflow
     assert "org-sidecar/openxyos/backend/server.ts" not in workflow
 

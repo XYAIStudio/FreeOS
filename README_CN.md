@@ -10,14 +10,14 @@
 
 <p align="center">
   <a href="https://www.python.org/downloads/"><img alt="Python 3.12+" src="https://img.shields.io/badge/python-3.12%2B-blue?logo=python&logoColor=white" /></a>
-  <a href="https://github.com/TencentCloud/Octop/blob/main/LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-green" /></a>
+  <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-green" /></a>
   <a href="https://github.com/XYAIStudio/FreeOS/releases"><img alt="Version" src="https://img.shields.io/badge/version-0.0.3-orange" /></a>
   <a href="https://github.com/TencentCloud/Octop"><img alt="上游：Octop" src="https://img.shields.io/badge/上游-Octop-1677ff.svg?style=flat" /></a>
   <a href="https://github.com/XYAIStudio/openXYOS"><img alt="组织模块：openXYOS" src="https://img.shields.io/badge/组织模块-openXYOS-0f766e.svg?style=flat" /></a>
   <a href="https://pypi.org/project/octop/"><img src="https://img.shields.io/pypi/v/octop" alt="PyPI" /></a>
   <a href="https://github.com/astral-sh/ruff"><img alt="Code Style: Ruff" src="https://img.shields.io/badge/code%20style-ruff-000000?logo=ruff&logoColor=white" /></a>
-  <a href="https://github.com/TencentCloud/Octop"><img alt="GitHub stars" src="https://img.shields.io/github/stars/TencentCloud/Octop?style=social" /></a>
-  <a href="https://github.com/TencentCloud/Octop/fork"><img alt="GitHub forks" src="https://img.shields.io/github/forks/TencentCloud/Octop?style=social" /></a>
+  <a href="https://github.com/XYAIStudio/FreeOS"><img alt="GitHub stars" src="https://img.shields.io/github/stars/XYAIStudio/FreeOS?style=social" /></a>
+  <a href="https://github.com/XYAIStudio/FreeOS/fork"><img alt="GitHub forks" src="https://img.shields.io/github/forks/XYAIStudio/FreeOS?style=social" /></a>
   <a href="https://discord.gg/jPas5J8Ua"><img alt="Discord" src="https://img.shields.io/badge/Discord-%E5%8A%A0%E5%85%A5-5865F2?logo=discord&logoColor=white" /></a>
 </p>
 
@@ -569,6 +569,6 @@ cd dashboard && npx tsc --noEmit
 
 感谢所有贡献者：
 
-<a href="https://github.com/tencentcloud/octop/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=tencentcloud/octop" />
+<a href="https://github.com/XYAIStudio/FreeOS/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=XYAIStudio/FreeOS" />
 </a>

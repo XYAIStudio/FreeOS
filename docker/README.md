@@ -1,10 +1,18 @@
-# Octop Docker Deployment
+# FreeOS Docker Deployment
 
 ---
 
-This directory contains the Docker build and deployment assets for Octop /
-FreeOS. Compose stays **one Python process**. There is no Node/openXYOS
-sidecar service. Organization runs in-host (`/api/org-module/*`).
+This directory contains the Docker build and deployment assets for FreeOS
+(Octop-compatible identifiers remain). Compose stays **one Python process**.
+There is no Node/openXYOS sidecar service. Organization runs in-host
+(`/api/org-module/*`). Canonical published image:
+
+```bash
+docker pull ghcr.io/xyaistudio/freeos:latest
+```
+
+Local Compose still tags `octop:latest` as a compatibility alias. See
+[docs/node-runtime.md](../docs/node-runtime.md).
 
 **Home directory names:** the product name is `FREEOS_HOME`. Compose and
 this image still use `OCTOP_*` and `~/.octop` as compatibility aliases

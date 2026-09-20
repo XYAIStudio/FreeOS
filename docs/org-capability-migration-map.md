@@ -88,7 +88,7 @@ These shipping shapes still need a native port. They are bridges.
 1. **Desktop integrated iframe** of the full App — `FREEOS_ORG_INTEGRATED=1` (`desktop/src/process.go`) makes `/organization` render `<iframe src="/organization-app/dashboard?freeos_embed=1">` (`OrganizationEntry.tsx`). `org_ui` FastAPI (`org_ui.py`) proxies that path to the private-port Node process.
 2. **`ManagedOrganizationRuntime`** — `src/octop/modules/org_os/managed_runtime.py` (restart loop, `OPENXYOS_BASE_URL` on localhost).
 3. **`/api/org-module/identity/*` and `/business/*`** — `org_identity.py` forwards login/register and business CRUD to Node `/api/auth` and `/api/*`.
-4. **Optional sidecar on `:3780`** — `FREEOS_ORG_SIDECAR` / `SHIP_OPENXYOS_RUNTIME`. Phase 5 default installer is already zero-Node; do not reverse that.
+4. **Optional sidecar on `:3780`** — `FREEOS_ORG_SIDECAR` / `SHIP_OPENXYOS_RUNTIME`. Phase 5 default installer is already zero-Node; do not reverse that. Flag table and cut plan: [node-runtime.md](node-runtime.md).
 5. **Open-12 host slices that are not App parity** — `host_route_exists=true` in [org-full-parity-inventory.json](org-full-parity-inventory.json) is **not** acceptance. Inventory sets every route to `parity=not_accepted`. Missing depth: reporting-lines, talent market, marketplace, Chat, company/AI/DB settings, attachments, …
 6. **Orphan `OrgMiniBrowser.tsx`** — leftover iframe chrome, unused by routes. Do not revive it as Organization home.
 
@@ -189,7 +189,7 @@ These shipping shapes still need a native port. They are bridges.
 | **Depends on Node?** | yes |
 | **Commercial export?** | no (bridge, not the sellable artifact) |
 | **Priority** | P1 · Wave E |
-| **Next step** | Native routes own App surfaces; then remove the iframe home and the managed process. |
+| **Next step** | Native routes own App surfaces; then remove the iframe home and the managed process. Flags: [node-runtime.md](node-runtime.md). `uv run` / Docker stay zero-Node. Desktop CI may set `SHIP_OPENXYOS_RUNTIME=1` (transitional). Do not expand that flag as permanent. |
 | **Tests** | `tests/unit/api/test_org_ui.py`, `tests/integration/test_dashboard_serve.py` |
 
 ### 8. Optional Node sidecar (:3780)
@@ -201,7 +201,7 @@ These shipping shapes still need a native port. They are bridges.
 | **Depends on Node?** | yes |
 | **Commercial export?** | no |
 | **Priority** | P2 · Wave E |
-| **Next step** | Keep opt-in until native coverage; do not re-bundle into the default installer. |
+| **Next step** | Keep opt-in until native coverage; do not re-bundle into the default installer. See [node-runtime.md](node-runtime.md). |
 | **Tests** | `tests/unit/test_org_module.py` |
 
 ### 9. Module catalog

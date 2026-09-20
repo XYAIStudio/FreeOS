@@ -119,6 +119,27 @@ def clear_runtime_record(home: Path) -> None:
         path.unlink()
 
 
+def resolve_organization_command() -> tuple[list[str], Path] | None:
+    """Return ``(argv, cwd)`` for the transitional Node process, or ``None``.
+
+    ``uv run`` / Docker / source checkouts stay zero-Node: missing runtime is
+    skip, not host abort. Desktop with a bundled sidecar still resolves.
+    """
+    source = Path(__file__).resolve().parents[4] / "modules" / "openxyos"
+    source_ready = (source / "node_modules" / "tsx").is_dir()
+    # A checkout must exercise the source it is changing.  Installed desktop
+    # runs set OCTOP_GREEN_PACKAGES and use the bundled, versioned runtime.
+    if source_ready and not os.environ.get("OCTOP_GREEN_PACKAGES"):
+        node = shutil.which("node")
+        if not node:
+            return None
+        return [node, "--import", "tsx", "backend/server.ts"], source
+    bundle = find_sidecar_runtime()
+    if not bundle:
+        return None
+    return sidecar_node_argv(bundle), bundle.app
+
+
 class ManagedOrganizationRuntime:
     def __init__(self, home: Path) -> None:
         self.home = home
@@ -127,24 +148,15 @@ class ManagedOrganizationRuntime:
         self.base_url: str = ""
 
     async def start(self) -> None:
-        source = Path(__file__).resolve().parents[4] / "modules" / "openxyos"
-        source_ready = (source / "node_modules" / "tsx").is_dir()
-        # A checkout must exercise the source it is changing.  Installed desktop
-        # runs set OCTOP_GREEN_PACKAGES and use the bundled, versioned runtime.
-        if source_ready and not os.environ.get("OCTOP_GREEN_PACKAGES"):
-            node = shutil.which("node")
-            if not node:
-                raise RuntimeError(
-                    "Organization runtime missing; install the complete FreeOS package"
-                )
-            command, cwd = [node, "--import", "tsx", "backend/server.ts"], source
-        else:
-            bundle = await asyncio.to_thread(find_sidecar_runtime)
-            if not bundle:
-                raise RuntimeError(
-                    "Organization runtime missing; install the complete FreeOS package"
-                )
-            command, cwd = sidecar_node_argv(bundle), bundle.app
+        resolved = await asyncio.to_thread(resolve_organization_command)
+        if resolved is None:
+            logger.warning(
+                "managed Organization Node skipped (transitional bridge; host stays "
+                "zero-Node). Bundle a sidecar or set SHIP_OPENXYOS_RUNTIME=1 for "
+                "the desktop iframe flavor."
+            )
+            return
+        command, cwd = resolved
         with socket.socket() as sock:
             sock.bind(("127.0.0.1", 0))
             port = sock.getsockname()[1]
@@ -178,7 +190,7 @@ class ManagedOrganizationRuntime:
                         env=env,
                         stdout=log,
                         stderr=log,
-                        creationflags=subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0,
+                        creationflags=int(getattr(subprocess, "CREATE_NO_WINDOW", 0)),
                     )
                     if self.process.pid:
                         await asyncio.to_thread(

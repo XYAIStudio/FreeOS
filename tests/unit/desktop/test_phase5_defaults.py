@@ -10,15 +10,16 @@ REPO = Path(__file__).resolve().parents[3]
 def test_package_scripts_default_skip_org_sidecar() -> None:
     package = (REPO / "desktop" / "portable" / "package.sh").read_text(encoding="utf-8")
     assert "SHIP_OPENXYOS_RUNTIME:-0" in package or '"${SHIP_OPENXYOS_RUNTIME:-0}"' in package
-    assert "SKIP_ORG_SIDECAR=1" in package
+    assert "SKIP_ORG_SIDECAR:-1" in package or "SKIP_ORG_SIDECAR=1" in package
     task = (REPO / "desktop" / "src" / "build" / "windows" / "Taskfile.yml").read_text(
         encoding="utf-8"
     )
     assert 'SHIP_OPENXYOS_RUNTIME | default "0"' in task
     workflow = (REPO / ".github" / "workflows" / "octop-desktop.yml").read_text(encoding="utf-8")
-    assert 'SKIP_ORG_SIDECAR: "1"' in workflow
-    assert "SHIP_OPENXYOS_RUNTIME=0" in workflow
-    assert "must not embed org-sidecar" in workflow
+    assert 'SKIP_ORG_SIDECAR: "0"' in workflow
+    assert "SHIP_OPENXYOS_RUNTIME=1" in workflow
+    assert "transitional" in workflow.lower()
+    assert "must not embed org-sidecar" not in workflow
 
 
 def test_nsis_default_macro_does_not_create_openxyos_dir() -> None:

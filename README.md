@@ -212,6 +212,8 @@ Optional Node sidecar (export/sync/advanced deploy only):
 FREEOS_ORG_SIDECAR=1 bash scripts/run-org-sidecar.sh
 ```
 
+Flag table and Node cut plan: [docs/node-runtime.md](docs/node-runtime.md).
+
 Default origin if opted in: `http://127.0.0.1:3780`. Organization and
 `freeos org loop run` do **not** wait for `/api/health/livez`.
 

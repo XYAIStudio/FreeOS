@@ -9,9 +9,16 @@
 ### 变更
 
 - P1.4：本机模型与本机知识库作为默认路径。设置向导默认先选 Ollama（本机 OpenAI 兼容地址不必填云密钥）；模型页默认打开「本地」标签；知识库空状态先引导本机文件夹，向量默认本机 ONNX。云厂商与 ima 仍是可选项。说明见 `docs/user-guide.md`、`docs/configuration.md`。
+- 默认绿色包 / NSIS `SHIP_OPENXYOS_RUNTIME` 回到 `0`（与 Phase 5 测试一致）。桌面 CI **显式** `SHIP_OPENXYOS_RUNTIME=1`，现有 Windows 用户仍可走 iframe 桥。
+- 缺少托管 Node 时 `ManagedOrganizationRuntime.start()` 只记警告并跳过，不再让 `uv run` / 测试因 `FREEOS_ORG_INTEGRATED=1` 整进程失败。
+
+### 修复
+
+- `freeos backup` 纳入宿主组织树：`{FREEOS_HOME}/org/*.sqlite`、`org-os/`、`org-skills/`、`tenants/`、`asset-packs/`、`openxyos-mirror/`、`governance/`。旧归档无 `includes_org` 时恢复不覆盖这些目录。
 
 ### 文档
 
+- P2：Node 过渡说明与 FreeOS 发版卫生。[docs/node-runtime.md](docs/node-runtime.md) / [docs/node-runtime.zh-CN.md](docs/node-runtime.zh-CN.md) 写明 `uv run` / Docker **默认零 Node**；桌面 `SHIP_OPENXYOS_RUNTIME=1` 仅为过渡桥，不是永久产品。`SECURITY.md`、Issue 模板、Docker Publish / FnOS compose 不再指向 TencentCloud/Octop 安全公告或 `ghcr.io/tencentcloud/octop`；规范镜像为 `ghcr.io/xyaistudio/freeos`。Docker Hub 登录改为可选，避免未配置 secrets 时发版门禁变红。
 - 冻结 FreeOS 产品契约（P0.1）：[docs/product-contract.md](docs/product-contract.md) / [docs/product-contract.zh-CN.md](docs/product-contract.zh-CN.md)。核心愿景采用「创立初心」定稿（中文原文；英文 README 为忠实对应；使用方式段为工作室比喻：本机安顿起步，组织像另一间可独立布置的房间）。产品口号：**FreeOS：自由的 AI 工作室，想象空间由你来打开** / *Your FreeOS, free for you.* 托管 Node / 内嵌组织页仅为过渡桥，终态是把 openXYOS 迁入宿主并导出可商业化源码。取代先前「组织身份为唯一权威」与「永久 / 默认捆绑 Node 运行时」表述。冲突文档改为 Historical vs Current，不删工程历史。
 - 官网 `website/` 文案对齐产品契约：中文口号作 Hero / 标题，英文 *Your FreeOS, free for you.* 作 EN 标题与 meta；工作室比喻贯穿介绍与 FAQ；下载入口只指向 GitHub Releases 列表（不写死版本号、不直链安装包）；不再承诺永久零 Node，托管运行时写成迁向宿主原生界面的过渡。
 

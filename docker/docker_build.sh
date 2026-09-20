@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 # =============================================================================
-# 构建 Octop Docker 镜像
+# 构建 FreeOS Docker 镜像（本地默认标签 octop:latest，兼容别名）
 #
 # 用法:
-#   bash docker/docker_build.sh [镜像标签] [额外 docker build 参数...]
-#
-# 示例:
 #   bash docker/docker_build.sh
-#   bash docker/docker_build.sh myreg/octop:v1
+#   bash docker/docker_build.sh ghcr.io/xyaistudio/freeos:dev
 #   bash docker/docker_build.sh octop:dev --no-cache
+#
+# 对外规范名：ghcr.io/xyaistudio/freeos
+# =============================================================================
 #
 # 国内加速（可选，需 BuildKit，本脚本默认已开启）:
 #   PIP_INDEX_URL=https://mirrors.cloud.tencent.com/pypi/simple \
@@ -46,7 +46,7 @@ if [ -n "${APT_MIRROR:-}" ]; then
 fi
 
 echo "╔══════════════════════════════════════════════════╗"
-echo "║  正在构建 Octop Docker 镜像                      ║"
+echo "║  正在构建 FreeOS Docker 镜像                     ║"
 echo "║  标签: ${IMAGE_TAG}"
 echo "╚══════════════════════════════════════════════════╝"
 echo ""

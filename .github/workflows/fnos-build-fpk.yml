@@ -8,7 +8,7 @@ name: Build Octop FPK
 #
 # 制品复用：
 #   - Docker 镜像：不再重建，等待 docker-publish 推送的
-#     ghcr.io/tencentcloud/octop:{version|latest}
+#     ghcr.io/xyaistudio/freeos:{version|latest}
 #   - Native wheel：优先从同版本 GitHub Release（v*）下载；
 #     缺失时再回退到本仓源码构建
 #   - 产物挂到同一个 v* GitHub Release（与 wheel / 桌面包并列），不再单独打 fnos-* tag

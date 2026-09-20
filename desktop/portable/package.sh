@@ -241,12 +241,14 @@ assemble_one() {
   cp "${TEMPLATES}/README.txt" "${staging}/README.txt"
   chmod +x "${staging}/start.sh"
 
-  # A production package always contains the organization runtime. Developers
-  # may opt out only with SHIP_OPENXYOS_RUNTIME=0 or SKIP_ORG_SIDECAR=1.
-  if [[ "${SHIP_OPENXYOS_RUNTIME:-1}" == "0" ]]; then
-    SKIP_ORG_SIDECAR=1
-  elif [[ -z "${SKIP_ORG_SIDECAR:-}" ]]; then
-    SKIP_ORG_SIDECAR=0
+  # Default is **zero-Node** (uv run / Docker / source / Phase-5 installer).
+  # Desktop CI sets SHIP_OPENXYOS_RUNTIME=1 for the transitional iframe bridge.
+  # Explicit SKIP_ORG_SIDECAR=0 still ships the sidecar even if the ship flag
+  # is unset. Do not treat SHIP_OPENXYOS_RUNTIME=1 as the permanent product.
+  if [[ "${SHIP_OPENXYOS_RUNTIME:-0}" == "0" ]]; then
+    SKIP_ORG_SIDECAR="${SKIP_ORG_SIDECAR:-1}"
+  else
+    SKIP_ORG_SIDECAR="${SKIP_ORG_SIDECAR:-0}"
   fi
   export SKIP_ORG_SIDECAR
   echo "[package] ${plat}: org sidecar (SKIP_ORG_SIDECAR=${SKIP_ORG_SIDECAR})" >&2

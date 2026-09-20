@@ -1,8 +1,9 @@
 name: FreeOS Desktop Package
 
 # Filename kept as octop-desktop.yml so auto-tag / existing dispatch keep working.
-# Publishes FreeOS-desktop-* / FreeOS-portable-* (Windows NSIS .exe is the
-# product installer: Octop shell + bundled openXYOS).
+# Publishes FreeOS-desktop-* / FreeOS-portable-*. Default packaging is zero-Node;
+# this workflow explicitly sets SHIP_OPENXYOS_RUNTIME=1 for the transitional
+# managed-Node + iframe desktop bridge (not the destination architecture).
 #
 # 正式发版：Auto Tag 在打 v* 后与 Release / Docker Publish 一并 dispatch。
 # 产物 upsert 到同一 GitHub Release。手工补包：workflow_dispatch + release_tag
@@ -187,9 +188,10 @@ jobs:
       - name: Assemble green zip
         env:
           GREEN_HOST_PLAT: ${{ matrix.plat }}
-          # v0.0.3 ships the managed Organization runtime with the desktop
-          # package so the integrated Organization entry works offline.
+          # Transitional desktop flavor (0.0.3 iframe bridge). Default packaging
+          # is zero-Node; do not treat this flag as the permanent product.
           SKIP_ORG_SIDECAR: "0"
+          SHIP_OPENXYOS_RUNTIME: "1"
         run: |
           set -euo pipefail
           echo "GREEN_HOST_PLAT=${GREEN_HOST_PLAT} RUNNER_ARCH=${RUNNER_ARCH:-} uname=$(uname -ms)"
@@ -263,6 +265,7 @@ jobs:
       - name: Package desktop app with bundled portable runtime
         working-directory: desktop/src
         env:
+          # Transitional desktop bridge only. Source / Docker stay zero-Node.
           SHIP_OPENXYOS_RUNTIME: "1"
         run: >-
           wails3 task package
