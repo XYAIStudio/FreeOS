@@ -11,6 +11,34 @@ export const DESKTOP_RETURNING_HOME_PATH = DESKTOP_FIRST_CHAT_PATH;
 
 export const DESKTOP_MODEL_SETUP_PATH = "/setup";
 
+/**
+ * Launch landings that are not studio chat: Octop `/projects` dump, bare
+ * `/chat`, SPA `/`, or the organization room when `?desktop=1` is still on
+ * the URL (host first paint). Sidebar can still open those rooms later.
+ */
+export function isDesktopLaunchDumpPath(
+  pathname: string,
+  search = "",
+): boolean {
+  const params = new URLSearchParams(
+    search.startsWith("?") ? search.slice(1) : search,
+  );
+  const launchQuery = params.get("desktop") === "1";
+  if (pathname === "/" || pathname === "") return true;
+  if (pathname === "/chat") return true;
+  if (pathname === "/projects" || pathname === "/projects/") {
+    const view = params.get("view");
+    return view !== "projects" && view !== "tasks";
+  }
+  if (
+    launchQuery &&
+    (pathname === "/organization" || pathname.startsWith("/organization/"))
+  ) {
+    return true;
+  }
+  return false;
+}
+
 /** True after the desktop first-run model step was saved or skipped. */
 export function isDesktopModelOnboardingDone(): boolean {
   if (typeof window === "undefined") return false;

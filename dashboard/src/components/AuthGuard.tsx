@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { Spin } from "antd";
 import { clearAuthToken, getAuthToken, setAuthToken } from "../api/request";
 import { authApi, type OctopUser } from "../api/modules/auth";
@@ -7,6 +7,7 @@ import { applyUserLocale } from "../utils/locale";
 import {
   DESKTOP_MODEL_SETUP_PATH,
   desktopPostSessionPath,
+  isDesktopLaunchDumpPath,
   needsDesktopModelOnboarding,
 } from "../utils/desktopOnboarding";
 import { isDesktopShell } from "../utils/desktopShell";
@@ -24,6 +25,9 @@ interface AuthGuardProps {
  */
 export default function AuthGuard({ children }: AuthGuardProps) {
   const navigate = useNavigate();
+  const location = useLocation();
+  const locationRef = useRef(location);
+  locationRef.current = location;
   const [params] = useSearchParams();
   const desktopQuery = params.toString();
   const [checking, setChecking] = useState(true);
@@ -44,10 +48,20 @@ export default function AuthGuard({ children }: AuthGuardProps) {
     };
 
     const enterAfterSession = async (me: OctopUser, hasProviders: boolean) => {
-      // Open → optional model (skippable) → first agent. Never the login wall.
+      // Open → optional model (skippable) → first agent. Never login, org, or
+      // the Octop `/projects` dump — even when has_providers skips the model step.
       const next = desktopPostSessionPath(hasProviders);
-      if (!cancelled) navigate(next, { replace: true });
-      if (next === DESKTOP_MODEL_SETUP_PATH) return;
+      const { pathname, search } = locationRef.current;
+      const dump = isDesktopLaunchDumpPath(pathname, search);
+      if (
+        next === DESKTOP_MODEL_SETUP_PATH ||
+        dump ||
+        needsDesktopModelOnboarding(hasProviders)
+      ) {
+        const suffix = `${search}${locationRef.current.hash}`;
+        if (!cancelled) navigate(`${next}${suffix}`, { replace: true });
+        if (next === DESKTOP_MODEL_SETUP_PATH) return;
+      }
       await adopt(me);
     };
 
@@ -140,7 +154,11 @@ export default function AuthGuard({ children }: AuthGuardProps) {
 
         try {
           const me = await authApi.me();
-          await adopt(me);
+          if (desktop) {
+            await enterAfterSession(me, hasProviders);
+          } else {
+            await adopt(me);
+          }
         } catch {
           if (
             await tryLocalSession(

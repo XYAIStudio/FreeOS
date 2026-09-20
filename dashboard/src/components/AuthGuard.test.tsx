@@ -26,7 +26,7 @@ vi.mock("../context/AuthPromptContext", () => ({
 }));
 
 import AuthGuard from "./AuthGuard";
-import { getAuthToken } from "../api/request";
+import { getAuthToken, setAuthToken } from "../api/request";
 
 function renderGuard() {
   return render(
@@ -48,6 +48,15 @@ function renderGuard() {
     </MemoryRouter>,
   );
 }
+
+const guestUser = {
+  id: 1,
+  username: "local",
+  role: "admin",
+  display_name: "FreeOS",
+  locale: "zh",
+  is_local: true,
+};
 
 describe("AuthGuard local session", () => {
   beforeEach(() => {
@@ -228,6 +237,110 @@ describe("AuthGuard local session", () => {
     expect(screen.queryByText("model setup")).toBeNull();
     expect(screen.queryByText("login wall")).toBeNull();
     expect(screen.queryByText("conversation list")).toBeNull();
+  });
+
+  it("moves a returning desktop token off /projects even when has_providers", async () => {
+    setAuthToken("existing-token");
+    getAuthStatus.mockResolvedValue({
+      setup_required: false,
+      has_providers: true,
+      desktop: true,
+    });
+    me.mockResolvedValue(guestUser);
+
+    render(
+      <MemoryRouter initialEntries={["/projects?desktop=1"]}>
+        <Routes>
+          <Route
+            path="/projects"
+            element={
+              <AuthGuard>
+                <div>conversation list</div>
+              </AuthGuard>
+            }
+          />
+          <Route path="/login" element={<div>login wall</div>} />
+          <Route path="/setup" element={<div>model setup</div>} />
+          <Route path="/chat/:agentId" element={<div>first agent</div>} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText("first agent")).toBeInTheDocument();
+    expect(screen.queryByText("conversation list")).toBeNull();
+    expect(screen.queryByText("model setup")).toBeNull();
+    expect(screen.queryByText("login wall")).toBeNull();
+    expect(localSession).not.toHaveBeenCalled();
+  });
+
+  it("does not keep the organization room as the desktop first screen", async () => {
+    setAuthToken("existing-token");
+    getAuthStatus.mockResolvedValue({
+      setup_required: false,
+      has_providers: true,
+      desktop: true,
+    });
+    me.mockResolvedValue(guestUser);
+    organizationIdentityStatus.mockResolvedValue({
+      integrated: true,
+      authority: "dual",
+      studio: "freeos",
+      room: "organization",
+    });
+
+    render(
+      <MemoryRouter initialEntries={["/organization?desktop=1"]}>
+        <Routes>
+          <Route
+            path="/organization"
+            element={
+              <AuthGuard>
+                <div>org room</div>
+              </AuthGuard>
+            }
+          />
+          <Route path="/login" element={<div>login wall</div>} />
+          <Route path="/setup" element={<div>model setup</div>} />
+          <Route path="/chat/:agentId" element={<div>first agent</div>} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText("first agent")).toBeInTheDocument();
+    expect(screen.queryByText("org room")).toBeNull();
+    expect(screen.queryByText("login wall")).toBeNull();
+  });
+
+  it("keeps a returning desktop user on /chat/main", async () => {
+    setAuthToken("existing-token");
+    getAuthStatus.mockResolvedValue({
+      setup_required: false,
+      has_providers: true,
+      desktop: true,
+    });
+    me.mockResolvedValue(guestUser);
+
+    render(
+      <MemoryRouter initialEntries={["/chat/main?desktop=1"]}>
+        <Routes>
+          <Route
+            path="/chat/:agentId"
+            element={
+              <AuthGuard>
+                <div>first agent</div>
+              </AuthGuard>
+            }
+          />
+          <Route path="/login" element={<div>login wall</div>} />
+          <Route path="/setup" element={<div>model setup</div>} />
+          <Route path="/projects" element={<div>conversation list</div>} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText("first agent")).toBeInTheDocument();
+    expect(screen.queryByText("conversation list")).toBeNull();
+    expect(screen.queryByText("model setup")).toBeNull();
   });
 
   it("does not keep the /projects dump as home on first desktop launch", async () => {

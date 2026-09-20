@@ -134,11 +134,17 @@ func TestHostLaunchEnvSidecarOptIn(t *testing.T) {
 }
 
 func TestWithDesktopQueryMarksSpa(t *testing.T) {
-	if got := withDesktopQuery("http://127.0.0.1:8088/"); got != "http://127.0.0.1:8088/?desktop=1" {
+	if got := withDesktopQuery("http://127.0.0.1:8088/"); got != "http://127.0.0.1:8088/chat/main?desktop=1" {
 		t.Fatalf("got %q", got)
+	}
+	if got := withDesktopQuery("http://127.0.0.1:8088"); got != "http://127.0.0.1:8088/chat/main?desktop=1" {
+		t.Fatalf("origin: %q", got)
 	}
 	if got := withDesktopQuery("http://127.0.0.1:8088/?desktop=1"); got != "http://127.0.0.1:8088/?desktop=1" {
 		t.Fatalf("idempotent: %q", got)
+	}
+	if got := withDesktopQuery("http://127.0.0.1:8088/setup"); got != "http://127.0.0.1:8088/setup?desktop=1" {
+		t.Fatalf("existing path: %q", got)
 	}
 }
 
