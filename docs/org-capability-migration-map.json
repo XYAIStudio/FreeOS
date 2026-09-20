@@ -1,0 +1,948 @@
+{
+  "schema": "freeos.org-capability-migration-map.v1",
+  "as_of": "2026-09-20",
+  "base_ref": "main",
+  "task": "P0.2",
+  "product_contract": {
+    "canonical": "docs/product-contract.md",
+    "zh_CN": "docs/product-contract.zh-CN.md",
+    "merged_pr": "https://github.com/XYAIStudio/FreeOS/pull/73",
+    "note": "P0.1 is on main. Node + iframe is a transition bridge; end state is native host migration; two auth spaces stay separate; user-facing dual entry uses studio / room wording."
+  },
+  "north_star": {
+    "end_state": "Migrate openXYOS web/org capabilities into the FreeOS/Octop host as native parts. Do not permanently ship a large Node runtime.",
+    "bridge": "Managed Node + iframe on desktop is a transition only.",
+    "dual_entry": "FreeOS local studio vs organization as another room. Soft wording in user docs; implementers keep two auth spaces separate.",
+    "assets": "Bidirectional assets; exportable openXYOS source for commercialization; local models/KB.",
+    "slogans": {
+      "zh": "FreeOS：自由的 AI 工作室，想象空间由你来打开",
+      "en": "Your FreeOS, free for you."
+    }
+  },
+  "inventory_sources": [
+    "docs/org-full-parity-inventory.json",
+    "docs/org-full-integration.md",
+    "docs/org-merge-plan.md",
+    "docs/org-export.md",
+    "docs/asset-loop.md",
+    "docs/architecture-integration.md",
+    "docs/adr/003-org-ui-single-source-dual-delivery.md",
+    "dashboard/src/routes/index.tsx",
+    "dashboard/src/org-ui/",
+    "modules/openxyos/frontend/src/App.tsx",
+    "modules/openxyos/frontend/src/OpenApp.tsx",
+    "src/octop/modules/org_os/"
+  ],
+  "inventory_limitation": "docs/org-full-parity-inventory.json is a static route scan. host_route_exists=true is not functional parity; every route is still parity=not_accepted. Dynamic URLs, permissions, and data relations need runtime review.",
+  "status_enum": [
+    "native_host",
+    "org_ui_slice",
+    "managed_node_iframe",
+    "sidecar_optional",
+    "export_only",
+    "missing"
+  ],
+  "waves": [
+    {
+      "id": "A-assets-bus",
+      "order": 1,
+      "priority": "P0",
+      "title": "Bidirectional assets bus",
+      "goal": "Make FreeOS ↔ organization pack/ingest/apply a first-class native bus, not live HTTP that only works when Node is healthy.",
+      "domain_ids": ["assets-bus", "blueprints"]
+    },
+    {
+      "id": "B-export",
+      "order": 2,
+      "priority": "P0",
+      "title": "Exportable openXYOS source",
+      "goal": "Move past SPA + proxy-to-host. Operators should export a commercializable openXYOS source tree from the same product.",
+      "domain_ids": ["export-standalone", "source-download"]
+    },
+    {
+      "id": "C-dual-identity",
+      "order": 3,
+      "priority": "P0",
+      "title": "Dual-identity UX",
+      "goal": "Studio login and organization-room login stay two spaces. User docs stay soft (studio vs another room). Do not collapse into one way in, and do not make org identity the host authority.",
+      "domain_ids": ["tenant-auth"]
+    },
+    {
+      "id": "D-local-models-kb",
+      "order": 4,
+      "priority": "P0",
+      "title": "Local models and knowledge bases",
+      "goal": "Default chat, RAG, and organization knowledge must not require a vendor cloud.",
+      "domain_ids": ["local-models", "host-knowledge-bases", "org-knowledge"]
+    },
+    {
+      "id": "E-cut-node",
+      "order": 5,
+      "priority": "P1",
+      "title": "Cut Node",
+      "goal": "Native-port remaining iframe App surfaces, then shrink managed Node and optional sidecar. Node is a bridge, not the architecture.",
+      "domain_ids": [
+        "iframe-shell",
+        "org-chat",
+        "talent-market",
+        "org-chart",
+        "people-directory",
+        "skills",
+        "agent-studio",
+        "org-settings",
+        "governance",
+        "workspace",
+        "announcements",
+        "tasks",
+        "reflections",
+        "workflows",
+        "contracts",
+        "physical-assets",
+        "hr-ops",
+        "planning-performance",
+        "org-audit",
+        "admin-tenants",
+        "customer-service",
+        "electricity",
+        "sidecar-compat"
+      ]
+    }
+  ],
+  "do_not_treat_as_end_state": [
+    {
+      "item": "Desktop integrated iframe of the full openXYOS App",
+      "evidence": [
+        "desktop/src/process.go sets FREEOS_ORG_INTEGRATED=1",
+        "dashboard/src/pages/Organization/OrganizationEntry.tsx renders iframe src=/organization-app/dashboard?freeos_embed=1 when identity status.integrated",
+        "src/octop/api/routers/org_ui.py proxies /organization-app to the managed Node origin"
+      ],
+      "native_port_needed": "Every App.tsx business route still served only through this iframe."
+    },
+    {
+      "item": "ManagedOrganizationRuntime (private-port Node, restart loop)",
+      "evidence": [
+        "src/octop/modules/org_os/managed_runtime.py",
+        "src/octop/infra/server.py starts it when integrated_organization()"
+      ],
+      "native_port_needed": "Replace Node business APIs with host routers; keep process only while unmigrated routes remain."
+    },
+    {
+      "item": "Same-origin business proxy /api/org-module/business/* and identity login/register/refresh",
+      "evidence": ["src/octop/api/routers/org_identity.py forwards to sidecar /api/auth and /api/*"],
+      "native_port_needed": "Org-room CRUD and auth must not require a Node hop."
+    },
+    {
+      "item": "Optional :3780 sidecar (FREEOS_ORG_SIDECAR / SHIP_OPENXYOS_RUNTIME)",
+      "evidence": [
+        "docs/org-export.md Phase 5 zero-Node default",
+        "src/octop/modules/org_os/sidecar_launch.py"
+      ],
+      "native_port_needed": "Compatibility hatch for export/sync only; not a second always-on product."
+    },
+    {
+      "item": "Open-12 host slices that omit original App depth",
+      "evidence": [
+        "docs/org-merge-plan.md postponed reporting-lines, talent market, sidecar marketplace, Chat, company/AI/DB settings",
+        "docs/org-full-parity-inventory.json parity=not_accepted even when host_route_exists=true"
+      ],
+      "native_port_needed": "Deepen org-ui + host APIs until App.tsx fields/relations work without Node."
+    },
+    {
+      "item": "Orphan OrgMiniBrowser iframe chrome",
+      "evidence": ["dashboard/src/pages/Organization/OrgMiniBrowser.tsx is unused by routes"],
+      "native_port_needed": "Do not revive as the Organization home. Delete or keep as advanced compat only after native pages own the surface."
+    }
+  ],
+  "status_counts": {
+    "native_host": 9,
+    "org_ui_slice": 10,
+    "managed_node_iframe": 13,
+    "sidecar_optional": 1,
+    "export_only": 1,
+    "missing": 0,
+    "total": 34
+  },
+  "priority_counts": {
+    "P0": 7,
+    "P1": 17,
+    "P2": 10
+  },
+  "domains": [
+    {
+      "id": "assets-bus",
+      "name": "Bidirectional assets bus",
+      "name_zh": "双向资产总线",
+      "lives_today": [
+        "src/octop/modules/org_os/assets/pack.py (freeos.asset-pack.v1)",
+        "src/octop/modules/org_os/assets/importer.py",
+        "src/octop/modules/org_os/apply/apply.py → POST /api/freeos/ingest when sidecar healthy; always {FREEOS_HOME}/openxyos-mirror/",
+        "src/octop/cli/commands/org.py assets publish|import|apply",
+        "dashboard/src/pages/Organization/index.tsx assemble/pack/loop",
+        "modules/openxyos/backend/routes/freeos-bridge.ts"
+      ],
+      "status": "native_host",
+      "depends_on_node": "partial",
+      "needed_for_commercial_export": "yes",
+      "priority": "P0",
+      "next_step": "Define a host-owned ingest/export contract so apply does not need a live Node /api/freeos/ingest to land employees/talent/plugins in the organization room.",
+      "wave": "A-assets-bus",
+      "evidence": [
+        "docs/asset-loop.md",
+        "docs/architecture-integration.md"
+      ],
+      "tests": [
+        "tests/unit/test_asset_loop.py",
+        "tests/unit/test_openxyos_apply.py",
+        "tests/e2e/test_org_growth_loop.py",
+        "tests/unit/test_org_loop.py"
+      ],
+      "unknowns": [
+        "Whether commercial standalone export should ship the bus as a CLI-only factory or as in-app Organization actions."
+      ]
+    },
+    {
+      "id": "export-standalone",
+      "name": "Export-standalone (commercial package)",
+      "name_zh": "独立站导出（商业加售）",
+      "lives_today": [
+        "src/octop/modules/org_os/export_standalone.py",
+        "src/octop/cli/commands/org.py export-standalone",
+        "scripts/org-export/template/",
+        "dashboard/src/org-ui (copied into dist)",
+        "docs/org-export.md"
+      ],
+      "status": "export_only",
+      "depends_on_node": "partial",
+      "needed_for_commercial_export": "yes",
+      "priority": "P0",
+      "next_step": "Replace SPA + proxy to FREEOS_UPSTREAM /api/org-module with an exportable openXYOS source tree that a customer can self-host; today's package is an early delivery, not the finished product.",
+      "wave": "B-export",
+      "evidence": [
+        "docs/org-export.md transitional vs target table",
+        "src/octop/modules/org_os/contract.py SHARED_ORG_UI_MODULES"
+      ],
+      "tests": ["tests/unit/cli/test_org_export_standalone.py"],
+      "unknowns": [
+        "Self-contained org API inside the export package is still a stated target, not implemented."
+      ]
+    },
+    {
+      "id": "tenant-auth",
+      "name": "Tenant / auth (dual identity)",
+      "name_zh": "租户与身份（双入口）",
+      "lives_today": [
+        "Studio: src/octop/api/routers/auth.py FreeOS JWT (native_host when FREEOS_ORG_INTEGRATED unset)",
+        "Org room (desktop): FREEOS_ORG_INTEGRATED=1 → src/octop/modules/org_os/integration.py organization_user() GET sidecar /api/auth/me",
+        "src/octop/api/routers/org_identity.py /identity/login|register|refresh + /business/*",
+        "dashboard/src/pages/Login/index.tsx and AuthGuard.tsx branch on identity status.integrated",
+        "modules/openxyos/backend/routes/auth.ts",
+        "export-standalone IdentityBridge: local JWT then POST FreeOS /api/auth/login (docs/org-export.md)"
+      ],
+      "status": "managed_node_iframe",
+      "depends_on_node": "partial",
+      "needed_for_commercial_export": "yes",
+      "priority": "P0",
+      "next_step": "Keep two auth spaces separate on the implementer side; add studio vs organization-room UX without collapsing login, and stop using Node /api/auth as the org-room authority.",
+      "wave": "C-dual-identity",
+      "evidence": [
+        "README.md Auth: FreeOS JWT users and openXYOS tenants are separate",
+        "desktop/src/process.go FREEOS_ORG_INTEGRATED=1"
+      ],
+      "tests": [
+        "dashboard/src/components/AuthGuard.test.tsx",
+        "tests/unit/test_org_module.py (sidecar identity headers)"
+      ],
+      "unknowns": [
+        "Older org-full-integration.md still says organization login is the only identity authority — treat that as historical after P0.1 (#73).",
+        "export-standalone currently logs into FreeOS /api/auth, which collides with 'two spaces' unless the commercial package grows its own org accounts."
+      ]
+    },
+    {
+      "id": "local-models",
+      "name": "Local models",
+      "name_zh": "本地模型",
+      "lives_today": [
+        "dashboard/src/pages/Settings/Models (Ollama / GGUF register, speed test, set default)",
+        "src/octop/infra/agents/providers/local_register.py",
+        "src/octop/infra/agents/providers/onnx_download.py",
+        "modules/openxyos/frontend/src/pages/SettingsPage.tsx + /api/settings/ai (Node, unmigrated)"
+      ],
+      "status": "native_host",
+      "depends_on_node": "partial",
+      "needed_for_commercial_export": "yes",
+      "priority": "P0",
+      "next_step": "Make the organization room consume the same local model pool as the studio so org LLM settings do not stay on Node /api/settings/ai.",
+      "wave": "D-local-models-kb",
+      "evidence": ["CHANGELOG Unreleased local model speed/default", "docs/user-guide.md Ollama section (upstream host)"],
+      "tests": [],
+      "unknowns": [
+        "No dedicated org-module tests assert that organization pages call host local providers instead of sidecar AI settings."
+      ]
+    },
+    {
+      "id": "host-knowledge-bases",
+      "name": "Host knowledge bases",
+      "name_zh": "宿主知识库",
+      "lives_today": [
+        "dashboard/src/pages/KnowledgeBases",
+        "dashboard/src/routes/index.tsx /knowledge-bases",
+        "Octop KnowledgeService / knowledge_bases tables"
+      ],
+      "status": "native_host",
+      "depends_on_node": "no",
+      "needed_for_commercial_export": "partial",
+      "priority": "P0",
+      "next_step": "Keep local folder mounts and embeddings as the default RAG path; do not require WeKnora/IMA cloud for organization knowledge.",
+      "wave": "D-local-models-kb",
+      "evidence": ["src/octop/infra/server.py desktop first-run enables knowledge bases"],
+      "tests": [],
+      "unknowns": [
+        "Connector adapters for WeKnora/IMA exist; default-path policy vs optional cloud is product, not fully encoded in org docs on main."
+      ]
+    },
+    {
+      "id": "org-knowledge",
+      "name": "Organization knowledge (notes/files)",
+      "name_zh": "组织知识（笔记/文件）",
+      "lives_today": [
+        "dashboard/src/org-ui/pages/knowledge/KnowledgePage.tsx",
+        "dashboard/src/pages/Organization/knowledge/",
+        "/organization/knowledge → /api/org-module/knowledge* wrapping host KnowledgeService",
+        "modules/openxyos/frontend/src/pages/KnowledgePage.tsx + backend/routes/knowledge.ts (sidecar notes/files DB)"
+      ],
+      "status": "org_ui_slice",
+      "depends_on_node": "partial",
+      "needed_for_commercial_export": "yes",
+      "priority": "P0",
+      "next_step": "Parity for upload/folders/reparse against host KB; do not clone sidecar notes DB as a second store.",
+      "wave": "D-local-models-kb",
+      "evidence": ["docs/org-merge-plan.md knowledge slice", "docs/org-full-parity-inventory.json /knowledge"],
+      "tests": [
+        "tests/unit/test_org_knowledge.py",
+        "dashboard/src/org-ui/pages/knowledge/KnowledgePage.test.tsx"
+      ],
+      "unknowns": []
+    },
+    {
+      "id": "iframe-shell",
+      "name": "Managed Node + iframe shell",
+      "name_zh": "托管 Node + iframe 壳",
+      "lives_today": [
+        "src/octop/modules/org_os/managed_runtime.py",
+        "src/octop/api/routers/org_ui.py /organization-app",
+        "dashboard/src/pages/Organization/OrganizationEntry.tsx",
+        "modules/openxyos Vite base /organization-app/ when VITE_FREEOS_ORG_INTEGRATED"
+      ],
+      "status": "managed_node_iframe",
+      "depends_on_node": "yes",
+      "needed_for_commercial_export": "no",
+      "priority": "P1",
+      "next_step": "Stop using the iframe as Organization home once App surfaces have native routes; shrink then remove ManagedOrganizationRuntime.",
+      "wave": "E-cut-node",
+      "evidence": [
+        "tests/integration/test_dashboard_serve.py redirects / to /organization-app/dashboard when integrated",
+        "tests/unit/api/test_org_ui.py"
+      ],
+      "tests": [
+        "tests/unit/api/test_org_ui.py",
+        "tests/integration/test_dashboard_serve.py"
+      ],
+      "unknowns": []
+    },
+    {
+      "id": "sidecar-compat",
+      "name": "Optional Node sidecar (:3780)",
+      "name_zh": "可选 Node 边车（:3780）",
+      "lives_today": [
+        "FREEOS_ORG_SIDECAR / FREEOS_ORG_SIDECAR_URL / SHIP_OPENXYOS_RUNTIME",
+        "src/octop/modules/org_os/sidecar_launch.py",
+        "scripts/run-org-sidecar.sh",
+        "/api/org-module/sidecar/{path}"
+      ],
+      "status": "sidecar_optional",
+      "depends_on_node": "yes",
+      "needed_for_commercial_export": "no",
+      "priority": "P2",
+      "next_step": "Keep as opt-in compat until native coverage lands; do not re-bundle into the default installer.",
+      "wave": "E-cut-node",
+      "evidence": ["docs/org-export.md Phase 5", "docs/architecture-integration.md running topology"],
+      "tests": ["tests/unit/test_org_module.py"],
+      "unknowns": []
+    },
+    {
+      "id": "module-catalog",
+      "name": "Module catalog",
+      "name_zh": "模块目录",
+      "lives_today": [
+        "src/octop/modules/org_os/catalog.py OPENXYOS_MODULES (12 keys)",
+        "modules/openxyos/backend/open-module-catalog.ts",
+        "src/octop/modules/org_os/module_toggles.py",
+        "dashboard/src/org-ui/contract.ts"
+      ],
+      "status": "native_host",
+      "depends_on_node": "no",
+      "needed_for_commercial_export": "yes",
+      "priority": "P1",
+      "next_step": "Extend catalog keys when native-porting App.tsx verticals (workflows, contracts, assets, …); keep Python/TS drift tests green.",
+      "wave": "E-cut-node",
+      "evidence": ["src/octop/modules/org_os/contract.py assert_shared_modules_in_catalog"],
+      "tests": ["tests/unit/test_org_module.py catalog drift"],
+      "unknowns": []
+    },
+    {
+      "id": "blueprints",
+      "name": "Blueprints / compiler",
+      "name_zh": "蓝图与编译器",
+      "lives_today": [
+        "src/octop/modules/org_os/compiler/",
+        "POST /api/org-module/blueprints/compile",
+        "uv run freeos org compile-blueprint",
+        "tests/fixtures/org-loop/agent-blueprint.v1.json"
+      ],
+      "status": "native_host",
+      "depends_on_node": "no",
+      "needed_for_commercial_export": "yes",
+      "priority": "P0",
+      "next_step": "Wire compile output into the assets bus so a customized org can export blueprint source without a sidecar.",
+      "wave": "A-assets-bus",
+      "evidence": ["docs/asset-loop.md"],
+      "tests": [
+        "tests/unit/test_blueprint_compiler.py",
+        "tests/unit/test_colleague_spawn.py"
+      ],
+      "unknowns": []
+    },
+    {
+      "id": "lifecycle",
+      "name": "Colleague lifecycle",
+      "name_zh": "同事生命周期",
+      "lives_today": [
+        "src/octop/modules/org_os/lifecycle/",
+        "src/octop/modules/org_os/runtime/spawn.py",
+        "GET/POST /api/org-module/employees, /employees/transition, /employees/spawn",
+        "uv run freeos org employee *"
+      ],
+      "status": "native_host",
+      "depends_on_node": "no",
+      "needed_for_commercial_export": "yes",
+      "priority": "P1",
+      "next_step": "Join lifecycle registry rows with people-directory + talent-market UI so draft→active is one native flow.",
+      "wave": "E-cut-node",
+      "evidence": ["docs/org-merge-plan.md employees lifecycle already on host"],
+      "tests": [
+        "tests/unit/test_lifecycle.py",
+        "tests/unit/test_colleague_spawn.py"
+      ],
+      "unknowns": []
+    },
+    {
+      "id": "governance",
+      "name": "Governance (engine + UI)",
+      "name_zh": "治理（引擎 + UI）",
+      "lives_today": [
+        "src/octop/modules/org_os/governance/ (PEP/PDP, pause, MCP)",
+        "dashboard/src/org-ui/pages/governance/GovernancePage.tsx",
+        "/organization/governance",
+        "modules/openxyos/frontend/src/pages/GovernancePage.tsx + /api/governance/* (permissions, comm-rules, templates — unmigrated)"
+      ],
+      "status": "native_host",
+      "depends_on_node": "partial",
+      "needed_for_commercial_export": "yes",
+      "priority": "P1",
+      "next_step": "Port sidecar permission matrix / comm-rules / workflow templates onto the host engine; do not rewrite PEP/PDP.",
+      "wave": "E-cut-node",
+      "evidence": ["docs/org-merge-plan.md governance UI slice"],
+      "tests": [
+        "tests/unit/test_org_governance.py",
+        "tests/unit/test_host_governance.py",
+        "dashboard/src/org-ui/pages/governance/GovernancePage.test.tsx"
+      ],
+      "unknowns": []
+    },
+    {
+      "id": "workbench",
+      "name": "Organization workbench (assemble / pack / loop)",
+      "name_zh": "组织工作台（装配 / 打包 / 循环）",
+      "lives_today": [
+        "dashboard/src/pages/Organization/index.tsx /organization",
+        "/api/org-module/overview|assemble|pack|loop|produce",
+        "src/octop/modules/org_os/loop/"
+      ],
+      "status": "native_host",
+      "depends_on_node": "no",
+      "needed_for_commercial_export": "partial",
+      "priority": "P1",
+      "next_step": "Keep this as the studio-side factory; do not hide it behind the App iframe when integrated.",
+      "wave": "E-cut-node",
+      "evidence": [
+        "dashboard/src/pages/Organization/index.test.tsx paints workbench without 3780 iframe",
+        "OrganizationEntry currently replaces this page with iframe when integrated=true"
+      ],
+      "tests": [
+        "dashboard/src/pages/Organization/index.test.tsx",
+        "tests/unit/test_org_loop.py"
+      ],
+      "unknowns": [
+        "Desktop integrated mode never shows the native workbench (OrganizationEntry iframe). Confirm product wants both rooms reachable without a flag."
+      ]
+    },
+    {
+      "id": "workspace",
+      "name": "Workspace overview",
+      "name_zh": "工作台总览",
+      "lives_today": [
+        "dashboard/src/org-ui/pages/workspace/WorkspacePage.tsx",
+        "/organization/workspace",
+        "modules/openxyos OpenDashboard /app and /workspace",
+        "commercial App.tsx Dashboard / and /dashboard (host_route_exists false for /dashboard)"
+      ],
+      "status": "org_ui_slice",
+      "depends_on_node": "partial",
+      "needed_for_commercial_export": "yes",
+      "priority": "P1",
+      "next_step": "Replace thin overview with native metrics that match OpenDashboard/Dashboard without Node.",
+      "wave": "E-cut-node",
+      "evidence": ["docs/org-full-parity-inventory.json /workspace host_route_exists true, / and /dashboard false"],
+      "tests": [
+        "tests/unit/test_org_workspace.py",
+        "dashboard/src/org-ui/pages/workspace/WorkspacePage.test.tsx"
+      ],
+      "unknowns": []
+    },
+    {
+      "id": "announcements",
+      "name": "Announcements",
+      "name_zh": "通知公告",
+      "lives_today": [
+        "dashboard/src/org-ui/pages/announcements/",
+        "/organization/announcements",
+        "src/octop/modules/org_os/announcements/",
+        "modules/openxyos AnnouncementPage + /api/announcements"
+      ],
+      "status": "org_ui_slice",
+      "depends_on_node": "no",
+      "needed_for_commercial_export": "yes",
+      "priority": "P1",
+      "next_step": "Field-level parity vs original AnnouncementPage (pin, unread, visitor-log side effects) on the host store.",
+      "wave": "E-cut-node",
+      "evidence": ["docs/org-merge-plan.md Phase 2"],
+      "tests": [
+        "tests/unit/test_org_announcements.py",
+        "dashboard/src/org-ui/pages/announcements/AnnouncementPage.test.tsx"
+      ],
+      "unknowns": []
+    },
+    {
+      "id": "org-chart",
+      "name": "Org chart",
+      "name_zh": "组织架构",
+      "lives_today": [
+        "dashboard/src/org-ui/pages/org/OrgChartPage.tsx",
+        "/organization/org",
+        "src/octop/modules/org_os/org_chart/ {FREEOS_HOME}/org/org_chart.sqlite",
+        "modules/openxyos OrgChart.tsx + /api/org/tree|departments|employees|versions|reporting-lines|import"
+      ],
+      "status": "org_ui_slice",
+      "depends_on_node": "partial",
+      "needed_for_commercial_export": "yes",
+      "priority": "P1",
+      "next_step": "Native-port versions, reporting-lines, org skills, import, and avatar upload onto org_chart.sqlite.",
+      "wave": "E-cut-node",
+      "evidence": ["docs/org-merge-plan.md org chart postponed list"],
+      "tests": [
+        "tests/unit/test_org_chart.py",
+        "dashboard/src/org-ui/pages/org/OrgChartPage.test.tsx"
+      ],
+      "unknowns": []
+    },
+    {
+      "id": "people-directory",
+      "name": "People directory",
+      "name_zh": "员工目录",
+      "lives_today": [
+        "dashboard/src/org-ui/pages/employees/",
+        "/organization/employees",
+        "same org_chart.sqlite as org-chart",
+        "modules/openxyos EmployeesPage / EmployeeDetailPage + /api/employees*"
+      ],
+      "status": "org_ui_slice",
+      "depends_on_node": "partial",
+      "needed_for_commercial_export": "yes",
+      "priority": "P1",
+      "next_step": "Add onboard/reserve/offboard, performance summary, and skill binding without a second employee database.",
+      "wave": "E-cut-node",
+      "evidence": ["docs/org-merge-plan.md employees postponed talent/offboard/performance"],
+      "tests": [
+        "dashboard/src/org-ui/pages/employees/EmployeesPage.test.tsx",
+        "dashboard/src/org-ui/pages/employees/EmployeeDetailPage.test.tsx"
+      ],
+      "unknowns": []
+    },
+    {
+      "id": "talent-market",
+      "name": "Talent market",
+      "name_zh": "人才市场",
+      "lives_today": [
+        "modules/openxyos/frontend/src/pages/EmployeesPage.tsx talent tab",
+        "modules/openxyos/backend/routes/talent.ts /api/talent",
+        "iframe-only in desktop integrated mode; no host route"
+      ],
+      "status": "managed_node_iframe",
+      "depends_on_node": "yes",
+      "needed_for_commercial_export": "yes",
+      "priority": "P1",
+      "next_step": "Native talent list/recruit that writes the host lifecycle registry (draft/market/recruit), not a sidecar-only table.",
+      "wave": "E-cut-node",
+      "evidence": ["docs/org-full-parity-inventory.json /employees api_references /api/talent"],
+      "tests": [],
+      "unknowns": [
+        "No host unit tests for /api/talent. Inventory is the evidence that the UI calls it."
+      ]
+    },
+    {
+      "id": "skills",
+      "name": "Skills / plugins",
+      "name_zh": "技能插件",
+      "lives_today": [
+        "dashboard/src/org-ui/pages/skills/",
+        "/organization/skills + /api/org-module/skills generate|publish",
+        "src/octop/modules/org_os/skill_bridge/",
+        "modules/openxyos SkillsPage + /api/skills + /api/plugins marketplace (unmigrated)"
+      ],
+      "status": "org_ui_slice",
+      "depends_on_node": "partial",
+      "needed_for_commercial_export": "yes",
+      "priority": "P1",
+      "next_step": "Decide whether marketplace/paid install is export-only; native-port inventory toggle that org-ui already lists from org-skills.",
+      "wave": "E-cut-node",
+      "evidence": ["docs/org-merge-plan.md skills slice"],
+      "tests": [
+        "tests/unit/test_org_skills.py",
+        "tests/unit/test_skill_bridge.py",
+        "dashboard/src/org-ui/pages/skills/SkillsPage.test.tsx"
+      ],
+      "unknowns": []
+    },
+    {
+      "id": "agent-studio",
+      "name": "Agent studio",
+      "name_zh": "智能体定制",
+      "lives_today": [
+        "dashboard/src/org-ui/pages/agents/AgentsPage.tsx",
+        "/organization/agents",
+        "/api/org-module/agents + blueprints/compile + employees lifecycle",
+        "modules/openxyos AgentStudioPage + backend/routes/agent-studio.ts (server.ts currently does not app.use — inventory notes unmounted studio API)"
+      ],
+      "status": "org_ui_slice",
+      "depends_on_node": "partial",
+      "needed_for_commercial_export": "yes",
+      "priority": "P1",
+      "next_step": "Native reference upload + talent registration; do not depend on unmounted sidecar /api/agent-studio/*.",
+      "wave": "E-cut-node",
+      "evidence": ["docs/org-merge-plan.md agents slice; sidecar agent-studio not mounted in server.ts"],
+      "tests": [
+        "tests/unit/test_org_agents.py",
+        "dashboard/src/org-ui/pages/agents/AgentsPage.test.tsx"
+      ],
+      "unknowns": [
+        "Original Agent Studio API may already be a source-tree gap (not mounted). Confirm before treating as a migration blocker."
+      ]
+    },
+    {
+      "id": "tasks",
+      "name": "Organization tasks",
+      "name_zh": "组织任务",
+      "lives_today": [
+        "dashboard/src/org-ui/pages/tasks/",
+        "/organization/tasks",
+        "src/octop/modules/org_os/tasks/ {FREEOS_HOME}/org/tasks.sqlite",
+        "modules/openxyos TasksPage + /api/tasks"
+      ],
+      "status": "org_ui_slice",
+      "depends_on_node": "no",
+      "needed_for_commercial_export": "yes",
+      "priority": "P1",
+      "next_step": "Add attachments; keep org tasks distinct from Octop cron and Chat.",
+      "wave": "E-cut-node",
+      "evidence": ["docs/org-merge-plan.md tasks slice"],
+      "tests": [
+        "tests/unit/test_org_tasks.py",
+        "dashboard/src/org-ui/pages/tasks/TasksPage.test.tsx",
+        "dashboard/src/org-ui/pages/tasks/TaskDetailPage.test.tsx"
+      ],
+      "unknowns": []
+    },
+    {
+      "id": "reflections",
+      "name": "Reflections",
+      "name_zh": "反思引擎",
+      "lives_today": [
+        "dashboard/src/org-ui/pages/reflections/",
+        "/organization/reflections",
+        "src/octop/modules/org_os/reflections/",
+        "modules/openxyos ReflectionPage + /api/reflections"
+      ],
+      "status": "org_ui_slice",
+      "depends_on_node": "no",
+      "needed_for_commercial_export": "yes",
+      "priority": "P1",
+      "next_step": "Port sidecar skill-stats / deployment-rule samples only if still referenced by the original page.",
+      "wave": "E-cut-node",
+      "evidence": ["docs/org-merge-plan.md reflections slice"],
+      "tests": [
+        "tests/unit/test_org_reflections.py",
+        "dashboard/src/org-ui/pages/reflections/ReflectionsPage.test.tsx"
+      ],
+      "unknowns": []
+    },
+    {
+      "id": "org-settings",
+      "name": "Organization settings",
+      "name_zh": "组织设置",
+      "lives_today": [
+        "dashboard/src/org-ui/pages/settings/ (module toggles + prefs.json only)",
+        "/organization/settings",
+        "modules/openxyos SettingsPage + /api/settings/* company/AI/users/database + /api/module-settings + /api/admin/tenants"
+      ],
+      "status": "org_ui_slice",
+      "depends_on_node": "partial",
+      "needed_for_commercial_export": "yes",
+      "priority": "P1",
+      "next_step": "Native-port company profile, org roles, and backup/restore that belong to the org room; keep FreeOS system settings (keys, host users, timezone) on the studio side.",
+      "wave": "E-cut-node",
+      "evidence": ["docs/org-merge-plan.md settings slice"],
+      "tests": [
+        "tests/unit/test_org_settings.py",
+        "dashboard/src/org-ui/pages/settings/SettingsPage.test.tsx"
+      ],
+      "unknowns": []
+    },
+    {
+      "id": "org-chat",
+      "name": "Organization collaboration chat",
+      "name_zh": "组织沟通协作",
+      "lives_today": [
+        "modules/openxyos/frontend/src/pages/ChatPage.tsx + useWebSocket",
+        "modules/openxyos/backend/routes (chats) + services/websocket.ts",
+        "host_route_exists false for /organization/chat",
+        "FreeOS/Octop Chat at /chat is a different capability (agent runtime) — keep both"
+      ],
+      "status": "managed_node_iframe",
+      "depends_on_node": "yes",
+      "needed_for_commercial_export": "yes",
+      "priority": "P1",
+      "next_step": "Native org rooms/mentions/pins that do not replace Octop agent chat; export currently only deep-links an explanation page.",
+      "wave": "E-cut-node",
+      "evidence": [
+        "docs/org-full-integration.md org chat must be in scope",
+        "docs/org-merge-plan.md historical 'Chat 永久不迁' is Open-12 history, not product end state",
+        "docs/org-export.md Chat 不导出"
+      ],
+      "tests": [],
+      "unknowns": [
+        "No host tests for org chats. Whether to reuse gateway threads or a new org_os store is an engineering choice — not decided here."
+      ]
+    },
+    {
+      "id": "workflows",
+      "name": "Workflows",
+      "name_zh": "流程引擎",
+      "lives_today": [
+        "modules/openxyos/frontend/src/pages/WorkflowPage.tsx + components/workflow/*",
+        "backend/routes/workflow.ts + workflow-v2.ts",
+        "App.tsx /workflows; host_route_exists false"
+      ],
+      "status": "managed_node_iframe",
+      "depends_on_node": "yes",
+      "needed_for_commercial_export": "yes",
+      "priority": "P2",
+      "next_step": "Inventory designer/instance/task APIs from workflow-v2, then add host store + org-ui page; leave/expense/daily-report depend on it.",
+      "wave": "E-cut-node",
+      "evidence": ["docs/org-full-parity-inventory.json /workflows"],
+      "tests": [],
+      "unknowns": [
+        "v1 /api/workflows vs v2 /api/workflows-v2 overlap is original-system complexity, not mapped field-by-field here."
+      ]
+    },
+    {
+      "id": "contracts",
+      "name": "Contracts",
+      "name_zh": "合同",
+      "lives_today": [
+        "modules/openxyos/frontend/src/pages/ContractPage.tsx",
+        "backend/routes/contracts.ts + services/contract.ts",
+        "App.tsx /contracts; host_route_exists false"
+      ],
+      "status": "managed_node_iframe",
+      "depends_on_node": "yes",
+      "needed_for_commercial_export": "yes",
+      "priority": "P2",
+      "next_step": "Native-port after workflows (approval rules, payments, Gantt) using the same org identity space.",
+      "wave": "E-cut-node",
+      "evidence": ["docs/org-full-parity-inventory.json /contracts"],
+      "tests": [],
+      "unknowns": []
+    },
+    {
+      "id": "physical-assets",
+      "name": "Physical / org assets (ledger)",
+      "name_zh": "实物资产台账",
+      "lives_today": [
+        "modules/openxyos AssetPage, AssetDetailPage, AssetCountPage, AssetDashboard, AssetVehicleExpensePage, AssetProcurementPage",
+        "backend/routes/assets.ts",
+        "App.tsx /assets*; host_route_exists false"
+      ],
+      "status": "managed_node_iframe",
+      "depends_on_node": "yes",
+      "needed_for_commercial_export": "yes",
+      "priority": "P2",
+      "next_step": "Do not confuse with freeos.asset-pack.v1. Native-port ledger/count/procurement after the assets bus wave.",
+      "wave": "E-cut-node",
+      "evidence": ["docs/org-full-parity-inventory.json /assets*"],
+      "tests": [],
+      "unknowns": []
+    },
+    {
+      "id": "hr-ops",
+      "name": "Attendance / leave / expense / daily report",
+      "name_zh": "考勤 / 请假 / 报销 / 日报",
+      "lives_today": [
+        "modules/openxyos AttendancePage, LeavePage, ExpensePage, DailyReportPage",
+        "backend/routes/attendance.ts, leave.ts, expense.ts, daily-report.ts",
+        "App.tsx routes; host_route_exists false; leave/expense/daily-report call workflows-v2"
+      ],
+      "status": "managed_node_iframe",
+      "depends_on_node": "yes",
+      "needed_for_commercial_export": "yes",
+      "priority": "P2",
+      "next_step": "Native-port as a cluster after workflows so approval instances keep writing back to the same documents.",
+      "wave": "E-cut-node",
+      "evidence": ["docs/org-full-integration.md 人事与协作 chain"],
+      "tests": [],
+      "unknowns": []
+    },
+    {
+      "id": "planning-performance",
+      "name": "Goals / budgets / routines / performance / efficiency",
+      "name_zh": "目标 / 预算 / 例行 / 绩效 / 效率",
+      "lives_today": [
+        "modules/openxyos GoalPage, BudgetPage, RoutinePage, PerformancePage, EfficiencyDashboard",
+        "matching backend/routes",
+        "App.tsx; host_route_exists false"
+      ],
+      "status": "managed_node_iframe",
+      "depends_on_node": "yes",
+      "needed_for_commercial_export": "yes",
+      "priority": "P2",
+      "next_step": "Native-port as the 目标与执行 chain after tasks/org-chart so goals can reference host employees and org tasks.",
+      "wave": "E-cut-node",
+      "evidence": ["docs/org-full-integration.md 目标与执行"],
+      "tests": [],
+      "unknowns": []
+    },
+    {
+      "id": "org-audit",
+      "name": "Organization audit trail",
+      "name_zh": "组织审计",
+      "lives_today": [
+        "modules/openxyos AuditTrailPage + /api/audit/*",
+        "host governance audit JSONL is a different store (org_os/governance)",
+        "App.tsx /audit; host_route_exists false"
+      ],
+      "status": "managed_node_iframe",
+      "depends_on_node": "yes",
+      "needed_for_commercial_export": "yes",
+      "priority": "P2",
+      "next_step": "Unify org-page audit with host governance audit rather than cloning sidecar /api/audit.",
+      "wave": "E-cut-node",
+      "evidence": ["docs/org-full-parity-inventory.json /audit"],
+      "tests": ["tests/unit/test_host_governance.py (host gate only)"],
+      "unknowns": [
+        "How much of sidecar audit-trail vs host JSONL is the commercial SoT is unmarked."
+      ]
+    },
+    {
+      "id": "admin-tenants",
+      "name": "Admin / tenants / payments",
+      "name_zh": "后台 / 租户 / 支付",
+      "lives_today": [
+        "modules/openxyos AdminPage + /api/admin/* /api/payments/* /api/assistant/*",
+        "backend/routes/admin.ts, tenants.ts, payments.ts",
+        "App.tsx /admin; host_route_exists false"
+      ],
+      "status": "managed_node_iframe",
+      "depends_on_node": "yes",
+      "needed_for_commercial_export": "partial",
+      "priority": "P2",
+      "next_step": "Split SaaS billing/visitor stats (export-only or drop) from tenant CRUD needed in the org room.",
+      "wave": "E-cut-node",
+      "evidence": ["docs/org-full-parity-inventory.json /admin"],
+      "tests": [],
+      "unknowns": [
+        "Which admin tabs are commercial SaaS vs self-host tenant ops is not labelled in inventory."
+      ]
+    },
+    {
+      "id": "customer-service",
+      "name": "Customer service",
+      "name_zh": "客户服务",
+      "lives_today": [
+        "modules/openxyos CustomerServicePage + /api/customers",
+        "App.tsx /customers; host_route_exists false"
+      ],
+      "status": "managed_node_iframe",
+      "depends_on_node": "yes",
+      "needed_for_commercial_export": "partial",
+      "priority": "P2",
+      "next_step": "Keep in the map (full-integration scope). Native-port only if a commercial package still ships it; otherwise mark export-only.",
+      "wave": "E-cut-node",
+      "evidence": ["docs/org-full-integration.md 客户服务 included in inventory"],
+      "tests": [],
+      "unknowns": [
+        "Product has not said whether this vertical is required for the default FreeOS org room."
+      ]
+    },
+    {
+      "id": "electricity",
+      "name": "Electricity market",
+      "name_zh": "电力交易",
+      "lives_today": [
+        "modules/openxyos ElectricityMarketPage + /api/electricity/*",
+        "App.tsx /electricity; host_route_exists false"
+      ],
+      "status": "managed_node_iframe",
+      "depends_on_node": "yes",
+      "needed_for_commercial_export": "partial",
+      "priority": "P2",
+      "next_step": "Same as customer-service: inventory-complete, native-port only if export still includes the route.",
+      "wave": "E-cut-node",
+      "evidence": ["docs/org-full-integration.md 电力交易 included"],
+      "tests": [],
+      "unknowns": [
+        "Likely industry-package demo; confirm before spending a native slice."
+      ]
+    },
+    {
+      "id": "source-download",
+      "name": "openXYOS source download",
+      "name_zh": "openXYOS 源码下载",
+      "lives_today": [
+        "src/octop/modules/org_os/source_download.py",
+        "POST /api/org-module/source/download",
+        "dashboard Organization workbench download button",
+        "CLI-adjacent: downloads GitHub openXYOS main.zip"
+      ],
+      "status": "native_host",
+      "depends_on_node": "no",
+      "needed_for_commercial_export": "yes",
+      "priority": "P1",
+      "next_step": "Align this zip with the Wave B exportable source product so operators do not get two different trees.",
+      "wave": "B-export",
+      "evidence": ["CHANGELOG download latest openXYOS source"],
+      "tests": [],
+      "unknowns": [
+        "GitHub zip of upstream openXYOS vs generated-from-this-monorepo source is not the same artifact as export-standalone."
+      ]
+    }
+  ]
+}

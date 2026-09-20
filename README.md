@@ -223,5 +223,5 @@ Intentional for package compatibility (not a rebrand miss):
 - SQLite file `octop.db` inside the home directory
 - CI workflow **filename** `.github/workflows/octop-desktop.yml` (display name is FreeOS Desktop Package)
 
-See [docs/product-contract.md](docs/product-contract.md) for product intent, and [docs/architecture-integration.md](docs/architecture-integration.md) for the control/data-plane split and the running self-growth loop.
+See [docs/product-contract.md](docs/product-contract.md) for product intent, [docs/architecture-integration.md](docs/architecture-integration.md) for the control/data-plane split and the running self-growth loop, and [docs/org-capability-migration-map.md](docs/org-capability-migration-map.md) ([简体中文](docs/org-capability-migration-map.zh-CN.md)) for what is already native on the host vs still on managed Node / iframe (P0.2).
 

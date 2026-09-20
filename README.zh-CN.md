@@ -45,4 +45,4 @@ uv run freeos run
 
 不要将 API Key、令牌或真实客户资料提交到公开仓库。
 
-完整功能、架构和发布说明请见 [English README](README.md)、[中文宿主说明](README_CN.md) 与 [Wiki](https://github.com/XYAIStudio/FreeOS/wiki)。
+完整功能、架构和发布说明请见 [English README](README.md)、[中文宿主说明](README_CN.md) 与 [Wiki](https://github.com/XYAIStudio/FreeOS/wiki)。openXYOS 能力哪些已在宿主原生、哪些仍在托管 Node / iframe，见 [能力迁移图（P0.2）](docs/org-capability-migration-map.zh-CN.md)。
