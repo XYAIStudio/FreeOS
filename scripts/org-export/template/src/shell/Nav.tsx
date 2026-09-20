@@ -15,6 +15,7 @@ const LINKS: { to: string; en: string; zh: string }[] = [
   { to: "/reflections", en: "Reflections", zh: "反思" },
   { to: "/governance", en: "Governance", zh: "治理" },
   { to: "/settings", en: "Settings", zh: "设置" },
+  { to: "/coverage", en: "Coverage", zh: "对照" },
 ];
 
 export function StandaloneNav(props: {

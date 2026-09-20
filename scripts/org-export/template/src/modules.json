@@ -1,0 +1,12 @@
+{
+  "pack": "openxyos-source",
+  "mode": "slice",
+  "licenses": {
+    "openxyos_tree": "Apache-2.0",
+    "host_bridge_slice": "MIT"
+  },
+  "shared_org_ui_modules": [],
+  "host_organization_routes": [],
+  "openxyos_app_routes": [],
+  "omissions": []
+}

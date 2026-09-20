@@ -24,6 +24,7 @@ import {
   type OrgTasksClient,
 } from "org-ui";
 import { LoginPage } from "./auth/LoginPage";
+import { CoveragePage } from "./shell/CoveragePage";
 import { HostDeepLinkPage } from "./shell/HostDeepLinkPage";
 import { StandaloneNav } from "./shell/Nav";
 
@@ -304,6 +305,7 @@ export default function App() {
             />
           }
         />
+        <Route path="/coverage" element={<CoveragePage locale={locale} />} />
         <Route
           path="/chat"
           element={<HostDeepLinkPage kind="chat" locale={locale} />}

@@ -35,7 +35,7 @@ Priority: **P0 = 7** (waves A–D) · **P1 = 17** · **P2 = 10**.
 | Domain | Status | Node? | Export? | Pri | Next engineering step |
 |---|---|---|---|---|---|
 | [Bidirectional assets bus](#1-bidirectional-assets-bus) | native_host | partial | yes | P0 | Host-owned ingest/export that does not need live Node `/api/freeos/ingest`. |
-| [Export-standalone](#2-export-standalone-commercial-package) | export_only | partial | yes | P0 | Replace SPA+proxy with exportable openXYOS **source**. |
+| [Export-standalone](#2-export-standalone-commercial-package) | export_only | partial | yes | P0 | Default `--mode full` writes the openXYOS **source tree**; `--mode slice` is the SPA+proxy host bridge. |
 | [Tenant / auth (dual identity)](#3-tenant--auth-dual-identity) | managed_node_iframe | partial | yes | P0 | Two auth spaces; stop Node `/api/auth` as org-room authority. |
 | [Local models](#4-local-models) | native_host | partial | yes | P0 | Org room uses the studio local-model pool, not sidecar `/api/settings/ai`. |
 | [Host knowledge bases](#5-host-knowledge-bases) | native_host | no | partial | P0 | Keep local RAG default; cloud connectors optional. |
@@ -120,14 +120,14 @@ These shipping shapes still need a native port. They are bridges.
 
 | | |
 |---|---|
-| **Lives today** | `export_standalone.py`, `freeos org export-standalone`, `scripts/org-export/template/`, copy of `dashboard/src/org-ui`, [org-export.md](org-export.md) |
+| **Lives today** | `export_standalone.py`, `freeos org export-standalone` (`--mode full` default copies `modules/openxyos` + `slice/`), `scripts/org-export/template/` + `pack/`, copy of `dashboard/src/org-ui`, [org-export.md](org-export.md) |
 | **Status** | `export_only` |
-| **Depends on Node?** | partial (dev-time Node to build Vite; runtime proxies to FreeOS) |
+| **Depends on Node?** | partial (full tree **runs** with Node; slice still proxies to FreeOS) |
 | **Commercial export?** | yes |
 | **Priority** | P0 · Wave B |
-| **Next step** | Exportable openXYOS **source tree** a customer can self-host. SPA + `FREEOS_UPSTREAM` proxy is an early delivery, not the finished product. |
+| **Next step** | Unify with `POST /api/org-module/source/download`; optional self-contained API inside the slice. Do not freeze slice-only SPA+proxy as the commercial artifact. |
 | **Tests** | `tests/unit/cli/test_org_export_standalone.py` |
-| **Unknown** | Self-contained org API inside the package is a stated target, not implemented. |
+| **Unknown** | Slice self-contained org API is still a stated follow-on, not implemented. |
 
 ### 3. Tenant / auth (dual identity)
 

@@ -206,24 +206,26 @@
       "name_zh": "独立站导出（商业加售）",
       "lives_today": [
         "src/octop/modules/org_os/export_standalone.py",
-        "src/octop/cli/commands/org.py export-standalone",
+        "src/octop/cli/commands/org.py export-standalone --mode full|slice",
         "scripts/org-export/template/",
-        "dashboard/src/org-ui (copied into dist)",
+        "scripts/org-export/pack/",
+        "modules/openxyos (copied into dist/openxyos)",
+        "dashboard/src/org-ui (copied into dist/slice)",
         "docs/org-export.md"
       ],
       "status": "export_only",
       "depends_on_node": "partial",
       "needed_for_commercial_export": "yes",
       "priority": "P0",
-      "next_step": "Replace SPA + proxy to FREEOS_UPSTREAM /api/org-module with an exportable openXYOS source tree that a customer can self-host; today's package is an early delivery, not the finished product.",
+      "next_step": "Unify with POST /api/org-module/source/download; optional self-contained API inside the slice. Default --mode full already copies the openXYOS source tree; do not freeze slice-only SPA+proxy as the commercial artifact.",
       "wave": "B-export",
       "evidence": [
-        "docs/org-export.md transitional vs target table",
+        "docs/org-export.md dual-mode full vs slice",
         "src/octop/modules/org_os/contract.py SHARED_ORG_UI_MODULES"
       ],
       "tests": ["tests/unit/cli/test_org_export_standalone.py"],
       "unknowns": [
-        "Self-contained org API inside the export package is still a stated target, not implemented."
+        "Self-contained org API inside the slice is still a stated follow-on, not implemented."
       ]
     },
     {
