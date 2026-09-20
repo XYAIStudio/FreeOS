@@ -171,9 +171,11 @@ def test_sidecar_packaging_excludes_dotenv() -> None:
 
 def test_secret_patterns_catch_deepseek_like_defaults() -> None:
     fake = (
-        'LLM_API_KEY=sk-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n'
+        "LLM_API_KEY=sk-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n"
         '{"api_key": "sk-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"}\n'
     )
     hits = _findings_in(Path("fixture.env"), fake)
     assert hits
-    assert any("DeepSeek-like" in hit or "json api_key" in hit or "LLM_API_KEY" in hit for hit in hits)
+    assert any(
+        "DeepSeek-like" in hit or "json api_key" in hit or "LLM_API_KEY" in hit for hit in hits
+    )
