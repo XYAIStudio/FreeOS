@@ -96,6 +96,8 @@ LangString OPENXYOS_FAIL_LOG ${LANG_SIMPCHINESE} "详细日志：%LOCALAPPDATA%\
 LangString OPENXYOS_FAIL_LOG ${LANG_ENGLISH} "Logs: %LOCALAPPDATA%\\FreeOS\\openxyos\\start.log and provision.log"
 LangString UN_FREEOS_RUNNING ${LANG_SIMPCHINESE} "检测到 FreeOS 仍在运行（主程序、主机或本机 openXYOS）。$\r$\n$\r$\n继续将结束这些进程，并删除安装目录中的程序文件。$\r$\n用户数据（%USERPROFILE%\.freeos）会保留。$\r$\n$\r$\n要继续卸载吗？"
 LangString UN_FREEOS_RUNNING ${LANG_ENGLISH} "FreeOS is still running (shell, host, or local openXYOS).$\r$\n$\r$\nContinuing will stop those processes and remove program files from the install folder.$\r$\nUser data (%USERPROFILE%\.freeos) is kept.$\r$\n$\r$\nContinue uninstall?"
+LangString INSTALL_FREEOS_RUNNING ${LANG_SIMPCHINESE} "检测到 FreeOS 仍在运行。$\r$\n$\r$\n继续安装将结束这些进程，以便更新桌面程序，并在下次启动时刷新 %USERPROFILE%\.freeos\portable（程序包与界面）。$\r$\n对话与数据库会保留。$\r$\n$\r$\n要继续安装吗？"
+LangString INSTALL_FREEOS_RUNNING ${LANG_ENGLISH} "FreeOS is still running.$\r$\n$\r$\nContinuing Setup will stop those processes so the app can be updated, and the next launch can refresh %USERPROFILE%\.freeos\portable (packages and UI).$\r$\nChats and the database are kept.$\r$\n$\r$\nContinue install?"
 
 Name "${INFO_PRODUCTNAME}"
 !ifndef INSTALLER_OUTFILE
@@ -122,12 +124,15 @@ FunctionEnd
 
 Section
     !insertmacro wails.setShellContext
+    !insertmacro wails.stopRunningFreeOSForInstall
 
     !insertmacro wails.webview2runtime
 
     SetOutPath $INSTDIR
 
     !insertmacro wails.files
+    !insertmacro wails.writeInstallStamp
+    !insertmacro wails.invalidateExtractedPortable
 
     # SetOutPath becomes the shortcut WorkingDirectory. Pin it again so
     # WebView2's plugin dir cannot leak into Start in:.

@@ -46,6 +46,60 @@ def test_uninstall_asks_before_stopping_running_processes() -> None:
     assert 'taskkill /F /T /IM "${PRODUCT_EXECUTABLE}"' in nsh
     assert "CloseMainWindow" in nsh
     assert r"*\portable\*launch.py* run*" in nsh
+
+
+def test_install_stops_running_freeos_and_invalidates_portable() -> None:
+    nsi = NSI.read_text(encoding="utf-8-sig")
+    nsh = NSH.read_text(encoding="utf-8")
+    install = nsi[nsi.index("Section\n") : nsi.index('Section "uninstall"')]
+
+    assert "!insertmacro wails.stopRunningFreeOSForInstall" in install
+    assert "!insertmacro wails.writeInstallStamp" in install
+    assert "!insertmacro wails.invalidateExtractedPortable" in install
+    assert install.index("wails.stopRunningFreeOSForInstall") < install.index("wails.files")
+    assert install.index("wails.files") < install.index("wails.writeInstallStamp")
+    assert install.index("wails.writeInstallStamp") < install.index(
+        "wails.invalidateExtractedPortable"
+    )
+
+    assert "LangString INSTALL_FREEOS_RUNNING ${LANG_SIMPCHINESE}" in nsi
+    assert "LangString INSTALL_FREEOS_RUNNING ${LANG_ENGLISH}" in nsi
+    assert r"%USERPROFILE%\.freeos\portable" in nsi
+    assert "refresh" in nsi.lower() or "刷新" in nsi
+
+    stop = nsh[
+        nsh.index("!macro wails.stopRunningFreeOSForInstall") : nsh.index(
+            "!macro wails.writeInstallStamp"
+        )
+    ]
+    assert "wails.detectFreeOSProcesses" in stop
+    assert "IfSilent" in stop
+    assert "MessageBox" in stop
+    assert "Abort" in stop
+    assert "wails.stopFreeOSProcesses" in stop
+    assert "UN_FREEOS_RUNNING" not in stop
+
+    stamp = nsh[
+        nsh.index("!macro wails.writeInstallStamp") : nsh.index(
+            "!macro wails.invalidateExtractedPortable"
+        )
+    ]
+    assert r"$INSTDIR\${INSTALL_STAMP_NAME}" in stamp
+    assert "GetTickCount" in stamp
+    assert "FREEOS_INSTALL_STAMP" in nsh
+
+    invalidate = nsh[
+        nsh.index("!macro wails.invalidateExtractedPortable") : nsh.index(
+            "!macro wails.confirmRunningFreeOS"
+        )
+    ]
+    assert "ReadEnvStr $R5 USERPROFILE" in invalidate
+    assert r"$R5\.freeos\portable\FREEOS_STAMP" in invalidate
+    assert r"$R5\.octop\portable\FREEOS_STAMP" in invalidate
+    assert "FREEOS_HOME" in invalidate
+    assert "OCTOP_HOME" in invalidate
+    assert "octop.db" not in invalidate.lower() or "Do not delete octop.db" in invalidate
+    assert "RMDir" not in invalidate
     assert r"*\org-sidecar\*" in nsh
 
 
@@ -263,6 +317,9 @@ def test_desktop_readme_documents_uninstall_keep_vs_remove() -> None:
     assert "Confirm" in text
     assert "## Windows install finish" in text
     assert "运行 FreeOS" in text
+    assert "FREEOS_INSTALL_STAMP" in text
+    assert "FREEOS_STAMP" in text
+    assert "%USERPROFILE%\\.freeos\\portable" in text
     assert "%LOCALAPPDATA%\\FreeOS\\openxyos" in text
     assert "127.0.0.1:3780" in text
     assert "tar.exe" in text

@@ -49,6 +49,22 @@ unelevated explorer token so the first run does not stamp `%USERPROFILE%\.freeos
 as High integrity. Uncheck to skip. Chinese installer strings are compiled
 with `makensis -INPUTCHARSET UTF8` from a UTF-8 BOM `project.nsi`.
 
+Upgrade / reinstall (same version included) refreshes the extracted runtime:
+
+1. Setup stops a running FreeOS (asks first; silent installs stop without
+   asking) so `FreeOS.exe` can be overwritten and the next launch is not
+   handed off to the old process.
+2. Setup writes `$INSTDIR\FREEOS_INSTALL_STAMP` (product version + tick
+   count, unique per Setup run) and deletes
+   `%USERPROFILE%\.freeos\portable\FREEOS_STAMP` (also `FREEOS_HOME` /
+   `OCTOP_HOME` / leftover `~/.octop/portable` when those env vars are
+   set). User data (`octop.db`, settings, chats) is not deleted.
+3. The next launch compares the install stamp and the zip `FREEOS_STAMP`.
+   Either mismatch re-extracts `packages/` and the embedded dashboard from
+   the new installer into `~/.freeos/portable`, then copies the install
+   stamp into that tree. Later opens skip the extract until the next
+   Setup run.
+
 A healthy default package is **FreeOS.exe + the Python host** — no
 `openxyos-runtime.zip` (~500MB Node payload). Pass
 `SHIP_OPENXYOS_RUNTIME=1` to `wails3 task package` (and when assembling
@@ -177,16 +193,21 @@ cd desktop/src
 OCTOP_DESKTOP_URL=http://127.0.0.1:8088 wails3 dev
 ```
 
-Without `OCTOP_DESKTOP_URL`, first launch uses `~/.freeos/portable/` if valid,
-otherwise extracts the matching zip shipped with the desktop package (embedded
-in the Windows and Linux binaries, under `Contents/Resources` on macOS). The
-Wails shell never downloads the host over the network. For local runtime
-debugging, set
+Without `OCTOP_DESKTOP_URL`, first launch uses `~/.freeos/portable/` if valid
+**and** it already matches this install (same `FREEOS_STAMP` / install stamp);
+otherwise it extracts the matching zip shipped with the desktop package
+(embedded in the Windows and Linux binaries, under `Contents/Resources` on
+macOS). The Wails shell never downloads the host over the network. For local
+runtime debugging, set
 `OCTOP_DESKTOP_PORTABLE_ZIP=/absolute/path/FreeOS-portable-<plat>-<version>.zip`.
-On later launches, a newer bundled portable version replaces the extracted
-runtime after creating a consistent SQLite backup under `{home}/backups/`.
-The upgraded host then applies the normal database migrations during startup.
-Newer extracted runtimes are never downgraded; PostgreSQL remains externally
+On later launches, a newer bundled portable version — or the same version
+with a new `FREEOS_STAMP` / Windows `FREEOS_INSTALL_STAMP` — replaces the
+extracted runtime after creating a consistent SQLite backup under
+`{home}/backups/`. A pending in-app zip under `{home}/updates/` is applied
+even when the bundled stamp still matches. The upgraded host then applies
+the normal database migrations during startup. Newer extracted runtimes are
+never downgraded by an older bundled zip alone; a Windows Setup run still
+refreshes because the install stamp changes. PostgreSQL remains externally
 managed and is not copied by the desktop shell.
 
 GitHub Release names follow `FreeOS-<kind>-<os>-<arch>-<version>.<ext>`:
