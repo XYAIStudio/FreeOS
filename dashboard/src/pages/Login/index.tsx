@@ -56,14 +56,13 @@ export default function LoginPage() {
               /* first-run still goes to model setup when the probe fails */
             }
             navigate(
-              desktopFlow
-                ? desktopPostSessionPath(hasProviders)
-                : "/chat",
+              desktopFlow ? desktopPostSessionPath(hasProviders) : "/chat",
               { replace: true },
             );
           }
           return;
         } catch {
+          if (cancelled) return;
           if (attempt < attempts - 1) {
             await new Promise((resolve) => {
               window.setTimeout(resolve, delayMs);
@@ -89,6 +88,7 @@ export default function LoginPage() {
             }
             return;
           } catch {
+            if (cancelled) return;
             await new Promise((resolve) => {
               window.setTimeout(resolve, 400);
             });
