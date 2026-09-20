@@ -85,9 +85,7 @@ async def test_explicit_selected_ids_route_even_when_display_tokens_do_not_match
         messages=[
             HumanMessage(
                 content="请分别给出建议",
-                additional_kwargs={
-                    "octop_composer_context": {"targetAgents": ["b", "a"]}
-                },
+                additional_kwargs={"octop_composer_context": {"targetAgents": ["b", "a"]}},
             )
         ]
     )
