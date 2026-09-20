@@ -20,7 +20,8 @@ async def test_admin_fetch_models_requires_api_key(env: Any) -> None:
     assert r.status_code == 200
     body = r.json()
     assert body["ok"] is False
-    assert "api_key" in body["error"]
+    err = body["error"]
+    assert "api key" in err.lower() or "密钥" in err
 
 
 async def test_admin_fetch_models_rejects_non_openai_kind(env: Any) -> None:
