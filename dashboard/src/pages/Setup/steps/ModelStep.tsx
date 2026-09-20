@@ -21,6 +21,10 @@ import { Plus, Trash2, Zap } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { request } from "../../../api/request";
 import {
+  localModelsApi,
+  type LocalProbe,
+} from "../../../api/modules/localModels";
+import {
   wizardApi,
   wizardSession,
   resolveSetupProbeToken,
@@ -102,6 +106,9 @@ interface Props {
   onContinue: (draft: ProviderDraft) => void;
   hideBack?: boolean;
   skipLabel?: string;
+  continueLabel?: string;
+  intro?: string;
+  detectLocal?: boolean;
 }
 
 type SetupMode = "preset" | "custom";
@@ -128,6 +135,9 @@ export default function ModelStep({
   onContinue,
   hideBack = false,
   skipLabel,
+  continueLabel,
+  intro,
+  detectLocal = false,
 }: Props) {
   const { t } = useTranslation();
   const [presetForm] = Form.useForm<PresetFormValues>();
@@ -138,6 +148,7 @@ export default function ModelStep({
   const [mode, setMode] = useState<SetupMode>("preset");
   const [selectedPresetId, setSelectedPresetId] = useState<string>("");
   const [showAllPresets, setShowAllPresets] = useState(false);
+  const [localProbe, setLocalProbe] = useState<LocalProbe | null>(null);
   const [customModels, setCustomModels] = useState<CustomModelEntry[]>([]);
   const [addingCustomModel, setAddingCustomModel] = useState(false);
   const [addingPresetModel, setAddingPresetModel] = useState(false);
@@ -196,6 +207,22 @@ export default function ModelStep({
   }, [presetForm]);
 
   useEffect(() => {
+    if (!detectLocal) return;
+    let cancelled = false;
+    void localModelsApi
+      .probe()
+      .then((probe) => {
+        if (!cancelled) setLocalProbe(probe);
+      })
+      .catch(() => {
+        /* probe is best-effort; cloud key + skip still work */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [detectLocal]);
+
+  useEffect(() => {
     if (!loadingPresets && presets.length === 0) {
       setMode("custom");
     }
@@ -236,6 +263,42 @@ export default function ModelStep({
   const customIsLocal = isLocalBaseUrl(customBaseUrl);
   const canContinueWithoutTest =
     (mode === "preset" && isOllama) || (mode === "custom" && customIsLocal);
+
+  const localDetectHint = (() => {
+    if (!detectLocal || !localProbe) return null;
+    const hardware = localProbe.hardware;
+    if (hardware.ollama_reachable) return t("wizard.model.ollamaDetected");
+    if (hardware.ollama_installed || hardware.ollama_binary) {
+      return t("wizard.model.ollamaInstalled");
+    }
+    return t("wizard.model.ollamaMissing");
+  })();
+
+  const renderStepIntro = (fallback: string) => (
+    <>
+      <Text type="secondary" style={{ fontSize: 13 }}>
+        {intro ?? fallback}
+      </Text>
+      {localDetectHint ? (
+        <Text type="secondary" className={setupStyles.localDetectHint}>
+          {localDetectHint}
+        </Text>
+      ) : null}
+      {detectLocal ? (
+        <Text type="secondary" className={setupStyles.nextHint}>
+          {t("wizard.model.nextHint")}
+        </Text>
+      ) : null}
+      {canContinueWithoutTest && (
+        <Text
+          type="secondary"
+          style={{ fontSize: 12, display: "block", marginTop: 6 }}
+        >
+          {t("wizard.model.localOptionalTest")}
+        </Text>
+      )}
+    </>
+  );
 
   const applyPreset = (p: ProviderPreset) => {
     resetTest();
@@ -573,9 +636,10 @@ export default function ModelStep({
           disabled={!testPassed && !canContinueWithoutTest}
           onClick={() => void handleContinue()}
         >
-          {testPassed || !canContinueWithoutTest
-            ? t("wizard.model.continue")
-            : t("wizard.model.continueLocal")}
+          {continueLabel ??
+            (testPassed || !canContinueWithoutTest
+              ? t("wizard.model.continue")
+              : t("wizard.model.continueLocal"))}
         </Button>
       </Space>
     </div>
@@ -1231,6 +1295,11 @@ export default function ModelStep({
           <Text type="secondary" style={{ fontSize: 13 }}>
             {t("models.noProvidersHint")}
           </Text>
+          {detectLocal ? (
+            <Text type="secondary" className={setupStyles.nextHint}>
+              {t("wizard.model.nextHint")}
+            </Text>
+          ) : null}
         </div>
         <div className={setupStyles.modelStepMode}>
           <Segmented<SetupMode>
@@ -1266,17 +1335,7 @@ export default function ModelStep({
         >
           {t("wizard.stepModel")}
         </div>
-        <Text type="secondary" style={{ fontSize: 13 }}>
-          {t("wizard.model.intro")}
-        </Text>
-        {canContinueWithoutTest && (
-          <Text
-            type="secondary"
-            style={{ fontSize: 12, display: "block", marginTop: 6 }}
-          >
-            {t("wizard.model.localOptionalTest")}
-          </Text>
-        )}
+        {renderStepIntro(t("wizard.model.intro"))}
       </div>
 
       <div className={setupStyles.modelStepMode}>

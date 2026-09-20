@@ -33,6 +33,7 @@ function renderLogin() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/chat" element={<div>usable app</div>} />
         <Route path="/setup" element={<div>setup wizard</div>} />
+        <Route path="/projects" element={<div>conversation list</div>} />
       </Routes>
     </MemoryRouter>,
   );
@@ -69,7 +70,6 @@ describe("LoginPage local session", () => {
     expect(screen.queryByText("login form")).toBeNull();
     expect(getAuthToken()).toBe("guest-token");
     await waitFor(() => expect(localSession).toHaveBeenCalledOnce());
-    expect(getAuthStatus).not.toHaveBeenCalled();
   });
 
   it("shows the form when a local session is not available", async () => {
@@ -105,6 +105,7 @@ describe("LoginPage local session", () => {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/chat" element={<div>usable app</div>} />
           <Route path="/setup" element={<div>model setup</div>} />
+          <Route path="/projects" element={<div>conversation list</div>} />
         </Routes>
       </MemoryRouter>,
     );
@@ -112,6 +113,43 @@ describe("LoginPage local session", () => {
     expect(await screen.findByText("model setup")).toBeInTheDocument();
     expect(screen.queryByText("login form")).toBeNull();
     expect(getAuthToken()).toBe("guest-token");
+  });
+
+  it("opens returning desktop users on the conversation list", async () => {
+    localSession.mockResolvedValue({
+      access_token: "guest-token",
+      token_type: "Bearer",
+      expires_in: 3600,
+      user: {
+        id: 1,
+        username: "local",
+        role: "admin",
+        display_name: "FreeOS",
+        locale: "zh",
+        is_local: true,
+      },
+      token: "guest-token",
+    });
+    getAuthStatus.mockResolvedValue({
+      setup_required: false,
+      has_providers: true,
+      desktop: true,
+    });
+
+    render(
+      <MemoryRouter initialEntries={["/login?desktop=1"]}>
+        <Routes>
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/chat" element={<div>usable app</div>} />
+          <Route path="/setup" element={<div>model setup</div>} />
+          <Route path="/projects" element={<div>conversation list</div>} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText("conversation list")).toBeInTheDocument();
+    expect(screen.queryByText("login form")).toBeNull();
+    expect(screen.queryByText("model setup")).toBeNull();
   });
 
   it("does not render the login form inside the desktop shell", async () => {
@@ -125,6 +163,7 @@ describe("LoginPage local session", () => {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/chat" element={<div>usable app</div>} />
           <Route path="/setup" element={<div>setup wizard</div>} />
+          <Route path="/projects" element={<div>conversation list</div>} />
         </Routes>
       </MemoryRouter>,
     );

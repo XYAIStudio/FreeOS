@@ -140,6 +140,92 @@ describe("AuthGuard local session", () => {
     expect(getAuthToken()).toBe("guest-token");
   });
 
+  it("sends a provisioned desktop guest to model setup", async () => {
+    getAuthStatus.mockResolvedValue({
+      setup_required: false,
+      has_providers: false,
+      desktop: true,
+    });
+    localSession.mockResolvedValue({
+      access_token: "guest-token",
+      token_type: "Bearer",
+      expires_in: 3600,
+      user: {
+        id: 1,
+        username: "local",
+        role: "admin",
+        display_name: "FreeOS",
+        locale: "zh",
+        is_local: true,
+      },
+      token: "guest-token",
+    });
+
+    render(
+      <MemoryRouter initialEntries={["/chat?desktop=1"]}>
+        <Routes>
+          <Route
+            path="/chat"
+            element={
+              <AuthGuard>
+                <div>usable app</div>
+              </AuthGuard>
+            }
+          />
+          <Route path="/login" element={<div>login wall</div>} />
+          <Route path="/setup" element={<div>model setup</div>} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText("model setup")).toBeInTheDocument();
+    expect(screen.queryByText("login wall")).toBeNull();
+    expect(screen.queryByText("usable app")).toBeNull();
+  });
+
+  it("does not loop returning desktop users who already have a provider", async () => {
+    getAuthStatus.mockResolvedValue({
+      setup_required: false,
+      has_providers: true,
+      desktop: true,
+    });
+    localSession.mockResolvedValue({
+      access_token: "guest-token",
+      token_type: "Bearer",
+      expires_in: 3600,
+      user: {
+        id: 1,
+        username: "local",
+        role: "admin",
+        display_name: "FreeOS",
+        locale: "zh",
+        is_local: true,
+      },
+      token: "guest-token",
+    });
+
+    render(
+      <MemoryRouter initialEntries={["/chat?desktop=1"]}>
+        <Routes>
+          <Route
+            path="/chat"
+            element={
+              <AuthGuard>
+                <div>usable app</div>
+              </AuthGuard>
+            }
+          />
+          <Route path="/login" element={<div>login wall</div>} />
+          <Route path="/setup" element={<div>model setup</div>} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText("usable app")).toBeInTheDocument();
+    expect(screen.queryByText("model setup")).toBeNull();
+    expect(screen.queryByText("login wall")).toBeNull();
+  });
+
   it("opens the studio door even when the organization room is available", async () => {
     organizationIdentityStatus.mockResolvedValue({
       integrated: true,

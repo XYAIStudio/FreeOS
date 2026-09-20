@@ -10,6 +10,10 @@
 
 - 桌面安装包与配置模板不再允许嵌入云厂商 API Key（含 DeepSeek）。首次运行不会预填真实密钥：优先本机 Ollama，云调用在密钥为空时直接拒绝并提示用户自行填写（即使环境里有 `DEEPSEEK_API_KEY` / `OPENAI_API_KEY` / `LLM_API_KEY` 也不写入 `providers`）。打包排除 `.env`、`octop.db`、`.freeos`，打 zip 前扫描 staging。生产/air-gap sidecar 不再回退 `LLM_API_KEY`。已发布的 **0.0.1–0.0.4** 安装包须下架（已从 Release 删除），并轮换可能泄露的 DeepSeek 密钥。
 
+### 变更
+
+- 桌面首次启动不再要求注册/登录。首屏是可选模型配置（云密钥或本机 Ollama，可跳过）；跳过或保存后进入默认智能体对话，而不是停在工作台列表。已有提供商或会话的用户不会被再次拦住。账号仍可稍后在头像菜单里领取，供保存/导出/组织房间使用。首次运行与安全条目一致：不预填云密钥，本机 Ollama 优先。
+
 ### 文档
 
 - 增加阿拉伯语（`README.ar.md`）与葡萄牙语（`README.pt.md`）项目简介，并在各语言 README 的语言切换链接中列出。

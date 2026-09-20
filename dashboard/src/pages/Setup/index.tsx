@@ -12,8 +12,9 @@ import { setAuthToken } from "../../api/request";
 import { preferencesApi } from "../../api/modules/preferences";
 import BrandMark from "../../components/BrandMark";
 import {
+  desktopAfterModelSetupPath,
   desktopPostSessionPath,
-  markDesktopModelOnboardingDone,
+  needsDesktopModelOnboarding,
 } from "../../utils/desktopOnboarding";
 import { isDesktopShell } from "../../utils/desktopShell";
 import DatabaseStep from "./steps/DatabaseStep";
@@ -72,9 +73,8 @@ export default function SetupPage() {
   }, []);
 
   const enterWorkspace = useCallback(() => {
-    markDesktopModelOnboardingDone();
     wizardSession.clearAll();
-    navigate("/chat", { replace: true });
+    navigate(desktopAfterModelSetupPath(), { replace: true });
   }, [navigate]);
 
   useEffect(() => {
@@ -86,11 +86,11 @@ export default function SetupPage() {
         const desktop = isDesktopShell() || status.desktop === true;
 
         if (desktop) {
-          if (
-            desktopPostSessionPath(status.has_providers === true) === "/chat"
-          ) {
+          if (!needsDesktopModelOnboarding(status.has_providers === true)) {
             wizardSession.clearAll();
-            navigate("/chat", { replace: true });
+            navigate(desktopPostSessionPath(status.has_providers === true), {
+              replace: true,
+            });
             return;
           }
           try {
@@ -290,7 +290,9 @@ export default function SetupPage() {
               <div className={styles.wizardHeaderBrandText}>
                 <Text type="secondary" className={styles.wizardHeaderSubtitle}>
                   <Wand2 size={11} />{" "}
-                  {desktopFlow ? t("wizard.desktopTitle") : t("wizard.title")}
+                  {desktopFlow
+                    ? t("wizard.desktopSubtitle")
+                    : t("wizard.title")}
                 </Text>
               </div>
             </div>
@@ -324,7 +326,10 @@ export default function SetupPage() {
           {desktopFlow ? (
             <ModelStep
               hideBack
-              skipLabel={t("wizard.model.skipToWorkspace")}
+              detectLocal
+              intro={t("wizard.model.desktopIntro")}
+              skipLabel={t("wizard.model.skipToChat")}
+              continueLabel={t("wizard.model.continueToChat")}
               onBack={() => undefined}
               onSkip={enterWorkspace}
               onContinue={(draft) => {
