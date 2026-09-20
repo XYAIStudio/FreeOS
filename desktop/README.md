@@ -1,6 +1,6 @@
 # FreeOS desktop (Wails v3 + green portable)
 
-> Product intent: [docs/product-contract.md](../docs/product-contract.md). Managed Node + iframe (desktop 0.0.3) and Phase-5 default zero-Node are **transition bridges**. End state: native openXYOS-in-host, plus exportable source. Settle in locally first; organization capabilities are another room in the same studio.
+> Product intent: [docs/product-contract.md](../docs/product-contract.md). Managed Node + iframe (desktop 0.0.3–0.0.4) and Phase-5 default zero-Node are **transition bridges**. End state: native openXYOS-in-host, plus exportable source. Settle in locally first; organization capabilities are another room in the same studio.
 
 Windows end-user product: **download the NSIS `.exe` → install → open FreeOS**
 (Octop host shell + in-host Organization). The full openXYOS Node stack is
@@ -122,7 +122,7 @@ opt into `SHIP_OPENXYOS_RUNTIME=1`):
 make -f desktop/portable/Makefile green
 ```
 
-The managed Node sidecar is included in the 0.0.3 desktop release so the
+The managed Node sidecar is included in the 0.0.4 desktop release so the
 integrated Organization workspace works in an offline installation. Set
 `SKIP_ORG_SIDECAR=1` only for an explicitly slim, host-only development build.
 

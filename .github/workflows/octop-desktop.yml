@@ -188,7 +188,7 @@ jobs:
       - name: Assemble green zip
         env:
           GREEN_HOST_PLAT: ${{ matrix.plat }}
-          # Transitional desktop flavor (0.0.3 iframe bridge). Default packaging
+          # Transitional desktop flavor (0.0.3 iframe bridge, still 0.0.4). Default packaging
           # is zero-Node; do not treat this flag as the permanent product.
           SKIP_ORG_SIDECAR: "0"
           SHIP_OPENXYOS_RUNTIME: "1"

@@ -99,7 +99,7 @@ These shipping shapes still need a native port. They are bridges.
 - **Unknowns** are marked per domain. Do not invent API field maps.
 - Two runtimes on current `main`:
   - **Source `freeos run`** (no `FREEOS_ORG_INTEGRATED`): native workbench + org-ui slices; Node sidecar opt-in.
-  - **Desktop 0.0.3**: integrated Node + iframe of App.tsx. That is the bridge, not the destination.
+  - **Desktop 0.0.3–0.0.4**: integrated Node + iframe of App.tsx. That is the bridge, not the destination.
 
 ## Domains
 

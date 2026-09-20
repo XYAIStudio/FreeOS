@@ -99,7 +99,7 @@
 - 各域的 **未知项** 单独标出，不编造字段对照。
 - 当前 `main` 上实际有两套运行形态：
   - **源码 `freeos run`**（未设 `FREEOS_ORG_INTEGRATED`）：原生工作台 + org-ui 切片；Node 边车可选。
-  - **桌面 0.0.3**：集成 Node + iframe 完整 App.tsx。这是桥，不是目的地。
+  - **桌面 0.0.3–0.0.4**：集成 Node + iframe 完整 App.tsx。这是桥，不是目的地。
 
 ## 各域
 

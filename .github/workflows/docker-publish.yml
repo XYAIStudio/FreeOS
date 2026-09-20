@@ -16,7 +16,7 @@ name: Docker Publish
 #
 # 拉取示例：
 #   docker pull ghcr.io/xyaistudio/freeos:latest
-#   docker pull ghcr.io/xyaistudio/freeos:0.0.3
+#   docker pull ghcr.io/xyaistudio/freeos:0.0.4
 on:
   push:
     tags:

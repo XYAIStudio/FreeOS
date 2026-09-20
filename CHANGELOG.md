@@ -6,6 +6,19 @@
 
 ## [Unreleased]
 
+## [0.0.4] - 2026-09-20
+
+面向桌面用户的版本：自 [0.0.3] 起纳入产品契约与迁移图（P0）、双向资产总线 / 可商业化导出 / 双身份 UX / 本机模型与知识库（P1）、Node 过渡卫生（P2），以及宿主原生组织 Wave 1 / Wave 2。桌面 CI 仍显式 `SHIP_OPENXYOS_RUNTIME=1`（延续 0.0.3 iframe 过渡桥，不是永久产品）；`uv run` / Docker / 默认绿色包为零 Node。规范来源是 `pyproject.toml`；发布标签 `v0.0.4`。
+
+### 新增
+
+- Wave 2（宿主原生组织深度）：公告已读名单、任务附件（`{FREEOS_HOME}/org/task-files`）、架构图汇报线/部门类型/JSON 导入、工作台与总览内联批准宿主治理暂停、目录启用展示 `delivery`/`host_path`。不扩展永久 Node，不删除 `ManagedOrganizationRuntime`。双身份工作室 vs 组织房间不变。迁移图计数不变（9 native / 11 slice / 12 iframe）。
+- Wave 1（宿主原生组织）：人才市场落到宿主 `org_chart.sqlite`（`talent_pool`）与 `/api/org-module/talent*`；资产总线 apply 无 Node 也写入名册/人才；治理待处理暂停出现在组织首页与工作台总览；`/organization` 即使桌面集成也不再被 iframe 吞掉（原 App 仅作过渡链接）；目录叠加 `delivery`/`host_path`。双身份边界与默认零 Node 不变。迁移图：人才市场 `managed_node_iframe` → `org_ui_slice`（13→12 iframe，10→11 slice）。
+- 双身份边界（P1.3）：工作室本机登录与组织房间登录分成两扇门。组织管理员不再被抬成宿主 `Role.ADMIN`；工作室访客不能拿宿主通行证写组织房间业务。界面与文档用「工作室 / 另一间房间 / 各自留白」说明两条路径。
+- P1.2：`freeos org export-standalone` 默认 `--mode full` 写出可商业化 openXYOS **源码包**（`openxyos/` Apache-2.0 完整 App.tsx 树 + `slice/` MIT 宿主桥 + `modules.json` 对照清单）。`--mode slice` 保留原先 org-ui SPA + `FREEOS_UPSTREAM` 反代。工作室智能体对话不导出；组织沟通协作在完整树。说明见 `docs/org-export.md`。
+- Organization P1.1（双向资产总线）：`freeos org loop run` / `POST /api/org-module/loop/run` / `assets apply` 在托管组织运行时、`OPENXYOS_BASE_URL` 或 `{FREEOS_HOME}/org-os/runtime.json` 可用时，把资产包 ingest 进当前**组织工作区租户**（`remote_applied=true`），不再只写 `openxyos-mirror/`。无运行时地址时仍为镜像-only，且不拉起 Node。回流后同事仍登记为 `org-<slug>` 聊天智能体。FreeOS 工作室账号与组织房间身份分开。说明见 `docs/asset-loop.md`。
+- P0.2：openXYOS → FreeOS 能力迁移图（`docs/org-capability-migration-map.md` / `.zh-CN.md` + `docs/org-capability-migration-map.json`）。按域记录原生宿主 / org-ui 切片 / 托管 Node iframe / 可选边车 / 仅导出；波次为资产总线 → 导出 → 双身份 UX → 本地模型/知识库 → 拆除 Node。不改运行时。
+
 ### 变更
 
 - P1.4：本机模型与本机知识库作为默认路径。设置向导默认先选 Ollama（本机 OpenAI 兼容地址不必填云密钥）；模型页默认打开「本地」标签；知识库空状态先引导本机文件夹，向量默认本机 ONNX。云厂商与 ima 仍是可选项。说明见 `docs/user-guide.md`、`docs/configuration.md`。
@@ -22,14 +35,24 @@
 - 冻结 FreeOS 产品契约（P0.1）：[docs/product-contract.md](docs/product-contract.md) / [docs/product-contract.zh-CN.md](docs/product-contract.zh-CN.md)。核心愿景采用「创立初心」定稿（中文原文；英文 README 为忠实对应；使用方式段为工作室比喻：本机安顿起步，组织像另一间可独立布置的房间）。产品口号：**FreeOS：自由的 AI 工作室，想象空间由你来打开** / *Your FreeOS, free for you.* 托管 Node / 内嵌组织页仅为过渡桥，终态是把 openXYOS 迁入宿主并导出可商业化源码。取代先前「组织身份为唯一权威」与「永久 / 默认捆绑 Node 运行时」表述。冲突文档改为 Historical vs Current，不删工程历史。
 - 官网 `website/` 文案对齐产品契约：中文口号作 Hero / 标题，英文 *Your FreeOS, free for you.* 作 EN 标题与 meta；工作室比喻贯穿介绍与 FAQ；下载入口只指向 GitHub Releases 列表（不写死版本号、不直链安装包）；不再承诺永久零 Node，托管运行时写成迁向宿主原生界面的过渡。
 
+## [0.0.3] - 2026-09-20
+
 ### 新增
 
-- Wave 2（宿主原生组织深度）：公告已读名单、任务附件（`{FREEOS_HOME}/org/task-files`）、架构图汇报线/部门类型/JSON 导入、工作台与总览内联批准宿主治理暂停、目录启用展示 `delivery`/`host_path`。不扩展永久 Node，不删除 `ManagedOrganizationRuntime`。双身份工作室 vs 组织房间不变。迁移图计数不变（9 native / 11 slice / 12 iframe）。
-- Wave 1（宿主原生组织）：人才市场落到宿主 `org_chart.sqlite`（`talent_pool`）与 `/api/org-module/talent*`；资产总线 apply 无 Node 也写入名册/人才；治理待处理暂停出现在组织首页与工作台总览；`/organization` 即使桌面集成也不再被 iframe 吞掉（原 App 仅作过渡链接）；目录叠加 `delivery`/`host_path`。双身份边界与默认零 Node 不变。迁移图：人才市场 `managed_node_iframe` → `org_ui_slice`（13→12 iframe，10→11 slice）。
-- 双身份边界（P1.3）：工作室本机登录与组织房间登录分成两扇门。组织管理员不再被抬成宿主 `Role.ADMIN`；工作室访客不能拿宿主通行证写组织房间业务。界面与文档用「工作室 / 另一间房间 / 各自留白」说明两条路径。
-- P1.2：`freeos org export-standalone` 默认 `--mode full` 写出可商业化 openXYOS **源码包**（`openxyos/` Apache-2.0 完整 App.tsx 树 + `slice/` MIT 宿主桥 + `modules.json` 对照清单）。`--mode slice` 保留原先 org-ui SPA + `FREEOS_UPSTREAM` 反代。工作室智能体对话不导出；组织沟通协作在完整树。说明见 `docs/org-export.md`。
-- Organization P1.1（双向资产总线）：`freeos org loop run` / `POST /api/org-module/loop/run` / `assets apply` 在托管组织运行时、`OPENXYOS_BASE_URL` 或 `{FREEOS_HOME}/org-os/runtime.json` 可用时，把资产包 ingest 进当前**组织工作区租户**（`remote_applied=true`），不再只写 `openxyos-mirror/`。无运行时地址时仍为镜像-only，且不拉起 Node。回流后同事仍登记为 `org-<slug>` 聊天智能体。FreeOS 工作室账号与组织房间身份分开。说明见 `docs/asset-loop.md`。
-- P0.2：openXYOS → FreeOS 能力迁移图（`docs/org-capability-migration-map.md` / `.zh-CN.md` + `docs/org-capability-migration-map.json`）。按域记录原生宿主 / org-ui 切片 / 托管 Node iframe / 可选边车 / 仅导出；波次为资产总线 → 导出 → 双身份 UX → 本地模型/知识库 → 拆除 Node。不改运行时。
+- 交付完整 Organization 集成：FreeOS 统一身份与权限桥接、宿主入口及 openXYOS 管理运行时随桌面安装包分发，离线环境也可使用组织工作台。
+- 群聊中对专家的明确 `@` 提及由后端确定性路由到实际专家调用；讨论和头脑风暴场景不再让本地小模型自行决定工具调用。
+
+### 修复
+
+- 统一源代码、CLI 与桌面安装包的 `0.0.3` 版本标识；Windows 打包工作流校验并携带 Organization sidecar。
+- OpenXYOS 的本机登录、注册、测试账号和模型配置不再依赖或复用 FreeOS 账户令牌。首次登录会检查本机模型配置：未配置时进入设置并说明智能体、群聊和行业知识加工需要用户自行配置模型；已配置时进入工作台。
+
+### 补记（发版时已在主干、原先写在 Unreleased）
+
+Phase 2–5 宿主组织切片与边车时代修复已随 0.0.3 桌面包发出，此处补记以免 CHANGELOG 丢失细节。
+
+### 新增
+
 - Organization Phase 5（默认安装器瘦身）：Windows/macOS/Linux 默认包装与 Docker Compose 保持 **单进程 FreeOS + 宿主内 Organization**，不捆绑、不解压、不自动拉起 openXYOS Node。`FREEOS_ORG_SIDECAR=1` 与 `SHIP_OPENXYOS_RUNTIME=1` 仍是可选高级路径。文档对齐 #55 / ADR 001 / ADR 003 / `docs/org-export.md`。`modules/openxyos` 保留给导出与开发，不是默认运行时。
 - Organization Phase 4（独立站导出起步）：`freeos org export-standalone --out <dir>` 从 `dashboard/src/org-ui` 生成可运行的 Vite 包（OpenApp 风格路由、本地 JWT IdentityBridge `openxyos.standalone.jwt`、登录页、Docker / docker-compose、`server/proxy.mjs` 把 `/api` 反代到 FreeOS `FREEOS_UPSTREAM`）。Chat 不导出。默认安装器零 Node（Phase 5）。说明见 `docs/org-export.md`。
 - Organization Phase 3（工作台总览切片，Open-12 收口）：宿主内薄 Workspace / OpenDashboard。Dashboard `/organization/workspace` 使用共享 `dashboard/src/org-ui` 的 `WorkspacePage`。数据复用已有 `GET /api/org-module/overview`，链到已迁的公告 / 架构 / 员工 / 技能 / 智能体 / 任务 / 知识 / 反思 / 治理 / 设置。**不是**第二套控制面（assemble / pack / loop 仍在 `/organization`）。**Chat 永久不迁。** `freeos org export-standalone` 同时列出 Workspace。Phase 3 Open-12 宿主 UI 完成，下一步 Phase 4 导出。
@@ -45,7 +68,7 @@
 
 ### 修复
 
-> 下面若干「启动即拉起本机 openXYOS」条目记录的是 0.0.1 边车时代问题。默认路径已被 [0.0.2] 与本文件 Unreleased 的 Phase 5 取代：安装与首屏不再捆绑或自动拉起 Node。
+> 下面若干「启动即拉起本机 openXYOS」条目记录的是 0.0.1 边车时代问题。默认路径已被 [0.0.2] 与 [0.0.3] 的 Phase 5 取代：安装与首屏不再捆绑或自动拉起 Node。
 
 - Windows 安装预配不再把 Node 工作目录选到残留的嵌套 `openxyos\\openxyos`：顶层已有 `backend-dist/server.js` 与 `dist/index.html` 时必须用 live 根。嵌套 cwd 会让 `node backend-dist/server.js` 立刻退出且 stdout/stderr 为空，安装空等 90s 后以退出码 12 失败。`start-sidecar.ps1` / 预配 / 桌面 Go / Python 启动路径统一按此选择 cwd；每次启动截断 `start.log`；Shell.Application 若未刷新日志则改走 explorer / Start-Process，Node fail-fast 不再伪装成 livez 超时。
 - Windows 安装详情不再把 openXYOS 预配的 UTF-8 Node/PowerShell 控制台（`[Error] POST /api/auth`、`[seed]`、中文 Server/WebSocket 状态）按系统 ANSI/GBK 打成乱码。NSIS 只用 `nsExec::Exec` 等退出码，详情页只显示本地化步骤结果；完整日志写入 `%LOCALAPPDATA%\\FreeOS\\openxyos\\provision.log` / `start.log`（UTF-8）。解压前停止并等待旧的 FreeOS openXYOS Node 退出；livez 通过即成功，不把启动期 auth 日志当失败。
@@ -136,21 +159,9 @@
 - First launch on desktop / loopback opens a local guest session — no login wall. Register or sign in only when saving, exporting, or publishing to an account.
 - Login, splash, favicons, and desktop icons use the circular XYAI mark. Product version remains 0.0.1.
 
-## [0.0.3] - 2026-09-20
-
-### 新增
-
-- 交付完整 Organization 集成：FreeOS 统一身份与权限桥接、宿主入口及 openXYOS 管理运行时随桌面安装包分发，离线环境也可使用组织工作台。
-- 群聊中对专家的明确 `@` 提及由后端确定性路由到实际专家调用；讨论和头脑风暴场景不再让本地小模型自行决定工具调用。
-
-### 修复
-
-- 统一源代码、CLI 与桌面安装包的 `0.0.3` 版本标识；Windows 打包工作流校验并携带 Organization sidecar。
-- OpenXYOS 的本机登录、注册、测试账号和模型配置不再依赖或复用 FreeOS 账户令牌。首次登录会检查本机模型配置：未配置时进入设置并说明智能体、群聊和行业知识加工需要用户自行配置模型；已配置时进入工作台。
-
 ## [0.0.2] - 2026-09-18
 
-当前 FreeOS 产品版本，与 0.0.1 边车时代 Windows 安装包区分。`1.0.0` 对本阶段过早；后续按 [semver](https://semver.org/spec/v2.0.0.html) 随产品成熟度递增。规范来源是 `pyproject.toml`（同步 `octop.__version__`、桌面 / NSIS / FnOS 回退值，以及 CI 产物名）。发布工作流需要标签时使用 `v0.0.2`；不重写已推送的历史 tag。
+当时的 FreeOS 产品版本，与 0.0.1 边车时代 Windows 安装包区分。后续版本见 [0.0.4]。`1.0.0` 对本阶段过早；后续按 [semver](https://semver.org/spec/v2.0.0.html) 随产品成熟度递增。规范来源是 `pyproject.toml`（同步 `octop.__version__`、桌面 / NSIS / FnOS 回退值，以及 CI 产物名）。发布工作流需要标签时使用 `v0.0.2`；不重写已推送的历史 tag。
 
 命令核对：`uv run freeos --version` 与 `uv run python -c "import octop; print(octop.__version__)"` 均应输出 `0.0.2`。
 
