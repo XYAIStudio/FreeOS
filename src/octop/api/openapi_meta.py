@@ -167,7 +167,7 @@ OPENAPI_TAGS: list[dict[str, str]] = [
     },
     {
         "name": "org-module",
-        "description": "Organization OS: FreeOS data plane ↔ openXYOS control plane, in-host announcements, org chart, employees, skills, agents, governance, knowledge, tasks, reflections, and settings, sidecar, and growth loop.",
+        "description": "Organization OS: FreeOS data plane ↔ openXYOS control plane, in-host announcements, org chart, employees, talent market, skills, agents, governance, knowledge, tasks, reflections, and settings, sidecar, and growth loop.",
     },
     {
         "name": "browser",

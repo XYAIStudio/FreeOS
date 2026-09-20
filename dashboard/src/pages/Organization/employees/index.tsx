@@ -40,6 +40,7 @@ export default function OrganizationEmployeesPage() {
     >
       <EmployeesPage
         client={client.employees}
+        talent={client.talent}
         session={session}
         locale={locale}
         onOpenEmployee={(id) => navigate(`/organization/employees/${id}`)}

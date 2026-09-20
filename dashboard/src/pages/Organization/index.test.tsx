@@ -126,6 +126,10 @@ const overview: OrgOverview = {
 
 vi.mock("../../api/modules/orgModule", () => ({
   orgModuleApi: {
+    identityStatus: vi.fn(async () => ({
+      integrated: false,
+      authority: "organization",
+    })),
     overview: vi.fn(async () => overview),
     setEnabled: vi.fn(),
     startSidecar: vi.fn(),
@@ -161,6 +165,10 @@ describe("OrganizationPage", () => {
     canPickDesktopFolder.mockReturnValue(true);
     pickDesktopFolder.mockReset();
     vi.mocked(orgModuleApi.overview).mockResolvedValue(overview);
+    vi.mocked(orgModuleApi.identityStatus).mockResolvedValue({
+      integrated: false,
+      authority: "organization",
+    });
     vi.mocked(orgModuleApi.downloadSource).mockReset();
     vi.mocked(orgModuleApi.startSidecar).mockReset();
     vi.mocked(orgModuleApi.restartSidecar).mockReset();
@@ -178,6 +186,10 @@ describe("OrganizationPage", () => {
     expect(
       await screen.findByTestId("org-native-workbench"),
     ).toBeInTheDocument();
+    expect(screen.getByTestId("org-room-hint")).toBeInTheDocument();
+    expect(screen.queryByTestId("org-pause-banner")).toBeNull();
+    expect(screen.queryByTestId("org-original-app-hint")).toBeNull();
+    expect(document.querySelector("iframe")).toBeNull();
     expect(screen.getByTestId("org-runtime-chip")).toHaveTextContent(
       "organization.inHostReady",
     );
@@ -403,5 +415,27 @@ describe("OrganizationPage", () => {
     });
     expect(message.success).toHaveBeenCalledWith("organization.loopOk");
     expect(screen.queryByTestId("org-sidecar-gate")).toBeNull();
+  });
+
+  it("surfaces pending governance pauses and original App as a transition only", async () => {
+    vi.mocked(orgModuleApi.identityStatus).mockResolvedValue({
+      integrated: true,
+      authority: "organization",
+    });
+    vi.mocked(orgModuleApi.overview).mockResolvedValue({
+      ...overview,
+      governance: { pending_pauses: 2, enabled: true, href: "/organization/governance" },
+      freeos: { ...overview.freeos, pending_pauses: 2 },
+    });
+    renderOrg();
+    expect(await screen.findByTestId("org-pause-banner")).toBeInTheDocument();
+    expect(screen.getByTestId("org-pause-open")).toBeInTheDocument();
+    expect(await screen.findByTestId("org-original-app-hint")).toBeInTheDocument();
+    expect(screen.getByTestId("org-open-original-app")).toHaveAttribute(
+      "href",
+      "/organization-app/dashboard?freeos_embed=1",
+    );
+    expect(screen.getByTestId("org-native-workbench")).toBeInTheDocument();
+    expect(document.querySelector("iframe")).toBeNull();
   });
 });

@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
-from typing import TypedDict
+from typing import Any, TypedDict
 
 _KEY_RE = re.compile(r'key:\s*"([a-z0-9-]+)"')
 
@@ -125,6 +125,32 @@ OPENXYOS_MODULES: tuple[OrgCapability, ...] = (
 
 def catalog_keys() -> list[str]:
     return [item["key"] for item in OPENXYOS_MODULES]
+
+
+# UI delivery for each Open-12 key. Keys stay aligned with open-module-catalog.ts.
+CATALOG_HOST_DELIVERY: dict[str, tuple[str, str]] = {
+    "workspace": ("org_ui_slice", "/organization/workspace"),
+    "announcements": ("org_ui_slice", "/organization/announcements"),
+    "organization": ("org_ui_slice", "/organization/org"),
+    "employees": ("org_ui_slice", "/organization/employees"),
+    "skills": ("org_ui_slice", "/organization/skills"),
+    "chat": ("managed_node_iframe", ""),
+    "agents": ("org_ui_slice", "/organization/agents"),
+    "tasks": ("org_ui_slice", "/organization/tasks"),
+    "knowledge": ("org_ui_slice", "/organization/knowledge"),
+    "reflections": ("org_ui_slice", "/organization/reflections"),
+    "governance": ("org_ui_slice", "/organization/governance"),
+    "settings": ("org_ui_slice", "/organization/settings"),
+}
+
+
+def catalog_with_host_delivery() -> list[dict[str, Any]]:
+    """Catalog rows plus host route / delivery overlay (does not change keys)."""
+    rows: list[dict[str, Any]] = []
+    for item in OPENXYOS_MODULES:
+        delivery, host_path = CATALOG_HOST_DELIVERY.get(item["key"], ("managed_node_iframe", ""))
+        rows.append({**item, "delivery": delivery, "host_path": host_path})
+    return rows
 
 
 def is_locked(key: str) -> bool:

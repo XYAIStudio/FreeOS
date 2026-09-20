@@ -231,6 +231,7 @@ class ApplyResult:
     landed: dict[str, Any] = field(default_factory=dict)
     tenant_id: int | None = None
     preview_path: str = "/employees"
+    host_landed: dict[str, Any] = field(default_factory=dict)
 
     @property
     def remote_applied(self) -> bool:
@@ -250,6 +251,7 @@ class ApplyResult:
             "tenant_id": self.tenant_id,
             "preview_path": self.preview_path,
             "landed": dict(self.landed),
+            "host_landed": dict(self.host_landed),
             "receipts": [item.to_dict() for item in self.receipts],
             "notes": list(self.notes),
         }

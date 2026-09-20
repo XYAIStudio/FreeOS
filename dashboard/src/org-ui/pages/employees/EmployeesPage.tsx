@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Button, Input, Modal, Select, Tag, Typography } from "antd";
+import { Button, Input, Modal, Select, Tabs, Tag, Typography } from "antd";
 import { Plus, Search, Users } from "lucide-react";
 import type {
   OrgDepartment,
   OrgEmployee,
   OrgEmployeesClient,
+  OrgTalent,
+  OrgTalentClient,
 } from "../../api/createClient";
 import type { OrgLocale, OrgSession } from "../../shell";
 import { employeeLabels } from "./labels";
@@ -12,6 +14,7 @@ import styles from "./EmployeesPage.module.css";
 
 export interface EmployeesPageProps {
   client: OrgEmployeesClient;
+  talent?: OrgTalentClient;
   session: OrgSession;
   locale: OrgLocale;
   onOpenEmployee?: (id: number) => void;
@@ -41,6 +44,7 @@ const EMPTY_FORM: EmpForm = {
 
 export function EmployeesPage({
   client,
+  talent,
   session,
   locale,
   onOpenEmployee,
@@ -55,6 +59,12 @@ export function EmployeesPage({
   const [form, setForm] = useState<EmpForm>(EMPTY_FORM);
   const [error, setError] = useState("");
   const [stats, setStats] = useState({ total: 0, ai: 0, human: 0 });
+  const [tab, setTab] = useState("directory");
+  const [market, setMarket] = useState<OrgTalent[]>([]);
+  const [talentStats, setTalentStats] = useState({ total: 0, ai: 0, human: 0 });
+  const [talentLoading, setTalentLoading] = useState(false);
+  const [talentError, setTalentError] = useState("");
+  const [recruiting, setRecruiting] = useState<number | null>(null);
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
@@ -82,9 +92,40 @@ export function EmployeesPage({
     }
   }, [client, filterType]);
 
+  const fetchTalent = useCallback(async () => {
+    if (!talent) {
+      setMarket([]);
+      return;
+    }
+    setTalentLoading(true);
+    setTalentError("");
+    try {
+      const [rows, nextStats] = await Promise.all([
+        talent.list({ status: "available" }),
+        talent.stats(),
+      ]);
+      setMarket(rows);
+      setTalentStats({
+        total: nextStats.total,
+        ai: nextStats.ai,
+        human: nextStats.human,
+      });
+    } catch {
+      setMarket([]);
+      setTalentStats({ total: 0, ai: 0, human: 0 });
+      setTalentError(labels.talentLoadFailed);
+    } finally {
+      setTalentLoading(false);
+    }
+  }, [talent, labels.talentLoadFailed]);
+
   useEffect(() => {
     void fetchAll();
   }, [fetchAll]);
+
+  useEffect(() => {
+    if (tab === "talent") void fetchTalent();
+  }, [tab, fetchTalent]);
 
   const query = search.trim().toLowerCase();
   const visible = useMemo(
@@ -135,30 +176,23 @@ export function EmployeesPage({
     }
   };
 
-  return (
-    <div className={styles.page} data-testid="org-ui-employees">
-      <div className={styles.header}>
-        <div className={styles.titleRow}>
-          <Users size={20} />
-          <div>
-            <Typography.Title level={3} className={styles.title}>
-              {labels.title}
-            </Typography.Title>
-            <p className={styles.subtitle}>{labels.subtitle}</p>
-          </div>
-        </div>
-        {session.isAdmin ? (
-          <Button
-            type="primary"
-            icon={<Plus size={14} />}
-            onClick={openCreate}
-            data-testid="org-employees-create"
-          >
-            {labels.add}
-          </Button>
-        ) : null}
-      </div>
+  const recruit = async (row: OrgTalent) => {
+    if (!talent) return;
+    setRecruiting(row.id);
+    setTalentError("");
+    try {
+      const landed = await talent.recruit(row.id, departments[0]?.id ?? null);
+      await Promise.all([fetchTalent(), fetchAll()]);
+      if (landed.employee?.id) onOpenEmployee?.(landed.employee.id);
+    } catch {
+      setTalentError(labels.talentRecruitFailed);
+    } finally {
+      setRecruiting(null);
+    }
+  };
 
+  const directoryPane = (
+    <>
       <div className={styles.stats} data-testid="org-employees-stats">
         <div className={styles.stat}>
           <div className={styles.statValue}>{stats.total}</div>
@@ -249,6 +283,139 @@ export function EmployeesPage({
             </button>
           ))}
         </div>
+      )}
+    </>
+  );
+
+  const talentPane = (
+    <div data-testid="org-ui-talent">
+      <p className={styles.subtitle}>{labels.talentSubtitle}</p>
+      <div className={styles.stats} data-testid="org-talent-stats">
+        <div className={styles.stat}>
+          <div className={styles.statValue}>{talentStats.total}</div>
+          <div className={styles.statLabel}>{labels.total}</div>
+        </div>
+        <div className={styles.stat}>
+          <div className={styles.statValue}>{talentStats.ai}</div>
+          <div className={styles.statLabel}>{labels.typeAi}</div>
+        </div>
+        <div className={styles.stat}>
+          <div className={styles.statValue}>{talentStats.human}</div>
+          <div className={styles.statLabel}>{labels.typeHuman}</div>
+        </div>
+      </div>
+      {talentError ? (
+        <p className={styles.empty} data-testid="org-talent-error">
+          {talentError}
+        </p>
+      ) : null}
+      {talentLoading ? (
+        <p className={styles.empty}>{labels.loading}</p>
+      ) : market.length === 0 ? (
+        <div className={styles.empty} data-testid="org-talent-empty">
+          <p>{labels.talentEmpty}</p>
+        </div>
+      ) : (
+        <div className={styles.grid}>
+          {market.map((row) => (
+            <div
+              key={row.id}
+              className={styles.card}
+              data-testid={`org-talent-card-${row.id}`}
+            >
+              <div className={styles.cardHead}>
+                <span className={styles.avatar}>
+                  {row.avatar_emoji || "👤"}
+                </span>
+                <div>
+                  <p className={styles.cardTitle}>
+                    {row.name}{" "}
+                    <Tag color={row.talent_type === "ai" ? "purple" : "blue"}>
+                      {row.talent_type === "ai"
+                        ? labels.typeAi
+                        : labels.typeHuman}
+                    </Tag>
+                  </p>
+                  <p className={styles.cardMeta}>
+                    {row.category || row.agent_type || labels.noRole}
+                    {row.source ? ` · ${row.source}` : ""}
+                  </p>
+                </div>
+              </div>
+              {row.skills ? (
+                <div className={styles.skills}>
+                  {row.skills
+                    .split(",")
+                    .map((skill) => skill.trim())
+                    .filter(Boolean)
+                    .slice(0, 4)
+                    .map((skill) => (
+                      <Tag key={skill}>{skill}</Tag>
+                    ))}
+                </div>
+              ) : null}
+              {session.isAdmin ? (
+                <Button
+                  type="primary"
+                  size="small"
+                  loading={recruiting === row.id}
+                  onClick={() => void recruit(row)}
+                  data-testid={`org-talent-recruit-${row.id}`}
+                  style={{ marginTop: 10 }}
+                >
+                  {labels.talentRecruit}
+                </Button>
+              ) : null}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+
+  return (
+    <div className={styles.page} data-testid="org-ui-employees">
+      <div className={styles.header}>
+        <div className={styles.titleRow}>
+          <Users size={20} />
+          <div>
+            <Typography.Title level={3} className={styles.title}>
+              {labels.title}
+            </Typography.Title>
+            <p className={styles.subtitle}>{labels.subtitle}</p>
+          </div>
+        </div>
+        {session.isAdmin && tab === "directory" ? (
+          <Button
+            type="primary"
+            icon={<Plus size={14} />}
+            onClick={openCreate}
+            data-testid="org-employees-create"
+          >
+            {labels.add}
+          </Button>
+        ) : null}
+      </div>
+
+      {talent ? (
+        <Tabs
+          activeKey={tab}
+          onChange={setTab}
+          items={[
+            {
+              key: "directory",
+              label: labels.tabDirectory,
+              children: directoryPane,
+            },
+            {
+              key: "talent",
+              label: labels.tabTalent,
+              children: talentPane,
+            },
+          ]}
+        />
+      ) : (
+        directoryPane
       )}
 
       <Modal

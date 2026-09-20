@@ -1,6 +1,6 @@
 # openXYOS → FreeOS capability migration map (P0.2)
 
-**Status:** Inventory freeze on `main` (2026-09-20). Documentation only.
+**Status:** Wave 1 host-native org (2026-09-20) moved **talent market** off iframe onto `org_ui_slice`. Inventory freeze otherwise stands.
 
 **Languages:** English · [简体中文](org-capability-migration-map.zh-CN.md)
 
@@ -23,8 +23,8 @@ Older merge docs ([org-merge-plan.md](org-merge-plan.md), [org-full-integration.
 | Status | Count | Meaning |
 |---|---:|---|
 | `native_host` | 9 | Host Python/React already owns the capability (may still be incomplete). |
-| `org_ui_slice` | 10 | Shared `dashboard/src/org-ui` page + `/api/org-module/*`, thinner than original App.tsx. |
-| `managed_node_iframe` | 13 | Full original UI/API still requires desktop `FREEOS_ORG_INTEGRATED` iframe or Node proxy. |
+| `org_ui_slice` | 11 | Shared `dashboard/src/org-ui` page + `/api/org-module/*`, thinner than original App.tsx. |
+| `managed_node_iframe` | 12 | Full original UI/API still requires desktop `FREEOS_ORG_INTEGRATED` iframe or Node proxy. |
 | `sidecar_optional` | 1 | Opt-in `:3780` (`FREEOS_ORG_SIDECAR`). |
 | `export_only` | 1 | Commercial generator; not the default desktop runtime. |
 | `missing` | 0 | No major domain is absent from both trees; gaps are depth/parity, not empty names. |
@@ -34,23 +34,23 @@ Priority: **P0 = 7** (waves A–D) · **P1 = 17** · **P2 = 10**.
 
 | Domain | Status | Node? | Export? | Pri | Next engineering step |
 |---|---|---|---|---|---|
-| [Bidirectional assets bus](#1-bidirectional-assets-bus) | native_host | partial | yes | P0 | Host-owned ingest/export that does not need live Node `/api/freeos/ingest`. |
+| [Bidirectional assets bus](#1-bidirectional-assets-bus) | native_host | partial | yes | P0 | Employees/talent land on host sqlite without Node; plugins/MCP ingest still optional Node. |
 | [Export-standalone](#2-export-standalone-commercial-package) | export_only | partial | yes | P0 | Default `--mode full` writes the openXYOS **source tree**; `--mode slice` is the SPA+proxy host bridge. |
 | [Tenant / auth (dual identity)](#3-tenant--auth-dual-identity) | managed_node_iframe | partial | yes | P0 | Two auth spaces; stop Node `/api/auth` as org-room authority. |
 | [Local models](#4-local-models) | native_host | partial | yes | P0 | Org room uses the studio local-model pool, not sidecar `/api/settings/ai`. |
 | [Host knowledge bases](#5-host-knowledge-bases) | native_host | no | partial | P0 | Keep local RAG default; cloud connectors optional. |
 | [Organization knowledge](#6-organization-knowledge-notesfiles) | org_ui_slice | partial | yes | P0 | Upload/folders/reparse on host KB; do not clone sidecar notes DB. |
 | [Blueprints / compiler](#10-blueprints--compiler) | native_host | no | yes | P0 | Feed compile output into the assets bus for exportable blueprints. |
-| [Managed Node + iframe shell](#7-managed-node--iframe-shell) | managed_node_iframe | yes | no | P1 | Stop using iframe as Organization home; shrink runtime. |
-| [Module catalog](#9-module-catalog) | native_host | no | yes | P1 | Add keys as App.tsx verticals native-port. |
+| [Managed Node + iframe shell](#7-managed-node--iframe-shell) | managed_node_iframe | yes | no | P1 | Home is native workbench; iframe is an optional original-App link. Shrink runtime. |
+| [Module catalog](#9-module-catalog) | native_host | no | yes | P1 | Overlay `delivery`/`host_path`; add keys as App.tsx verticals native-port. |
 | [Colleague lifecycle](#11-colleague-lifecycle) | native_host | no | yes | P1 | Join registry with people/talent UI. |
-| [Governance](#12-governance-engine--ui) | native_host | partial | yes | P1 | Port permission matrix/comm-rules; keep PEP/PDP. |
-| [Organization workbench](#13-organization-workbench-assemble--pack--loop) | native_host | no | partial | P1 | Keep factory reachable when integrated (today iframe hides it). |
-| [Workspace overview](#14-workspace-overview) | org_ui_slice | partial | yes | P1 | Match OpenDashboard metrics without Node. |
+| [Governance](#12-governance-engine--ui) | native_host | partial | yes | P1 | Pauses on home/workspace; still port permission matrix/comm-rules. |
+| [Organization workbench](#13-organization-workbench-assemble--pack--loop) | native_host | no | partial | P1 | Native home even when integrated; original App is a transition link. |
+| [Workspace overview](#14-workspace-overview) | org_ui_slice | partial | yes | P1 | Host metrics include talent + pending pauses; OpenDashboard still Node. |
 | [Announcements](#15-announcements) | org_ui_slice | no | yes | P1 | Field-level parity vs original page. |
 | [Org chart](#16-org-chart) | org_ui_slice | partial | yes | P1 | Versions, reporting-lines, import, avatars. |
-| [People directory](#17-people-directory) | org_ui_slice | partial | yes | P1 | Onboard/offboard/skills on the same sqlite. |
-| [Talent market](#18-talent-market) | managed_node_iframe | yes | yes | P1 | Native recruit → host lifecycle. |
+| [People directory](#17-people-directory) | org_ui_slice | partial | yes | P1 | Talent tab shares sqlite; onboard/offboard still original App. |
+| [Talent market](#18-talent-market) | org_ui_slice | partial | yes | P1 | Host list/recruit + asset-bus ingest; deepen vs original App filters. |
 | [Skills / plugins](#19-skills--plugins) | org_ui_slice | partial | yes | P1 | Marketplace stays export-or-later; inventory is host. |
 | [Agent studio](#20-agent-studio) | org_ui_slice | partial | yes | P1 | Reference upload; ignore unmounted sidecar studio API. |
 | [Organization tasks](#21-organization-tasks) | org_ui_slice | no | yes | P1 | Attachments; not cron/Chat. |
@@ -85,7 +85,7 @@ Aligned with product order: **assets bus → export → dual identity UX → loc
 
 These shipping shapes still need a native port. They are bridges.
 
-1. **Desktop integrated iframe** of the full App — `FREEOS_ORG_INTEGRATED=1` (`desktop/src/process.go`) makes `/organization` render `<iframe src="/organization-app/dashboard?freeos_embed=1">` (`OrganizationEntry.tsx`). `org_ui` FastAPI (`org_ui.py`) proxies that path to the private-port Node process.
+1. **Desktop integrated iframe** of the full App — `FREEOS_ORG_INTEGRATED=1` (`desktop/src/process.go`) still proxies `/organization-app` to managed Node. `/organization` is the **native workbench**; original App is an optional transition link (`OrganizationEntry.tsx`). `org_ui` FastAPI (`org_ui.py`) proxies `/organization-app` to the private-port Node process.
 2. **`ManagedOrganizationRuntime`** — `src/octop/modules/org_os/managed_runtime.py` (restart loop, `OPENXYOS_BASE_URL` on localhost).
 3. **`/api/org-module/identity/*` and `/business/*`** — `org_identity.py` forwards login/register and business CRUD to Node `/api/auth` and `/api/*`.
 4. **Optional sidecar on `:3780`** — `FREEOS_ORG_SIDECAR` / `SHIP_OPENXYOS_RUNTIME`. Phase 5 default installer is already zero-Node; do not reverse that. Flag table and cut plan: [node-runtime.md](node-runtime.md).
@@ -112,7 +112,7 @@ These shipping shapes still need a native port. They are bridges.
 | **Depends on Node?** | partial |
 | **Commercial export?** | yes |
 | **Priority** | P0 · Wave A |
-| **Next step** | Host-owned ingest/export contract so apply does not need live Node to land employees/talent/plugins in the org room. |
+| **Next step** | Employees and talent from apply/loop land on host `org_chart.sqlite` without Node. Plugins/MCP ingest is still best-effort when Node is healthy. |
 | **Tests** | `tests/unit/test_asset_loop.py`, `test_openxyos_apply.py`, `test_org_loop.py`, `tests/e2e/test_org_growth_loop.py` |
 | **Unknown** | Whether standalone commercial export ships the bus as CLI-only or in-app. |
 
@@ -184,13 +184,13 @@ These shipping shapes still need a native port. They are bridges.
 
 | | |
 |---|---|
-| **Lives today** | `managed_runtime.py`, `/organization-app`, `OrganizationEntry.tsx`, openXYOS Vite `base: /organization-app/` |
+| **Lives today** | `managed_runtime.py`, `/organization-app`, `OrganizationEntry.tsx` (native home; original App is a transition link), openXYOS Vite `base: /organization-app/` |
 | **Status** | `managed_node_iframe` |
 | **Depends on Node?** | yes |
 | **Commercial export?** | no (bridge, not the sellable artifact) |
 | **Priority** | P1 · Wave E |
-| **Next step** | Native routes own App surfaces; then remove the iframe home and the managed process. Flags: [node-runtime.md](node-runtime.md). `uv run` / Docker stay zero-Node. Desktop CI may set `SHIP_OPENXYOS_RUNTIME=1` (transitional). Do not expand that flag as permanent. |
-| **Tests** | `tests/unit/api/test_org_ui.py`, `tests/integration/test_dashboard_serve.py` |
+| **Next step** | Organization home is already native. Shrink then remove `ManagedOrganizationRuntime` after remaining App verticals native-port. Flags: [node-runtime.md](node-runtime.md). `uv run` / Docker stay zero-Node. Desktop CI may set `SHIP_OPENXYOS_RUNTIME=1` (transitional). Do not expand that flag as permanent. |
+| **Tests** | `tests/unit/api/test_org_ui.py`, `tests/integration/test_dashboard_serve.py`, `OrganizationEntry.test.tsx` |
 
 ### 8. Optional Node sidecar (:3780)
 
@@ -213,7 +213,7 @@ These shipping shapes still need a native port. They are bridges.
 | **Depends on Node?** | no |
 | **Commercial export?** | yes |
 | **Priority** | P1 |
-| **Next step** | Extend keys when native-porting App.tsx verticals; keep drift tests green. |
+| **Next step** | Overlay `delivery` / `host_path` on catalog rows (keys stay aligned with `open-module-catalog.ts`). Extend keys when native-porting App.tsx verticals; keep drift tests green. |
 | **Tests** | catalog comparison in `test_org_module.py` |
 
 ### 10. Blueprints / compiler
@@ -249,21 +249,20 @@ These shipping shapes still need a native port. They are bridges.
 | **Depends on Node?** | partial |
 | **Commercial export?** | yes |
 | **Priority** | P1 |
-| **Next step** | Port matrix/rules/templates onto the host engine; do not rewrite PEP/PDP. |
+| **Next step** | Pending pauses already surface on workbench + workspace. Still port matrix/rules/templates onto the host engine; do not rewrite PEP/PDP. |
 | **Tests** | `test_org_governance.py`, `test_host_governance.py`, `GovernancePage.test.tsx` |
 
 ### 13. Organization workbench (assemble / pack / loop)
 
 | | |
 |---|---|
-| **Lives today** | `/organization` native Ant Design factory (`index.tsx`). **Hidden** on desktop when `integrated=true` (iframe). |
+| **Lives today** | `/organization` native Ant Design factory (`index.tsx`). Desktop `integrated=true` keeps this as home; original App is an optional transition link. |
 | **Status** | `native_host` |
 | **Depends on Node?** | no |
 | **Commercial export?** | partial |
 | **Priority** | P1 |
 | **Next step** | Studio factory and org room both reachable; iframe must not swallow `/organization`. |
-| **Tests** | `dashboard/src/pages/Organization/index.test.tsx` |
-| **Unknown** | Confirm product wants both rooms without an env flag. |
+| **Tests** | `dashboard/src/pages/Organization/index.test.tsx`, `OrganizationEntry.test.tsx` |
 
 ### 14. Workspace overview
 
@@ -274,7 +273,7 @@ These shipping shapes still need a native port. They are bridges.
 | **Depends on Node?** | partial |
 | **Commercial export?** | yes |
 | **Priority** | P1 |
-| **Next step** | Native metrics matching OpenDashboard/Dashboard. |
+| **Next step** | OpenDashboard / commercial Dashboard still Node. Host overview now shows directory, talent, and pending governance pauses without Node. |
 | **Tests** | `test_org_workspace.py`, `WorkspacePage.test.tsx` |
 
 ### 15. Announcements
@@ -305,26 +304,25 @@ These shipping shapes still need a native port. They are bridges.
 
 | | |
 |---|---|
-| **Lives today** | org-ui employees on **same** `org_chart.sqlite`. Original onboard/reserve/offboard/performance/talent still Node. |
+| **Lives today** | org-ui employees on **same** `org_chart.sqlite`. Talent-market tab + asset-bus ingest share this store. Original onboard/reserve/offboard/performance still Node. |
 | **Status** | `org_ui_slice` |
 | **Depends on Node?** | partial |
 | **Commercial export?** | yes |
 | **Priority** | P1 |
-| **Next step** | Lifecycle actions without a second employee database. |
+| **Next step** | Onboard/offboard/performance without a second employee database. |
 | **Tests** | `EmployeesPage.test.tsx`, `EmployeeDetailPage.test.tsx` |
 
 ### 18. Talent market
 
 | | |
 |---|---|
-| **Lives today** | EmployeesPage talent tab + `/api/talent`. Iframe-only; no host route. |
-| **Status** | `managed_node_iframe` |
-| **Depends on Node?** | yes |
+| **Lives today** | org-ui Employees talent tab + `/api/org-module/talent*` on `org_chart.sqlite` `talent_pool`. Original `/api/talent` still Node for extra filters. |
+| **Status** | `org_ui_slice` |
+| **Depends on Node?** | partial |
 | **Commercial export?** | yes |
 | **Priority** | P1 |
-| **Next step** | Native list/recruit writing the host lifecycle registry. |
-| **Tests** | none on host |
-| **Unknown** | Inventory is the evidence the UI calls `/api/talent`. |
+| **Next step** | Deepen vs original App: category filters, agent-studio publish-to-market, offboard. Host list/recruit and asset-bus ingest already land without Node. |
+| **Tests** | `test_org_talent.py`, `test_org_chart.py`, `EmployeesPage.test.tsx` |
 
 ### 19. Skills / plugins
 

@@ -79,4 +79,58 @@ describe("EmployeesPage", () => {
       );
     });
   });
+
+  it("recruits host talent without an iframe", async () => {
+    const client = mockClient();
+    const talent = {
+      list: vi.fn(async () => [
+        {
+          id: 3,
+          name: "Policy Analyst",
+          talent_type: "ai",
+          status: "available",
+          skills: "policy",
+        },
+      ]),
+      get: vi.fn(),
+      stats: vi.fn(async () => ({
+        total: 1,
+        ai: 1,
+        human: 0,
+        byCategory: [],
+      })),
+      recruit: vi.fn(async () => ({
+        talent: { id: 3, name: "Policy Analyst", status: "recruited" },
+        employee: {
+          id: 11,
+          name: "Policy Analyst",
+          role: "",
+          employee_type: "ai",
+          department_id: 1,
+          status: "active",
+        },
+        created: true,
+        colleague_slug: "policy-analyst",
+      })),
+    };
+    render(
+      <EmployeesPage
+        client={client}
+        talent={talent}
+        session={{
+          userId: 1,
+          displayName: "Ada",
+          role: "admin",
+          isAdmin: true,
+        }}
+        locale="en"
+      />,
+    );
+    fireEvent.click(await screen.findByText("Talent market"));
+    expect(await screen.findByTestId("org-talent-card-3")).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId("org-talent-recruit-3"));
+    await waitFor(() => {
+      expect(talent.recruit).toHaveBeenCalledWith(3, 1);
+    });
+  });
 });

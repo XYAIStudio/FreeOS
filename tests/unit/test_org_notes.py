@@ -14,6 +14,8 @@ def test_localize_loop_notes_zh() -> None:
             "skipped illegal transition for policy-analyst: cannot move active → market",
             "Assets land on this organization's Employees, Talent, Skills, and Plugins lists.",
             "imported openXYOS skill org-governance",
+            "Host directory and talent market updated without Node.",
+            "The organization room is arranged on its own; everyday studio login stays a separate space.",
         ],
         "zh",
     )
@@ -27,6 +29,8 @@ def test_localize_loop_notes_zh() -> None:
     assert "policy-analyst" in notes[7] and "market" in notes[7]
     assert "本组织" in notes[8]
     assert "org-governance" in notes[9]
+    assert "不依赖 Node" in notes[10]
+    assert "组织房间" in notes[11]
 
 
 def test_localize_unknown_note_passthrough() -> None:

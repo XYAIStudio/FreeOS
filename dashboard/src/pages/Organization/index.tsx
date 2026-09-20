@@ -99,6 +99,7 @@ export default function OrganizationPage() {
   const [produceName, setProduceName] = useState("");
   const [produceIma, setProduceIma] = useState("");
   const [landed, setLanded] = useState<Record<string, unknown> | null>(null);
+  const [integrated, setIntegrated] = useState(false);
 
   const applyOverview = useCallback(
     async (quiet = false) => {
@@ -129,6 +130,21 @@ export default function OrganizationPage() {
   useEffect(() => {
     void applyOverview(false);
   }, [applyOverview]);
+
+  useEffect(() => {
+    let active = true;
+    void orgModuleApi
+      .identityStatus()
+      .then((status) => {
+        if (active) setIntegrated(Boolean(status.integrated));
+      })
+      .catch(() => {
+        if (active) setIntegrated(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const sidecarUp = Boolean(overview?.sidecar_reachable);
   const firstRun = useMemo(() => {
@@ -359,6 +375,10 @@ export default function OrganizationPage() {
   const catalog = overview?.catalog ?? [];
   const colleagues = overview?.colleagues ?? [];
   const orgSurfaces = overview?.org_surfaces;
+  const pendingPauses =
+    overview?.governance?.pending_pauses ??
+    overview?.freeos.pending_pauses ??
+    0;
   const pathTabs = useOrgPathTabs("workbench");
 
   return (
@@ -406,7 +426,37 @@ export default function OrganizationPage() {
         <div className={styles.workbench} data-testid="org-native-workbench">
           <p className={styles.heroStory}>{t("organization.heroStory")}</p>
           <p className={styles.heroStory}>{t("organization.roomDoorHint")}</p>
+          <p className={styles.heroStory} data-testid="org-room-hint">
+            {t("organization.roomHint")}
+          </p>
           <p className={styles.heroStory}>{t("organization.glossary")}</p>
+
+          {pendingPauses > 0 ? (
+            <section className={styles.empty} data-testid="org-pause-banner">
+              <p className={styles.emptyTitle}>
+                {t("organization.pauseBanner", { count: pendingPauses })}
+              </p>
+              <Button
+                type="primary"
+                onClick={() => navigate("/organization/governance")}
+                data-testid="org-pause-open"
+              >
+                {t("organization.pauseBannerAction")}
+              </Button>
+            </section>
+          ) : null}
+
+          {integrated ? (
+            <section className={styles.empty} data-testid="org-original-app-hint">
+              <p>{t("organization.originalAppHint")}</p>
+              <Button
+                href="/organization-app/dashboard?freeos_embed=1"
+                data-testid="org-open-original-app"
+              >
+                {t("organization.originalAppAction")}
+              </Button>
+            </section>
+          ) : null}
 
           <section className={styles.actions} data-testid="org-in-host-pages">
             <div className={styles.action}>
@@ -696,6 +746,14 @@ export default function OrganizationPage() {
                 </div>
                 <div className={styles.metric}>
                   <span className={styles.metricValue}>
+                    {metric(pendingPauses)}
+                  </span>
+                  <span className={styles.metricLabel}>
+                    {t("organization.metricPauses")}
+                  </span>
+                </div>
+                <div className={styles.metric}>
+                  <span className={styles.metricValue}>
                     {overview?.openxyos.tenant_id || "—"}
                   </span>
                   <span className={styles.metricLabel}>
@@ -956,6 +1014,11 @@ export default function OrganizationPage() {
                         : moduleToggles[row.key] === false
                         ? t("organization.catalogDisabled")
                         : t("organization.catalogEnabled")}
+                    </Tag>
+                    <Tag>
+                      {row.delivery === "managed_node_iframe" || !row.host_path
+                        ? t("organization.catalogOriginalApp")
+                        : t("organization.catalogNative")}
                     </Tag>
                   </p>
                   <p className={styles.catalogDesc}>
