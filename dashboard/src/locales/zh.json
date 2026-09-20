@@ -4808,6 +4808,7 @@
   "wizard": {
     "title": "初始化设置",
     "desktopTitle": "配置模型",
+    "desktopSubtitle": "可选步骤，随时可跳过并开始对话",
     "checking": "正在检查初始化状态…",
     "back": "上一步",
     "sessionExpired": "向导会话已过期，请重新验证启动密码。",
@@ -4880,8 +4881,15 @@
     },
     "model": {
       "intro": "先选本机运行时（如 Ollama）或本机 OpenAI 兼容地址。云厂商是可选项。也可以跳过，稍后在「模型」页完成。",
+      "desktopIntro": "选择本机运行时（如 Ollama），或填写云厂商 API Key。也可以跳过，直接与第一位助手开始对话。",
       "skip": "跳过",
       "skipToWorkspace": "跳过，进入工作台",
+      "skipToChat": "跳过，开始对话",
+      "continueToChat": "保存并开始对话",
+      "nextHint": "下一步：进入与第一位助手的对话。",
+      "ollamaDetected": "已检测到本机 Ollama 正在运行，可直接用本地模型继续。",
+      "ollamaInstalled": "已安装 Ollama 但尚未运行。可以先启动、直接继续，或跳过先去对话。",
+      "ollamaMissing": "尚未检测到本机运行时。可以填写云厂商 API Key，或跳过，稍后在「模型」页再设置。",
       "presetTab": "预置提供商",
       "customTab": "自定义提供商",
       "showMorePresets": "显示更多提供商（{{count}} 个）",

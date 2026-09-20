@@ -46,9 +46,21 @@ export default function LoginPage() {
           setAuthToken(session.access_token);
           await applyUserLocale(session.user.locale);
           if (!cancelled) {
-            navigate(desktop ? desktopPostSessionPath() : "/chat", {
-              replace: true,
-            });
+            let hasProviders = false;
+            let desktopFlow = desktop;
+            try {
+              const status = await authApi.getAuthStatus();
+              hasProviders = status?.has_providers === true;
+              desktopFlow = desktopFlow || status?.desktop === true;
+            } catch {
+              /* first-run still goes to model setup when the probe fails */
+            }
+            navigate(
+              desktopFlow
+                ? desktopPostSessionPath(hasProviders)
+                : "/chat",
+              { replace: true },
+            );
           }
           return;
         } catch {
@@ -66,7 +78,14 @@ export default function LoginPage() {
             setAuthToken(session.access_token);
             await applyUserLocale(session.user.locale);
             if (!cancelled) {
-              navigate(desktopPostSessionPath(), { replace: true });
+              let hasProviders = false;
+              try {
+                const status = await authApi.getAuthStatus();
+                hasProviders = status?.has_providers === true;
+              } catch {
+                /* stay on first-run setup */
+              }
+              navigate(desktopPostSessionPath(hasProviders), { replace: true });
             }
             return;
           } catch {

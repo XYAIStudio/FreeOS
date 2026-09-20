@@ -4,7 +4,7 @@ import { Spin } from "antd";
 import { clearAuthToken, getAuthToken, setAuthToken } from "../api/request";
 import { authApi, type OctopUser } from "../api/modules/auth";
 import { applyUserLocale } from "../utils/locale";
-import { desktopPostSessionPath } from "../utils/desktopOnboarding";
+import { needsDesktopModelOnboarding } from "../utils/desktopOnboarding";
 import { isDesktopShell } from "../utils/desktopShell";
 import { CurrentUserProvider } from "../hooks/useCurrentUser";
 import { AuthPromptProvider } from "../context/AuthPromptContext";
@@ -28,7 +28,7 @@ export default function AuthGuard({ children }: AuthGuardProps) {
 
   useEffect(() => {
     let cancelled = false;
-    const desktop = isDesktopShell(desktopQuery ? `?${desktopQuery}` : "");
+    const shellDesktop = isDesktopShell(desktopQuery ? `?${desktopQuery}` : "");
 
     const adopt = async (me: OctopUser) => {
       await applyUserLocale(me.locale);
@@ -39,19 +39,26 @@ export default function AuthGuard({ children }: AuthGuardProps) {
       }
     };
 
-    const enterAfterSession = async (me: OctopUser, hasProviders: boolean) => {
-      if (desktop && desktopPostSessionPath(hasProviders) === "/setup") {
+    const enterAfterSession = async (
+      me: OctopUser,
+      hasProviders: boolean,
+      desktop: boolean,
+    ) => {
+      if (desktop && needsDesktopModelOnboarding(hasProviders)) {
         if (!cancelled) navigate("/setup", { replace: true });
         return;
       }
       await adopt(me);
     };
 
-    const adoptLocal = async (hasProviders = false): Promise<boolean> => {
+    const adoptLocal = async (
+      hasProviders = false,
+      desktop = shellDesktop,
+    ): Promise<boolean> => {
       try {
         const res = await authApi.localSession();
         setAuthToken(res.access_token);
-        await enterAfterSession(res.user, hasProviders);
+        await enterAfterSession(res.user, hasProviders, desktop);
         return true;
       } catch {
         return false;
@@ -62,9 +69,10 @@ export default function AuthGuard({ children }: AuthGuardProps) {
       attempts: number,
       delayMs: number,
       hasProviders = false,
+      desktop = shellDesktop,
     ) => {
       for (let attempt = 0; attempt < attempts; attempt += 1) {
-        if (await adoptLocal(hasProviders)) return true;
+        if (await adoptLocal(hasProviders, desktop)) return true;
         if (attempt < attempts - 1) {
           await new Promise((resolve) => {
             window.setTimeout(resolve, delayMs);
@@ -74,9 +82,12 @@ export default function AuthGuard({ children }: AuthGuardProps) {
       return false;
     };
 
-    const holdForDesktop = async (hasProviders = false) => {
+    const holdForDesktop = async (
+      hasProviders = false,
+      desktop = shellDesktop,
+    ) => {
       while (!cancelled) {
-        if (await adoptLocal(hasProviders)) return;
+        if (await adoptLocal(hasProviders, desktop)) return;
         await new Promise((resolve) => {
           window.setTimeout(resolve, 400);
         });
@@ -86,18 +97,21 @@ export default function AuthGuard({ children }: AuthGuardProps) {
     const check = async () => {
       try {
         const status = await authApi.getAuthStatus();
+        const desktop = shellDesktop || status.desktop === true;
+        const hasProviders = status.has_providers === true;
 
         if (status.setup_required) {
           if (
             await tryLocalSession(
               desktop ? 20 : 4,
               desktop ? 250 : 150,
-              status.has_providers === true,
+              hasProviders,
+              desktop,
             )
           )
             return;
           if (desktop) {
-            await holdForDesktop(status.has_providers === true);
+            await holdForDesktop(hasProviders, desktop);
             return;
           }
           clearAuthToken();
@@ -105,12 +119,8 @@ export default function AuthGuard({ children }: AuthGuardProps) {
           return;
         }
 
-        if (
-          desktop &&
-          desktopPostSessionPath(status.has_providers === true) === "/setup"
-        ) {
-          if (await tryLocalSession(20, 250, status.has_providers === true))
-            return;
+        if (desktop && needsDesktopModelOnboarding(hasProviders)) {
+          if (await tryLocalSession(20, 250, hasProviders, desktop)) return;
           if (!cancelled) navigate("/setup", { replace: true });
           return;
         }
@@ -121,12 +131,13 @@ export default function AuthGuard({ children }: AuthGuardProps) {
             await tryLocalSession(
               desktop ? 20 : 4,
               desktop ? 250 : 150,
-              status.has_providers === true,
+              hasProviders,
+              desktop,
             )
           )
             return;
           if (desktop) {
-            await holdForDesktop();
+            await holdForDesktop(hasProviders, desktop);
             return;
           }
           if (!cancelled) {
@@ -140,10 +151,17 @@ export default function AuthGuard({ children }: AuthGuardProps) {
           const me = await authApi.me();
           await adopt(me);
         } catch {
-          if (await tryLocalSession(desktop ? 20 : 4, desktop ? 250 : 150))
+          if (
+            await tryLocalSession(
+              desktop ? 20 : 4,
+              desktop ? 250 : 150,
+              hasProviders,
+              desktop,
+            )
+          )
             return;
           if (desktop) {
-            await holdForDesktop();
+            await holdForDesktop(hasProviders, desktop);
             return;
           }
           if (!cancelled) {
@@ -152,7 +170,7 @@ export default function AuthGuard({ children }: AuthGuardProps) {
           }
         }
       } catch {
-        if (desktop) {
+        if (shellDesktop) {
           await holdForDesktop();
           return;
         }

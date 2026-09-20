@@ -78,7 +78,9 @@ function renderSetup() {
     <MemoryRouter initialEntries={["/setup"]}>
       <Routes>
         <Route path="/setup" element={<SetupPage />} />
+        <Route path="/chat/:agentId" element={<div>first chat</div>} />
         <Route path="/chat" element={<div>workspace</div>} />
+        <Route path="/projects" element={<div>conversation list</div>} />
         <Route path="/login" element={<div>login wall</div>} />
       </Routes>
     </MemoryRouter>,
@@ -94,7 +96,7 @@ describe("SetupPage desktop first-run", () => {
     isDesktopShell.mockReset();
   });
 
-  it("shows only the model step and can skip into the workspace", async () => {
+  it("shows only the model step and can skip into the first chat", async () => {
     isDesktopShell.mockReturnValue(true);
     getAuthStatus.mockResolvedValue({
       setup_required: true,
@@ -115,14 +117,30 @@ describe("SetupPage desktop first-run", () => {
     expect(screen.queryByText("admin step")).toBeNull();
     expect(screen.getByText("no back")).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "wizard.model.skipToWorkspace" }),
+      screen.getByRole("button", { name: "wizard.model.skipToChat" }),
     ).toBeInTheDocument();
 
     const user = userEvent.setup();
     await user.click(
-      screen.getByRole("button", { name: "wizard.model.skipToWorkspace" }),
+      screen.getByRole("button", { name: "wizard.model.skipToChat" }),
     );
-    expect(await screen.findByText("workspace")).toBeInTheDocument();
+    expect(await screen.findByText("first chat")).toBeInTheDocument();
+    expect(isDesktopModelOnboardingDone()).toBe(true);
+  });
+
+  it("does not loop returning desktop users who already have a provider", async () => {
+    isDesktopShell.mockReturnValue(true);
+    getAuthStatus.mockResolvedValue({
+      setup_required: false,
+      wizard_password_required: false,
+      desktop: true,
+      has_providers: true,
+    });
+
+    renderSetup();
+
+    expect(await screen.findByText("conversation list")).toBeInTheDocument();
+    expect(screen.queryByText("model step")).toBeNull();
     expect(isDesktopModelOnboardingDone()).toBe(true);
   });
 
