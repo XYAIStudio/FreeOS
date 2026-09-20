@@ -199,3 +199,51 @@ def test_api_assignee_uses_org_chart_employee(tmp_path: Path) -> None:
         json={"title": "Ghost", "assigned_to": 999},
     )
     assert denied.status_code == 400
+
+
+def test_store_and_api_attachments(tmp_path: Path) -> None:
+    store = TaskStore(tmp_path)
+    task = store.create(
+        tenant_id="default",
+        title="Attach me",
+        created_by=1,
+        creator_name="Ada",
+    )
+    attached = store.add_attachment(
+        int(task["id"]),
+        tenant_id="default",
+        filename="notes.txt",
+        data=b"hello host",
+        media_type="text/plain",
+        uploaded_by=1,
+        uploader_name="Ada",
+    )
+    assert attached is not None
+    assert attached["filename"] == "notes.txt"
+    assert attached["size_bytes"] == 10
+    detail = store.get(int(task["id"]), tenant_id="default")
+    assert detail is not None
+    assert detail["attachment_count"] == 1
+    assert detail["attachments"][0]["filename"] == "notes.txt"
+    listed = store.list(tenant_id="default")
+    assert listed[0]["attachment_count"] == 1
+
+    admin = _client(tmp_path, _admin())
+    created = admin.post("/api/org-module/tasks", json={"title": "Upload"})
+    task_id = created.json()["data"]["id"]
+    uploaded = admin.post(
+        f"/api/org-module/tasks/{task_id}/attachments",
+        files={"upload": ("brief.md", b"# brief", "text/markdown")},
+    )
+    assert uploaded.status_code == 200
+    attachment_id = uploaded.json()["data"]["id"]
+    listed_api = admin.get(f"/api/org-module/tasks/{task_id}/attachments")
+    assert listed_api.json()["data"][0]["filename"] == "brief.md"
+    downloaded = admin.get(f"/api/org-module/tasks/{task_id}/attachments/{attachment_id}/file")
+    assert downloaded.status_code == 200
+    assert downloaded.content == b"# brief"
+    assert admin.delete(
+        f"/api/org-module/tasks/{task_id}/attachments/{attachment_id}"
+    ).status_code == 200
+    missing = admin.get(f"/api/org-module/tasks/{task_id}/attachments/{attachment_id}/file")
+    assert missing.status_code == 404

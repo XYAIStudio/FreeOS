@@ -16,6 +16,7 @@ def test_localize_loop_notes_zh() -> None:
             "imported openXYOS skill org-governance",
             "Host directory and talent market updated without Node.",
             "The organization room is arranged on its own; everyday studio login stays a separate space.",
+            "Catalog enablement, announcement readers, task files, and reporting lines stay in this room.",
         ],
         "zh",
     )
@@ -31,6 +32,7 @@ def test_localize_loop_notes_zh() -> None:
     assert "org-governance" in notes[9]
     assert "不依赖 Node" in notes[10]
     assert "组织房间" in notes[11]
+    assert "任务附件" in notes[12]
 
 
 def test_localize_unknown_note_passthrough() -> None:

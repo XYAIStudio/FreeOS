@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button, Tag, Typography } from "antd";
 import { LayoutDashboard } from "lucide-react";
 import type {
+  GovernancePause,
   OrgCapability,
   OrgWorkspaceClient,
   OrgWorkspaceOverview,
@@ -90,9 +91,10 @@ export function WorkspacePage({
   const [overview, setOverview] = useState<OrgWorkspaceOverview | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [resolving, setResolving] = useState("");
 
-  const fetchAll = useCallback(async () => {
-    setLoading(true);
+  const fetchAll = useCallback(async (quiet = false) => {
+    if (!quiet) setLoading(true);
     setError("");
     try {
       setOverview(await client.overview());
@@ -100,13 +102,27 @@ export function WorkspacePage({
       setOverview(null);
       setError(labels.loadFailed);
     } finally {
-      setLoading(false);
+      if (!quiet) setLoading(false);
     }
   }, [client, labels.loadFailed]);
 
   useEffect(() => {
-    void fetchAll();
+    void fetchAll(false);
   }, [fetchAll]);
+
+  const resolvePause = async (pauseId: string, approve: boolean) => {
+    if (!session.isAdmin) return;
+    setResolving(pauseId);
+    setError("");
+    try {
+      await client.resolve(pauseId, approve);
+      await fetchAll(true);
+    } catch {
+      setError(labels.pauseResolveFailed);
+    } finally {
+      setResolving("");
+    }
+  };
 
   const cards: ModuleCard[] = useMemo(
     () => [
@@ -199,6 +215,7 @@ export function WorkspacePage({
     overview?.governance?.pending_pauses ??
     overview?.freeos.pending_pauses ??
     0;
+  const pauseRows: GovernancePause[] = overview?.governance?.pauses ?? [];
   const talentCount =
     overview?.freeos.talent_available ?? overview?.org_surfaces?.talent;
 
@@ -239,6 +256,44 @@ export function WorkspacePage({
           <p className={styles.calloutTitle}>
             {labels.pauseBanner.replace("{count}", String(pendingPauses))}
           </p>
+          {pauseRows.length ? (
+            <div className={styles.pauseList}>
+              {pauseRows.map((row) => (
+                <div
+                  key={row.pause_id}
+                  className={styles.pauseRow}
+                  data-testid={`org-workspace-pause-${row.pause_id}`}
+                >
+                  <div className={styles.pauseMeta}>
+                    {labels.pauseTool}: {row.tool_name || row.action || "—"}
+                    {row.reason ? ` · ${labels.pauseReason}: ${row.reason}` : ""}
+                  </div>
+                  {session.isAdmin ? (
+                    <div className={styles.links}>
+                      <Button
+                        size="small"
+                        type="primary"
+                        loading={resolving === row.pause_id}
+                        onClick={() => void resolvePause(row.pause_id, true)}
+                        data-testid={`org-workspace-approve-${row.pause_id}`}
+                      >
+                        {labels.approve}
+                      </Button>
+                      <Button
+                        size="small"
+                        danger
+                        loading={resolving === row.pause_id}
+                        onClick={() => void resolvePause(row.pause_id, false)}
+                        data-testid={`org-workspace-reject-${row.pause_id}`}
+                      >
+                        {labels.reject}
+                      </Button>
+                    </div>
+                  ) : null}
+                </div>
+              ))}
+            </div>
+          ) : null}
           <div className={styles.links}>
             <Button
               href={hrefs.governance}

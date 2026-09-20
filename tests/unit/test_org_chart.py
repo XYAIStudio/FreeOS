@@ -194,6 +194,7 @@ def test_org_chart_routes_registered() -> None:
     assert "/org/employees" in paths
     assert "/org/employees/stats" in paths
     assert "/org/employees/{employee_id}" in paths
+    assert "/org/import" in paths
     # Lifecycle colleagues stay on /employees; directory CRUD is /org/employees.
     module_paths = {getattr(route, "path", "") for route in router.routes}
     assert "/employees" in module_paths
@@ -228,3 +229,59 @@ def test_store_talent_upsert_and_recruit(tmp_path: Path) -> None:
     )
     assert updated == "updated"
     assert again["id"] == talent["id"]
+
+
+def test_store_reporting_lines_and_import(tmp_path: Path) -> None:
+    store = OrgChartStore(tmp_path)
+    imported = store.import_departments(
+        tenant_id="default",
+        items=[
+            {"name": "HQ", "function_type": "functional"},
+            {"name": "Eng", "parent": "HQ", "function_type": "functional"},
+        ],
+    )
+    assert imported["created"] == 2
+    tree = store.tree(tenant_id="default")
+    assert tree[0]["name"] == "HQ"
+    assert tree[0]["children"][0]["name"] == "Eng"
+    hq = store.list_departments(tenant_id="default")[0]
+    lead = store.create_employee(
+        tenant_id="default",
+        name="Ada",
+        department_id=int(hq["id"]),
+        role="Lead",
+    )
+    report = store.create_employee(
+        tenant_id="default",
+        name="Mo",
+        department_id=int(hq["id"]),
+        reports_to=int(lead["id"]),
+    )
+    assert report["reports_to"] == lead["id"]
+    assert report["reports_to_name"] == "Ada"
+    try:
+        store.update_employee(
+            int(lead["id"]),
+            tenant_id="default",
+            fields={"reports_to": int(report["id"])},
+        )
+        raise AssertionError("expected cycle")
+    except ValueError as exc:
+        assert "reports_to" in str(exc)
+    lines = store.import_reporting_lines(
+        tenant_id="default",
+        items=[{"employee": "Mo", "reports_to": "Ada"}],
+    )
+    assert lines["applied"] == 1
+
+    admin = _client(tmp_path, _admin())
+    payload = admin.post(
+        "/api/org-module/org/import",
+        json={
+            "departments": [{"name": "Ops", "parent": "HQ"}],
+            "reporting_lines": [{"employee": "Mo", "reports_to": "Ada"}],
+        },
+    )
+    assert payload.status_code == 200
+    names = [row["name"] for row in payload.json()["data"]["tree"][0]["children"]]
+    assert "Ops" in names or "Eng" in names

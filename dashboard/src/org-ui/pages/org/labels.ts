@@ -30,6 +30,22 @@ const EN = {
   required: "Name is required",
   noMatch: "No people match this search",
   root: "Root",
+  fieldFunction: "Department type",
+  functionFunctional: "Functional",
+  functionRegional: "Regional",
+  functionBranch: "Branch",
+  functionProject: "Project",
+  functionSite: "Site / lab",
+  functionDispatched: "Dispatched",
+  fieldReportsTo: "Reports to",
+  noManager: "No manager",
+  importChart: "Import chart",
+  importHint:
+    "Paste departments and reporting lines. Names must match people already on this chart.",
+  importDepartments: "Departments JSON",
+  importLines: "Reporting lines JSON",
+  importSubmit: "Import",
+  importInvalid: "Departments and reporting lines must be JSON arrays.",
 };
 
 const ZH: typeof EN = {
@@ -62,6 +78,21 @@ const ZH: typeof EN = {
   required: "名称不能为空",
   noMatch: "没有匹配的人员",
   root: "根节点",
+  fieldFunction: "部门类型",
+  functionFunctional: "职能",
+  functionRegional: "区域",
+  functionBranch: "分公司",
+  functionProject: "项目",
+  functionSite: "现场 / 实验室",
+  functionDispatched: "派出",
+  fieldReportsTo: "汇报对象",
+  noManager: "无上级",
+  importChart: "导入架构",
+  importHint: "粘贴部门与汇报线。汇报线里的姓名需要已经在本图中。",
+  importDepartments: "部门 JSON",
+  importLines: "汇报线 JSON",
+  importSubmit: "导入",
+  importInvalid: "部门和汇报线必须是 JSON 数组。",
 };
 
 export type OrgChartLabels = typeof EN;

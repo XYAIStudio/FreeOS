@@ -142,7 +142,7 @@
     {
       "item": "Open-12 host slices that omit original App depth",
       "evidence": [
-        "docs/org-merge-plan.md postponed reporting-lines, talent market, sidecar marketplace, Chat, company/AI/DB settings",
+        "docs/org-merge-plan.md postponed talent-market filters, sidecar marketplace, Chat, company/AI/DB settings, org-chart versions/avatars",
         "docs/org-full-parity-inventory.json parity=not_accepted even when host_route_exists=true"
       ],
       "native_port_needed": "Deepen org-ui + host APIs until App.tsx fields/relations work without Node."
@@ -404,7 +404,7 @@
       "depends_on_node": "no",
       "needed_for_commercial_export": "yes",
       "priority": "P1",
-      "next_step": "GET /catalog and overview overlay delivery + host_path (keys stay aligned with open-module-catalog.ts). Extend keys when native-porting remaining App.tsx verticals.",
+      "next_step": "Settings and workbench show delivery + host_path. Extend keys when native-porting remaining App.tsx verticals.",
       "wave": "E-cut-node",
       "evidence": ["src/octop/modules/org_os/contract.py assert_shared_modules_in_catalog"],
       "tests": ["tests/unit/test_org_module.py catalog drift"],
@@ -470,7 +470,7 @@
       "depends_on_node": "partial",
       "needed_for_commercial_export": "yes",
       "priority": "P1",
-      "next_step": "Pending pauses already surface on workbench + workspace. Still port sidecar permission matrix / comm-rules / workflow templates onto the host engine; do not rewrite PEP/PDP.",
+      "next_step": "Workbench and workspace approve/reject host PEP pauses inline. Still port sidecar permission matrix / comm-rules / workflow templates onto the host engine; do not rewrite PEP/PDP.",
       "wave": "E-cut-node",
       "evidence": ["docs/org-merge-plan.md governance UI slice"],
       "tests": [
@@ -520,7 +520,7 @@
       "depends_on_node": "partial",
       "needed_for_commercial_export": "yes",
       "priority": "P1",
-      "next_step": "OpenDashboard / commercial Dashboard still Node. Host overview now shows directory, talent, and pending governance pauses without Node.",
+      "next_step": "OpenDashboard / commercial Dashboard still Node. Host overview lists pending pauses and lets admins approve/reject without leaving the page.",
       "wave": "E-cut-node",
       "evidence": ["docs/org-full-parity-inventory.json /workspace host_route_exists true, / and /dashboard false"],
       "tests": [
@@ -543,7 +543,7 @@
       "depends_on_node": "no",
       "needed_for_commercial_export": "yes",
       "priority": "P1",
-      "next_step": "Field-level parity vs original AnnouncementPage (pin, unread, visitor-log side effects) on the host store.",
+      "next_step": "Reader/visitor log is on the host store. Remaining original-page extras only.",
       "wave": "E-cut-node",
       "evidence": ["docs/org-merge-plan.md Phase 2"],
       "tests": [
@@ -566,7 +566,7 @@
       "depends_on_node": "partial",
       "needed_for_commercial_export": "yes",
       "priority": "P1",
-      "next_step": "Native-port versions, reporting-lines, org skills, import, and avatar upload onto org_chart.sqlite.",
+      "next_step": "Versions and avatars still original App. Reporting lines, department type, and JSON import already land on org_chart.sqlite.",
       "wave": "E-cut-node",
       "evidence": ["docs/org-merge-plan.md org chart postponed list"],
       "tests": [
@@ -689,7 +689,7 @@
       "depends_on_node": "no",
       "needed_for_commercial_export": "yes",
       "priority": "P1",
-      "next_step": "Add attachments; keep org tasks distinct from Octop cron and Chat.",
+      "next_step": "Attachments land under {FREEOS_HOME}/org/task-files. Keep org tasks distinct from Octop cron and Chat.",
       "wave": "E-cut-node",
       "evidence": ["docs/org-merge-plan.md tasks slice"],
       "tests": [
@@ -735,7 +735,7 @@
       "depends_on_node": "partial",
       "needed_for_commercial_export": "yes",
       "priority": "P1",
-      "next_step": "Native-port company profile, org roles, and backup/restore that belong to the org room; keep FreeOS system settings (keys, host users, timezone) on the studio side.",
+      "next_step": "Catalog enablement already shows delivery/host_path. Native-port company profile, org roles, and backup/restore that belong to the org room; keep FreeOS system settings (keys, host users, timezone) on the studio side.",
       "wave": "E-cut-node",
       "evidence": ["docs/org-merge-plan.md settings slice"],
       "tests": [

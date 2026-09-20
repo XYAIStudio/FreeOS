@@ -36,6 +36,7 @@ import {
 } from "../../utils/desktopFolder";
 import { message } from "../../utils/antdMessage";
 import { resolveOpenxyosSourceDest } from "./pickSourceDest";
+import { useCurrentUser } from "../../hooks/useCurrentUser";
 import { useOrgPathTabs } from "./orgPathTabs";
 import styles from "./Organization.module.less";
 
@@ -80,6 +81,8 @@ function landedTenant(
 export default function OrganizationPage() {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
+  const user = useCurrentUser();
+  const isAdmin = user?.role === "admin";
   const isZh = i18n.language?.toLowerCase().startsWith("zh") ?? false;
   const timeZone = useServerTimezone();
   const [overview, setOverview] = useState<OrgOverview | null>(null);
@@ -100,6 +103,7 @@ export default function OrganizationPage() {
   const [produceIma, setProduceIma] = useState("");
   const [landed, setLanded] = useState<Record<string, unknown> | null>(null);
   const [integrated, setIntegrated] = useState(false);
+  const [resolvingPause, setResolvingPause] = useState("");
 
   const applyOverview = useCallback(
     async (quiet = false) => {
@@ -210,6 +214,23 @@ export default function OrganizationPage() {
       message.error(
         err instanceof Error ? err.message : t("organization.saveFailed"),
       );
+    }
+  };
+
+  const resolvePause = async (pauseId: string, approve: boolean) => {
+    setResolvingPause(pauseId);
+    try {
+      await orgModuleApi.resolvePause(pauseId, approve);
+      message.success(t("organization.pauseResolved"));
+      await applyOverview(true);
+    } catch (err) {
+      message.error(
+        err instanceof Error
+          ? err.message
+          : t("organization.pauseResolveFailed"),
+      );
+    } finally {
+      setResolvingPause("");
     }
   };
 
@@ -379,6 +400,7 @@ export default function OrganizationPage() {
     overview?.governance?.pending_pauses ??
     overview?.freeos.pending_pauses ??
     0;
+  const pauseRows = overview?.governance?.pauses ?? [];
   const pathTabs = useOrgPathTabs("workbench");
 
   return (
@@ -436,6 +458,49 @@ export default function OrganizationPage() {
               <p className={styles.emptyTitle}>
                 {t("organization.pauseBanner", { count: pendingPauses })}
               </p>
+              {pauseRows.length ? (
+                <div className={styles.pauseList}>
+                  {pauseRows.map((row) => (
+                    <div
+                      key={row.pause_id}
+                      className={styles.pauseRow}
+                      data-testid={`org-pause-row-${row.pause_id}`}
+                    >
+                      <p className={styles.pauseMeta}>
+                        {t("organization.pauseTool")}:{" "}
+                        {row.tool_name || row.action || "—"}
+                        {row.reason
+                          ? ` · ${t("organization.pauseReason")}: ${row.reason}`
+                          : ""}
+                      </p>
+                      {isAdmin ? (
+                        <Space wrap>
+                          <Button
+                            size="small"
+                            type="primary"
+                            loading={resolvingPause === row.pause_id}
+                            onClick={() => void resolvePause(row.pause_id, true)}
+                            data-testid={`org-pause-approve-${row.pause_id}`}
+                          >
+                            {t("organization.pauseApprove")}
+                          </Button>
+                          <Button
+                            size="small"
+                            danger
+                            loading={resolvingPause === row.pause_id}
+                            onClick={() =>
+                              void resolvePause(row.pause_id, false)
+                            }
+                            data-testid={`org-pause-reject-${row.pause_id}`}
+                          >
+                            {t("organization.pauseReject")}
+                          </Button>
+                        </Space>
+                      ) : null}
+                    </div>
+                  ))}
+                </div>
+              ) : null}
               <Button
                 type="primary"
                 onClick={() => navigate("/organization/governance")}

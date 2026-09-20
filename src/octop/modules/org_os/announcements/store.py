@@ -33,6 +33,7 @@ CREATE TABLE IF NOT EXISTS announcement_reads (
     announcement_id INTEGER NOT NULL,
     user_id INTEGER NOT NULL,
     read_at TEXT NOT NULL,
+    user_name TEXT NOT NULL DEFAULT '',
     PRIMARY KEY (announcement_id, user_id)
 );
 """
@@ -77,6 +78,13 @@ class AnnouncementStore:
     def _init(self) -> None:
         with self._connect() as conn:
             conn.executescript(_SCHEMA)
+            columns = {
+                str(row[1]) for row in conn.execute("PRAGMA table_info(announcement_reads)")
+            }
+            if "user_name" not in columns:
+                conn.execute(
+                    "ALTER TABLE announcement_reads ADD COLUMN user_name TEXT NOT NULL DEFAULT ''"
+                )
 
     def create(
         self,
@@ -208,19 +216,58 @@ class AnnouncementStore:
             ).fetchone()[0]
         return int(raw)
 
-    def mark_read(self, announcement_id: int, *, user_id: int) -> None:
+    def mark_read(
+        self, announcement_id: int, *, user_id: int, user_name: str = ""
+    ) -> None:
         now = utc_now()
+        label = (user_name or "").strip()
         with self._connect() as conn:
             conn.execute(
                 """
-                INSERT OR IGNORE INTO announcement_reads (announcement_id, user_id, read_at)
-                VALUES (?, ?, ?)
+                INSERT OR IGNORE INTO announcement_reads (
+                    announcement_id, user_id, read_at, user_name
+                )
+                VALUES (?, ?, ?, ?)
                 """,
-                (announcement_id, user_id, now),
+                (announcement_id, user_id, now, label),
             )
+            if label:
+                conn.execute(
+                    """
+                    UPDATE announcement_reads SET user_name = ?
+                    WHERE announcement_id = ? AND user_id = ?
+                      AND (user_name = '' OR user_name IS NULL)
+                    """,
+                    (label, announcement_id, user_id),
+                )
 
-    def mark_all_read(self, *, tenant_id: str, user_id: int) -> int:
+    def list_readers(
+        self, announcement_id: int, *, tenant_id: str
+    ) -> list[dict[str, Any]] | None:
+        if self.get(announcement_id, tenant_id=tenant_id) is None:
+            return None
+        with self._connect() as conn:
+            rows = conn.execute(
+                """
+                SELECT user_id, user_name, read_at
+                FROM announcement_reads
+                WHERE announcement_id = ?
+                ORDER BY read_at, user_id
+                """,
+                (announcement_id,),
+            ).fetchall()
+        return [
+            {
+                "user_id": int(row["user_id"]),
+                "user_name": str(row["user_name"] or ""),
+                "read_at": str(row["read_at"] or ""),
+            }
+            for row in rows
+        ]
+
+    def mark_all_read(self, *, tenant_id: str, user_id: int, user_name: str = "") -> int:
         now = utc_now()
+        label = (user_name or "").strip()
         with self._connect() as conn:
             unread = conn.execute(
                 """
@@ -235,10 +282,12 @@ class AnnouncementStore:
             for row in unread:
                 conn.execute(
                     """
-                    INSERT OR IGNORE INTO announcement_reads (announcement_id, user_id, read_at)
-                    VALUES (?, ?, ?)
+                    INSERT OR IGNORE INTO announcement_reads (
+                        announcement_id, user_id, read_at, user_name
+                    )
+                    VALUES (?, ?, ?, ?)
                     """,
-                    (int(row["id"]), user_id, now),
+                    (int(row["id"]), user_id, now, label),
                 )
         return len(unread)
 

@@ -55,6 +55,12 @@ const EN = {
   governanceBody: "Pending approvals and the host audit log.",
   settings: "Settings",
   settingsBody: "Catalog toggles and org-local preferences.",
+  approve: "Approve",
+  reject: "Reject",
+  pauseTool: "Tool",
+  pauseReason: "Reason",
+  pauseResolveFailed: "Could not resolve this pause",
+  pauseResolved: "Pause updated",
 };
 
 const ZH: typeof EN = {
@@ -107,6 +113,12 @@ const ZH: typeof EN = {
   governanceBody: "待审批与宿主审计日志。",
   settings: "设置",
   settingsBody: "目录开关与组织本地偏好。",
+  approve: "批准",
+  reject: "驳回",
+  pauseTool: "工具",
+  pauseReason: "原因",
+  pauseResolveFailed: "无法处理该暂停",
+  pauseResolved: "暂停已更新",
 };
 
 export type WorkspaceLabels = typeof EN;

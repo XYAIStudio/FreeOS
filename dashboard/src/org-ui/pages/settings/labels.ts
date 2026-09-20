@@ -33,6 +33,10 @@ const EN = {
   loadFailed: "Could not load organization settings",
   saveFailed: "Could not save",
   readOnly: "Only administrators can change organization settings.",
+  deliveryHost: "Host page",
+  deliveryIframe: "Original App",
+  deliveryHint:
+    "Host pages stay in this room. Original App still needs the transition iframe.",
 };
 
 const ZH: typeof EN = {
@@ -64,6 +68,9 @@ const ZH: typeof EN = {
   loadFailed: "无法加载组织设置",
   saveFailed: "保存失败",
   readOnly: "只有管理员可以更改组织设置。",
+  deliveryHost: "宿主页",
+  deliveryIframe: "原 App",
+  deliveryHint: "宿主页留在这间房间。原 App 仍走过渡 iframe。",
 };
 
 export type SettingsLabels = typeof EN;

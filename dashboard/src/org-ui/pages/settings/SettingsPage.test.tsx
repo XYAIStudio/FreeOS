@@ -15,6 +15,8 @@ function mockClient(): OrgSettingsClient {
           description: "Tenant, model, module, and user settings.",
           description_zh: "租户、模型、模块与用户设置",
           locked: true,
+          delivery: "org_ui_slice",
+          host_path: "/organization/settings",
         },
         {
           key: "chat",
@@ -23,6 +25,8 @@ function mockClient(): OrgSettingsClient {
           description: "Human-agent chat.",
           description_zh: "人机协作",
           locked: false,
+          delivery: "managed_node_iframe",
+          host_path: "",
         },
       ],
       modules: { settings: true, chat: true },
@@ -65,6 +69,12 @@ describe("SettingsPage", () => {
     );
     expect(screen.getByTestId("org-settings-name")).toHaveValue("Acme");
     expect(screen.getByText("Always on")).toBeInTheDocument();
+    expect(screen.getByTestId("org-settings-delivery-settings")).toHaveTextContent(
+      "Host page",
+    );
+    expect(screen.getByTestId("org-settings-delivery-chat")).toHaveTextContent(
+      "Original App",
+    );
     expect(document.querySelector("iframe")).toBeNull();
     expect(screen.queryByText("API Key")).toBeNull();
     expect(client.snapshot).toHaveBeenCalled();

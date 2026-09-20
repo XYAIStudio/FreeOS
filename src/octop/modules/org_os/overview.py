@@ -79,6 +79,13 @@ def _pending_pauses(home: Path) -> int:
     return len(DurableGovernanceStore(home / "governance").list_pauses("pending"))
 
 
+def _pending_pause_rows(home: Path, *, limit: int = 8) -> list[dict[str, Any]]:
+    from octop.modules.org_os.governance.store import DurableGovernanceStore
+
+    rows = DurableGovernanceStore(home / "governance").list_pauses("pending")
+    return [row.to_dict() for row in rows[:limit]]
+
+
 def _colleague_rows(home: Path, tenant_id: str) -> list[dict[str, Any]]:
     spawned = {row.slug: row for row in list_spawned_agents(home)}
     rows: list[dict[str, Any]] = []
@@ -182,6 +189,7 @@ def build_overview(
         "directory": host["directory"],
     }
     pending_pauses = _pending_pauses(service.home)
+    pause_rows = _pending_pause_rows(service.home)
     org_skills = _count_skill_dirs(service.home)
     proof = _read_loop_proof(service.home)
     last_sync = None
@@ -220,6 +228,7 @@ def build_overview(
         "Organization runs in the FreeOS Python host. The Node sidecar is optional.",
         "FreeOS does the work. Organization capabilities (catalog, employees, growth loop) live in-host.",
         "The organization room is arranged on its own; everyday studio login stays a separate space.",
+        "Catalog enablement, announcement readers, task files, and reporting lines stay in this room.",
         "Data plane: colleagues / experts / skills / MCP / tasks. Control plane: department employees / blueprints / modules / governance.",
     ]
     embed_ok = False
@@ -264,5 +273,6 @@ def build_overview(
             "pending_pauses": pending_pauses,
             "enabled": status.governance_enabled,
             "href": "/organization/governance",
+            "pauses": pause_rows,
         },
     )

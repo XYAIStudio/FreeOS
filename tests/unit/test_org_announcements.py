@@ -68,6 +68,10 @@ def test_store_create_list_read(tmp_path: Path) -> None:
     assert listed["list"][0]["read_count"] == 1
     assert listed["list"][0]["read_percent"] == 50
     assert store.unread_count(tenant_id="default", user_id=2) == 0
+    store.mark_read(1, user_id=2, user_name="Mo")
+    readers = store.list_readers(1, tenant_id="default")
+    assert readers is not None
+    assert readers[0]["user_name"] == "Mo"
 
 
 def test_store_search_and_soft_delete(tmp_path: Path) -> None:
@@ -138,6 +142,11 @@ def test_api_list_create_mark_read(tmp_path: Path) -> None:
     assert detail.json()["data"]["is_read"] is True
     unread = member.get("/api/org-module/announcements/action/unread")
     assert unread.json()["data"]["count"] == 0
+    readers = admin.get(f"/api/org-module/announcements/{announcement_id}/readers")
+    assert readers.status_code == 200
+    payload = readers.json()["data"]
+    assert payload["count"] == 1
+    assert payload["readers"][0]["user_name"] == "Mo"
 
 
 def test_api_member_cannot_publish(tmp_path: Path) -> None:
@@ -186,3 +195,4 @@ def test_announcement_routes_registered() -> None:
     assert "/announcements" in paths
     assert "/announcements/action/unread" in paths
     assert "/announcements/{announcement_id}" in paths
+    assert "/announcements/{announcement_id}/readers" in paths

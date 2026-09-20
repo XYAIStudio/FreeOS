@@ -7,6 +7,8 @@ in-process without a Node sidecar.
 
 from __future__ import annotations
 
+import re
+import shutil
 import sqlite3
 from datetime import UTC, datetime
 from pathlib import Path
@@ -56,6 +58,21 @@ CREATE TABLE IF NOT EXISTS task_comments (
 );
 CREATE INDEX IF NOT EXISTS idx_task_comments_task
     ON task_comments (tenant_id, task_id, created_at, id);
+CREATE TABLE IF NOT EXISTS task_attachments (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    task_id INTEGER NOT NULL,
+    tenant_id TEXT NOT NULL,
+    filename TEXT NOT NULL,
+    stored_name TEXT NOT NULL,
+    media_type TEXT NOT NULL DEFAULT 'application/octet-stream',
+    size_bytes INTEGER NOT NULL DEFAULT 0,
+    uploaded_by INTEGER,
+    uploader_name TEXT,
+    created_at TEXT NOT NULL,
+    FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_task_attachments_task
+    ON task_attachments (tenant_id, task_id, created_at, id);
 """
 
 
@@ -73,13 +90,24 @@ def normalize_priority(value: str | None) -> str:
     return raw if raw in TASK_PRIORITIES else "medium"
 
 
+_UNSAFE_NAME = re.compile(r"[^A-Za-z0-9._-]+")
+
+
+def safe_attachment_name(filename: str) -> str:
+    base = Path(str(filename or "").replace("\\", "/")).name.strip()
+    cleaned = _UNSAFE_NAME.sub("_", base).strip("._")
+    return cleaned or "attachment"
+
+
 class TaskStore:
     """Tenant-scoped organization tasks + subtasks + comments."""
 
     def __init__(self, home: Path) -> None:
         self.home = home
         self.path = home / "org" / "tasks.sqlite"
+        self.files_root = home / "org" / "task-files"
         self.path.parent.mkdir(parents=True, exist_ok=True)
+        self.files_root.mkdir(parents=True, exist_ok=True)
         self._init()
 
     def _connect(self) -> sqlite3.Connection:
@@ -264,9 +292,16 @@ class TaskStore:
                 (task_id, tenant_id),
             )
             conn.execute(
+                "DELETE FROM task_attachments WHERE task_id = ? AND tenant_id = ?",
+                (task_id, tenant_id),
+            )
+            conn.execute(
                 "DELETE FROM tasks WHERE id = ? AND tenant_id = ?",
                 (task_id, tenant_id),
             )
+        folder = self.files_root / tenant_id / str(task_id)
+        if folder.is_dir():
+            shutil.rmtree(folder, ignore_errors=True)
         return True
 
     def add_subtask(self, task_id: int, *, tenant_id: str, title: str) -> dict[str, Any] | None:
@@ -366,6 +401,100 @@ class TaskStore:
             ).fetchone()
         return self._comment(dict(row)) if row is not None else None
 
+    def add_attachment(
+        self,
+        task_id: int,
+        *,
+        tenant_id: str,
+        filename: str,
+        data: bytes,
+        media_type: str = "application/octet-stream",
+        uploaded_by: int | None = None,
+        uploader_name: str = "",
+    ) -> dict[str, Any] | None:
+        if self.get(task_id, tenant_id=tenant_id) is None:
+            return None
+        original = Path(str(filename or "").replace("\\", "/")).name.strip() or "attachment"
+        stored = safe_attachment_name(original)
+        now = utc_now()
+        with self._connect() as conn:
+            cur = conn.execute(
+                """
+                INSERT INTO task_attachments (
+                    task_id, tenant_id, filename, stored_name, media_type,
+                    size_bytes, uploaded_by, uploader_name, created_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    task_id,
+                    tenant_id,
+                    original,
+                    stored,
+                    media_type or "application/octet-stream",
+                    len(data),
+                    uploaded_by,
+                    uploader_name,
+                    now,
+                ),
+            )
+            row_id = int(cur.lastrowid or 0)
+            stored_name = f"{row_id}_{stored}"
+            conn.execute(
+                "UPDATE task_attachments SET stored_name = ? WHERE id = ? AND tenant_id = ?",
+                (stored_name, row_id, tenant_id),
+            )
+        dest_dir = self.files_root / tenant_id / str(task_id)
+        dest_dir.mkdir(parents=True, exist_ok=True)
+        (dest_dir / stored_name).write_bytes(data)
+        return self.get_attachment(task_id, row_id, tenant_id=tenant_id)
+
+    def get_attachment(
+        self, task_id: int, attachment_id: int, *, tenant_id: str
+    ) -> dict[str, Any] | None:
+        with self._connect() as conn:
+            row = conn.execute(
+                """
+                SELECT * FROM task_attachments
+                WHERE id = ? AND task_id = ? AND tenant_id = ?
+                """,
+                (attachment_id, task_id, tenant_id),
+            ).fetchone()
+        if row is None:
+            return None
+        out = self._attachment(dict(row))
+        path = self.files_root / tenant_id / str(task_id) / str(out["stored_name"])
+        out["path"] = str(path)
+        return out
+
+    def list_attachments(self, task_id: int, *, tenant_id: str) -> list[dict[str, Any]]:
+        with self._connect() as conn:
+            rows = conn.execute(
+                """
+                SELECT * FROM task_attachments
+                WHERE task_id = ? AND tenant_id = ?
+                ORDER BY created_at, id
+                """,
+                (task_id, tenant_id),
+            ).fetchall()
+        return [self._attachment(dict(row)) for row in rows]
+
+    def delete_attachment(self, task_id: int, attachment_id: int, *, tenant_id: str) -> bool:
+        existing = self.get_attachment(task_id, attachment_id, tenant_id=tenant_id)
+        if existing is None:
+            return False
+        with self._connect() as conn:
+            conn.execute(
+                """
+                DELETE FROM task_attachments
+                WHERE id = ? AND task_id = ? AND tenant_id = ?
+                """,
+                (attachment_id, task_id, tenant_id),
+            )
+        path = Path(str(existing.get("path") or ""))
+        if path.is_file():
+            path.unlink()
+        return True
+
     def _decorate(
         self,
         conn: sqlite3.Connection,
@@ -388,11 +517,18 @@ class TaskStore:
                 (task_id, tenant_id),
             ).fetchone()[0]
         )
+        attachment_count = int(
+            conn.execute(
+                "SELECT COUNT(*) FROM task_attachments WHERE task_id = ? AND tenant_id = ?",
+                (task_id, tenant_id),
+            ).fetchone()[0]
+        )
         out = dict(row)
         out["id"] = task_id
         out["subtask_count"] = len(sub_rows)
         out["subtask_done"] = sum(1 for item in sub_rows if int(item["completed"] or 0))
         out["comment_count"] = comment_count
+        out["attachment_count"] = attachment_count
         if include_children:
             out["subtasks"] = [
                 self._subtask(dict(item))
@@ -410,6 +546,17 @@ class TaskStore:
                 for item in conn.execute(
                     """
                     SELECT * FROM task_comments
+                    WHERE task_id = ? AND tenant_id = ?
+                    ORDER BY created_at, id
+                    """,
+                    (task_id, tenant_id),
+                ).fetchall()
+            ]
+            out["attachments"] = [
+                self._attachment(dict(item))
+                for item in conn.execute(
+                    """
+                    SELECT * FROM task_attachments
                     WHERE task_id = ? AND tenant_id = ?
                     ORDER BY created_at, id
                     """,
@@ -435,5 +582,18 @@ class TaskStore:
             "user_name": row.get("user_name") or "",
             "content": row["content"],
             "comment_type": row.get("comment_type") or "user",
+            "created_at": row.get("created_at") or "",
+        }
+
+    def _attachment(self, row: dict[str, Any]) -> dict[str, Any]:
+        return {
+            "id": int(row["id"]),
+            "task_id": int(row["task_id"]),
+            "filename": row.get("filename") or "attachment",
+            "stored_name": row.get("stored_name") or "",
+            "media_type": row.get("media_type") or "application/octet-stream",
+            "size_bytes": int(row.get("size_bytes") or 0),
+            "uploaded_by": row.get("uploaded_by"),
+            "uploader_name": row.get("uploader_name") or "",
             "created_at": row.get("created_at") or "",
         }

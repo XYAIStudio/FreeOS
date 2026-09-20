@@ -49,6 +49,7 @@ CREATE TABLE IF NOT EXISTS employees (
     skills TEXT NOT NULL DEFAULT '',
     avatar_emoji TEXT NOT NULL DEFAULT '👤',
     status TEXT NOT NULL DEFAULT 'active',
+    reports_to INTEGER,
     created_at TEXT NOT NULL,
     updated_at TEXT,
     FOREIGN KEY (department_id) REFERENCES departments(id)
@@ -131,6 +132,9 @@ class OrgChartStore:
     def _init(self) -> None:
         with self._connect() as conn:
             conn.executescript(_SCHEMA)
+            columns = {str(row[1]) for row in conn.execute("PRAGMA table_info(employees)")}
+            if "reports_to" not in columns:
+                conn.execute("ALTER TABLE employees ADD COLUMN reports_to INTEGER")
 
     def create_department(
         self,
@@ -294,18 +298,21 @@ class OrgChartStore:
         skills: str = "",
         avatar_emoji: str = "👤",
         status: str = "active",
+        reports_to: int | None = None,
     ) -> dict[str, Any]:
         dept = self.get_department(department_id, tenant_id=tenant_id)
         if dept is None:
             raise KeyError("department")
+        manager_id = self._resolve_reports_to(tenant_id, None, reports_to)
         now = utc_now()
         with self._connect() as conn:
             cur = conn.execute(
                 """
                 INSERT INTO employees (
                     tenant_id, department_id, name, role, description,
-                    employee_type, agent_type, skills, avatar_emoji, status, created_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    employee_type, agent_type, skills, avatar_emoji, status,
+                    reports_to, created_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     tenant_id,
@@ -318,6 +325,7 @@ class OrgChartStore:
                     skills or "",
                     avatar_emoji or "👤",
                     normalize_status(status),
+                    manager_id,
                     now,
                 ),
             )
@@ -330,9 +338,10 @@ class OrgChartStore:
         with self._connect() as conn:
             row = conn.execute(
                 """
-                SELECT e.*, d.name AS department_name
+                SELECT e.*, d.name AS department_name, m.name AS reports_to_name
                 FROM employees e
                 LEFT JOIN departments d ON d.id = e.department_id
+                LEFT JOIN employees m ON m.id = e.reports_to AND m.tenant_id = e.tenant_id
                 WHERE e.id = ? AND e.tenant_id = ?
                 """,
                 (employee_id, tenant_id),
@@ -370,9 +379,10 @@ class OrgChartStore:
         with self._connect() as conn:
             rows = conn.execute(
                 f"""
-                SELECT e.*, d.name AS department_name
+                SELECT e.*, d.name AS department_name, m.name AS reports_to_name
                 FROM employees e
                 LEFT JOIN departments d ON d.id = e.department_id
+                LEFT JOIN employees m ON m.id = e.reports_to AND m.tenant_id = e.tenant_id
                 WHERE {clause}
                 ORDER BY e.id
                 """,
@@ -451,6 +461,10 @@ class OrgChartStore:
         if "status" in fields and fields["status"] is not None:
             updates.append("status = ?")
             params.append(normalize_status(str(fields["status"])))
+        if "reports_to" in fields:
+            manager_id = self._resolve_reports_to(tenant_id, employee_id, fields["reports_to"])
+            updates.append("reports_to = ?")
+            params.append(manager_id)
         if not updates:
             return existing
         updates.append("updated_at = ?")
@@ -848,7 +862,136 @@ class OrgChartStore:
             stack.extend(children.get(current, []))
         return False
 
+    def _resolve_reports_to(
+        self, tenant_id: str, employee_id: int | None, reports_to: Any
+    ) -> int | None:
+        if reports_to in (None, "", 0, "0"):
+            return None
+        manager_id = int(reports_to)
+        if employee_id is not None and manager_id == employee_id:
+            raise ValueError("reports_to_cycle")
+        manager = self.get_employee(manager_id, tenant_id=tenant_id)
+        if manager is None:
+            raise KeyError("reports_to")
+        current = manager.get("reports_to")
+        seen: set[int] = {manager_id}
+        if employee_id is not None:
+            seen.add(employee_id)
+        while current:
+            current_id = int(current)
+            if employee_id is not None and current_id == employee_id:
+                raise ValueError("reports_to_cycle")
+            if current_id in seen:
+                break
+            seen.add(current_id)
+            next_row = self.get_employee(current_id, tenant_id=tenant_id)
+            current = None if next_row is None else next_row.get("reports_to")
+        return manager_id
+
+    def import_departments(
+        self, *, tenant_id: str, items: list[dict[str, Any]]
+    ) -> dict[str, int]:
+        created = 0
+        updated = 0
+        skipped = 0
+        by_name = {str(row["name"]): row for row in self.list_departments(tenant_id=tenant_id)}
+        pending: list[dict[str, Any]] = []
+        for raw in items:
+            name = str(raw.get("name") or "").strip()
+            if not name:
+                skipped += 1
+                continue
+            pending.append(
+                {
+                    "name": name,
+                    "parent": str(raw.get("parent") or raw.get("parent_name") or "").strip(),
+                    "description": str(raw.get("description") or ""),
+                    "function_type": str(raw.get("function_type") or "functional"),
+                }
+            )
+        for item in pending:
+            existing = by_name.get(item["name"])
+            if existing is None:
+                row = self.create_department(
+                    tenant_id=tenant_id,
+                    name=item["name"],
+                    description=item["description"],
+                    function_type=item["function_type"],
+                )
+                by_name[item["name"]] = row
+                created += 1
+            else:
+                self.update_department(
+                    int(existing["id"]),
+                    tenant_id=tenant_id,
+                    fields={
+                        "description": item["description"] or existing.get("description") or "",
+                        "function_type": item["function_type"],
+                    },
+                )
+                updated += 1
+                refreshed = self.get_department(int(existing["id"]), tenant_id=tenant_id)
+                if refreshed is not None:
+                    by_name[item["name"]] = refreshed
+        for item in pending:
+            parent_name = item["parent"]
+            if not parent_name:
+                continue
+            parent = by_name.get(parent_name)
+            child = by_name.get(item["name"])
+            if parent is None or child is None:
+                skipped += 1
+                continue
+            try:
+                self.update_department(
+                    int(child["id"]),
+                    tenant_id=tenant_id,
+                    fields={"parent_id": int(parent["id"])},
+                )
+            except ValueError:
+                skipped += 1
+        return {"created": created, "updated": updated, "skipped": skipped}
+
+    def import_reporting_lines(
+        self, *, tenant_id: str, items: list[dict[str, Any]]
+    ) -> dict[str, int]:
+        employees = self.list_employees(tenant_id=tenant_id, status="all")
+        by_name: dict[str, dict[str, Any]] = {}
+        for emp in employees:
+            by_name.setdefault(str(emp.get("name") or ""), emp)
+        applied = 0
+        skipped = 0
+        for raw in items:
+            name = str(raw.get("employee") or raw.get("name") or "").strip()
+            manager_name = str(raw.get("reports_to") or raw.get("manager") or "").strip()
+            emp = by_name.get(name)
+            manager = by_name.get(manager_name) if manager_name else None
+            if emp is None or manager is None:
+                skipped += 1
+                continue
+            try:
+                updated = self.update_employee(
+                    int(emp["id"]),
+                    tenant_id=tenant_id,
+                    fields={"reports_to": int(manager["id"])},
+                )
+            except (KeyError, ValueError):
+                skipped += 1
+                continue
+            if updated is None:
+                skipped += 1
+                continue
+            applied += 1
+            by_name[name] = updated
+        return {"applied": applied, "skipped": skipped}
+
     def _decorate_employee(self, row: dict[str, Any]) -> dict[str, Any]:
         out = dict(row)
         out["is_online"] = str(out.get("employee_type") or "") == "ai"
+        reports_to = out.get("reports_to")
+        if reports_to in (None, "", 0, "0"):
+            out["reports_to"] = None
+            out["reports_to_name"] = out.get("reports_to_name") or None
+        else:
+            out["reports_to"] = int(reports_to)
         return out

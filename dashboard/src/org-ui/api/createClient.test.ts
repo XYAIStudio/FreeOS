@@ -15,7 +15,33 @@ describe("createOrgApiClient", () => {
           },
         };
       }
-      if (path === "/org-module/announcements/action/unread") {
+      if (path === "/org-module/announcements/1/readers") {
+        return {
+          success: true,
+          data: {
+            readers: [
+              { user_id: 1, user_name: "Ada", read_at: "2026-09-19T00:00:00Z" },
+            ],
+            count: 1,
+          },
+        };
+      }
+      if (path === "/org-module/org/import") {
+        return {
+          success: true,
+          data: {
+            departments: { created: 1, updated: 0, skipped: 0 },
+            reporting_lines: { applied: 0, skipped: 0 },
+            tree: [],
+          },
+        };
+      }
+      if (path === "/org-module/tasks/3/attachments") {
+        return {
+          success: true,
+          data: [{ id: 11, filename: "notes.txt", size_bytes: 12 }],
+        };
+      }
         return { success: true, data: { count: 2 } };
       }
       if (path === "/org-module/org/tree") {
@@ -144,13 +170,23 @@ describe("createOrgApiClient", () => {
     expect(listed.total).toBe(1);
     expect(listed.list[0]?.title).toBe("Hi");
     expect(await client.announcements.unread()).toEqual({ count: 2 });
+    expect((await client.announcements.readers(1)).readers[0]?.user_name).toBe(
+      "Ada",
+    );
     expect((await client.org.tree())[0]?.name).toBe("HQ");
+    expect(
+      (await client.org.importChart({ departments: [{ name: "HQ" }] }))
+        .departments.created,
+    ).toBe(1);
     expect((await client.employees.list())[0]?.name).toBe("Ada");
     expect((await client.talent.list())[0]?.name).toBe("Policy Analyst");
     expect((await client.governance.pauses()).pauses[0]?.pause_id).toBe("p1");
     expect((await client.skills.list()).skills[0]?.slug).toBe("org-employees");
     expect((await client.knowledge.list()).bases[0]?.name).toBe("Policies");
     expect((await client.tasks.list())[0]?.title).toBe("Ship Tasks slice");
+    expect((await client.tasks.listAttachments(3))[0]?.filename).toBe(
+      "notes.txt",
+    );
     expect((await client.reflections.list())[0]?.failure_reasons).toBe(
       "const dead zone",
     );
@@ -173,6 +209,28 @@ describe("createOrgApiClient", () => {
     ).toBe("policy-analyst");
     expect((await client.workspace.overview()).freeos.employees).toBe(2);
     expect(fetchJson).toHaveBeenCalled();
+  });
+
+  it("uploads and downloads task attachments without JSON Content-Type", async () => {
+    const uploadForm = vi.fn(async () => ({
+      success: true,
+      data: { id: 12, filename: "brief.txt", size_bytes: 4 },
+    }));
+    const fetchBlob = vi.fn(async () => new Blob(["ok"]));
+    const client = createOrgApiClient({
+      fetchJson: async () => ({ success: true, data: {} }),
+      uploadForm,
+      fetchBlob,
+    });
+    const file = new File(["ok"], "brief.txt", { type: "text/plain" });
+    expect((await client.tasks.uploadAttachment(3, file)).filename).toBe(
+      "brief.txt",
+    );
+    expect(uploadForm).toHaveBeenCalled();
+    expect(await client.tasks.downloadAttachment(3, 12)).toBeInstanceOf(Blob);
+    expect(fetchBlob).toHaveBeenCalledWith(
+      "/org-module/tasks/3/attachments/12/file",
+    );
   });
 
   it("throws the envelope error", async () => {

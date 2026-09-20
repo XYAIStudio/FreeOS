@@ -19,6 +19,15 @@ function mockClient(): OrgTasksClient {
         { id: 1, task_id: 3, title: "Draft", completed: 0, sort_order: 1 },
       ],
       comments: [],
+      attachments: [
+        {
+          id: 11,
+          task_id: 3,
+          filename: "notes.txt",
+          size_bytes: 12,
+          created_at: "2026-09-19T00:00:00Z",
+        },
+      ],
     })),
     create: vi.fn(),
     update: vi.fn(async (_id, body) => ({
@@ -55,6 +64,16 @@ function mockClient(): OrgTasksClient {
       comment_type: "user",
       created_at: "2026-09-19T00:00:00Z",
     })),
+    listAttachments: vi.fn(async () => []),
+    uploadAttachment: vi.fn(async () => ({
+      id: 12,
+      task_id: 3,
+      filename: "brief.txt",
+      size_bytes: 4,
+      created_at: "2026-09-19T00:00:00Z",
+    })),
+    downloadAttachment: vi.fn(async () => new Blob(["ok"])),
+    removeAttachment: vi.fn(),
   };
 }
 
@@ -86,6 +105,8 @@ describe("TaskDetailPage", () => {
     ).toBeInTheDocument();
     expect(document.querySelector("iframe")).toBeNull();
     expect(client.get).toHaveBeenCalledWith(3);
+    expect(screen.getByTestId("org-task-attachment-input")).toBeInTheDocument();
+    expect(screen.getByText("notes.txt (12 B)")).toBeInTheDocument();
   });
 
   it("saves edits and adds a comment through the injected client", async () => {
@@ -115,6 +136,24 @@ describe("TaskDetailPage", () => {
     fireEvent.click(screen.getByTestId("org-task-comment-add"));
     await waitFor(() => {
       expect(client.addComment).toHaveBeenCalledWith(3, "Looks good");
+    });
+  });
+
+  it("uploads an attachment through the injected client", async () => {
+    const client = mockClient();
+    render(
+      <TaskDetailPage
+        client={client}
+        session={session}
+        locale="en"
+        taskId={3}
+      />,
+    );
+    const input = await screen.findByTestId("org-task-attachment-input");
+    const file = new File(["ok"], "brief.txt", { type: "text/plain" });
+    fireEvent.change(input, { target: { files: [file] } });
+    await waitFor(() => {
+      expect(client.uploadAttachment).toHaveBeenCalledWith(3, file);
     });
   });
 });
