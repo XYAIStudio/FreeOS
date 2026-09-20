@@ -35,7 +35,7 @@
 | 域 | 状态 | 依赖 Node？ | 商业导出？ | 优先级 | 下一步（一行） |
 |---|---|---|---|---|---|
 | [双向资产总线](#1-双向资产总线) | native_host | 部分 | 是 | P0 | 宿主自有 ingest/export，不依赖活着的 Node `/api/freeos/ingest`。 |
-| [独立站导出](#2-独立站导出商业加售) | export_only | 部分 | 是 | P0 | 用可导出的 openXYOS **源码树** 替换 SPA+反代。 |
+| [独立站导出](#2-独立站导出商业加售) | export_only | 部分 | 是 | P0 | 默认 `--mode full` 写出 openXYOS **源码树**；`--mode slice` 仍是 SPA+反代宿主桥。 |
 | [租户与身份（双入口）](#3-租户与身份双入口) | managed_node_iframe | 部分 | 是 | P0 | 两套身份空间；组织房间不再以 Node `/api/auth` 为权威。 |
 | [本地模型](#4-本地模型) | native_host | 部分 | 是 | P0 | 组织房间使用工作室同一套本机模型池，而不是边车 `/api/settings/ai`。 |
 | [宿主知识库](#5-宿主知识库) | native_host | 否 | 部分 | P0 | 默认本地 RAG；云连接器可选。 |
@@ -120,14 +120,14 @@
 
 | | |
 |---|---|
-| **今日位置** | `export_standalone.py`、`freeos org export-standalone`、`scripts/org-export/template/`、拷贝 `dashboard/src/org-ui`、[org-export.md](org-export.md) |
+| **今日位置** | `export_standalone.py`、`freeos org export-standalone`（默认 `--mode full` 拷贝 `modules/openxyos` + `slice/`）、`scripts/org-export/template/` + `pack/`、拷贝 `dashboard/src/org-ui`、[org-export.md](org-export.md) |
 | **状态** | `export_only` |
-| **依赖 Node？** | 部分（构建 Vite 需要 Node；运行时反代到 FreeOS） |
+| **依赖 Node？** | 部分（完整树 **运行** 需要 Node；slice 仍反代到 FreeOS） |
 | **商业导出？** | 是 |
 | **优先级** | P0 · 波次 B |
-| **下一步** | 客户可自托管的 openXYOS **源码树**。SPA + `FREEOS_UPSTREAM` 反代只是早期交付，不是成品。 |
+| **下一步** | 与 `POST /api/org-module/source/download` 合一；slice 内自包含 API 仍可选。不要把仅 slice 的 SPA+反代冻成商业交付物。 |
 | **测试** | `tests/unit/cli/test_org_export_standalone.py` |
-| **未知** | 包内自包含 org API 仍是目标，未实现。 |
+| **未知** | slice 内自包含 org API 仍是跟进项，未实现。 |
 
 ### 3. 租户与身份（双入口）
 

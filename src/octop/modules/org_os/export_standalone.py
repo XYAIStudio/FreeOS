@@ -1,4 +1,4 @@
-"""``freeos org export-standalone`` — runnable Vite package from org-ui."""
+"""``freeos org export-standalone`` — commercializable openXYOS source pack."""
 
 from __future__ import annotations
 
@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from octop.modules.org_os.contract import SHARED_ORG_UI_MODULES
+from octop.modules.org_os.export_inventory import ExportMode, build_export_manifest
 
 _ORG_UI_IGNORE = (
     "*.test.ts",
@@ -16,6 +17,57 @@ _ORG_UI_IGNORE = (
     "*.spec.tsx",
     "__snapshots__",
     ".DS_Store",
+)
+
+_SKIP_DIR_NAMES = {
+    "node_modules",
+    "oh_modules",
+    "dist",
+    "build",
+    "coverage",
+    ".git",
+    ".idea",
+    ".vscode",
+    ".hvigor",
+    ".tmp",
+    "tmp",
+    "artifacts",
+    "reports",
+    "uploads",
+    "__pycache__",
+}
+_SKIP_FILES = {".DS_Store", "Thumbs.db", ".env"}
+_SKIP_SUFFIXES = (
+    ".db",
+    ".sqlite",
+    ".sqlite3",
+    ".log",
+    ".pyc",
+    ".zip",
+    ".tar",
+    ".tgz",
+    ".bak",
+    ".pem",
+    ".key",
+    ".p12",
+    ".pfx",
+)
+
+_SLICE_FILES = (
+    "README.md",
+    "LICENSE",
+    "package.json",
+    "vite.config.ts",
+    "Dockerfile",
+    "docker-compose.yml",
+    "nginx.conf.template",
+    "server/proxy.mjs",
+    "src/App.tsx",
+    "src/modules.json",
+    "src/org-ui/index.ts",
+    "src/org-ui/bridges/localJwt.ts",
+    "src/auth/LoginPage.tsx",
+    "src/shell/CoveragePage.tsx",
 )
 
 
@@ -29,123 +81,40 @@ def _repo_root() -> Path:
         return cwd
     raise FileNotFoundError(
         "freeos org export-standalone needs a FreeOS source checkout "
-        "(dashboard/src/org-ui and scripts/org-export/template). "
+        "(dashboard/src/org-ui, scripts/org-export/template, modules/openxyos). "
         "Installed wheels without those trees cannot generate the package."
     )
 
 
 def _looks_like_checkout(root: Path) -> bool:
-    return (root / "dashboard" / "src" / "org-ui").is_dir() and (
-        root / "scripts" / "org-export" / "template"
-    ).is_dir()
+    return (
+        (root / "dashboard" / "src" / "org-ui").is_dir()
+        and (root / "scripts" / "org-export" / "template").is_dir()
+        and (root / "modules" / "openxyos" / "frontend" / "src" / "App.tsx").is_file()
+    )
 
 
-def _modules_manifest() -> dict[str, Any]:
-    return {
-        "shared_org_ui_modules": list(SHARED_ORG_UI_MODULES),
-        "import": "dashboard/src/org-ui",
-        "identity": {
-            "embedded": "FreeOS Dashboard session (auth_token)",
-            "standalone": "local JWT (openxyos.standalone.jwt)",
-            "bridge": "org-ui createLocalJwtBridge",
-        },
-        "api": {
-            "interim": "same-origin /api proxied to FREEOS_UPSTREAM (FreeOS /api/org-module)",
-            "target": "self-contained server implementing /api/org-module/* in this package",
-        },
-        "pages": {
-            "announcements": {
-                "component": "AnnouncementPage",
-                "embedded_route": "/organization/announcements",
-                "standalone_route": "/announcements",
-                "api": "/api/org-module/announcements",
-            },
-            "organization": {
-                "component": "OrgChartPage",
-                "embedded_route": "/organization/org",
-                "standalone_route": "/org",
-                "api": "/api/org-module/org",
-            },
-            "employees": {
-                "component": "EmployeesPage",
-                "detail_component": "EmployeeDetailPage",
-                "embedded_route": "/organization/employees",
-                "standalone_route": "/employees",
-                "api": "/api/org-module/org/employees",
-                "store": "{FREEOS_HOME}/org/org_chart.sqlite",
-            },
-            "skills": {
-                "component": "SkillsPage",
-                "embedded_route": "/organization/skills",
-                "standalone_route": "/skills",
-                "api": "/api/org-module/skills",
-                "store": "{FREEOS_HOME}/org-skills",
-            },
-            "governance": {
-                "component": "GovernancePage",
-                "embedded_route": "/organization/governance",
-                "standalone_route": "/governance",
-                "api": "/api/org-module/governance",
-                "store": "{FREEOS_HOME}/governance",
-            },
-            "knowledge": {
-                "component": "KnowledgePage",
-                "embedded_route": "/organization/knowledge",
-                "standalone_route": "/knowledge",
-                "api": "/api/org-module/knowledge",
-                "store": "host knowledge_bases / knowledge_documents",
-            },
-            "tasks": {
-                "component": "TasksPage",
-                "detail_component": "TaskDetailPage",
-                "embedded_route": "/organization/tasks",
-                "standalone_route": "/tasks",
-                "api": "/api/org-module/tasks",
-                "store": "{FREEOS_HOME}/org/tasks.sqlite",
-            },
-            "reflections": {
-                "component": "ReflectionsPage",
-                "embedded_route": "/organization/reflections",
-                "standalone_route": "/reflections",
-                "api": "/api/org-module/reflections",
-                "store": "{FREEOS_HOME}/org/reflections.sqlite",
-            },
-            "settings": {
-                "component": "SettingsPage",
-                "embedded_route": "/organization/settings",
-                "standalone_route": "/settings",
-                "api": "/api/org-module/settings",
-                "modules_api": "/api/org-module/modules",
-                "prefs_api": "/api/org-module/prefs",
-                "store": "{FREEOS_HOME}/org-os/prefs.json",
-            },
-            "agents": {
-                "component": "AgentsPage",
-                "embedded_route": "/organization/agents",
-                "standalone_route": "/agents",
-                "api": "/api/org-module/agents",
-                "compile_api": "/api/org-module/blueprints/compile",
-                "transition_api": "/api/org-module/employees/transition",
-                "spawn_api": "/api/org-module/employees/spawn",
-                "store": "{FREEOS_HOME}/tenants/<id>/employees",
-            },
-            "workspace": {
-                "component": "WorkspacePage",
-                "embedded_route": "/organization/workspace",
-                "standalone_route": "/app",
-                "api": "/api/org-module/overview",
-                "not_migrated": ["chat"],
-            },
-        },
-        "not_exported": ["chat"],
-        "todo": "self-contained org API (export still proxies to FREEOS_UPSTREAM); optional packages/org-ui extraction",
-    }
+def _ignore_openxyos(directory: str, names: list[str]) -> set[str]:
+    del directory
+    skipped: set[str] = set()
+    for name in names:
+        if name in _SKIP_DIR_NAMES or name in _SKIP_FILES:
+            skipped.add(name)
+            continue
+        if name.startswith(".env") and name != ".env.example":
+            skipped.add(name)
+            continue
+        if name.endswith(_SKIP_SUFFIXES):
+            skipped.add(name)
+    return skipped
 
 
-def write_standalone_scaffold(out_dir: Path) -> dict[str, Any]:
-    dest = Path(out_dir)
-    dest.mkdir(parents=True, exist_ok=True)
-    root = _repo_root()
+def _write_json(path: Path, payload: dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+
+
+def _write_slice(root: Path, dest: Path, manifest: dict[str, Any]) -> None:
     template = root / "scripts" / "org-export" / "template"
     org_ui = root / "dashboard" / "src" / "org-ui"
     shutil.copytree(template, dest, dirs_exist_ok=True, ignore=shutil.ignore_patterns(".DS_Store"))
@@ -155,31 +124,89 @@ def write_standalone_scaffold(out_dir: Path) -> dict[str, Any]:
         dirs_exist_ok=True,
         ignore=shutil.ignore_patterns(*_ORG_UI_IGNORE),
     )
-    src = dest / "src"
-    src.mkdir(parents=True, exist_ok=True)
-    (src / "modules.json").write_text(
-        json.dumps(_modules_manifest(), indent=2) + "\n",
-        encoding="utf-8",
+    _write_json(dest / "src" / "modules.json", manifest)
+    _write_json(dest / "modules.json", manifest)
+
+
+def _write_openxyos_tree(root: Path, dest: Path) -> None:
+    source = root / "modules" / "openxyos"
+    shutil.copytree(
+        source,
+        dest,
+        dirs_exist_ok=True,
+        ignore=_ignore_openxyos,
     )
-    files = [
-        "README.md",
-        "package.json",
-        "vite.config.ts",
-        "Dockerfile",
-        "docker-compose.yml",
-        "nginx.conf.template",
-        "server/proxy.mjs",
-        "src/App.tsx",
-        "src/modules.json",
-        "src/org-ui/index.ts",
-        "src/org-ui/bridges/localJwt.ts",
-        "src/auth/LoginPage.tsx",
-    ]
+
+
+def _copy_pack_overlay(root: Path, dest: Path) -> None:
+    overlay = root / "scripts" / "org-export" / "pack"
+    if not overlay.is_dir():
+        return
+    shutil.copytree(
+        overlay,
+        dest,
+        dirs_exist_ok=True,
+        ignore=shutil.ignore_patterns(".DS_Store"),
+    )
+
+
+def write_standalone_scaffold(
+    out_dir: Path,
+    *,
+    mode: ExportMode = "full",
+) -> dict[str, Any]:
+    dest = Path(out_dir)
+    dest.mkdir(parents=True, exist_ok=True)
+    root = _repo_root()
+    manifest = build_export_manifest(root, mode=mode)
+    if mode == "slice":
+        _write_slice(root, dest, manifest)
+        files = list(_SLICE_FILES)
+        layout = {"slice": ".", "manifest": "src/modules.json"}
+        api = (
+            "proxies /api to FREEOS_UPSTREAM (interim slice); "
+            "use --mode full for the self-contained openXYOS source tree"
+        )
+    else:
+        _write_openxyos_tree(root, dest / "openxyos")
+        _write_slice(root, dest / "slice", manifest)
+        _copy_pack_overlay(root, dest)
+        _write_json(dest / "modules.json", manifest)
+        files = [
+            "README.md",
+            "README.zh-CN.md",
+            "NOTICE",
+            "modules.json",
+            "openxyos/package.json",
+            "openxyos/LICENSE",
+            "openxyos/frontend/src/App.tsx",
+            "openxyos/backend/server.ts",
+            "slice/README.md",
+            "slice/package.json",
+            "slice/src/App.tsx",
+            "slice/src/modules.json",
+            "slice/src/org-ui/index.ts",
+            "slice/src/org-ui/bridges/localJwt.ts",
+            "slice/src/shell/CoveragePage.tsx",
+        ]
+        layout = {
+            "openxyos": "openxyos/",
+            "slice": "slice/",
+            "manifest": "modules.json",
+        }
+        api = (
+            "full tree is self-contained Node+Vite in openxyos/; "
+            "slice proxies /api to FREEOS_UPSTREAM (interim host bridge)"
+        )
     return {
         "out_dir": str(dest),
+        "mode": mode,
+        "layout": layout,
         "modules": list(SHARED_ORG_UI_MODULES),
         "files": files,
+        "licenses": dict(manifest["licenses"]),
+        "omissions": [item["id"] for item in manifest["omissions"]],
         "auth": "standalone local JWT (openxyos.standalone.jwt)",
-        "api": "proxies /api to FREEOS_UPSTREAM (interim); self-contained server is the target end-state",
-        "todo": "self-contained org API; optional packages/org-ui extraction",
+        "api": api,
+        "todo": manifest["todo"],
     }

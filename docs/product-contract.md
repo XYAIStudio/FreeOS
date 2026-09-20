@@ -61,7 +61,7 @@ Prefer models and knowledge bases that run on the operator’s machine. Cloud pr
 
 ## Export goal
 
-Operators should be able to customize the organization system and **eventually export a new openXYOS system source** suitable for commercial self-hosting. Today’s `freeos org export-standalone` (SPA + proxy to the host) is an early delivery, not the finished export product. Rewriting that pipeline is **out of scope for this contract freeze** (later work).
+Operators should be able to customize the organization system and **export a new openXYOS system source** suitable for commercial self-hosting. `freeos org export-standalone` (default `--mode full`) writes the Apache-2.0 `openxyos/` tree plus an MIT host-bridge `slice`. `--mode slice` is the thinner SPA that still proxies to a FreeOS host. See [org-export.md](org-export.md).
 
 ## What not to do next
 

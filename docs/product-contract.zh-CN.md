@@ -59,7 +59,7 @@ FreeOS 更像你自己的工作室：先在本机安顿好。组织相关能力�
 
 ## 导出目标
 
-操作者应能定制组织系统，并 **最终导出一套新的 openXYOS 系统源码**，供商业自托管。今天的 `freeos org export-standalone`（SPA + 反代到宿主）只是早期交付，不是完成品。重写导出流水线 **不属于本次契约冻结**（后续工作）。
+操作者应能定制组织系统，并 **导出一套新的 openXYOS 系统源码**，供商业自托管。`freeos org export-standalone`（默认 `--mode full`）写出 Apache-2.0 的 `openxyos/` 树，外加 MIT 宿主桥 `slice`。`--mode slice` 仍是较薄的 SPA，继续反代到 FreeOS 宿主。详见 [org-export.md](org-export.md)。
 
 ## 接下来不要做什么
 

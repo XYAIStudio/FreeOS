@@ -246,7 +246,7 @@ curl -fsSL https://finnie-1258344699.cos.ap-guangzhou.myqcloud.com/octop/install
 | Linux | `FreeOS-desktop-linux-amd64-<version>.tar.gz` / `FreeOS-desktop-linux-arm64-<version>.tar.gz` |
 | 飞牛 NAS（FnOS） | `Octop-fnos-docker-<version>.fpk`（依赖 Docker）/ `Octop-fnos-native-<version>.fpk`（无需 Docker）— 通过应用中心安装 |
 
-桌面客户端说明见 [desktop/README.md](desktop/README.md)，飞牛打包指南见 [fnos/README.md](fnos/README.md)。独立商业组织站见 [docs/org-export.md](docs/org-export.md)（`freeos org export-standalone`），不是默认安装器里的第二套 Node。
+桌面客户端说明见 [desktop/README.md](desktop/README.md)，飞牛打包指南见 [fnos/README.md](fnos/README.md)。独立商业组织站见 [docs/org-export.md](docs/org-export.md)（`freeos org export-standalone`，默认导出完整 openXYOS 源码树），不是默认安装器里的第二套 Node。
 
 **备选 — PyPI**（若你已自行管理 Python 环境）：
 

@@ -381,16 +381,29 @@ def assets_apply(pack_dir: Path | None, tenant_id: str, base_url: str) -> None:
     required=True,
     help="Output directory for the standalone Organization web package.",
 )
-def export_standalone(out_dir: Path) -> None:
-    """Export a runnable standalone Organization web from shared org-ui.
+@click.option(
+    "--mode",
+    type=click.Choice(["full", "slice"], case_sensitive=False),
+    default="full",
+    show_default=True,
+    help=(
+        "full: commercializable openXYOS source tree plus host-bridge slice. "
+        "slice: org-ui SPA that proxies to a FreeOS host."
+    ),
+)
+def export_standalone(out_dir: Path, mode: str) -> None:
+    """Export a commercializable openXYOS source pack (default: full).
 
-    Copies dashboard/src/org-ui plus a Vite + Docker shell (local JWT
-    IdentityBridge, /api proxy to a FreeOS host). Chat is not exported.
+    full copies modules/openxyos (Apache-2.0 App.tsx surface) plus the
+    MIT host-bridge slice. slice is the thinner org-ui SPA that still
+    proxies /api to FreeOS. Studio agent chat is not exported.
     Default FreeOS installers stay zero-Node; this export is opt-in.
     """
+    from octop.modules.org_os.export_inventory import ExportMode
     from octop.modules.org_os.export_standalone import write_standalone_scaffold
 
-    written = write_standalone_scaffold(out_dir)
+    chosen: ExportMode = "full" if mode.lower() == "full" else "slice"
+    written = write_standalone_scaffold(out_dir, mode=chosen)
     click.echo(json.dumps(written, indent=2))
 
 

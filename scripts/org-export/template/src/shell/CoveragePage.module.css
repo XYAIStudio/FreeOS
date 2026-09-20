@@ -1,0 +1,65 @@
+.page {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 32px 16px 64px;
+}
+
+.lead {
+  color: #555;
+  line-height: 1.6;
+}
+
+.list {
+  columns: 2;
+  margin: 0 0 24px;
+  padding-left: 20px;
+}
+
+.tableWrap {
+  overflow-x: auto;
+  margin-bottom: 24px;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.table th,
+.table td {
+  border: 1px solid #e5e5e5;
+  padding: 6px 8px;
+  text-align: left;
+}
+
+.table th {
+  background: #fafafa;
+}
+
+.omissions {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.omissions p {
+  margin: 6px 0 0;
+  color: #555;
+  line-height: 1.6;
+}
+
+.meta {
+  display: block;
+  font-size: 12px;
+  color: #888;
+  margin-top: 4px;
+}
+
+.foot {
+  color: #666;
+  font-size: 13px;
+}

@@ -7,10 +7,10 @@ const COPY: Record<
   { title: { zh: string; en: string }; body: { zh: string; en: string } }
 > = {
   chat: {
-    title: { zh: "沟通协作未迁入独立站", en: "Chat is not in this package" },
+    title: { zh: "本切片不含组织沟通；工作室对话留在宿主", en: "Org chat is in the full pack; studio chat stays on the host" },
     body: {
-      zh: "对话运行时留在 FreeOS / Octop。请打开宿主 Dashboard 的 /chat，不要在独立站里找第二套 Chat。",
-      en: "Conversation stays on FreeOS / Octop. Open /chat on the host Dashboard — this export does not ship a second chat runtime.",
+      zh: "组织沟通协作在完整导出的 openxyos/ 树（App.tsx /chat）。本 slice 不跑组织会话。FreeOS / Octop 工作室智能体对话留在宿主 Dashboard /chat，本包不导出第二套智能体运行时。",
+      en: "Organization collaboration chat ships in the full export’s openxyos/ tree (App.tsx /chat). This slice does not run org rooms. FreeOS / Octop studio agent chat stays on the host Dashboard /chat — this pack does not ship a second agent runtime.",
     },
   },
   experts: {
