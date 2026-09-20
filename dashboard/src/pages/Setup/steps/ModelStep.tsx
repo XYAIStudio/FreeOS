@@ -231,7 +231,8 @@ export default function ModelStep({
 
   const isOllama = preset?.id === "ollama";
   const customBaseUrl = Form.useWatch("base_url", customForm) as
-    string | undefined;
+    | string
+    | undefined;
   const customIsLocal = isLocalBaseUrl(customBaseUrl);
   const canContinueWithoutTest =
     (mode === "preset" && isOllama) || (mode === "custom" && customIsLocal);
@@ -494,6 +495,11 @@ export default function ModelStep({
     }
 
     const draft = result.draft;
+    const probeModel = draft.models[0];
+    if (!probeModel) {
+      message.warning(t("models.addModelFirst"));
+      return;
+    }
     setTesting(true);
     resetTest();
     try {
@@ -503,14 +509,14 @@ export default function ModelStep({
           type: draft.type,
           api_key: draft.api_key,
           base_url: draft.base_url,
-          model_id: draft.models[0].id,
+          model_id: probeModel.id,
         },
         probeToken,
       );
       if (result.ok) {
         message.success(
           t("models.testSuccess", {
-            name: draft.models[0].name,
+            name: probeModel.name,
             time: result.latency_ms ?? 0,
           }),
         );
@@ -1102,8 +1108,8 @@ export default function ModelStep({
                 k.value === "openai"
                   ? t("models.kindOpenaiCompat")
                   : k.value === "anthropic"
-                    ? "Anthropic"
-                    : "AWS Bedrock",
+                  ? "Anthropic"
+                  : "AWS Bedrock",
             }))}
           />
         </Form.Item>

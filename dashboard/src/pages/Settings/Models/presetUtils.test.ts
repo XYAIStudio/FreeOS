@@ -78,6 +78,11 @@ describe("local-first wizard and settings helpers", () => {
     ]);
     expect(featured[0]).toEqual({ kind: "single", preset: ollama });
     expect(
+      featured.some(
+        (item) => item.kind === "single" && item.preset.id === "onnx",
+      ),
+    ).toBe(false);
+    expect(
       more.some((item) => item.kind === "single" && item.preset.id === "onnx"),
     ).toBe(true);
   });

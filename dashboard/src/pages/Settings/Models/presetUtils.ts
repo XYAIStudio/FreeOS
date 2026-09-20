@@ -176,26 +176,39 @@ export function buildWizardPresetDisplay(presets: ProviderPreset[]): {
   more: WizardPresetDisplayItem[];
 } {
   const localChat = presets.filter((p) => isLocalChatPreset(p));
-  const rest = presets.filter((p) => !isLocalChatPreset(p));
+  const localEmbed = presets.filter(
+    (p) => isLocalPreset(p) && !isLocalChatPreset(p),
+  );
+  const rest = presets.filter((p) => !isLocalPreset(p));
   const { grouped, ungrouped } = groupPresets(rest);
   const restItems: WizardPresetDisplayItem[] = [
-    ...grouped.map((group): WizardPresetDisplayItem => ({
-      kind: "group",
-      group,
-    })),
-    ...ungrouped.map((preset): WizardPresetDisplayItem => ({
-      kind: "single",
-      preset,
-    })),
+    ...grouped.map(
+      (group): WizardPresetDisplayItem => ({
+        kind: "group",
+        group,
+      }),
+    ),
+    ...ungrouped.map(
+      (preset): WizardPresetDisplayItem => ({
+        kind: "single",
+        preset,
+      }),
+    ),
   ];
   const localItems: WizardPresetDisplayItem[] = localChat.map((preset) => ({
     kind: "single",
     preset,
   }));
+  const localEmbedItems: WizardPresetDisplayItem[] = localEmbed.map(
+    (preset) => ({
+      kind: "single" as const,
+      preset,
+    }),
+  );
   const remainingSlots = Math.max(WIZARD_FEATURED_COUNT - localItems.length, 0);
   return {
     featured: [...localItems, ...restItems.slice(0, remainingSlots)],
-    more: restItems.slice(remainingSlots),
+    more: [...restItems.slice(remainingSlots), ...localEmbedItems],
   };
 }
 
