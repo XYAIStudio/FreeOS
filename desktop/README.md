@@ -42,12 +42,16 @@ First launch opens the model wizard with **Ollama first**. Skip is fine; **Model
 
 ## Windows install finish
 
-After the file-copy page finishes, Setup **starts FreeOS** from `$INSTDIR`
-and **closes itself**. There is no Finish / Next / Close click. The launch
-uses the unelevated explorer token so the first run does not stamp
-`%USERPROFILE%\.freeos` as High integrity. Silent (`/S`) installs stay
-headless and do not auto-launch. Chinese installer strings are compiled
-with `makensis -INPUTCHARSET UTF8` from a UTF-8 BOM `project.nsi`.
+Pages are Welcome → directory → file copy → **finish**. After files copy,
+Setup goes to the finish page without an extra Next on the progress list.
+The finish page offers **运行 FreeOS** / **Run FreeOS**, checked by
+default: leave it checked and click Finish to start FreeOS from `$INSTDIR`,
+or uncheck it and click Finish to close Setup without launching. Setup
+does **not** auto-launch or auto-close. The launch uses the unelevated
+explorer token so the first run does not stamp `%USERPROFILE%\.freeos`
+as High integrity. Silent (`/S`) installs stay headless and do not launch.
+Chinese installer strings are compiled with `makensis -INPUTCHARSET UTF8`
+from a UTF-8 BOM `project.nsi`.
 
 Upgrade / reinstall (same version included) refreshes the extracted runtime:
 

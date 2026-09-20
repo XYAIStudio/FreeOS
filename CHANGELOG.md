@@ -12,7 +12,7 @@
 
 ### 变更
 
-- Windows NSIS 安装完成后不再停留在结束页：文件复制一结束即自动启动 FreeOS 并关闭安装窗口，用户不必再点「下一步 / 完成 / 关闭」。静默安装（`/S`）仍不拉起界面。 / After a Windows NSIS install finishes, FreeOS launches automatically and Setup closes — no Finish click. Silent `/S` installs stay headless.
+- Windows NSIS 文件复制结束后不再多点一次「下一步」才到结束页；结束页仍让用户勾选「运行 FreeOS」或直接关闭，不会自动启动、也不会自动关窗。静默安装（`/S`）仍不拉起界面。 / After Windows NSIS file copy, Setup advances to the finish page without an extra Next. The user still chooses Run FreeOS or close. No auto-launch / auto-close. Silent `/S` stays headless.
 - 桌面首次启动不再要求注册/登录。首屏是可选模型配置（云密钥或本机 Ollama，可跳过）；跳过或保存后进入默认智能体对话，而不是停在工作台列表。已有提供商或会话的用户不会被再次拦住。账号仍可稍后在头像菜单里领取，供保存/导出/组织房间使用。首次运行与安全条目一致：不预填云密钥，本机 Ollama 优先。
 
 ### 修复
