@@ -25,7 +25,12 @@ import PageShell from "../../../layouts/PageShell";
 import { useCurrentUser } from "../../../hooks/useCurrentUser";
 import { userCan } from "../../../utils/permissions";
 import { useProviders, type ProviderRow } from "./useProviders";
-import { groupPresets, isLocalPreset, isPresetProvider } from "./presetUtils";
+import {
+  defaultModelsPresetTab,
+  groupPresets,
+  isLocalPreset,
+  isPresetProvider,
+} from "./presetUtils";
 import type { PresetGroup } from "./presetUtils";
 import type { ProviderPreset } from "./useProviders";
 import {
@@ -124,6 +129,10 @@ export default function ModelsPage() {
     (canOllama || canOnnx) &&
     (localPresets.grouped.length > 0 || localPresets.ungrouped.length > 0);
   const showPresetSection = showCloudTab || showLocalTab;
+  const defaultPresetTab = defaultModelsPresetTab({
+    showLocal: showLocalTab,
+    showCloud: showCloudTab,
+  });
 
   const renderPresetGrid = (
     grouped: PresetGroup[],
@@ -284,17 +293,8 @@ export default function ModelsPage() {
                 {t("models.presetProviders")}
               </Title>
               <Tabs
+                defaultActiveKey={defaultPresetTab}
                 items={[
-                  showCloudTab
-                    ? {
-                        key: "cloud",
-                        label: t("models.presetCloud"),
-                        children: renderPresetGrid(
-                          cloudPresets.grouped,
-                          cloudPresets.ungrouped,
-                        ),
-                      }
-                    : null,
                   showLocalTab
                     ? {
                         key: "local",
@@ -302,6 +302,16 @@ export default function ModelsPage() {
                         children: renderPresetGrid(
                           localPresets.grouped,
                           localPresets.ungrouped,
+                        ),
+                      }
+                    : null,
+                  showCloudTab
+                    ? {
+                        key: "cloud",
+                        label: t("models.presetCloud"),
+                        children: renderPresetGrid(
+                          cloudPresets.grouped,
+                          cloudPresets.ungrouped,
                         ),
                       }
                     : null,

@@ -11,6 +11,7 @@ import { request } from "../../../../../api/request";
 import type { ProviderModel, ProviderRow } from "../../useProviders";
 import { isEmbeddingModel } from "../../useProviders";
 import { fetchProviderModels, testProviderDraft } from "../../providerApi";
+import { isLocalBaseUrl, localPlaceholderApiKey } from "../../presetUtils";
 import { ModelListEditor } from "./ModelListEditor";
 import styles from "../../index.module.less";
 
@@ -50,7 +51,8 @@ export function CustomProviderModal({
   const baseUrl = Form.useWatch("base_url", form) as string | undefined;
   const apiKey = Form.useWatch("api_key", form) as string | undefined;
   const [models, setModels] = useState<ProviderModel[]>([]);
-  const canTest = !!apiKey?.trim();
+  const localEndpoint = isLocalBaseUrl(baseUrl);
+  const canTest = !!apiKey?.trim() || localEndpoint;
 
   const draftProvider = useMemo<ProviderRow>(
     () => ({
@@ -81,7 +83,10 @@ export function CustomProviderModal({
       "api_key",
       "base_url",
     ]);
-    const key = (values.api_key as string | undefined)?.trim();
+    const key = localPlaceholderApiKey(
+      values.base_url,
+      values.api_key as string | undefined,
+    );
     if (!key) {
       return { ok: false, error: t("models.pleaseEnterApiKey") };
     }
@@ -102,7 +107,10 @@ export function CustomProviderModal({
         message.warning(t("models.fetchModelsUnsupportedKind"));
         return;
       }
-      const apiKey = (values.api_key as string | undefined)?.trim();
+      const apiKey = localPlaceholderApiKey(
+        values.base_url as string | undefined,
+        values.api_key as string | undefined,
+      );
       if (!apiKey) {
         message.warning(t("models.pleaseEnterApiKey"));
         return;
@@ -181,7 +189,11 @@ export function CustomProviderModal({
           name: (values.name as string).trim(),
           kind: values.kind as string,
           base_url: (values.base_url as string | undefined)?.trim() || null,
-          api_key: (values.api_key as string | undefined)?.trim() || null,
+          api_key:
+            localPlaceholderApiKey(
+              values.base_url as string | undefined,
+              values.api_key as string | undefined,
+            ) || null,
           models: modelEntries.length > 0 ? modelEntries : [],
           note: (values.note as string | undefined)?.trim() || null,
         }),
@@ -251,8 +263,8 @@ export function CustomProviderModal({
                 k.value === "openai"
                   ? t("models.kindOpenaiCompat")
                   : k.value === "anthropic"
-                  ? "Anthropic"
-                  : "AWS Bedrock",
+                    ? "Anthropic"
+                    : "AWS Bedrock",
             }))}
           />
         </Form.Item>
@@ -260,13 +272,22 @@ export function CustomProviderModal({
         <Form.Item
           name="base_url"
           label="Base URL"
-          extra={t("models.baseUrlExtra")}
+          extra={t("models.baseUrlExtraLocal")}
         >
-          <Input placeholder="https://api.openai.com/v1" />
+          <Input placeholder={t("models.openAIEndpoint")} />
         </Form.Item>
 
-        <Form.Item name="api_key" label="API Key">
-          <Input.Password placeholder="sk-..." visibilityToggle />
+        <Form.Item
+          name="api_key"
+          label="API Key"
+          extra={localEndpoint ? t("models.apiKeyExtraOptional") : undefined}
+        >
+          <Input.Password
+            placeholder={
+              localEndpoint ? t("models.enterApiKeyOptional") : "sk-..."
+            }
+            visibilityToggle
+          />
         </Form.Item>
 
         {kind === "openai" && (

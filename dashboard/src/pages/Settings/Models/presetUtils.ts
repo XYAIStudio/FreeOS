@@ -114,13 +114,110 @@ export function isPresetProvider(
 
 const LOCAL_PRESET_IDS = new Set(["ollama", "onnx"]);
 
-export function isLocalPreset(preset: ProviderPreset): boolean {
+/** Chat-capable local runtime shown first in the wizard (ONNX is embedding-only). */
+export function isLocalChatPreset(preset: Pick<ProviderPreset, "id">): boolean {
+  return preset.id === "ollama";
+}
+
+export function isLocalPreset(preset: Pick<ProviderPreset, "id">): boolean {
   return LOCAL_PRESET_IDS.has(preset.id);
 }
 
 /** Local providers that do not require a real API key. */
 export function isLocalNoKeyPresetId(presetId: string): boolean {
   return presetId === "ollama" || presetId === "onnx";
+}
+
+const LOOPBACK_HOSTS = new Set(["localhost", "127.0.0.1", "::1", "0.0.0.0"]);
+const LOCAL_SERVICE_HOSTS = new Set(["ollama", "lmstudio", "vllm"]);
+
+/** True when the URL is a loopback or well-known local OpenAI-compatible host. */
+export function isLocalBaseUrl(url?: string | null): boolean {
+  const raw = (url ?? "").trim();
+  if (!raw) return false;
+  try {
+    const parsed = new URL(raw.includes("://") ? raw : `http://${raw}`);
+    const host = parsed.hostname.toLowerCase();
+    if (LOOPBACK_HOSTS.has(host) || LOCAL_SERVICE_HOSTS.has(host)) return true;
+    return host.endsWith(".local");
+  } catch {
+    return /localhost|127\.0\.0\.1/.test(raw);
+  }
+}
+
+export function localPlaceholderApiKey(
+  url?: string | null,
+  existing?: string | null,
+): string {
+  const key = (existing ?? "").trim();
+  if (key) return key;
+  return isLocalBaseUrl(url) ? "local" : "";
+}
+
+export function defaultWizardPreset(
+  presets: ProviderPreset[],
+): ProviderPreset | undefined {
+  return (
+    presets.find((p) => p.id === "ollama") ??
+    presets.find((p) => isLocalChatPreset(p)) ??
+    presets[0]
+  );
+}
+
+export type WizardPresetDisplayItem =
+  | { kind: "single"; preset: ProviderPreset }
+  | { kind: "group"; group: PresetGroup };
+
+const WIZARD_FEATURED_COUNT = 6;
+
+/** Local chat (Ollama) first, then a few cloud brands; remaining cloud + ONNX in more. */
+export function buildWizardPresetDisplay(presets: ProviderPreset[]): {
+  featured: WizardPresetDisplayItem[];
+  more: WizardPresetDisplayItem[];
+} {
+  const localChat = presets.filter((p) => isLocalChatPreset(p));
+  const localEmbed = presets.filter(
+    (p) => isLocalPreset(p) && !isLocalChatPreset(p),
+  );
+  const rest = presets.filter((p) => !isLocalPreset(p));
+  const { grouped, ungrouped } = groupPresets(rest);
+  const restItems: WizardPresetDisplayItem[] = [
+    ...grouped.map(
+      (group): WizardPresetDisplayItem => ({
+        kind: "group",
+        group,
+      }),
+    ),
+    ...ungrouped.map(
+      (preset): WizardPresetDisplayItem => ({
+        kind: "single",
+        preset,
+      }),
+    ),
+  ];
+  const localItems: WizardPresetDisplayItem[] = localChat.map((preset) => ({
+    kind: "single",
+    preset,
+  }));
+  const localEmbedItems: WizardPresetDisplayItem[] = localEmbed.map(
+    (preset) => ({
+      kind: "single" as const,
+      preset,
+    }),
+  );
+  const remainingSlots = Math.max(WIZARD_FEATURED_COUNT - localItems.length, 0);
+  return {
+    featured: [...localItems, ...restItems.slice(0, remainingSlots)],
+    more: [...restItems.slice(remainingSlots), ...localEmbedItems],
+  };
+}
+
+export function defaultModelsPresetTab(opts: {
+  showLocal: boolean;
+  showCloud: boolean;
+}): "local" | "cloud" {
+  if (opts.showLocal) return "local";
+  return "cloud";
 }
 
 /** Stable placeholder api_key written when creating a local preset row. */

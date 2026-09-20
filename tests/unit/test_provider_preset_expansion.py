@@ -8,6 +8,8 @@ from octop.infra.agents.providers.presets import load_provider_presets
 def test_load_provider_presets_integration() -> None:
     presets = load_provider_presets()
     ids = {p["id"] for p in presets}
+    assert presets[0]["id"] == "ollama"
+    assert presets[1]["id"] == "onnx"
     assert "moonshot" not in ids
     assert "kimi-cn" in ids
     assert "minimax-intl" in ids

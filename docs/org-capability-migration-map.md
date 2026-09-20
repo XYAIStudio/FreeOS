@@ -146,26 +146,27 @@ These shipping shapes still need a native port. They are bridges.
 
 | | |
 |---|---|
-| **Lives today** | Dashboard Models (Ollama/GGUF, speed test, set default); `infra/agents/providers/local_register.py`. Org Settings AI still Node `/api/settings/ai`. |
+| **Lives today** | Dashboard wizard (Ollama first) and Models → Local (Ollama/GGUF, speed test, set default); `infra/agents/providers/local_register.py`. Org Settings AI still Node `/api/settings/ai`. |
 | **Status** | `native_host` (studio) |
 | **Depends on Node?** | partial |
 | **Commercial export?** | yes |
 | **Priority** | P0 · Wave D |
 | **Next step** | Organization room consumes the same local pool; do not leave org LLM on sidecar settings. |
-| **Tests** | (none org-module-specific found) |
+| **Tests** | `dashboard/src/pages/Settings/Models/presetUtils.test.ts`; `tests/unit/utils/test_local_endpoint.py`; `tests/unit/test_provider_preset_expansion.py` |
 | **Unknown** | No test asserts org pages call host local providers. |
 
 ### 5. Host knowledge bases
 
 | | |
 |---|---|
-| **Lives today** | `/knowledge-bases`, Octop `KnowledgeService` |
+| **Lives today** | `/knowledge-bases`, Octop `KnowledgeService`. Empty state leads with a local folder mount; local ONNX is the default embedding backend. |
 | **Status** | `native_host` |
 | **Depends on Node?** | no |
 | **Commercial export?** | partial |
 | **Priority** | P0 · Wave D |
 | **Next step** | Local folder mounts/embeddings stay default; WeKnora/IMA remain optional connectors. |
-| **Unknown** | Default-path policy vs optional cloud is not fully encoded in org docs on main. |
+| **Tests** | `KnowledgeMountHome.test.tsx`; `tests/unit/knowledge/test_gate.py` (desktop default + ONNX backend) |
+| **Unknown** | Connector adapters for WeKnora/IMA exist; cloud remains optional. |
 
 ### 6. Organization knowledge (notes/files)
 

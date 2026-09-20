@@ -11,6 +11,7 @@ from fastapi import APIRouter, Depends, Header, Request
 from pydantic import BaseModel, Field
 
 from octop.api.deps import get_server, require_database, resolve_user_from_token, sign_token
+from octop.infra.agents.providers.model_flags import resolve_provider_credentials
 from octop.infra.agents.providers.presets import load_provider_presets
 from octop.infra.agents.providers.probe import make_probe_provider_row, probe_provider_row
 from octop.infra.errors import ErrorCode, OctopError
@@ -18,6 +19,7 @@ from octop.infra.setup import password_file as _wizard
 from octop.infra.setup.wizard_tokens import RateLimited
 from octop.infra.users.identity import Role
 from octop.infra.users.local_session import is_desktop_process
+from octop.infra.utils.local_endpoint import is_local_base_url
 from octop.infra.utils.locale import normalize_locale, resolve_request_locale
 
 logger = logging.getLogger(__name__)
@@ -175,8 +177,11 @@ async def _bootstrap_default_agent(server: Any, *, user_id: int, locale: str = "
 
 async def _apply_provider_draft(server: Any, draft: ProviderDraftBody) -> None:
     """Persist provider config from the wizard and reload harness providers."""
-    api_key = (draft.api_key or "").strip()
-    base_url = (draft.base_url or "").strip()
+    api_key, base_url = resolve_provider_credentials(
+        draft.name,
+        api_key=draft.api_key,
+        base_url=draft.base_url,
+    )
     if not api_key:
         raise OctopError(ErrorCode.INTERNAL_ERROR, "api_key is required", status=400)
     if not base_url:
@@ -198,7 +203,7 @@ async def _apply_provider_draft(server: Any, draft: ProviderDraftBody) -> None:
     if not models and draft.models:
         models = [_model_entry(draft.models[0])]
         models[0]["enabled"] = True
-    if not models:
+    if not models and not is_local_base_url(base_url):
         raise OctopError(ErrorCode.INTERNAL_ERROR, "at least one model is required", status=400)
     server.services.provider_repo.create(
         name=draft.name,
@@ -208,7 +213,8 @@ async def _apply_provider_draft(server: Any, draft: ProviderDraftBody) -> None:
         models_json=json.dumps(models),
         extra_json=json.dumps(draft.extras) if draft.extras else None,
     )
-    server.services.settings_repo.set_active_model(draft.name, models[0]["id"])
+    if models:
+        server.services.settings_repo.set_active_model(draft.name, models[0]["id"])
     if server.app_runtime is not None:
         await server.app_runtime.agent_registry.on_provider_changed()
 
@@ -407,13 +413,18 @@ async def test_provider_draft(
     """Probe LLM connectivity for an unsaved wizard provider draft."""
     _enforce_wizard_token_phase(server)
     _authorize_setup_provider_test(authorization, server)
-    if not body.api_key.strip():
+    api_key, base_url = resolve_provider_credentials(
+        body.name,
+        api_key=body.api_key,
+        base_url=body.base_url,
+    )
+    if not api_key:
         return {"ok": False, "error": "api_key is required"}
     row = make_probe_provider_row(
         name=body.name,
         kind=body.type,
-        api_key=body.api_key or None,
-        base_url=body.base_url,
+        api_key=api_key,
+        base_url=base_url or None,
         model_id=body.model_id,
     )
     return await probe_provider_row(row, locale=resolve_request_locale(request))

@@ -32,10 +32,13 @@ export function KnowledgeMountHome({
         {t("knowledgeBases.homeDesc")}
       </Typography.Paragraph>
       <div className={styles.mountHomeCards}>
-        <section className={styles.mountCard}>
+        <section className={`${styles.mountCard} ${styles.mountCardPreferred}`}>
           <div className={styles.mountCardIcon} aria-hidden>
             <FolderUp size={22} strokeWidth={1.8} />
           </div>
+          <Typography.Text type="success" className={styles.mountCardBadge}>
+            {t("knowledgeBases.homeRecommended")}
+          </Typography.Text>
           <LocalMountPanel
             prominent
             ensureKb={() => ensureKb(t("knowledgeBases.defaultLocalName"))}
@@ -46,6 +49,9 @@ export function KnowledgeMountHome({
           <div className={styles.mountCardIcon} aria-hidden>
             <Cloud size={22} strokeWidth={1.8} />
           </div>
+          <Typography.Text type="secondary" className={styles.mountCardBadge}>
+            {t("knowledgeBases.homeOptionalCloud")}
+          </Typography.Text>
           <CloudMountPanel
             prominent
             ensureKb={() => ensureKb(t("knowledgeBases.defaultCloudName"))}

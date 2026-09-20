@@ -53,6 +53,8 @@ uv sync
 uv run freeos run
 ```
 
+第一次打开控制台时，向导默认先选 **Ollama / 本机 OpenAI 兼容地址**，不必先填云厂商密钥。侧栏 **模型 → 本地** 可启动 Ollama、注册 GGUF；**知识库** 先挂接本机文件夹，向量默认本机 ONNX。说明见 [用户指南](docs/user-guide.md)、[配置](docs/configuration.md#local-models-and-knowledge-bases)。
+
 不要将 API Key、令牌或真实客户资料提交到公开仓库。
 
 完整功能、架构和发布说明请见 [English README](README.md)、[中文宿主说明](README_CN.md) 与 [Wiki](https://github.com/XYAIStudio/FreeOS/wiki)。openXYOS 能力哪些已在宿主原生、哪些仍在托管 Node / iframe，见 [能力迁移图（P0.2）](docs/org-capability-migration-map.zh-CN.md)。

@@ -146,26 +146,27 @@
 
 | | |
 |---|---|
-| **今日位置** | Dashboard 模型页（Ollama/GGUF、测速、设为默认）；`infra/agents/providers/local_register.py`。组织设置里的 AI 仍是 Node `/api/settings/ai`。 |
+| **今日位置** | 设置向导默认先选 Ollama；Dashboard 模型页「本地」标签（Ollama/GGUF、测速、设为默认）；`infra/agents/providers/local_register.py`。组织设置里的 AI 仍是 Node `/api/settings/ai`。 |
 | **状态** | `native_host`（工作室） |
 | **依赖 Node？** | 部分 |
 | **商业导出？** | 是 |
 | **优先级** | P0 · 波次 D |
 | **下一步** | 组织房间使用同一套本机模型池；不要把组织 LLM 留在边车设置。 |
-| **测试** | （未找到 org-module 专项） |
+| **测试** | `dashboard/src/pages/Settings/Models/presetUtils.test.ts`；`tests/unit/utils/test_local_endpoint.py` |
 | **未知** | 没有测试断言组织页调用宿主本地供应商。 |
 
 ### 5. 宿主知识库
 
 | | |
 |---|---|
-| **今日位置** | `/knowledge-bases`，Octop `KnowledgeService` |
+| **今日位置** | `/knowledge-bases`，Octop `KnowledgeService`。空状态先引导本机文件夹挂接；向量默认本机 ONNX。 |
 | **状态** | `native_host` |
 | **依赖 Node？** | 否 |
 | **商业导出？** | 部分 |
 | **优先级** | P0 · 波次 D |
 | **下一步** | 本地文件夹挂接/嵌入保持默认；WeKnora/IMA 仍是可选连接器。 |
-| **未知** | 默认路径 vs 可选云，尚未完整写进 main 上的组织文档。 |
+| **测试** | `KnowledgeMountHome.test.tsx`；`tests/unit/knowledge/test_gate.py` |
+| **未知** | WeKnora/IMA 连接器仍在；云端保持可选。 |
 
 ### 6. 组织知识（笔记/文件）
 

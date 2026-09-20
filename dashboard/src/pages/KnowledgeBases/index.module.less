@@ -831,6 +831,21 @@
   background: var(--fn-bg-primary);
 }
 
+.mountCardPreferred {
+  border-color: color-mix(
+    in srgb,
+    var(--fn-color-brand) 45%,
+    var(--fn-border-secondary)
+  );
+  box-shadow: 0 0 0 1px
+    color-mix(in srgb, var(--fn-color-brand) 18%, transparent);
+}
+
+.mountCardBadge {
+  font-size: 12px;
+  font-weight: 600;
+}
+
 .mountCardIcon {
   display: inline-flex;
   align-items: center;

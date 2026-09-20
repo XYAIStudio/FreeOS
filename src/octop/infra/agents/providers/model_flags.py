@@ -73,6 +73,29 @@ def local_ollama_endpoint(
     return api_key, base_url
 
 
+def resolve_provider_credentials(
+    provider_name: str | None = None,
+    *,
+    api_key: str | None = None,
+    base_url: str | None = None,
+) -> tuple[str, str]:
+    """Fill Ollama / loopback placeholders so local runtimes need no vendor key.
+
+    Returns ``(api_key, base_url)``. Either side may still be empty when the
+    row is a cloud provider that the caller has not configured yet.
+    """
+    from octop.infra.utils.local_endpoint import placeholder_api_key
+
+    filled_key, filled_url = local_ollama_endpoint(
+        provider_name,
+        provider_api_key=api_key,
+        provider_base_url=base_url,
+    )
+    url = (filled_url or "").strip()
+    key = placeholder_api_key(url, filled_key)
+    return key, url
+
+
 def is_local_runtime_provider(
     provider_name: str | None = None,
     *,

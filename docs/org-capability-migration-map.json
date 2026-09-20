@@ -264,9 +264,11 @@
       "name": "Local models",
       "name_zh": "本地模型",
       "lives_today": [
-        "dashboard/src/pages/Settings/Models (Ollama / GGUF register, speed test, set default)",
+        "dashboard/src/pages/Setup/steps/ModelStep.tsx (Ollama first)",
+        "dashboard/src/pages/Settings/Models (Local tab first; Ollama / GGUF register, speed test, set default)",
         "src/octop/infra/agents/providers/local_register.py",
         "src/octop/infra/agents/providers/onnx_download.py",
+        "src/octop/infra/utils/local_endpoint.py",
         "modules/openxyos/frontend/src/pages/SettingsPage.tsx + /api/settings/ai (Node, unmigrated)"
       ],
       "status": "native_host",
@@ -275,8 +277,16 @@
       "priority": "P0",
       "next_step": "Make the organization room consume the same local model pool as the studio so org LLM settings do not stay on Node /api/settings/ai.",
       "wave": "D-local-models-kb",
-      "evidence": ["CHANGELOG Unreleased local model speed/default", "docs/user-guide.md Ollama section (upstream host)"],
-      "tests": [],
+      "evidence": [
+        "CHANGELOG Unreleased P1.4 local-first wizard/settings",
+        "docs/user-guide.md local models section",
+        "docs/configuration.md#local-models-and-knowledge-bases"
+      ],
+      "tests": [
+        "dashboard/src/pages/Settings/Models/presetUtils.test.ts",
+        "tests/unit/utils/test_local_endpoint.py",
+        "tests/unit/test_provider_preset_expansion.py"
+      ],
       "unknowns": [
         "No dedicated org-module tests assert that organization pages call host local providers instead of sidecar AI settings."
       ]
@@ -287,6 +297,7 @@
       "name_zh": "宿主知识库",
       "lives_today": [
         "dashboard/src/pages/KnowledgeBases",
+        "dashboard/src/pages/KnowledgeBases/KnowledgeMountHome.tsx (local folder first)",
         "dashboard/src/routes/index.tsx /knowledge-bases",
         "Octop KnowledgeService / knowledge_bases tables"
       ],
@@ -296,10 +307,17 @@
       "priority": "P0",
       "next_step": "Keep local folder mounts and embeddings as the default RAG path; do not require WeKnora/IMA cloud for organization knowledge.",
       "wave": "D-local-models-kb",
-      "evidence": ["src/octop/infra/server.py desktop first-run enables knowledge bases"],
-      "tests": [],
+      "evidence": [
+        "src/octop/infra/server.py desktop first-run enables knowledge bases",
+        "KnowledgeMountHome local-first empty state",
+        "docs/user-guide.md §4.8"
+      ],
+      "tests": [
+        "dashboard/src/pages/KnowledgeBases/KnowledgeMountHome.test.tsx",
+        "tests/unit/knowledge/test_gate.py"
+      ],
       "unknowns": [
-        "Connector adapters for WeKnora/IMA exist; default-path policy vs optional cloud is product, not fully encoded in org docs on main."
+        "Connector adapters for WeKnora/IMA exist; cloud remains optional."
       ]
     },
     {

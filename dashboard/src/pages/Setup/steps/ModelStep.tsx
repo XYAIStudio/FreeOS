@@ -32,8 +32,11 @@ import modelStyles from "../../Settings/Models/index.module.less";
 import setupStyles from "../setup.module.less";
 import { enrichWizardModel } from "../../Settings/Models/wizardModelMeta";
 import {
-  groupPresets,
-  isLocalPreset,
+  buildWizardPresetDisplay,
+  defaultWizardPreset,
+  isLocalBaseUrl,
+  isLocalChatPreset,
+  localPlaceholderApiKey,
   presetLogoId,
   presetVariantLabel,
   type PresetGroup,
@@ -103,37 +106,8 @@ interface Props {
 
 type SetupMode = "preset" | "custom";
 
-/** Match admin/models Cloud tab order (grouped brands, then singles); show this many by default. */
-const WIZARD_FEATURED_COUNT = 6;
-
-function buildWizardPresetDisplay(presets: ProviderPreset[]): {
-  featured: PresetDisplayItem[];
-  more: PresetDisplayItem[];
-} {
-  const cloud = presets.filter((p) => !isLocalPreset(p as AdminProviderPreset));
-  const local = presets.filter((p) => isLocalPreset(p as AdminProviderPreset));
-  const { grouped, ungrouped } = groupPresets(cloud as AdminProviderPreset[]);
-  const ordered: PresetDisplayItem[] = [
-    ...grouped.map((group): PresetDisplayItem => ({ kind: "group", group })),
-    ...ungrouped.map(
-      (preset): PresetDisplayItem => ({
-        kind: "single",
-        preset: preset as ProviderPreset,
-      }),
-    ),
-  ];
-  const featured = ordered.slice(0, WIZARD_FEATURED_COUNT);
-  const more: PresetDisplayItem[] = [
-    ...ordered.slice(WIZARD_FEATURED_COUNT),
-    ...local.map((preset): PresetDisplayItem => ({ kind: "single", preset })),
-  ];
-  return { featured, more };
-}
-
-function defaultPresetFromItem(item: PresetDisplayItem): ProviderPreset {
-  return item.kind === "group"
-    ? (item.group.presets[0] as ProviderPreset)
-    : item.preset;
+function wizardDisplay(presets: ProviderPreset[]) {
+  return buildWizardPresetDisplay(presets as AdminProviderPreset[]);
 }
 
 const CUSTOM_KINDS = [
@@ -198,10 +172,8 @@ export default function ModelStep({
       .then((data) => {
         if (!cancelled && Array.isArray(data) && data.length > 0) {
           setPresets(data);
-          const { featured } = buildWizardPresetDisplay(data);
           const initial =
-            (featured[0] ? defaultPresetFromItem(featured[0]) : null) ??
-            data[0];
+            defaultWizardPreset(data as AdminProviderPreset[]) ?? data[0];
           setSelectedPresetId(initial.id);
           const modelIds = initial.models.map((m) => m.id);
           setSelectedModelIds(modelIds);
@@ -241,8 +213,11 @@ export default function ModelStep({
   );
 
   const { featuredDisplayItems, moreDisplayItems } = useMemo(() => {
-    const { featured, more } = buildWizardPresetDisplay(presets);
-    return { featuredDisplayItems: featured, moreDisplayItems: more };
+    const { featured, more } = wizardDisplay(presets);
+    return {
+      featuredDisplayItems: featured as PresetDisplayItem[],
+      moreDisplayItems: more as PresetDisplayItem[],
+    };
   }, [presets]);
 
   const visibleDisplayItems = showAllPresets
@@ -255,6 +230,12 @@ export default function ModelStep({
   );
 
   const isOllama = preset?.id === "ollama";
+  const customBaseUrl = Form.useWatch("base_url", customForm) as
+    | string
+    | undefined;
+  const customIsLocal = isLocalBaseUrl(customBaseUrl);
+  const canContinueWithoutTest =
+    (mode === "preset" && isOllama) || (mode === "custom" && customIsLocal);
 
   const applyPreset = (p: ProviderPreset) => {
     resetTest();
@@ -341,7 +322,7 @@ export default function ModelStep({
         field: "api_key",
       };
     }
-    if (selectedModelIds.length === 0) {
+    if (selectedModelIds.length === 0 && !isOllama) {
       return { ok: false, message: t("models.addModelFirst") };
     }
 
@@ -369,7 +350,7 @@ export default function ModelStep({
       }
     }
 
-    if (modelEntries.length === 0) {
+    if (modelEntries.length === 0 && !isOllama) {
       return { ok: false, message: t("models.addModelFirst") };
     }
 
@@ -409,10 +390,11 @@ export default function ModelStep({
         field: "kind",
       };
     }
-    if (customModels.length === 0) {
+    if (customModels.length === 0 && !isLocalBaseUrl(baseUrl)) {
       return { ok: false, message: t("models.addModelFirst") };
     }
-    if (!apiKey) {
+    const resolvedKey = localPlaceholderApiKey(baseUrl, apiKey);
+    if (!resolvedKey) {
       return {
         ok: false,
         message: t("models.pleaseEnterApiKey"),
@@ -425,7 +407,7 @@ export default function ModelStep({
       draft: {
         name,
         type: kind,
-        api_key: apiKey,
+        api_key: resolvedKey,
         base_url: baseUrl,
         models: buildWizardModels(customModels),
       },
@@ -513,6 +495,11 @@ export default function ModelStep({
     }
 
     const draft = result.draft;
+    const probeModel = draft.models[0];
+    if (!probeModel) {
+      message.warning(t("models.addModelFirst"));
+      return;
+    }
     setTesting(true);
     resetTest();
     try {
@@ -522,14 +509,14 @@ export default function ModelStep({
           type: draft.type,
           api_key: draft.api_key,
           base_url: draft.base_url,
-          model_id: draft.models[0].id,
+          model_id: probeModel.id,
         },
         probeToken,
       );
       if (result.ok) {
         message.success(
           t("models.testSuccess", {
-            name: draft.models[0].name,
+            name: probeModel.name,
             time: result.latency_ms ?? 0,
           }),
         );
@@ -551,7 +538,7 @@ export default function ModelStep({
   };
 
   const handleContinue = async () => {
-    if (!testPassed) {
+    if (!testPassed && !canContinueWithoutTest) {
       message.warning(t("wizard.model.testFirstHint"));
       return;
     }
@@ -583,10 +570,12 @@ export default function ModelStep({
         </Button>
         <Button
           type="primary"
-          disabled={!testPassed}
+          disabled={!testPassed && !canContinueWithoutTest}
           onClick={() => void handleContinue()}
         >
-          {t("wizard.model.continue")}
+          {testPassed || !canContinueWithoutTest
+            ? t("wizard.model.continue")
+            : t("wizard.model.continueLocal")}
         </Button>
       </Space>
     </div>
@@ -863,7 +852,17 @@ export default function ModelStep({
                     />
                   )}
                   <div className={setupStyles.wizardPresetMeta}>
-                    <div className={setupStyles.wizardPresetName}>{p.name}</div>
+                    <div className={setupStyles.wizardPresetName}>
+                      {p.name}
+                      {isLocalChatPreset(p as AdminProviderPreset) ? (
+                        <Tag
+                          color="green"
+                          style={{ marginLeft: 8, fontSize: 11 }}
+                        >
+                          {t("wizard.model.localRecommended")}
+                        </Tag>
+                      ) : null}
+                    </div>
                     <div className={setupStyles.wizardPresetCount}>
                       {t("models.modelsCount", { count: p.models.length })}
                     </div>
@@ -1118,20 +1117,30 @@ export default function ModelStep({
         <Form.Item
           name="base_url"
           label="Base URL"
-          extra={t("models.baseUrlExtra")}
+          extra={t("models.baseUrlExtraLocal")}
         >
-          <Input placeholder="https://api.openai.com/v1" />
+          <Input placeholder={t("models.openAIEndpoint")} />
         </Form.Item>
 
         <Form.Item
           name="api_key"
           label="API Key"
-          rules={[{ required: true, message: t("models.pleaseEnterApiKey") }]}
+          rules={
+            customIsLocal
+              ? []
+              : [{ required: true, message: t("models.pleaseEnterApiKey") }]
+          }
+          extra={customIsLocal ? t("models.apiKeyExtraOptional") : undefined}
           getValueFromEvent={(e) =>
             typeof e === "string" ? e : String(e?.target?.value ?? "")
           }
         >
-          <Input.Password placeholder="sk-..." autoComplete="new-password" />
+          <Input.Password
+            placeholder={
+              customIsLocal ? t("models.enterApiKeyOptional") : "sk-..."
+            }
+            autoComplete="new-password"
+          />
         </Form.Item>
 
         <Divider style={{ margin: "8px 0 12px" }}>
@@ -1260,6 +1269,14 @@ export default function ModelStep({
         <Text type="secondary" style={{ fontSize: 13 }}>
           {t("wizard.model.intro")}
         </Text>
+        {canContinueWithoutTest && (
+          <Text
+            type="secondary"
+            style={{ fontSize: 12, display: "block", marginTop: 6 }}
+          >
+            {t("wizard.model.localOptionalTest")}
+          </Text>
+        )}
       </div>
 
       <div className={setupStyles.modelStepMode}>

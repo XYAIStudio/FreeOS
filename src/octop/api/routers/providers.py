@@ -12,7 +12,10 @@ from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel
 
 from octop.api.deps import current_user, get_server, require_permission
-from octop.infra.agents.providers.model_flags import is_local_runtime_provider
+from octop.infra.agents.providers.model_flags import (
+    is_local_runtime_provider,
+    resolve_provider_credentials,
+)
 from octop.infra.agents.providers.presets import load_provider_presets
 from octop.infra.agents.providers.probe import (
     fetch_openai_compatible_models,
@@ -302,7 +305,11 @@ async def admin_test_provider_draft(
     _: Any = Depends(require_permission("providers")),
 ) -> dict[str, Any]:
     """Probe connectivity for a provider draft before it is saved."""
-    api_key = (body.api_key or "").strip()
+    api_key, base_url = resolve_provider_credentials(
+        body.name,
+        api_key=body.api_key,
+        base_url=body.base_url,
+    )
     if not api_key:
         return {"ok": False, "error": "api_key is required"}
     model_id = body.model_id.strip()
@@ -312,7 +319,7 @@ async def admin_test_provider_draft(
         name=body.name.strip() or "draft",
         kind=body.kind,
         api_key=api_key,
-        base_url=(body.base_url or "").strip() or None,
+        base_url=base_url or None,
         model_id=model_id,
         extra_json=body.extra_json,
         embedding=body.embedding,
@@ -337,12 +344,16 @@ async def admin_fetch_provider_models(
             "ok": False,
             "error": "fetch models is only supported for openai-compatible providers",
         }
-    api_key = (body.api_key or "").strip()
+    api_key, base_url = resolve_provider_credentials(
+        None,
+        api_key=body.api_key,
+        base_url=body.base_url,
+    )
     if not api_key:
         return {"ok": False, "error": "api_key is required"}
     draft = SimpleNamespace(extra_json=body.extra_json)
     return await fetch_openai_compatible_models(
-        base_url=(body.base_url or "").strip() or None,
+        base_url=base_url or None,
         api_key=api_key,
         extra_headers=provider_headers(draft) or None,
         locale=resolve_request_locale(request),
