@@ -342,8 +342,8 @@ export function OrgChartPage({ client, session, locale }: OrgChartPageProps) {
         err instanceof SyntaxError
           ? labels.importInvalid
           : err instanceof Error
-            ? err.message
-            : labels.importInvalid,
+          ? err.message
+          : labels.importInvalid,
       );
     }
   };
@@ -723,7 +723,9 @@ export function OrgChartPage({ client, session, locale }: OrgChartPageProps) {
         okButtonProps={{ "data-testid": "org-chart-import-submit" }}
       >
         <Space direction="vertical" style={{ width: "100%" }} size={12}>
-          <Typography.Text type="secondary">{labels.importHint}</Typography.Text>
+          <Typography.Text type="secondary">
+            {labels.importHint}
+          </Typography.Text>
           <div>
             <Typography.Text type="secondary">
               {labels.importDepartments}

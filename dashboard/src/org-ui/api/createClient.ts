@@ -57,7 +57,9 @@ export interface OrgAnnouncementsClient {
     search?: string;
   }): Promise<AnnouncementListData>;
   get(id: number): Promise<Announcement>;
-  readers(id: number): Promise<{ readers: AnnouncementReader[]; count: number }>;
+  readers(
+    id: number,
+  ): Promise<{ readers: AnnouncementReader[]; count: number }>;
   unread(): Promise<{ count: number }>;
   markRead(id: number): Promise<void>;
   markAllRead(): Promise<{ marked: number }>;

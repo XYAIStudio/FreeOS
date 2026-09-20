@@ -479,7 +479,9 @@ export default function OrganizationPage() {
                             size="small"
                             type="primary"
                             loading={resolvingPause === row.pause_id}
-                            onClick={() => void resolvePause(row.pause_id, true)}
+                            onClick={() =>
+                              void resolvePause(row.pause_id, true)
+                            }
                             data-testid={`org-pause-approve-${row.pause_id}`}
                           >
                             {t("organization.pauseApprove")}

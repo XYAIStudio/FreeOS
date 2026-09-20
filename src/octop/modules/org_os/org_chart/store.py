@@ -888,9 +888,7 @@ class OrgChartStore:
             current = None if next_row is None else next_row.get("reports_to")
         return manager_id
 
-    def import_departments(
-        self, *, tenant_id: str, items: list[dict[str, Any]]
-    ) -> dict[str, int]:
+    def import_departments(self, *, tenant_id: str, items: list[dict[str, Any]]) -> dict[str, int]:
         created = 0
         updated = 0
         skipped = 0
@@ -957,15 +955,15 @@ class OrgChartStore:
     ) -> dict[str, int]:
         employees = self.list_employees(tenant_id=tenant_id, status="all")
         by_name: dict[str, dict[str, Any]] = {}
-        for emp in employees:
-            by_name.setdefault(str(emp.get("name") or ""), emp)
+        for row in employees:
+            by_name.setdefault(str(row.get("name") or ""), row)
         applied = 0
         skipped = 0
         for raw in items:
             name = str(raw.get("employee") or raw.get("name") or "").strip()
             manager_name = str(raw.get("reports_to") or raw.get("manager") or "").strip()
-            emp = by_name.get(name)
-            manager = by_name.get(manager_name) if manager_name else None
+            emp: dict[str, Any] | None = by_name.get(name)
+            manager: dict[str, Any] | None = by_name.get(manager_name) if manager_name else None
             if emp is None or manager is None:
                 skipped += 1
                 continue
@@ -993,5 +991,5 @@ class OrgChartStore:
             out["reports_to"] = None
             out["reports_to_name"] = out.get("reports_to_name") or None
         else:
-            out["reports_to"] = int(reports_to)
+            out["reports_to"] = int(str(reports_to))
         return out

@@ -78,9 +78,7 @@ class AnnouncementStore:
     def _init(self) -> None:
         with self._connect() as conn:
             conn.executescript(_SCHEMA)
-            columns = {
-                str(row[1]) for row in conn.execute("PRAGMA table_info(announcement_reads)")
-            }
+            columns = {str(row[1]) for row in conn.execute("PRAGMA table_info(announcement_reads)")}
             if "user_name" not in columns:
                 conn.execute(
                     "ALTER TABLE announcement_reads ADD COLUMN user_name TEXT NOT NULL DEFAULT ''"
@@ -216,9 +214,7 @@ class AnnouncementStore:
             ).fetchone()[0]
         return int(raw)
 
-    def mark_read(
-        self, announcement_id: int, *, user_id: int, user_name: str = ""
-    ) -> None:
+    def mark_read(self, announcement_id: int, *, user_id: int, user_name: str = "") -> None:
         now = utc_now()
         label = (user_name or "").strip()
         with self._connect() as conn:
@@ -241,9 +237,7 @@ class AnnouncementStore:
                     (label, announcement_id, user_id),
                 )
 
-    def list_readers(
-        self, announcement_id: int, *, tenant_id: str
-    ) -> list[dict[str, Any]] | None:
+    def list_readers(self, announcement_id: int, *, tenant_id: str) -> list[dict[str, Any]] | None:
         if self.get(announcement_id, tenant_id=tenant_id) is None:
             return None
         with self._connect() as conn:

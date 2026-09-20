@@ -42,6 +42,7 @@ describe("createOrgApiClient", () => {
           data: [{ id: 11, filename: "notes.txt", size_bytes: 12 }],
         };
       }
+      if (path === "/org-module/announcements/action/unread") {
         return { success: true, data: { count: 2 } };
       }
       if (path === "/org-module/org/tree") {

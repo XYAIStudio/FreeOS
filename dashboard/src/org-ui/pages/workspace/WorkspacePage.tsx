@@ -93,18 +93,21 @@ export function WorkspacePage({
   const [error, setError] = useState("");
   const [resolving, setResolving] = useState("");
 
-  const fetchAll = useCallback(async (quiet = false) => {
-    if (!quiet) setLoading(true);
-    setError("");
-    try {
-      setOverview(await client.overview());
-    } catch {
-      setOverview(null);
-      setError(labels.loadFailed);
-    } finally {
-      if (!quiet) setLoading(false);
-    }
-  }, [client, labels.loadFailed]);
+  const fetchAll = useCallback(
+    async (quiet = false) => {
+      if (!quiet) setLoading(true);
+      setError("");
+      try {
+        setOverview(await client.overview());
+      } catch {
+        setOverview(null);
+        setError(labels.loadFailed);
+      } finally {
+        if (!quiet) setLoading(false);
+      }
+    },
+    [client, labels.loadFailed],
+  );
 
   useEffect(() => {
     void fetchAll(false);
@@ -266,7 +269,9 @@ export function WorkspacePage({
                 >
                   <div className={styles.pauseMeta}>
                     {labels.pauseTool}: {row.tool_name || row.action || "—"}
-                    {row.reason ? ` · ${labels.pauseReason}: ${row.reason}` : ""}
+                    {row.reason
+                      ? ` · ${labels.pauseReason}: ${row.reason}`
+                      : ""}
                   </div>
                   {session.isAdmin ? (
                     <div className={styles.links}>

@@ -10,6 +10,7 @@ from __future__ import annotations
 import re
 import shutil
 import sqlite3
+from collections.abc import Sequence
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -466,7 +467,7 @@ class TaskStore:
         out["path"] = str(path)
         return out
 
-    def list_attachments(self, task_id: int, *, tenant_id: str) -> list[dict[str, Any]]:
+    def list_attachments(self, task_id: int, *, tenant_id: str) -> Sequence[dict[str, Any]]:
         with self._connect() as conn:
             rows = conn.execute(
                 """

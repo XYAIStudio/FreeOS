@@ -242,8 +242,9 @@ def test_store_and_api_attachments(tmp_path: Path) -> None:
     downloaded = admin.get(f"/api/org-module/tasks/{task_id}/attachments/{attachment_id}/file")
     assert downloaded.status_code == 200
     assert downloaded.content == b"# brief"
-    assert admin.delete(
-        f"/api/org-module/tasks/{task_id}/attachments/{attachment_id}"
-    ).status_code == 200
+    assert (
+        admin.delete(f"/api/org-module/tasks/{task_id}/attachments/{attachment_id}").status_code
+        == 200
+    )
     missing = admin.get(f"/api/org-module/tasks/{task_id}/attachments/{attachment_id}/file")
     assert missing.status_code == 404

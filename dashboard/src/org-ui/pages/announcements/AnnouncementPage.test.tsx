@@ -38,9 +38,7 @@ const admin = {
 describe("AnnouncementPage", () => {
   it("renders the shared page without an iframe", async () => {
     const client = mockClient();
-    render(
-      <AnnouncementPage client={client} session={admin} locale="en" />,
-    );
+    render(<AnnouncementPage client={client} session={admin} locale="en" />);
     expect(
       await screen.findByTestId("org-ui-announcements"),
     ).toBeInTheDocument();
@@ -52,9 +50,7 @@ describe("AnnouncementPage", () => {
 
   it("lets an admin publish through the injected client", async () => {
     const client = mockClient();
-    render(
-      <AnnouncementPage client={client} session={admin} locale="en" />,
-    );
+    render(<AnnouncementPage client={client} session={admin} locale="en" />);
     fireEvent.click(await screen.findByTestId("org-announcements-publish"));
     fireEvent.change(screen.getByTestId("org-announcement-title"), {
       target: { value: "Hello" },
@@ -109,9 +105,9 @@ describe("AnnouncementPage", () => {
     });
     render(<AnnouncementPage client={client} session={admin} locale="en" />);
     fireEvent.click(await screen.findByTestId("org-announcement-4"));
-    expect(await screen.findByTestId("org-announcement-readers")).toHaveTextContent(
-      "Ada",
-    );
+    expect(
+      await screen.findByTestId("org-announcement-readers"),
+    ).toHaveTextContent("Ada");
     expect(client.readers).toHaveBeenCalledWith(4);
   });
 });

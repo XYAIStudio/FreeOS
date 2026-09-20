@@ -69,9 +69,9 @@ describe("SettingsPage", () => {
     );
     expect(screen.getByTestId("org-settings-name")).toHaveValue("Acme");
     expect(screen.getByText("Always on")).toBeInTheDocument();
-    expect(screen.getByTestId("org-settings-delivery-settings")).toHaveTextContent(
-      "Host page",
-    );
+    expect(
+      screen.getByTestId("org-settings-delivery-settings"),
+    ).toHaveTextContent("Host page");
     expect(screen.getByTestId("org-settings-delivery-chat")).toHaveTextContent(
       "Original App",
     );
