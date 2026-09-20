@@ -14,6 +14,16 @@ import (
 	"time"
 )
 
+func TestMain(m *testing.M) {
+	// Tests that need a Windows-style install stamp set OCTOP_DESKTOP_INSTALL_STAMP_FILE
+	// themselves. Default empty so leftover files beside the test binary cannot
+	// force a refresh.
+	if os.Getenv("OCTOP_DESKTOP_INSTALL_STAMP_FILE") == "" {
+		_ = os.Setenv("OCTOP_DESKTOP_INSTALL_STAMP_FILE", "")
+	}
+	os.Exit(m.Run())
+}
+
 func TestEnsurePortableUsesEmbeddedPackage(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("OCTOP_HOME", home)
@@ -269,6 +279,114 @@ func TestEnsurePortableReplacesOctopLineageWithFreeOS(t *testing.T) {
 	}
 	if installedPortableStamp(root) == "" {
 		t.Fatal("replaced runtime should carry FREEOS_STAMP")
+	}
+}
+
+func TestEnsurePortableAppliesPendingEvenWhenBundledStampMatches(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("OCTOP_HOME", home)
+	t.Setenv("OCTOP_DESKTOP_INSTALL_STAMP_FILE", "")
+	root := portableDir()
+
+	currentZip := filepath.Join(t.TempDir(), "current.zip")
+	writeTestGreenZipWithStamp(t, currentZip, "0.0.1", "same-stamp")
+	if err := unzipGreen(currentZip, root); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("OCTOP_DESKTOP_PORTABLE_ZIP", currentZip)
+
+	pendingDir := filepath.Join(home, "updates")
+	if err := os.MkdirAll(pendingDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	pending := filepath.Join(pendingDir, "pending-portable.zip")
+	writeTestGreenZipWithStamp(t, pending, "0.0.2", "pending-stamp")
+
+	if err := ensurePortable(LocaleZH, func(string) {}); err != nil {
+		t.Fatal(err)
+	}
+	if got := portableVersion(root); got != "0.0.2" {
+		t.Fatalf("portable version = %q, want 0.0.2 from pending zip", got)
+	}
+	if got := installedPortableStamp(root); got != "pending-stamp" {
+		t.Fatalf("stamp = %q, want pending-stamp", got)
+	}
+}
+
+func TestEnsurePortableReinstallStampRefreshesMatchingZip(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("OCTOP_HOME", home)
+	root := portableDir()
+
+	zipPath := filepath.Join(t.TempDir(), "same.zip")
+	writeTestGreenZipWithStamp(t, zipPath, "0.0.4", "same-payload")
+	if err := unzipGreen(zipPath, root); err != nil {
+		t.Fatal(err)
+	}
+	stale := filepath.Join(root, "old-dashboard.txt")
+	if err := os.WriteFile(stale, []byte("stale-ui"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	stampFile := filepath.Join(t.TempDir(), installStampName)
+	if err := os.WriteFile(stampFile, []byte("setup-run-2\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("OCTOP_DESKTOP_INSTALL_STAMP_FILE", stampFile)
+	t.Setenv("OCTOP_DESKTOP_PORTABLE_ZIP", zipPath)
+
+	if err := ensurePortable(LocaleZH, func(string) {}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(stale); !os.IsNotExist(err) {
+		t.Fatalf("reinstall did not replace extracted portable: %v", err)
+	}
+	if got := appliedInstallStamp(root); got != "setup-run-2" {
+		t.Fatalf("applied install stamp = %q, want setup-run-2", got)
+	}
+
+	keep := filepath.Join(root, "keep-after-match.txt")
+	if err := os.WriteFile(keep, []byte("keep"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := ensurePortable(LocaleZH, func(string) {}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(keep); err != nil {
+		t.Fatalf("second launch should skip extract when install stamp matches: %v", err)
+	}
+}
+
+func TestEnsurePortableClearedRuntimeStampRefreshesSameVersion(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("OCTOP_HOME", home)
+	t.Setenv("OCTOP_DESKTOP_INSTALL_STAMP_FILE", "")
+	root := portableDir()
+
+	zipPath := filepath.Join(t.TempDir(), "v004.zip")
+	writeTestGreenZipWithStamp(t, zipPath, "0.0.4", "build-old")
+	if err := unzipGreen(zipPath, root); err != nil {
+		t.Fatal(err)
+	}
+	stale := filepath.Join(root, "index.DfMCjOvx.js")
+	if err := os.WriteFile(stale, []byte("old-dashboard"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Remove(filepath.Join(root, portableStampName)); err != nil {
+		t.Fatal(err)
+	}
+
+	newZip := filepath.Join(t.TempDir(), "v004-new.zip")
+	writeTestGreenZipWithStamp(t, newZip, "0.0.4", "build-new")
+	t.Setenv("OCTOP_DESKTOP_PORTABLE_ZIP", newZip)
+	if err := ensurePortable(LocaleZH, func(string) {}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(stale); !os.IsNotExist(err) {
+		t.Fatalf("cleared FREEOS_STAMP should force same-version refresh: %v", err)
+	}
+	if got := installedPortableStamp(root); got != "build-new" {
+		t.Fatalf("stamp = %q, want build-new", got)
 	}
 }
 

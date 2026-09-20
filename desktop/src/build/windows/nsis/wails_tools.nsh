@@ -25,6 +25,9 @@
 !ifndef PRODUCT_EXECUTABLE
     !define PRODUCT_EXECUTABLE "${INFO_PROJECTNAME}.exe"
 !endif
+!ifndef INSTALL_STAMP_NAME
+    !define INSTALL_STAMP_NAME "FREEOS_INSTALL_STAMP"
+!endif
 !ifndef UNINST_KEY_NAME
     !define UNINST_KEY_NAME "${INFO_COMPANYNAME}${INFO_PRODUCTNAME}"
 !endif
@@ -326,6 +329,52 @@ RequestExecutionLevel "${REQUEST_EXECUTION_LEVEL}"
             StrCpy $R7 "1"
         ${EndIf}
     ${EndIf}
+!macroend
+
+# Install/reinstall: stop a running shell so Setup can overwrite FreeOS.exe
+# and the next launch can refresh ~/.freeos/portable. Silent installs stop
+# without asking. LangString INSTALL_FREEOS_RUNNING is in project.nsi.
+!macro wails.stopRunningFreeOSForInstall
+    !insertmacro wails.detectFreeOSProcesses
+    ${If} $R7 == "1"
+        IfSilent wailsInstallStop
+        MessageBox MB_YESNO|MB_ICONEXCLAMATION "$(INSTALL_FREEOS_RUNNING)" IDYES wailsInstallStop
+        Abort
+        wailsInstallStop:
+        !insertmacro wails.stopFreeOSProcesses
+    ${EndIf}
+!macroend
+
+# Unique per Setup run. The desktop host compares this file with
+# {home}/portable/FREEOS_INSTALL_STAMP and re-extracts when they differ,
+# even if FREEOS_STAMP inside the bundled zip stayed the same.
+!macro wails.writeInstallStamp
+    FileOpen $0 "$INSTDIR\${INSTALL_STAMP_NAME}" w
+    FileWrite $0 "${INFO_PRODUCTVERSION}-"
+    System::Call 'kernel32::GetTickCount()i .r1'
+    FileWrite $0 "$1"
+    FileClose $0
+!macroend
+
+# Clear the extracted runtime stamp so first launch after Setup refreshes
+# packages/ and the embedded dashboard. Do not delete octop.db / settings.
+# USERPROFILE survives SetShellVarContext all (unlike $PROFILE).
+!macro wails.invalidateExtractedPortable
+    ReadEnvStr $R5 USERPROFILE
+    ${If} $R5 == ""
+        StrCpy $R5 "$PROFILE"
+    ${EndIf}
+    Delete "$R5\.freeos\portable\FREEOS_STAMP"
+    Delete "$R5\.octop\portable\FREEOS_STAMP"
+    ReadEnvStr $R4 FREEOS_HOME
+    ${If} $R4 != ""
+        Delete "$R4\portable\FREEOS_STAMP"
+    ${EndIf}
+    ReadEnvStr $R4 OCTOP_HOME
+    ${If} $R4 != ""
+        Delete "$R4\portable\FREEOS_STAMP"
+    ${EndIf}
+    DetailPrint "Marked ~/.freeos/portable for refresh on next launch"
 !macroend
 
 # If FreeOS is running: ask first (never kill on Cancel). Yes → close then

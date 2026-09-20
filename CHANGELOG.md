@@ -17,6 +17,7 @@
 ### 修复
 
 - 桌面 `POST /api/auth/local-session` 对已有 `~/.freeos`（多用户 / 组织映射行）或 WebView 非 `127.0.0.1` Host 返回 403，前端重试后掉进注册登录。本机会话在 loopback / `*.localhost` / Origin 为本机时签发 JWT 并选用已有工作室账号；SPA 在 `/` 跳到 `/projects` 丢掉 `?desktop=1` 之前记住桌面壳。403 修复后的路径是：可选模型配置（云 Key / 本机，可跳过）→ 第一个智能体 `/chat/main`，不经过登录墙，也不停在工作台列表。`/setup` 在 guest 已创建后不再打回登录页。
+- Windows 安装 / 覆盖安装 / 同版本重装会刷新 `~/.freeos/portable`：Setup 先结束仍在运行的 FreeOS，写入 `$INSTDIR\FREEOS_INSTALL_STAMP`，并清除已解压树里的 `FREEOS_STAMP`。下次启动按安装戳 + 包内戳重新解压 `packages/` 与内嵌 Dashboard，#88 及后续宿主/界面修复不必再手工热补。用户数据库与设置仍留在 `~/.freeos`。
 
 ### 文档
 

@@ -74,6 +74,7 @@ func ensurePortable(locale Locale, status func(string)) error {
 	if !launchReady(root) {
 		return fmt.Errorf("portable extract missing launch.py or python under %s", root)
 	}
+	recordAppliedInstallStamp(root)
 	return nil
 }
 
@@ -123,8 +124,17 @@ func renamePortable(source string, target string) error {
 }
 
 const portableStampName = "FREEOS_STAMP"
+const installStampName = "FREEOS_INSTALL_STAMP"
 
 func shouldReplacePortable(root string) bool {
+	if pendingPortableZip() != "" {
+		log.Printf("portable: applying pending zip")
+		return true
+	}
+	if installStampRequiresRefresh(root) {
+		log.Printf("portable: installer stamp changed; refreshing extracted runtime")
+		return true
+	}
 	bundledStamp := bundledPortableStamp()
 	if bundledStamp != "" && installedPortableStamp(root) == bundledStamp {
 		return false
@@ -134,9 +144,6 @@ func shouldReplacePortable(root string) bool {
 	if err != nil {
 		bundledVersion = ""
 	}
-	if pendingPortableZip() != "" {
-		return true
-	}
 	// Keep a newer in-app FreeOS portable over an older bundled zip.
 	// Do not keep Octop 0.9 / 1.0 leftovers — FreeOS is 0.0.2 and must replace them.
 	if currentVersion != "" && bundledVersion != "" &&
@@ -145,6 +152,56 @@ func shouldReplacePortable(root string) bool {
 		return false
 	}
 	return true
+}
+
+func installStampBesideExe() string {
+	if v, ok := os.LookupEnv("OCTOP_DESKTOP_INSTALL_STAMP_FILE"); ok {
+		return strings.TrimSpace(v)
+	}
+	exe, err := os.Executable()
+	if err != nil {
+		return ""
+	}
+	dir := filepath.Dir(exe)
+	if resolved, err := filepath.EvalSymlinks(dir); err == nil {
+		dir = resolved
+	}
+	return filepath.Join(dir, installStampName)
+}
+
+func readStampFile(path string) string {
+	if path == "" {
+		return ""
+	}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return ""
+	}
+	return strings.TrimSpace(string(data))
+}
+
+func appliedInstallStamp(root string) string {
+	return readStampFile(filepath.Join(root, installStampName))
+}
+
+func installStampRequiresRefresh(root string) bool {
+	want := readStampFile(installStampBesideExe())
+	if want == "" {
+		return false
+	}
+	return appliedInstallStamp(root) != want
+}
+
+func recordAppliedInstallStamp(root string) {
+	src := installStampBesideExe()
+	want := readStampFile(src)
+	if want == "" {
+		return
+	}
+	dest := filepath.Join(root, installStampName)
+	if err := os.WriteFile(dest, []byte(want+"\n"), 0o644); err != nil {
+		log.Printf("portable: write %s: %v", dest, err)
+	}
 }
 
 func isOctopLineageRuntime(root string) bool {
