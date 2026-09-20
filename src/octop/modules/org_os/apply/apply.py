@@ -193,9 +193,7 @@ def apply_asset_pack(
     plugins_mirror = client.write_mirror(mirror / "plugins.json", plugins_doc)
     skills_mirror = client.write_mirror(mirror / "skills.json", {"skills": skills})
 
-    host_receipt = land_host_org_surfaces(
-        home, tenant_id=tid, employees=employees, talent=talent
-    )
+    host_receipt = land_host_org_surfaces(home, tenant_id=tid, employees=employees, talent=talent)
 
     result = ApplyResult(
         pack_dir=dest,
