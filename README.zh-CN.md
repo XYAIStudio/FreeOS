@@ -2,6 +2,10 @@
 
 > **简体中文** · [English](README.md) · [繁體中文](README.zh-TW.md) · [日本語](README.ja.md) · [한국어](README.ko.md) · [Français](README.fr.md) · [Español](README.es.md) · [Русский](README.ru.md)
 
+<p>
+  <a href="https://github.com/TencentCloud/Octop"><img alt="Upstream: Octop" src="https://img.shields.io/badge/upstream-Octop-MIT-1677ff" /></a>
+  <a href="https://github.com/XYAIStudio/openXYOS"><img alt="Organization module: openXYOS" src="https://img.shields.io/badge/organization-openXYOS-Apache--2.0-0f766e" /></a>
+</p>
 FreeOS 是面向组织协作、知识沉淀与智能体编排的开源本地优先平台。它把 FreeOS 的增强服务与 openXYOS 的本机定制工作台结合起来，帮助团队把行业经验转化为可运行、可迭代、可独立交付的管理系统。
 
 ## 能做什么
@@ -25,3 +29,4 @@ uv run freeos run
 本地 openXYOS 的账户与模型设置由用户自己控制；FreeOS 账户只管理其云端与付费增强服务。不要将 API Key、令牌或真实客户资料提交到公开仓库。
 
 完整功能、架构和发布说明请见 [English README](README.md) 与 [Wiki](https://github.com/XYAIStudio/FreeOS/wiki)。
+

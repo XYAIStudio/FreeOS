@@ -36,9 +36,12 @@ See ``modules/openxyos/LICENSE`` and ``modules/openxyos/NOTICE``.
 A copy of the Apache-2.0 license is also at
 ``licenses/APACHE-2.0.txt``.
 
-FreeOS does not claim affiliation with XYAIStudio, XYOS, or related
-trademarks beyond this accurate attribution. See
-``modules/openxyos/TRADEMARKS.md`` for upstream trademark terms.
+FreeOS uses the ``openXYOS`` / ``XYOS`` names only for accurate source and
+component attribution. Any use of protected marks, official distribution
+identifiers, or the circular openXYOS logo is subject to
+``modules/openxyos/TRADEMARKS.md`` and any required authorization. FreeOS
+does not claim unauthorised official status, endorsement, certification, or
+sponsorship from the openXYOS project or its rights holders.
 
 ------------------------------------------------------------------------
 License split

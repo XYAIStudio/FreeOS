@@ -11,7 +11,9 @@
 <p align="center">
   <a href="https://www.python.org/downloads/"><img alt="Python 3.12+" src="https://img.shields.io/badge/python-3.12%2B-blue?logo=python&logoColor=white" /></a>
   <a href="https://github.com/TencentCloud/Octop/blob/main/LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-green" /></a>
-  <a href="https://github.com/XYAIStudio/FreeOS/releases"><img alt="Version" src="https://img.shields.io/badge/version-0.0.2-orange" /></a>
+  <a href="https://github.com/XYAIStudio/FreeOS/releases"><img alt="Version" src="https://img.shields.io/badge/version-0.0.3-orange" /></a>
+  <a href="https://github.com/TencentCloud/Octop"><img alt="上游：Octop" src="https://img.shields.io/badge/上游-Octop-MIT-1677ff" /></a>
+  <a href="https://github.com/XYAIStudio/openXYOS"><img alt="组织模块：openXYOS" src="https://img.shields.io/badge/组织模块-openXYOS-Apache--2.0-0f766e" /></a>
   <a href="https://pypi.org/project/octop/"><img src="https://img.shields.io/pypi/v/octop" alt="PyPI" /></a>
   <a href="https://github.com/astral-sh/ruff"><img alt="Code Style: Ruff" src="https://img.shields.io/badge/code%20style-ruff-000000?logo=ruff&logoColor=white" /></a>
   <a href="https://github.com/TencentCloud/Octop"><img alt="GitHub stars" src="https://img.shields.io/github/stars/TencentCloud/Octop?style=social" /></a>
@@ -30,10 +32,20 @@
 </p>
 
 <p align="center">
-  <a href="README.md">English</a> · <b>中文</b>
+  <a href="README.md">English</a> · <a href="README.zh-CN.md">简体中文简介</a> · <a href="README.zh-TW.md">繁體中文</a> · <a href="README.ja.md">日本語</a> · <a href="README.ko.md">한국어</a> · <a href="README.fr.md">Français</a> · <a href="README.es.md">Español</a> · <a href="README.ru.md">Русский</a>
 </p>
 
 ---
+
+## FreeOS 项目定位与开源来源
+
+FreeOS 是独立的下游二次开发项目，不是 Octop 官方发行版。我们保留上游许可证、版权和 NOTICE，并在此基础上建设本地优先的组织智能化与可导出管理系统能力：
+
+- [**Octop**](https://github.com/TencentCloud/Octop)（MIT）提供多智能体运行时、FastAPI 控制面、Dashboard、桌面打包及兼容层基础。
+- [**openXYOS**](https://github.com/XYAIStudio/openXYOS)（Apache-2.0）提供组织模型、智能体蓝图、治理契约和本机定制工作台基础。
+- FreeOS 提供集成桥接、行业模板与知识加工、治理校验、版本装配和独立代码导出。我们不宣称获得 Octop、腾讯云或其商标的认可、认证、赞助或官方支持。
+
+完整的许可证分层、署名要求与对外表述见 [NOTICE](NOTICE)、[上游归属说明](docs/upstream-attribution.md) 和 [集成架构](docs/architecture-integration.md)。
 
 ## 📌 概述
 

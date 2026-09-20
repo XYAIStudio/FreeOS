@@ -32,9 +32,11 @@ FreeOS grows its own AI workforce and capability catalog:
 4. The loop repeats and is **runnable**: `freeos org loop run`. Operator
    guide: [asset-loop.md](asset-loop.md).
 
-FreeOS is an independent project. It is not affiliated with Tencent Cloud,
-Octop, XYAIStudio, or XYOS trademarks beyond accurate license attribution.
-See [NOTICE](../NOTICE) and `modules/openxyos/TRADEMARKS.md`.
+FreeOS is an independent downstream project. It does not claim endorsement,
+certification, sponsorship, or trademark rights from Tencent Cloud or Octop.
+Use of openXYOS / XYOS names and marks follows the attribution and trademark
+terms in [NOTICE](../NOTICE) and
+[`modules/openxyos/TRADEMARKS.md`](../modules/openxyos/TRADEMARKS.md).
 
 ## Framing
 

@@ -2,6 +2,10 @@
 
 > **Русский** · [English](README.md) · [简体中文](README.zh-CN.md) · [繁體中文](README.zh-TW.md) · [日本語](README.ja.md) · [한국어](README.ko.md) · [Français](README.fr.md) · [Español](README.es.md)
 
+<p>
+  <a href="https://github.com/TencentCloud/Octop"><img alt="Upstream: Octop" src="https://img.shields.io/badge/upstream-Octop-MIT-1677ff" /></a>
+  <a href="https://github.com/XYAIStudio/openXYOS"><img alt="Organization module: openXYOS" src="https://img.shields.io/badge/organization-openXYOS-Apache--2.0-0f766e" /></a>
+</p>
 FreeOS — локальная по умолчанию платформа с открытым исходным кодом для совместной работы в организациях, накопления знаний и оркестрации ИИ-агентов. Она объединяет расширенные сервисы FreeOS с локальной средой настройки openXYOS и помогает превращать отраслевой опыт в исполняемые, развиваемые и независимо развёртываемые системы управления.
 
 ## Возможности
@@ -25,3 +29,4 @@ uv run freeos run
 Локальные учётные записи и настройки моделей openXYOS контролируются пользователем. Учётная запись FreeOS управляет только облачными и платными расширенными сервисами. Не публикуйте API-ключи, токены и реальные данные клиентов.
 
 Подробности доступны в [английском README](README.md) и [Wiki](https://github.com/XYAIStudio/FreeOS/wiki).
+

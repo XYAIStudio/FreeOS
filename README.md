@@ -10,6 +10,8 @@
   <a href="https://www.python.org/downloads/"><img alt="Python 3.12+" src="https://img.shields.io/badge/python-3.12%2B-blue?logo=python&logoColor=white" /></a>
   <a href="https://github.com/XYAIStudio/FreeOS/releases"><img alt="Version" src="https://img.shields.io/badge/version-0.0.3-orange" /></a>
   <a href="LICENSE"><img alt="License: MIT + Apache-2.0" src="https://img.shields.io/badge/license-MIT%20%2B%20Apache--2.0-green" /></a>
+  <a href="https://github.com/TencentCloud/Octop"><img alt="Upstream: Octop" src="https://img.shields.io/badge/upstream-Octop-MIT-1677ff" /></a>
+  <a href="https://github.com/XYAIStudio/openXYOS"><img alt="Organization module: openXYOS" src="https://img.shields.io/badge/organization-openXYOS-Apache--2.0-0f766e" /></a>
 </p>
 
 <p align="center">
@@ -33,6 +35,21 @@
 **FreeOS** is an independent open-source host. The data plane is derived from [Octop](https://github.com/TencentCloud/Octop) (MIT). The organization control plane comes from [openXYOS](https://github.com/XYAIStudio/openXYOS) (Apache-2.0). They are complementary: FreeOS **produces** experts / assistants (not yet in a department), skills, plugins, and MCPs; those assets **assemble into openXYOS** as department employees; openXYOS blueprints, catalog, policies, and talent **feed back** into FreeOS as colleagues.
 
 The web shell, README banner, favicons, and PWA icons use the FreeOS circular mark (gray ring, yellow / green / red teardrops, blue center).
+
+## Upstream attribution and project positioning
+
+<p>
+  <a href="https://github.com/TencentCloud/Octop"><img alt="Upstream: Octop" src="https://img.shields.io/badge/upstream-Octop-MIT-1677ff" /></a>
+  <a href="https://github.com/XYAIStudio/openXYOS"><img alt="Organization module: openXYOS" src="https://img.shields.io/badge/organization-openXYOS-Apache--2.0-0f766e" /></a>
+</p>
+
+FreeOS is an independent downstream project, not an official Octop release. It preserves the applicable copyright notices and licenses for its upstream components:
+
+- [Octop](https://github.com/TencentCloud/Octop) provides the MIT-licensed host foundation: the multi-agent runtime, FastAPI control plane, dashboard, desktop packaging, and compatibility identifiers.
+- [openXYOS](https://github.com/XYAIStudio/openXYOS) provides the Apache-2.0 organization module foundation: the organization model, blueprints, governance contracts, and local customization workspace.
+- FreeOS adds its own integration bridge, local-first product flow, release packaging, governance and export capabilities. It does not claim endorsement, certification, sponsorship, or trademark rights from Octop or Tencent Cloud.
+
+For the exact license split, notices and trademark-safe wording, see [NOTICE](NOTICE), [upstream attribution](docs/upstream-attribution.md), and [the integration architecture](docs/architecture-integration.md).
 
 ## Run the self-growth loop
 
@@ -187,3 +204,4 @@ Intentional for package compatibility (not a rebrand miss):
 - CI workflow **filename** `.github/workflows/octop-desktop.yml` (display name is FreeOS Desktop Package)
 
 See [docs/architecture-integration.md](docs/architecture-integration.md) for the control/data-plane split and the running self-growth loop.
+
