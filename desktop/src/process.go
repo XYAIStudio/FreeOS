@@ -11,46 +11,10 @@ import (
 )
 
 func mustEnv(cmd *exec.Cmd, extra map[string]string) {
-	cmd.Env = mergeLaunchEnv(os.Environ(), extra)
-}
-
-// mergeLaunchEnv overlays extra onto base so later keys win. On Windows the
-// environment is case-insensitive and CreateProcess keeps the first duplicate,
-// so a leftover OCTOP_DESKTOP=0 from the parent would otherwise shadow "1".
-func mergeLaunchEnv(base []string, extra map[string]string) []string {
-	type entry struct {
-		key   string
-		value string
-	}
-	order := make([]entry, 0, len(base)+len(extra))
-	index := map[string]int{}
-	put := func(key, value string) {
-		lk := key
-		if runtime.GOOS == "windows" {
-			lk = strings.ToLower(key)
-		}
-		if i, ok := index[lk]; ok {
-			order[i] = entry{key: key, value: value}
-			return
-		}
-		index[lk] = len(order)
-		order = append(order, entry{key: key, value: value})
-	}
-	for _, pair := range base {
-		key, value, ok := strings.Cut(pair, "=")
-		if !ok {
-			continue
-		}
-		put(key, value)
-	}
+	cmd.Env = os.Environ()
 	for key, value := range extra {
-		put(key, value)
+		cmd.Env = append(cmd.Env, key+"="+value)
 	}
-	out := make([]string, 0, len(order))
-	for _, item := range order {
-		out = append(out, item.key+"="+item.value)
-	}
-	return out
 }
 
 const defaultSidecarPort = 3780

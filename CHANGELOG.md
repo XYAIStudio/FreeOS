@@ -16,7 +16,7 @@
 
 ### 修复
 
-- 桌面 `POST /api/auth/local-session` 对已有 `~/.freeos`（多用户 / 组织映射行）或 WebView 非 `127.0.0.1` Host 返回 403，前端重试后掉进注册登录。本机会话在 loopback / `*.localhost` / Origin 为本机时签发 JWT 并选用已有工作室账号；Windows 宿主覆盖父进程残留的 `OCTOP_DESKTOP`；SPA 在 `/` 跳到 `/projects` 丢掉 `?desktop=1` 之前记住桌面壳，不再强制登录。
+- 桌面 `POST /api/auth/local-session` 对已有 `~/.freeos`（多用户 / 组织映射行）或 WebView 非 `127.0.0.1` Host 返回 403，前端重试后掉进注册登录。本机会话在 loopback / `*.localhost` / Origin 为本机时签发 JWT 并选用已有工作室账号；SPA 在 `/` 跳到 `/projects` 丢掉 `?desktop=1` 之前记住桌面壳。local-session 成功后进入可选模型配置（可跳过）再进第一个智能体，`/setup` 在 guest 已创建后不再把桌面用户打回登录页。
 
 ### 文档
 

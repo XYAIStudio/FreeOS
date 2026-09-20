@@ -80,7 +80,7 @@ describe("AuthGuard local session", () => {
 
     renderGuard();
 
-    expect(await screen.findByText("usable app")).toBeInTheDocument();
+    expect(await screen.findByText("setup wizard")).toBeInTheDocument();
     expect(screen.queryByText("login wall")).toBeNull();
     expect(getAuthToken()).toBe("guest-token");
     await waitFor(() => expect(localSession).toHaveBeenCalledOnce());
@@ -251,7 +251,7 @@ describe("AuthGuard local session", () => {
 
     renderGuard();
 
-    expect(await screen.findByText("usable app")).toBeInTheDocument();
+    expect(await screen.findByText("setup wizard")).toBeInTheDocument();
     expect(screen.queryByText("login wall")).toBeNull();
     expect(getAuthToken()).toBe("guest-token");
   });

@@ -159,4 +159,24 @@ describe("SetupPage desktop first-run", () => {
     expect(screen.queryByText("model step")).toBeNull();
     await waitFor(() => expect(localSession).not.toHaveBeenCalled());
   });
+
+  it("does not bounce a local guest to login after setup_required becomes false", async () => {
+    isDesktopShell.mockReturnValue(false);
+    getAuthStatus.mockResolvedValue({
+      setup_required: false,
+      wizard_password_required: false,
+      desktop: false,
+      has_providers: false,
+    });
+    localSession.mockResolvedValue({
+      access_token: "guest-token",
+      user: { id: 1, username: "local", locale: "zh" },
+    });
+
+    renderSetup();
+
+    expect(await screen.findByText("model step")).toBeInTheDocument();
+    expect(screen.queryByText("login wall")).toBeNull();
+    expect(screen.queryByText("password step")).toBeNull();
+  });
 });

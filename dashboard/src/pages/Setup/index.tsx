@@ -108,6 +108,22 @@ export default function SetupPage() {
         }
 
         if (!status.setup_required) {
+          // local-session already created the guest, so setup_required is false.
+          // Do not bounce to /login — offer optional model setup on this device.
+          if (needsDesktopModelOnboarding(status.has_providers === true)) {
+            try {
+              const session = await authApi.localSession();
+              setAuthToken(session.access_token);
+              wizardSession.saveSetupJwt(session.access_token);
+              if (cancelled) return;
+              setDesktopFlow(true);
+              goToStep(STEP_MODEL);
+              setChecking(false);
+              return;
+            } catch {
+              /* remote host still uses the login wall */
+            }
+          }
           wizardSession.clearAll();
           navigate("/login", { replace: true });
           return;
