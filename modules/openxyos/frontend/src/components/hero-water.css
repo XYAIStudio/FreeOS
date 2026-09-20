@@ -2,11 +2,12 @@
 .ox-water-scene{grid-column:1/-1;position:relative;z-index:0;isolation:isolate;overflow:hidden;width:100%;height:300px;margin-top:0;pointer-events:none;background:radial-gradient(ellipse at 50% 66%,rgba(23,100,154,.34),transparent 45%),radial-gradient(ellipse at 50% 100%,rgba(5,37,71,.98),rgba(4,18,36,.99) 62%,#020b16 100%)}
 .ox-hero:has(.ox-water-scene) .ox-hero-copy,.ox-hero:has(.ox-water-scene) .ox-console{position:relative;z-index:4}
 .ox-hero:has(.ox-water-scene) .ox-actions,.ox-hero:has(.ox-water-scene) .ox-scroll{z-index:5}
-.ox-hero:has(.ox-water-scene) .ox-mascot{z-index:2;top:auto;bottom:-14px;right:-12px;width:280px;display:block}
+.ox-hero:has(.ox-water-scene) .ox-console{overflow:visible}
+.ox-hero:has(.ox-water-scene) .ox-mascot{z-index:5;top:auto;bottom:0;right:12px;width:270px;display:block}
 .ox-hero:has(.ox-water-scene) .ox-console>header,.ox-hero:has(.ox-water-scene) .ox-console>footer{position:relative;z-index:3}
 .ox-hero:has(.ox-water-scene) .ox-terminal p{position:relative;z-index:3;padding-right:24px;overflow-wrap:anywhere}
 .ox-hero:has(.ox-water-scene) .ox-terminal button{z-index:4}
 .ox-hero:has(.ox-water-scene) .ox-mascot{display:block;padding:0;border:0;border-radius:0;background:transparent;box-shadow:none}
 .ox-water-scene canvas{display:block;width:100%;height:100%}
 .ox-hero:has(.ox-water-scene){row-gap:28px;padding-bottom:40px}
-@media(max-width:900px){.ox-water-scene{margin-top:0;height:280px}.ox-hero:has(.ox-water-scene) .ox-mascot{right:-12px;bottom:-10px;width:180px}.ox-hero:has(.ox-water-scene) .ox-terminal p{padding-right:16px}}@media(max-width:620px){.ox-hero:has(.ox-water-scene) .ox-mascot{right:4px;bottom:-8px;width:138px}.ox-hero:has(.ox-water-scene) .ox-terminal p{padding-right:0}}
+@media(max-width:900px){.ox-water-scene{margin-top:0;height:280px}.ox-hero:has(.ox-water-scene) .ox-mascot{right:10px;bottom:0;width:220px}.ox-hero:has(.ox-water-scene) .ox-terminal p{padding-right:16px}}@media(max-width:620px){.ox-hero:has(.ox-water-scene) .ox-mascot{right:6px;bottom:0;width:170px}.ox-hero:has(.ox-water-scene) .ox-terminal p{padding-right:0}}
