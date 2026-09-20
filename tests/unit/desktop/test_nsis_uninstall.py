@@ -147,7 +147,7 @@ def test_install_autolaunches_and_closes_without_finish_page() -> None:
     assert "MUI_FINISHPAGE_NOAUTOCLOSE" not in nsi
     assert "AutoCloseWindow true" in nsi
     assert "SetAutoClose true" in nsi
-    success = nsi[nsi.index("Function .onInstSuccess") : nsi.index("Section \"uninstall\"")]
+    success = nsi[nsi.index("Function .onInstSuccess") : nsi.index('Section "uninstall"')]
     assert "IfSilent" in success
     assert "Call LaunchFreeOS" in success
     launch = nsi[nsi.index("Function LaunchFreeOS") :]
