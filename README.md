@@ -10,14 +10,16 @@
   <a href="https://www.python.org/downloads/"><img alt="Python 3.12+" src="https://img.shields.io/badge/python-3.12%2B-blue?logo=python&logoColor=white" /></a>
   <a href="https://github.com/XYAIStudio/FreeOS/releases"><img alt="Version" src="https://img.shields.io/badge/version-0.0.3-orange" /></a>
   <a href="LICENSE"><img alt="License: MIT + Apache-2.0" src="https://img.shields.io/badge/license-MIT%20%2B%20Apache--2.0-green" /></a>
-  <a href="https://github.com/TencentCloud/Octop"><img alt="Upstream: Octop" src="https://img.shields.io/badge/upstream-Octop-MIT-1677ff" /></a>
-  <a href="https://github.com/XYAIStudio/openXYOS"><img alt="Organization module: openXYOS" src="https://img.shields.io/badge/organization-openXYOS-Apache--2.0-0f766e" /></a>
+  <a href="https://github.com/TencentCloud/Octop"><img alt="Upstream: Octop" src="https://img.shields.io/badge/Upstream-Octop-1677ff.svg?style=flat" /></a>
+  <a href="https://github.com/XYAIStudio/openXYOS"><img alt="Organization module: openXYOS" src="https://img.shields.io/badge/Organization-openXYOS-0f766e.svg?style=flat" /></a>
 </p>
 
 <p align="center">
   <a href="#product-vision">Vision</a> ·
+  <a href="#feature-preview">Features</a> ·
   <a href="#run-the-self-growth-loop">The loop</a> ·
   <a href="#run-freeos">Run</a> ·
+  <a href="#developer-community">Community</a> ·
   <a href="#license-and-attribution">License</a> ·
   <a href="docs/product-contract.md">Product contract</a> ·
   <a href="docs/architecture-integration.md">Architecture</a>
@@ -54,13 +56,35 @@ Canonical contract: [docs/product-contract.md](docs/product-contract.md) · [中
 
 **Non-goals for the next increments:** do not freeze bundled Node or the embedded organization page as the architecture; do not collapse everyday studio use and the organization room into one way in; do not make broader services or licensing a gate at the start. Asset bus, export rewrite, Node removal, and migration maps are later work (P0.2+), not this freeze.
 
+## Feature preview
+
+<table>
+  <tr>
+    <td width="68%">
+      <h3>From industry knowledge to a system you own</h3>
+      <p>Bring your experience, roles and source materials into a governed organization workflow. FreeOS is built to help users create, validate and export a system that fits their own scenario.</p>
+    </td>
+    <td align="center" valign="bottom"><img src="docs/assets/xyai-mascot-wave.gif" width="190" alt="XYAI mascot waving hello" /></td>
+  </tr>
+</table>
+
+<p align="center">
+  <img src="docs/assets/freeos-org-loop-demo.gif" width="860" alt="Animated openXYOS workflow from source materials to an organization agent" />
+</p>
+
+The workflow animation is captured from the openXYOS Agent Studio included in this repository: define a profile and materials, generate a governed assistant blueprint, then bring it into the organization.
+
+<p align="center">
+  <img src="docs/assets/xyai-mascot-create-story.gif" width="230" alt="XYAI mascot thinking, discovering, creating and celebrating" />
+</p>
+
 The web shell, README banner, favicons, and PWA icons use the FreeOS circular mark (gray ring, yellow / green / red teardrops, blue center).
 
 ## Upstream attribution and project positioning
 
 <p>
-  <a href="https://github.com/TencentCloud/Octop"><img alt="Upstream: Octop" src="https://img.shields.io/badge/upstream-Octop-MIT-1677ff" /></a>
-  <a href="https://github.com/XYAIStudio/openXYOS"><img alt="Organization module: openXYOS" src="https://img.shields.io/badge/organization-openXYOS-Apache--2.0-0f766e" /></a>
+  <a href="https://github.com/TencentCloud/Octop"><img alt="Upstream: Octop" src="https://img.shields.io/badge/Upstream-Octop-1677ff.svg?style=flat" /></a>
+  <a href="https://github.com/XYAIStudio/openXYOS"><img alt="Organization module: openXYOS" src="https://img.shields.io/badge/Organization-openXYOS-0f766e.svg?style=flat" /></a>
 </p>
 
 FreeOS is an independent downstream project, not an official Octop release. It preserves the applicable copyright notices and licenses for its upstream components:
@@ -204,6 +228,22 @@ Inbound import compiles the blueprint **and** registers a FreeOS agent (`org-pol
 Unchanged in this fork: multi-user JWT, multi-agent chat, expert library, connectors, ACP, knowledge bases, bundled plugins, cron, terminal/browser/desktop surfaces. The **Windows desktop installer** is branded **FreeOS** and defaults to `~/.freeos` / `FREEOS_HOME`. The Python package, `octop` CLI alias, `OCTOP_*` env vars, and `octop.db` stay for compatibility.
 
 Longer host docs: [docs/user-guide.md](docs/user-guide.md), [docs/configuration.md](docs/configuration.md), [docs/architecture.md](docs/architecture.md), [README_CN.md](README_CN.md).
+
+## Developer community
+
+<table>
+  <tr>
+    <td align="center" width="42%"><img src="docs/assets/xyai-mascot-community.png" width="230" alt="XYAI mascot welcoming developers" /></td>
+    <td align="center">
+      <strong>XYAI Founders developer community</strong><br/><br/>
+      Share organization designs, local-workspace practices, extensions and export feedback with other builders.<br/><br/>
+      <img src="docs/assets/xyai-developers-community-qr.png" width="185" alt="XYAI Founders developer community QR code" /><br/>
+      Scan to join. Please do not share API keys, tokens, or customer data in public discussions.
+    </td>
+  </tr>
+</table>
+
+You can also start a topic in [GitHub Discussions](https://github.com/XYAIStudio/FreeOS/discussions).
 
 ## License and attribution
 

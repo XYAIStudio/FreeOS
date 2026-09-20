@@ -3,8 +3,8 @@
 > **简体中文** · [English](README.md) · [繁體中文](README.zh-TW.md) · [日本語](README.ja.md) · [한국어](README.ko.md) · [Français](README.fr.md) · [Español](README.es.md) · [Русский](README.ru.md)
 
 <p>
-  <a href="https://github.com/TencentCloud/Octop"><img alt="Upstream: Octop" src="https://img.shields.io/badge/upstream-Octop-MIT-1677ff" /></a>
-  <a href="https://github.com/XYAIStudio/openXYOS"><img alt="Organization module: openXYOS" src="https://img.shields.io/badge/organization-openXYOS-Apache--2.0-0f766e" /></a>
+  <a href="https://github.com/TencentCloud/Octop"><img alt="Upstream: Octop" src="https://img.shields.io/badge/Upstream-Octop-1677ff.svg?style=flat" /></a>
+  <a href="https://github.com/XYAIStudio/openXYOS"><img alt="Organization module: openXYOS" src="https://img.shields.io/badge/Organization-openXYOS-0f766e.svg?style=flat" /></a>
 </p>
 
 **FreeOS：自由的 AI 工作室，想象空间由你来打开**
@@ -32,6 +32,16 @@ FreeOS 诞生于一个简单而清晰的目标：在 Octop 的自托管多智能
 - 配置本地模型与知识库后，启用智能体、群聊、知识加工与生成能力。
 - 开发、优化、自我定制，生长更贴合自身场景的新 openXYOS，并导出其系统源码。
 
+## 功能动效预览
+
+<p align="center"><img src="docs/assets/xyai-mascot-wave.gif" width="185" alt="XYAI 精灵挥手问好" /></p>
+
+<p align="center"><img src="docs/assets/freeos-org-loop-demo.gif" width="860" alt="openXYOS 智能体定制与组织装配动效" /></p>
+
+从画像和资料开始，生成受治理约束的智能体蓝图，再进入人才市场并装配进组织。上图是仓库内 openXYOS Agent Studio 的实际界面动效。
+
+<p align="center"><img src="docs/assets/xyai-mascot-create-story.gif" width="220" alt="XYAI 精灵从思考到创造" /></p>
+
 ## 快速开始
 
 Windows 用户可从 [Releases](https://github.com/XYAIStudio/FreeOS/releases/latest) 下载匹配架构的安装包。源码运行：
@@ -46,3 +56,19 @@ uv run freeos run
 不要将 API Key、令牌或真实客户资料提交到公开仓库。
 
 完整功能、架构和发布说明请见 [English README](README.md)、[中文宿主说明](README_CN.md) 与 [Wiki](https://github.com/XYAIStudio/FreeOS/wiki)。openXYOS 能力哪些已在宿主原生、哪些仍在托管 Node / iframe，见 [能力迁移图（P0.2）](docs/org-capability-migration-map.zh-CN.md)。
+
+## 开发者交流群
+
+<table>
+  <tr>
+    <td align="center" width="42%"><img src="docs/assets/xyai-mascot-community.png" width="210" alt="XYAI 精灵欢迎开发者" /></td>
+    <td align="center">
+      <strong>XYAI Founders 开发者交流群</strong><br/><br/>
+      交流组织设计、本地工作台实践、扩展开发与导出反馈。<br/><br/>
+      <img src="docs/assets/xyai-developers-community-qr.png" width="180" alt="XYAI Founders 开发者交流群二维码" /><br/>
+      扫码加入；请勿在公开讨论中发送 API Key、令牌或客户资料。
+    </td>
+  </tr>
+</table>
+
+也可前往 [GitHub Discussions](https://github.com/XYAIStudio/FreeOS/discussions) 发起讨论。
