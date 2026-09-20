@@ -29,7 +29,7 @@ logs a warning and returns when no bundled/source runtime is present, so
 
 The GitHub workflow **FreeOS Desktop Package** (`.github/workflows/octop-desktop.yml`)
 sets `SHIP_OPENXYOS_RUNTIME=1` and `SKIP_ORG_SIDECAR=0` so existing Windows
-users keep the 0.0.3 iframe bridge. That flag is **labeled transitional** in
+users keep the 0.0.3 iframe bridge (still packaged by 0.0.4 desktop CI). That flag is **labeled transitional** in
 the workflow, NSIS strings, and this file. Do not copy it into Docker, `uv run`,
 or the default installer.
 

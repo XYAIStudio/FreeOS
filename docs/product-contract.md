@@ -49,7 +49,7 @@ These shipping shapes are **bridges** while native migration proceeds:
 
 | Shipping shape | Role |
 |---|---|
-| Desktop **0.0.3** managed Node + iframe of openXYOS | Transition so operators can still exercise the full original App surface. |
+| Desktop **0.0.3–0.0.4** managed Node + iframe of openXYOS | Transition so operators can still exercise the full original App surface. |
 | **Phase-5 zero-Node** default installer (in-host `/organization` + `/api/org-module/*`; sidecar opt-in) | Lean default while pages move native. Not a claim that unmigrated App surfaces are done. |
 | **Full-App iframe** / optional `FREEOS_ORG_SIDECAR` on `:3780` | Compatibility hatch for unmigrated pages and export/sync. |
 

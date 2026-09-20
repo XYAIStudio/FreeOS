@@ -8,7 +8,7 @@
 
 <p align="center">
   <a href="https://www.python.org/downloads/"><img alt="Python 3.12+" src="https://img.shields.io/badge/python-3.12%2B-blue?logo=python&logoColor=white" /></a>
-  <a href="https://github.com/XYAIStudio/FreeOS/releases"><img alt="Version" src="https://img.shields.io/badge/version-0.0.3-orange" /></a>
+  <a href="https://github.com/XYAIStudio/FreeOS/releases"><img alt="Version" src="https://img.shields.io/badge/version-0.0.4-orange" /></a>
   <a href="LICENSE"><img alt="License: MIT + Apache-2.0" src="https://img.shields.io/badge/license-MIT%20%2B%20Apache--2.0-green" /></a>
   <a href="https://github.com/TencentCloud/Octop"><img alt="Upstream: Octop" src="https://img.shields.io/badge/Upstream-Octop-1677ff.svg?style=flat" /></a>
   <a href="https://github.com/XYAIStudio/openXYOS"><img alt="Organization module: openXYOS" src="https://img.shields.io/badge/Organization-openXYOS-0f766e.svg?style=flat" /></a>
@@ -134,7 +134,7 @@ Operator detail: [docs/asset-loop.md](docs/asset-loop.md).
    `FreeOS-desktop-windows-arm64-<version>.exe`（ARM 电脑）。
 2. 双击安装包。安装程序会放到「程序文件」并创建开始菜单和桌面快捷方式。
 3. 打开 **FreeOS**。第一次启动会解压内置运行环境（可能要一两分钟），然后直接进入可用会话，无需先登录。
-4. 保存、导出或发布到账号时再在本机完成注册或登录（更广的服务或授权不挡起步）。侧栏 **Organization** 当前默认走宿主内组织能力；桌面 0.0.3 托管 Node + iframe、以及可选的完整 openXYOS Node 栈（`127.0.0.1:3780`，导出/同步/高级部署）都是 **过渡桥**，终态是把 openXYOS 迁入宿主。组织能力像工作室里另一间可独立布置的房间，与日常对话、助手协作同在一个 FreeOS，两种进入方式不捏成一种。
+4. 保存、导出或发布到账号时再在本机完成注册或登录（更广的服务或授权不挡起步）。侧栏 **Organization** 当前默认走宿主内组织能力；桌面 0.0.4 托管 Node + iframe（延续 0.0.3 过渡桥）、以及可选的完整 openXYOS Node 栈（`127.0.0.1:3780`，导出/同步/高级部署）都是 **过渡桥**，终态是把 openXYOS 迁入宿主。组织能力像工作室里另一间可独立布置的房间，与日常对话、助手协作同在一个 FreeOS，两种进入方式不捏成一种。
 
 数据目录默认是 `%USERPROFILE%\.freeos`（可用环境变量 `FREEOS_HOME` 改）。旧版 Octop 的 `~/.octop` 仍会被识别。卸载安装包会清空安装目录（默认为 `Program Files\FreeOS`）并删除快捷方式，但**不会**删除该用户数据目录；详见 [desktop/README.md](desktop/README.md#windows-uninstall)。
 

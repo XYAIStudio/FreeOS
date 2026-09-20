@@ -47,7 +47,7 @@ FreeOS 更像你自己的工作室：先在本机安顿好。组织相关能力�
 
 | 已发布形态 | 角色 |
 |---|---|
-| 桌面 **0.0.3** 托管 Node + iframe 嵌入 openXYOS | 过渡：仍能跑完整原 App 表面。 |
+| 桌面 **0.0.3–0.0.4** 托管 Node + iframe 嵌入 openXYOS | 过渡：仍能跑完整原 App 表面。 |
 | **Phase-5 默认零 Node** 安装器（宿主内 `/organization` + `/api/org-module/*`；边车可选） | 精简默认路径，同时把页面迁原生。不表示未迁的 App 表面已经完成。 |
 | **全量 App iframe** / 可选 `FREEOS_ORG_SIDECAR`（`:3780`） | 未迁页面、导出 / 同步的兼容阀。 |
 

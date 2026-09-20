@@ -28,7 +28,7 @@
 
 GitHub 工作流 **FreeOS Desktop Package**（`.github/workflows/octop-desktop.yml`）
 会设 `SHIP_OPENXYOS_RUNTIME=1` 与 `SKIP_ORG_SIDECAR=0`，让现有 Windows 用户仍能用
-0.0.3 的 iframe 桥。该开关在工作流、NSIS 文案和本文里都标成 **过渡**。不要把它
+0.0.3 的 iframe 桥（0.0.4 桌面 CI 仍打此包）。该开关在工作流、NSIS 文案和本文里都标成 **过渡**。不要把它
 复制进 Docker、`uv run` 或默认安装器。
 
 | 开关 | 默认 | 含义 |
