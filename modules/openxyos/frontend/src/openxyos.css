@@ -92,3 +92,15 @@ html.dark .ox-page{--bg:#111827;--panel:#1f2937;--line:rgba(132,155,230,.18);--t
   .ox-mobile-menu.is-open{padding:12px 16px 16px}
   .ox-mobile-links{grid-template-columns:1fr}
 }
+
+/* Keep this final: the responsive menu declarations above deliberately define
+   layout last, while this block owns its light, readable presentation. */
+@media(max-width:900px){
+  .ox-menu-toggle{color:#243b64;border-color:#cbd7e8;background:#fff;box-shadow:0 4px 14px rgba(41,72,126,.08)}
+  .ox-menu-toggle:hover{border-color:#8eadff;background:#f0f5ff}
+  .ox-mobile-menu{border-bottom-color:#d9e3f2;background:rgba(248,251,255,.98);box-shadow:0 16px 30px rgba(41,72,126,.16)}
+  .ox-mobile-links a,.ox-mobile-actions>*{color:#243b64;border-color:#cbd7e8;background:#fff;box-shadow:none}
+  .ox-mobile-links a:hover,.ox-mobile-actions>*:hover{color:#173fbd;border-color:#8eadff;background:#f0f5ff}
+  .ox-mobile-actions .language-select{color:#243b64;border-color:#cbd7e8;background:#fff}
+  .ox-mobile-actions .language-select select{color:#243b64;background:#fff}
+}
