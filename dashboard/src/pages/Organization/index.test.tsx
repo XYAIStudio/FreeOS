@@ -375,7 +375,9 @@ describe("OrganizationPage", () => {
         mirror_dir: "/tmp/mirror",
         remote_applied: false,
         mirrored: true,
-        notes: ["OPENXYOS_BASE_URL / runtime.json unset; applied to local mirror only"],
+        notes: [
+          "OPENXYOS_BASE_URL / runtime.json unset; applied to local mirror only",
+        ],
       },
     });
 
@@ -424,13 +426,19 @@ describe("OrganizationPage", () => {
     });
     vi.mocked(orgModuleApi.overview).mockResolvedValue({
       ...overview,
-      governance: { pending_pauses: 2, enabled: true, href: "/organization/governance" },
+      governance: {
+        pending_pauses: 2,
+        enabled: true,
+        href: "/organization/governance",
+      },
       freeos: { ...overview.freeos, pending_pauses: 2 },
     });
     renderOrg();
     expect(await screen.findByTestId("org-pause-banner")).toBeInTheDocument();
     expect(screen.getByTestId("org-pause-open")).toBeInTheDocument();
-    expect(await screen.findByTestId("org-original-app-hint")).toBeInTheDocument();
+    expect(
+      await screen.findByTestId("org-original-app-hint"),
+    ).toBeInTheDocument();
     expect(screen.getByTestId("org-open-original-app")).toHaveAttribute(
       "href",
       "/organization-app/dashboard?freeos_embed=1",

@@ -8,7 +8,8 @@ const EN = {
   tabTalent: "Talent market",
   talentSubtitle:
     "Available talent from the asset bus and Agent Studio. Recruit writes the host directory and lifecycle.",
-  talentEmpty: "No talent on the host market yet. Pack or loop assets to land rows here.",
+  talentEmpty:
+    "No talent on the host market yet. Pack or loop assets to land rows here.",
   talentRecruit: "Recruit",
   talentRecruited: "Recruited into the directory",
   talentLoadFailed: "Could not load talent",
@@ -52,7 +53,8 @@ const EN = {
 
 const ZH: typeof EN = {
   title: "员工目录",
-  subtitle: "已入编部门的人机员工，以及宿主人才市场。与组织架构同一份 sqlite，不经过 Node。",
+  subtitle:
+    "已入编部门的人机员工，以及宿主人才市场。与组织架构同一份 sqlite，不经过 Node。",
   tabDirectory: "在职名册",
   tabTalent: "人才市场",
   talentSubtitle:

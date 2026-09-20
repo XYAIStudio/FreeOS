@@ -39,7 +39,8 @@ const EN = {
   organization: "Organization chart",
   organizationBody: "Departments and people on the host org tree.",
   employees: "Employees",
-  employeesBody: "Directory of people and AI colleagues, plus the host talent market.",
+  employeesBody:
+    "Directory of people and AI colleagues, plus the host talent market.",
   skillsPage: "Skills",
   skillsBody: "Generated org-API skill wrappers. Agent Skills stay on FreeOS.",
   agents: "Agent Studio",
