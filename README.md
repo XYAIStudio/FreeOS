@@ -15,9 +15,11 @@
 </p>
 
 <p align="center">
+  <a href="#product-vision">Vision</a> ·
   <a href="#run-the-self-growth-loop">The loop</a> ·
   <a href="#run-freeos">Run</a> ·
   <a href="#license-and-attribution">License</a> ·
+  <a href="docs/product-contract.md">Product contract</a> ·
   <a href="docs/architecture-integration.md">Architecture</a>
 </p>
 
@@ -33,6 +35,18 @@
 </p>
 
 **FreeOS** is an independent open-source host. The data plane is derived from [Octop](https://github.com/TencentCloud/Octop) (MIT). The organization control plane comes from [openXYOS](https://github.com/XYAIStudio/openXYOS) (Apache-2.0). They are complementary: FreeOS **produces** experts / assistants (not yet in a department), skills, plugins, and MCPs; those assets **assemble into openXYOS** as department employees; openXYOS blueprints, catalog, policies, and talent **feed back** into FreeOS as colleagues.
+
+## Product vision
+
+FreeOS exists so people get **Octop + openXYOS in one self-hosted platform**: local-first models and knowledge bases; the two asset worlds interoperate and strengthen each other; operators can customize and eventually **export a new openXYOS system source** for commercialization.
+
+**Direction of travel:** migrate openXYOS web and capabilities **into** the FreeOS/Octop host as native parts. That is **not** permanently embedding a large Node runtime. Desktop 0.0.3 managed Node + iframe, Phase-5 default zero-Node, and full-App iframe paths are **transition bridges**.
+
+**Dual identity:** FreeOS app users register and log in **locally** (not Octop official; later the host may connect to a FreeOS official site for commercial licensing). The integrated organization module is an **independent test environment** with its **own** user system. Those identities are unrelated. Organization identity is **not** the authority over FreeOS host identity.
+
+Canonical contract: [docs/product-contract.md](docs/product-contract.md) · [中文](docs/product-contract.zh-CN.md).
+
+**Non-goals for the next increments:** do not freeze bundled Node or iframe as the architecture; do not collapse org test users into FreeOS software users; do not bind host login to Octop official. Asset bus, export rewrite, Node removal, and migration maps are later work (P0.2+), not this freeze.
 
 The web shell, README banner, favicons, and PWA icons use the FreeOS circular mark (gray ring, yellow / green / red teardrops, blue center).
 
@@ -90,7 +104,7 @@ Operator detail: [docs/asset-loop.md](docs/asset-loop.md).
    `FreeOS-desktop-windows-arm64-<version>.exe`（ARM 电脑）。
 2. 双击安装包。安装程序会放到「程序文件」并创建开始菜单和桌面快捷方式。
 3. 打开 **FreeOS**。第一次启动会解压内置运行环境（可能要一两分钟），然后直接进入可用会话，无需先登录。
-4. 保存、导出或发布到账号时再注册或登录。侧栏 **Organization** 使用宿主内组织能力，不必再装 Node，也不依赖本机 `127.0.0.1:3780`。完整 openXYOS Node 栈是可选项（导出/同步/高级部署）。
+4. 保存、导出或发布到账号时再 **本地注册或登录**（FreeOS 软件用户，不绑 Octop 官方）。侧栏 **Organization** 当前默认走宿主内组织能力；桌面 0.0.3 托管 Node + iframe、以及可选的完整 openXYOS Node 栈（`127.0.0.1:3780`，导出/同步/高级部署）都是 **过渡桥**，终态是把 openXYOS 迁入宿主。组织模块测试账号与 FreeOS 软件用户不是同一套。
 
 数据目录默认是 `%USERPROFILE%\.freeos`（可用环境变量 `FREEOS_HOME` 改）。旧版 Octop 的 `~/.octop` 仍会被识别。卸载安装包会清空安装目录（默认为 `Program Files\FreeOS`）并删除快捷方式，但**不会**删除该用户数据目录；详见 [desktop/README.md](desktop/README.md#windows-uninstall)。
 
@@ -99,7 +113,7 @@ Operator detail: [docs/asset-loop.md](docs/asset-loop.md).
 ### Prerequisites
 
 - Python 3.12+ (the project uses [uv](https://docs.astral.sh/uv/))
-- Node.js 20.19+ only if you opt into the organization sidecar (`FREEOS_ORG_SIDECAR=1`) from source, or rebuild the dashboard. A fresh FreeOS install does not need Node.
+- Node.js 20.19+ only if you opt into the organization sidecar (`FREEOS_ORG_SIDECAR=1`) from source, or rebuild the dashboard. A fresh FreeOS install does not need Node. The sidecar / iframe path is a [transition bridge](docs/product-contract.md), not the destination.
 
 ### From this repository
 
@@ -142,7 +156,7 @@ Full host suite: `uv run pytest` / `make test-fast` (needs the usual extra servi
 
 The host stays Python. Organization first paint is the native dashboard page
 plus `/api/org-module/*` (catalog, ingest/import, growth loop, employees).
-The TypeScript sidecar under `modules/openxyos/` is optional.
+The TypeScript sidecar under `modules/openxyos/` is an optional **transition bridge** (export/sync/unmigrated App surfaces), not the end-state runtime. See [docs/product-contract.md](docs/product-contract.md).
 
 | Surface | Action |
 |---|---|
@@ -161,7 +175,7 @@ FREEOS_ORG_SIDECAR=1 bash scripts/run-org-sidecar.sh
 Default origin if opted in: `http://127.0.0.1:3780`. Organization and
 `freeos org loop run` do **not** wait for `/api/health/livez`.
 
-**Auth:** FreeOS JWT users and openXYOS tenants are separate. The proxy forwards `X-FreeOS-User*` and `X-FreeOS-Tenant-Id`. One tenant = one workspace/sandbox — not prompt isolation.
+**Auth (dual identity):** FreeOS software users are **local-first** host registration/login — not Octop official, and not the organization-module test users. The integrated openXYOS organization module is an **independent test environment** with its own user system. Organization identity is **not** the authority over FreeOS host identity. The proxy still forwards `X-FreeOS-User*` and `X-FreeOS-Tenant-Id` for workspace/sandbox scoping (one tenant = one workspace/sandbox — not prompt isolation).
 
 ### Manual loop steps (the one command above already does this)
 
@@ -203,5 +217,5 @@ Intentional for package compatibility (not a rebrand miss):
 - SQLite file `octop.db` inside the home directory
 - CI workflow **filename** `.github/workflows/octop-desktop.yml` (display name is FreeOS Desktop Package)
 
-See [docs/architecture-integration.md](docs/architecture-integration.md) for the control/data-plane split and the running self-growth loop.
+See [docs/product-contract.md](docs/product-contract.md) for product intent, and [docs/architecture-integration.md](docs/architecture-integration.md) for the control/data-plane split and the running self-growth loop.
 

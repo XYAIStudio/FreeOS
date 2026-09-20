@@ -1,6 +1,10 @@
 # 组织模块合并计划（openXYOS → FreeOS Dashboard）
 
-> **范围已于 2026-09-19 被用户修正：** 以下 Phase 0–5 仅记录旧 Open-12 切片进度，不能作为全量融合完成结论。当前要求覆盖 openXYOS 全部已实现页面、功能和跨模块关系，含商业 App.tsx 与组织沟通能力。旧「不迁」范围限制由 [全量融合验收合同](org-full-integration.md) 取代。
+> **Historical vs Current.**
+>
+> **Current（权威）：** [产品契约](product-contract.zh-CN.md) / [product-contract.md](product-contract.md)。双身份（FreeOS 本地认证 ≠ 组织测试认证）；托管 Node 与全量 App iframe 是过渡桥；终态是把 openXYOS **迁入** 宿主。Phase-5 默认零 Node 是精简默认路径，**不是**「未迁页面已经完成」或「永远不再需要桥」。
+>
+> **Historical：** 以下 Phase 0–5 记录 Open-12 切片与安装器瘦身。2026-09-19 范围修正（全量 App.tsx）见 [全量融合验收合同](org-full-integration.md)——其中 **能力对齐清单仍可用**，文末 Node + 组织身份权威 已作废。
 
 **状态：** Phase 0–4 已落地（#55 宿主内 Organization + Open-12 宿主 UI + `export-standalone`）。**Phase 5 默认安装器瘦身已完成**：Windows/macOS/Linux 默认包不捆绑、不解压、不自动拉起 openXYOS Node；`FREEOS_ORG_SIDECAR` / `SHIP_OPENXYOS_RUNTIME=1` 仍是可选高级路径。残留：导出站自包含 org API、可选 `packages/org-ui` 抽包。详见 [org-export.md](org-export.md)。
 **日期：** 2026-09-19
@@ -10,12 +14,16 @@ Phase 1 冻结了合同。Phase 2（通知公告）与 Phase 3 Open-12 宿主页
 
 ---
 
-## 产品意图（不可谈判）
+## 产品意图
+
+**Current** 以 [产品契约](product-contract.zh-CN.md) 为准。下面 1–5 是 Phase 1 冻结时的工程意图，仍然有用，但 **不得** 覆盖双身份或「Node 只是桥」。
+
+### Historical（Phase 1 冻结）
 
 1. **组织模块代码是唯一事实来源。**
 2. openXYOS 网页成为 **FreeOS Dashboard Organization 下的子 UI**，不是第二套常驻系统。
 3. 同一套源必须能 **生成** 独立 openXYOS Web，供客户自托管（商业加售）。
-4. **默认一个安装器**，不强制 Node sidecar。Sidecar 仅作可选兼容（`FREEOS_ORG_SIDECAR` / `SHIP_OPENXYOS_RUNTIME`）。
+4. **默认一个安装器**，不强制 Node sidecar。Sidecar 仅作可选兼容（`FREEOS_ORG_SIDECAR` / `SHIP_OPENXYOS_RUNTIME`）。Phase-5 零 Node 与 sidecar/iframe 都是过渡，终态是原生迁入。
 5. **不用** openXYOS Chat 替换 FreeOS/Octop Agent 对话运行时。
 
 ---

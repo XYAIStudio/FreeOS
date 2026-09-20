@@ -1,5 +1,7 @@
 # Architecture
 
+> **Historical vs Current.** This page is the Octop-derived **host** architecture (single Python process). **Current product intent** (dual identity, Node as bridge, migrate openXYOS into the host): [product-contract.md](product-contract.md). Integration topology: [architecture-integration.md](architecture-integration.md).
+
 Octop is a self-hosted AI assistant platform for multiple users and agents,
 delivered as a single Python process.
 It glues three reusable libraries — `harness-agent` (LangGraph-based

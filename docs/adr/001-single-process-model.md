@@ -39,5 +39,11 @@ Everything runs in a single Python process served by uvicorn. There is no extern
 Organization control-plane UI and BFF stay in this same Python process
 (`/api/org-module/*`, Dashboard `/organization`). A Node openXYOS sidecar
 is **not** part of the default installer (Phase 5). Opt in only with
-`FREEOS_ORG_SIDECAR=1` / `SHIP_OPENXYOS_RUNTIME=1`. This does not change
-the original decision: one process, one port, no required extra runtime.
+`FREEOS_ORG_SIDECAR=1` / `SHIP_OPENXYOS_RUNTIME=1`.
+
+**Current:** Phase-5 zero-Node and managed Node + iframe are **transition
+bridges** toward native migration of openXYOS into the host — not a
+destination architecture and not a claim that unmigrated App surfaces
+are done. Canonical intent: [product-contract.md](../product-contract.md).
+This does not change the original decision: one process, one port, no
+required extra runtime for the default host.

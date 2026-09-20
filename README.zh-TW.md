@@ -6,7 +6,7 @@
   <a href="https://github.com/TencentCloud/Octop"><img alt="Upstream: Octop" src="https://img.shields.io/badge/upstream-Octop-MIT-1677ff" /></a>
   <a href="https://github.com/XYAIStudio/openXYOS"><img alt="Organization module: openXYOS" src="https://img.shields.io/badge/organization-openXYOS-Apache--2.0-0f766e" /></a>
 </p>
-FreeOS 是一個面向組織協作、知識沉澱與智慧代理編排的開源、本機優先平台。它結合 FreeOS 的增強服務與 openXYOS 的本機自訂工作台，協助團隊把產業經驗轉化為可運行、可迭代且可獨立交付的管理系統。
+FreeOS 是一個面向組織協作、知識沉澱與智慧代理編排的開源、本機優先平台。它把 Octop 與 openXYOS 合在同一套自託管安裝裡：模型與知識庫盡量本機；兩邊資產互通；最終可匯出新的 openXYOS 系統原始碼。方向是把 openXYOS **遷入** 宿主，而不是永久嵌入大型 Node。產品契約：[English](docs/product-contract.md) · [簡體中文](docs/product-contract.zh-CN.md)。
 
 ## 可以做什麼
 
@@ -26,7 +26,7 @@ uv sync
 uv run freeos run
 ```
 
-openXYOS 的本機帳號與模型設定由使用者自行控制；FreeOS 帳號僅管理其雲端與付費增強服務。請勿將 API Key、權杖或真實客戶資料提交到公開倉庫。
+**雙身份：** FreeOS 軟體使用者是宿主上的本機優先註冊／登入（不綁 Octop 官方）。整合的組織模組是獨立測試環境，有自己的使用者系統，**不是** 宿主身分權威。請勿將 API Key、權杖或真實客戶資料提交到公開倉庫。
 
 完整功能、架構與發布說明請參閱 [English README](README.md) 與 [Wiki](https://github.com/XYAIStudio/FreeOS/wiki)。
 

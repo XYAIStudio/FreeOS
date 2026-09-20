@@ -35,6 +35,12 @@
   <a href="README.md">English</a> · <a href="README.zh-CN.md">简体中文简介</a> · <a href="README.zh-TW.md">繁體中文</a> · <a href="README.ja.md">日本語</a> · <a href="README.ko.md">한국어</a> · <a href="README.fr.md">Français</a> · <a href="README.es.md">Español</a> · <a href="README.ru.md">Русский</a>
 </p>
 
+> **Historical vs Current.** 中文产品入口是 [README.zh-CN.md](README.zh-CN.md)。权威意图见 [产品契约](docs/product-contract.zh-CN.md)。
+>
+> **Current：** FreeOS = 自托管的 Octop + openXYOS；本地优先模型 / 知识库；双身份（FreeOS 本地认证 ≠ 组织模块测试认证）；托管 Node 与 iframe 只是过渡桥；终态是把 openXYOS **迁入** 宿主，并导出可商业化的 openXYOS 源码。
+>
+> **Historical：** 下文大量沿自 Octop 宿主能力说明（安装脚本、控制台、CLI、亮点表）。那些能力仍在 FreeOS 宿主里，但本文 **不是** Octop 官方产品页，也不再把 FreeOS 写成「只管理云端与付费增强服务」。
+
 ---
 
 ## FreeOS 项目定位与开源来源
@@ -45,15 +51,19 @@ FreeOS 是独立的下游二次开发项目，不是 Octop 官方发行版。我
 - [**openXYOS**](https://github.com/XYAIStudio/openXYOS)（Apache-2.0）提供组织模型、智能体蓝图、治理契约和本机定制工作台基础。
 - FreeOS 提供集成桥接、行业模板与知识加工、治理校验、版本装配和独立代码导出。我们不宣称获得 Octop、腾讯云或其商标的认可、认证、赞助或官方支持。
 
-完整的许可证分层、署名要求与对外表述见 [NOTICE](NOTICE)、[上游归属说明](docs/upstream-attribution.md) 和 [集成架构](docs/architecture-integration.md)。
+完整的许可证分层、署名要求与对外表述见 [NOTICE](NOTICE)、[上游归属说明](docs/upstream-attribution.md)、[产品契约](docs/product-contract.zh-CN.md) 和 [集成架构](docs/architecture-integration.md)。
 
 ## 📌 概述
 
-**Octop** 是一个开源、自托管的 AI 助手。它不仅是工具，更是可并行运作的数字生命体。通过多 Agent 架构，它为团队、家庭和个人构建了既独立又协作的智能环境。并且这一切都运行在你的机器上——完全自托管的设计让隐私不再是妥协，而单进程启动的便捷性，则让强大的 Web 控制台、CLI 与 IM 集成触手可及。
+**FreeOS** 是自托管多智能体 OS：在同一套安装里提供 Octop 宿主（对话、专家、知识库、通道）与 openXYOS 组织能力。模型和知识库尽可能跑在本机；两边资产互通、互相增强；用户可以定制并最终导出新的 openXYOS 系统源码。前进方向是把 openXYOS **迁入** 宿主，而不是永久嵌入大型 Node。桌面 0.0.3 的托管 Node + iframe、Phase-5 默认零 Node、全量 App iframe 都是过渡桥。
+
+**双身份：** FreeOS 软件用户在宿主上本地注册 / 登录（不绑 Octop 官方；以后可对接 FreeOS 官网做商业授权）。组织模块是独立测试环境，自带用户系统，**不是** 宿主身份权威。
+
+下面「亮点 / 功能特性 / 快速开始」描述的是 **从 Octop 继承、仍在 FreeOS 宿主中的能力**（控制台、CLI、IM、知识库等），不是把本仓库重新标成 Octop。
 
 借助飞书、钉钉、QQ、Discord、企业微信或 HTTP/SSE/WebSocket API 与任意 Agent 对话；通过**专家库**一键创建专业角色，通过 **Connector**（OAuth + MCP）接入外部服务，通过 **ACP** 与 IDE / 终端 AI 工具双向协作。
 
-> Octop 的设计目标：让每一次对话、工作区与凭据都留在你自己的机器上，同时为每个用户配备一组可按场景切换的专业 Agent。
+> 宿主设计目标（继承自 Octop）：让每一次对话、工作区与凭据都留在你自己的机器上，同时为每个用户配备一组可按场景切换的专业 Agent。
 
 ## ✨ 亮点
 
@@ -456,7 +466,7 @@ OctopServer
 
 详见 [docs/architecture.md](docs/architecture.md)、[docs/adr/001-single-process-model.md](docs/adr/001-single-process-model.md) 与 [docs/adr/002-database-backends.md](docs/adr/002-database-backends.md)。
 
-组织模块目标架构（Dashboard 子 UI + 可导出独立站，单源双交付）见 [docs/adr/003-org-ui-single-source-dual-delivery.md](docs/adr/003-org-ui-single-source-dual-delivery.md) 与 [docs/org-merge-plan.md](docs/org-merge-plan.md)。
+产品意图（双身份、Node 只是桥）见 [docs/product-contract.zh-CN.md](docs/product-contract.zh-CN.md)。组织模块目标架构（Dashboard 子 UI + 可导出独立站，单源双交付）见 [docs/adr/003-org-ui-single-source-dual-delivery.md](docs/adr/003-org-ui-single-source-dual-delivery.md) 与 [docs/org-merge-plan.md](docs/org-merge-plan.md)（先读文首 Historical vs Current）。
 
 ### 📁 项目结构
 

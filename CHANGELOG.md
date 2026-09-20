@@ -6,6 +6,10 @@
 
 ## [Unreleased]
 
+### 文档
+
+- 冻结 FreeOS 产品契约（P0.1）：[docs/product-contract.md](docs/product-contract.md) / [docs/product-contract.zh-CN.md](docs/product-contract.zh-CN.md)。明确双身份（FreeOS 本地认证 ≠ 组织模块测试认证）、托管 Node / iframe 仅为过渡桥、终态是把 openXYOS 迁入宿主并导出可商业化源码。取代先前「组织身份为唯一权威」与「永久 / 默认捆绑 Node 运行时」表述。冲突文档改为 Historical vs Current，不删工程历史。
+
 ### 新增
 
 - Organization Phase 5（默认安装器瘦身）：Windows/macOS/Linux 默认包装与 Docker Compose 保持 **单进程 FreeOS + 宿主内 Organization**，不捆绑、不解压、不自动拉起 openXYOS Node。`FREEOS_ORG_SIDECAR=1` 与 `SHIP_OPENXYOS_RUNTIME=1` 仍是可选高级路径。文档对齐 #55 / ADR 001 / ADR 003 / `docs/org-export.md`。`modules/openxyos` 保留给导出与开发，不是默认运行时。
