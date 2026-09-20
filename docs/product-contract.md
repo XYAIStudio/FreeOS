@@ -10,15 +10,21 @@ Related but subordinate: [architecture-integration.md](architecture-integration.
 
 ---
 
-## Vision
+## Founding intent (canonical vision)
 
-FreeOS exists so users get **Octop + openXYOS capabilities in one self-hosted platform**:
+Chinese original: [product-contract.zh-CN.md](product-contract.zh-CN.md). Do not drift from that meaning.
 
-- **Local-first** models and knowledge bases as much as possible.
-- Octop and openXYOS **assets interoperate and mutually enhance**.
-- Users can customize and eventually **export a new openXYOS system source** for commercialization.
+FreeOS was created for a simple, clear purpose: on top of Octop’s self-hosted multi-agent capabilities, anyone should be able to have the power of **both** Octop and openXYOS — without choosing between “chat and automation” and “organization and governance.”
 
-FreeOS is an independent downstream host. It is not an official Octop release. Host login is not tied to Octop official accounts.
+We want models to run locally when possible, and knowledge to stay local. Existing Octop and openXYOS capabilities and assets should interoperate and strengthen each other. On that base, users can develop, refine, and customize — grow a new openXYOS that fits their own setting — and export its system source for further productization and commercialization.
+
+To avoid the install cost and size of shipping a full embedded openXYOS tree, FreeOS takes another path: gradually turn openXYOS web and organization capabilities into **native** capabilities on the Octop host, forming one unified system — FreeOS. The managed Node process and embedded organization page in the current desktop build are a **bridge** to that end state, not the destination.
+
+On identity, FreeOS is local-first: users register and log in locally first, unbound from Octop official accounts. Later this may connect to a FreeOS official-site user system for commercial licensing. The integrated organization module (openXYOS) is an **independent test environment** with its **own** user system, separate from FreeOS software accounts; neither replaces the other.
+
+In one line: **FreeOS = a locally controlled Octop base + growable, exportable organization capabilities; two systems in one, two identities kept apart.**
+
+The sections below are an operational restatement of the same intent. They must not change it.
 
 ## Dual identity
 

@@ -22,6 +22,7 @@
 </p>
 
 <p align="center">
+  <a href="#-创立初心">创立初心</a> ·
   <a href="#-概述">概述</a> ·
   <a href="#-亮点">亮点</a> ·
   <a href="#-核心技术">核心技术</a> ·
@@ -37,7 +38,7 @@
 
 > **Historical vs Current.** 中文产品入口是 [README.zh-CN.md](README.zh-CN.md)。权威意图见 [产品契约](docs/product-contract.zh-CN.md)。
 >
-> **Current：** FreeOS = 自托管的 Octop + openXYOS；本地优先模型 / 知识库；双身份（FreeOS 本地认证 ≠ 组织模块测试认证）；托管 Node 与 iframe 只是过渡桥；终态是把 openXYOS **迁入** 宿主，并导出可商业化的 openXYOS 源码。
+> **Current：** 见下文创立初心与 [产品契约](docs/product-contract.zh-CN.md)：双系统合一、双身份分立；托管 Node / 内嵌组织页是过渡桥。
 >
 > **Historical：** 下文大量沿自 Octop 宿主能力说明（安装脚本、控制台、CLI、亮点表）。那些能力仍在 FreeOS 宿主里，但本文 **不是** Octop 官方产品页，也不再把 FreeOS 写成「只管理云端与付费增强服务」。
 
@@ -53,11 +54,21 @@ FreeOS 是独立的下游二次开发项目，不是 Octop 官方发行版。我
 
 完整的许可证分层、署名要求与对外表述见 [NOTICE](NOTICE)、[上游归属说明](docs/upstream-attribution.md)、[产品契约](docs/product-contract.zh-CN.md) 和 [集成架构](docs/architecture-integration.md)。
 
+## 🌱 创立初心
+
+FreeOS 诞生于一个简单而清晰的目标：在 Octop 的自托管多智能体能力之上，让每个人都能同时拥有 Octop + openXYOS 两套系统的力量——不必在「对话与自动化」和「组织与治理」之间二选一。
+
+我们希望模型尽量跑在本地，知识尽量留在本地；Octop 与 openXYOS 已有的能力与资产能够互通、互相增强。用户可以在此基础上开发、优化、自我定制，生长出更贴合自身场景的新 openXYOS，并导出其系统源码，以便进一步产品化与商业化。
+
+为避免整包内嵌 openXYOS 带来的安装负担与体积膨胀，FreeOS 选择另一条路：把 openXYOS 的网页与组织能力，逐步转化为 Octop 宿主上的原生能力，从而形成新的统一系统——FreeOS。当前桌面中的托管 Node / 内嵌组织页，只是通往这一终态的过渡桥，而非终点。
+
+在身份上，FreeOS 坚持本地优先：用户先在本地注册登录，不与 Octop 官方账号绑定；日后可对接 FreeOS 官网用户体系，以支持商业授权。而融入其中的组织模块（openXYOS）是独立的测试环境，拥有自己的用户系统，与 FreeOS 软件账号彼此分离、互不替代。
+
+一句话：FreeOS = 本地可控的 Octop 底座 + 可生长、可导出的组织能力，双系统合一，双身份分立。
+
+权威契约：[产品契约](docs/product-contract.zh-CN.md)。
+
 ## 📌 概述
-
-**FreeOS** 是自托管多智能体 OS：在同一套安装里提供 Octop 宿主（对话、专家、知识库、通道）与 openXYOS 组织能力。模型和知识库尽可能跑在本机；两边资产互通、互相增强；用户可以定制并最终导出新的 openXYOS 系统源码。前进方向是把 openXYOS **迁入** 宿主，而不是永久嵌入大型 Node。桌面 0.0.3 的托管 Node + iframe、Phase-5 默认零 Node、全量 App iframe 都是过渡桥。
-
-**双身份：** FreeOS 软件用户在宿主上本地注册 / 登录（不绑 Octop 官方；以后可对接 FreeOS 官网做商业授权）。组织模块是独立测试环境，自带用户系统，**不是** 宿主身份权威。
 
 下面「亮点 / 功能特性 / 快速开始」描述的是 **从 Octop 继承、仍在 FreeOS 宿主中的能力**（控制台、CLI、IM、知识库等），不是把本仓库重新标成 Octop。
 
@@ -299,8 +310,9 @@ docker run -d \
 
 ## 📑 目录
 
-- [亮点](#-亮点)
+- [创立初心](#-创立初心)
 - [概述](#-概述)
+- [亮点](#-亮点)
 - [核心技术](#-核心技术)
 - [功能特性](#-功能特性)
 - [规划](#-规划)

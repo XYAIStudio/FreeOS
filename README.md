@@ -38,15 +38,21 @@
 
 ## Product vision
 
-FreeOS exists so people get **Octop + openXYOS in one self-hosted platform**: local-first models and knowledge bases; the two asset worlds interoperate and strengthen each other; operators can customize and eventually **export a new openXYOS system source** for commercialization.
+Chinese original (authoritative wording): [README.zh-CN.md](README.zh-CN.md) · [product-contract.zh-CN.md](docs/product-contract.zh-CN.md).
 
-**Direction of travel:** migrate openXYOS web and capabilities **into** the FreeOS/Octop host as native parts. That is **not** permanently embedding a large Node runtime. Desktop 0.0.3 managed Node + iframe, Phase-5 default zero-Node, and full-App iframe paths are **transition bridges**.
+FreeOS was created for a simple, clear purpose: on top of Octop’s self-hosted multi-agent capabilities, anyone should be able to have the power of **both** Octop and openXYOS — without choosing between “chat and automation” and “organization and governance.”
 
-**Dual identity:** FreeOS app users register and log in **locally** (not Octop official; later the host may connect to a FreeOS official site for commercial licensing). The integrated organization module is an **independent test environment** with its **own** user system. Those identities are unrelated. Organization identity is **not** the authority over FreeOS host identity.
+We want models to run locally when possible, and knowledge to stay local. Existing Octop and openXYOS capabilities and assets should interoperate and strengthen each other. On that base, users can develop, refine, and customize — grow a new openXYOS that fits their own setting — and export its system source for further productization and commercialization.
+
+To avoid the install cost and size of shipping a full embedded openXYOS tree, FreeOS takes another path: gradually turn openXYOS web and organization capabilities into **native** capabilities on the Octop host, forming one unified system — FreeOS. The managed Node process and embedded organization page in the current desktop build are a **bridge** to that end state, not the destination.
+
+On identity, FreeOS is local-first: users register and log in locally first, unbound from Octop official accounts. Later this may connect to a FreeOS official-site user system for commercial licensing. The integrated organization module (openXYOS) is an **independent test environment** with its **own** user system, separate from FreeOS software accounts; neither replaces the other.
+
+In one line: **FreeOS = a locally controlled Octop base + growable, exportable organization capabilities; two systems in one, two identities kept apart.**
 
 Canonical contract: [docs/product-contract.md](docs/product-contract.md) · [中文](docs/product-contract.zh-CN.md).
 
-**Non-goals for the next increments:** do not freeze bundled Node or iframe as the architecture; do not collapse org test users into FreeOS software users; do not bind host login to Octop official. Asset bus, export rewrite, Node removal, and migration maps are later work (P0.2+), not this freeze.
+**Non-goals for the next increments:** do not freeze bundled Node or the embedded organization page as the architecture; do not collapse org test users into FreeOS software users; do not bind host login to Octop official. Asset bus, export rewrite, Node removal, and migration maps are later work (P0.2+), not this freeze.
 
 The web shell, README banner, favicons, and PWA icons use the FreeOS circular mark (gray ring, yellow / green / red teardrops, blue center).
 
