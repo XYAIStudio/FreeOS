@@ -753,6 +753,8 @@
       "loop_skip_illegal": "skipped illegal transition for {slug}: cannot move {current} → {target}",
       "loop_skip_unknown": "skipped promotion for {slug}: unknown colleague",
       "visible_on_ui_tenant": "Assets land on this organization's Employees, Talent, Skills, and Plugins lists.",
+      "host_directory": "Host directory and talent market updated without Node.",
+      "dual_identity": "The organization room is arranged on its own; everyday studio login stays a separate space.",
       "imported_skill": "imported openXYOS skill {slug}",
       "imported_plugin": "imported openXYOS plugin {slug}",
       "imported_mcp": "imported openXYOS MCP {slug}"
@@ -795,6 +797,10 @@
       "has_employees": "Department still has employees and cannot be deleted",
       "has_children": "Department still has child departments and cannot be deleted",
       "cycle": "A department cannot be nested under itself or its descendants"
+    },
+    "talent": {
+      "forbidden": "Permission denied",
+      "not_found": "Talent not found"
     },
     "sidecar": {
       "already": "sidecar already reachable",

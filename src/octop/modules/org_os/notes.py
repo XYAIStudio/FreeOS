@@ -235,6 +235,18 @@ _PATTERNS: tuple[tuple[re.Pattern[str], str, tuple[str, ...]], ...] = (
         (),
     ),
     (
+        re.compile(r"^Host directory and talent market updated without Node\.$"),
+        "org.notes.host_directory",
+        (),
+    ),
+    (
+        re.compile(
+            r"^The organization room is arranged on its own; everyday studio login stays a separate space\.$"
+        ),
+        "org.notes.dual_identity",
+        (),
+    ),
+    (
         re.compile(r"^imported openXYOS skill (.+)$"),
         "org.notes.imported_skill",
         ("slug",),

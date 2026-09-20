@@ -10,6 +10,7 @@ import pytest
 from octop.modules.org_os.apply.apply import apply_asset_pack, import_applied_surfaces
 from octop.modules.org_os.assets.importer import import_openxyos_assets
 from octop.modules.org_os.assets.pack import publish_asset_pack
+from octop.modules.org_os.org_chart.store import OrgChartStore
 from tests.support.openxyos_harness import ControlPlaneState, start_control_plane
 
 _FIXTURE = Path(__file__).resolve().parents[1] / "fixtures" / "org-loop" / "agent-blueprint.v1.json"
@@ -29,6 +30,12 @@ def test_apply_without_url_is_mirror_only(tmp_path: Path, monkeypatch: pytest.Mo
     assert result.remote_applied is False
     employees = json.loads((result.mirror_dir / "employees.json").read_text(encoding="utf-8"))
     assert employees["employees"][0]["slug"] == "policy-analyst"
+    store = OrgChartStore(tmp_path)
+    host_employees = store.list_employees(tenant_id="acme")
+    host_talent = store.list_talent(tenant_id="acme")
+    assert host_employees
+    assert host_talent
+    assert result.host_landed["employees"]["created"] >= 1
     roundtrip = import_applied_surfaces(tmp_path, tenant_id="acme")
     assert "employees" in roundtrip["local"]
 

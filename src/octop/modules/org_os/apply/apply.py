@@ -14,6 +14,7 @@ from octop.modules.org_os.apply.client import (
     OpenXyosControlClient,
     mirror_root,
 )
+from octop.modules.org_os.org_chart.host_ingest import land_host_org_surfaces
 
 
 def _safe_name(name: str) -> bool:
@@ -192,13 +193,17 @@ def apply_asset_pack(
     plugins_mirror = client.write_mirror(mirror / "plugins.json", plugins_doc)
     skills_mirror = client.write_mirror(mirror / "skills.json", {"skills": skills})
 
+    host_receipt = land_host_org_surfaces(home, tenant_id=tid, employees=employees, talent=talent)
+
     result = ApplyResult(
         pack_dir=dest,
         mirror_dir=mirror,
         control_plane_url=client.base_url,
+        host_landed=host_receipt.to_dict(),
         notes=[
-            "Local mirror is the durable record.",
+            "Local mirror is the durable record. HTTP apply is best-effort.",
             "Assets land on this organization's Employees, Talent, Skills, and Plugins lists.",
+            "Host directory and talent market updated without Node.",
         ],
     )
 

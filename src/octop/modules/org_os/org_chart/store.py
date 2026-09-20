@@ -9,6 +9,8 @@ from typing import Any
 
 EMPLOYEE_TYPES = ("human", "ai")
 EMPLOYEE_STATUSES = ("active", "inactive")
+TALENT_TYPES = ("human", "ai")
+TALENT_STATUSES = ("available", "recruited", "archived")
 FUNCTION_TYPES = (
     "functional",
     "regional",
@@ -53,6 +55,25 @@ CREATE TABLE IF NOT EXISTS employees (
 );
 CREATE INDEX IF NOT EXISTS idx_employees_tenant
     ON employees (tenant_id, department_id, status, id);
+CREATE TABLE IF NOT EXISTS talent_pool (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    tenant_id TEXT NOT NULL,
+    name TEXT NOT NULL,
+    talent_type TEXT NOT NULL DEFAULT 'ai',
+    skills TEXT NOT NULL DEFAULT '',
+    description TEXT NOT NULL DEFAULT '',
+    source TEXT NOT NULL DEFAULT 'host',
+    status TEXT NOT NULL DEFAULT 'available',
+    agent_type TEXT,
+    slug TEXT,
+    avatar_emoji TEXT NOT NULL DEFAULT '👤',
+    category TEXT NOT NULL DEFAULT '',
+    employee_id INTEGER,
+    created_at TEXT NOT NULL,
+    updated_at TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_talent_tenant
+    ON talent_pool (tenant_id, status, id);
 """
 
 
@@ -73,6 +94,22 @@ def normalize_status(value: str | None) -> str:
 def normalize_function_type(value: str | None) -> str:
     raw = (value or "functional").strip().lower()
     return raw if raw in FUNCTION_TYPES else "functional"
+
+
+def normalize_talent_type(value: str | None) -> str:
+    raw = (value or "ai").strip().lower()
+    if raw in {"agent", "colleague", "digital"}:
+        return "ai"
+    return raw if raw in TALENT_TYPES else "ai"
+
+
+def normalize_talent_status(value: str | None) -> str:
+    raw = (value or "available").strip().lower()
+    if raw in {"active", "internal", "market"}:
+        return "available"
+    if raw in {"hired", "onboard"}:
+        return "recruited"
+    return raw if raw in TALENT_STATUSES else "available"
 
 
 class OrgChartStore:
@@ -463,6 +500,326 @@ class OrgChartStore:
             if home is not None:
                 home["employees"].append(emp)
         return roots
+
+    def ensure_inbox_department(self, *, tenant_id: str) -> dict[str, Any]:
+        existing = self.list_departments(tenant_id=tenant_id)
+        if existing:
+            return existing[0]
+        return self.create_department(tenant_id=tenant_id, name="Organization")
+
+    def upsert_directory_employee(
+        self,
+        *,
+        tenant_id: str,
+        name: str,
+        role: str = "",
+        description: str = "",
+        employee_type: str = "human",
+        agent_type: str | None = None,
+        skills: str = "",
+        avatar_emoji: str = "👤",
+        status: str = "active",
+        department_id: int | None = None,
+    ) -> tuple[dict[str, Any], str]:
+        needle = name.strip()
+        listed = self.list_employees(tenant_id=tenant_id, status="all")
+        match = next((row for row in listed if str(row.get("name") or "") == needle), None)
+        dept_id = department_id
+        if dept_id is None:
+            dept_id = int(self.ensure_inbox_department(tenant_id=tenant_id)["id"])
+        if match is None:
+            created = self.create_employee(
+                tenant_id=tenant_id,
+                name=needle,
+                department_id=dept_id,
+                role=role,
+                description=description,
+                employee_type=employee_type,
+                agent_type=agent_type,
+                skills=skills,
+                avatar_emoji=avatar_emoji,
+                status=status,
+            )
+            return created, "created"
+        updated = self.update_employee(
+            int(match["id"]),
+            tenant_id=tenant_id,
+            fields={
+                "role": role or match.get("role") or "",
+                "description": description or match.get("description") or "",
+                "employee_type": employee_type,
+                "agent_type": agent_type,
+                "skills": skills if skills else match.get("skills") or "",
+                "avatar_emoji": avatar_emoji or match.get("avatar_emoji") or "👤",
+                "status": status,
+                "department_id": dept_id,
+            },
+        )
+        assert updated is not None
+        return updated, "updated"
+
+    def create_talent(
+        self,
+        *,
+        tenant_id: str,
+        name: str,
+        talent_type: str = "ai",
+        skills: str = "",
+        description: str = "",
+        source: str = "host",
+        status: str = "available",
+        agent_type: str | None = None,
+        slug: str | None = None,
+        avatar_emoji: str = "👤",
+        category: str = "",
+        employee_id: int | None = None,
+    ) -> dict[str, Any]:
+        now = utc_now()
+        with self._connect() as conn:
+            cur = conn.execute(
+                """
+                INSERT INTO talent_pool (
+                    tenant_id, name, talent_type, skills, description, source,
+                    status, agent_type, slug, avatar_emoji, category, employee_id, created_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    tenant_id,
+                    name,
+                    normalize_talent_type(talent_type),
+                    skills or "",
+                    description or "",
+                    source or "host",
+                    normalize_talent_status(status),
+                    agent_type or None,
+                    slug or None,
+                    avatar_emoji or "👤",
+                    category or "",
+                    employee_id,
+                    now,
+                ),
+            )
+            row_id = int(cur.lastrowid or 0)
+        row = self.get_talent(row_id, tenant_id=tenant_id)
+        assert row is not None
+        return row
+
+    def get_talent(self, talent_id: int, *, tenant_id: str) -> dict[str, Any] | None:
+        with self._connect() as conn:
+            row = conn.execute(
+                "SELECT * FROM talent_pool WHERE id = ? AND tenant_id = ?",
+                (talent_id, tenant_id),
+            ).fetchone()
+        return dict(row) if row is not None else None
+
+    def list_talent(
+        self,
+        *,
+        tenant_id: str,
+        status: str = "available",
+        talent_type: str | None = None,
+        search: str = "",
+    ) -> list[dict[str, Any]]:
+        where = ["tenant_id = ?"]
+        params: list[Any] = [tenant_id]
+        if status and status != "all":
+            where.append("status = ?")
+            params.append(normalize_talent_status(status))
+        if talent_type:
+            where.append("talent_type = ?")
+            params.append(normalize_talent_type(talent_type))
+        needle = (search or "").strip()
+        if needle:
+            like = f"%{needle}%"
+            where.append("(name LIKE ? OR skills LIKE ? OR description LIKE ?)")
+            params.extend([like, like, like])
+        clause = " AND ".join(where)
+        with self._connect() as conn:
+            rows = conn.execute(
+                f"SELECT * FROM talent_pool WHERE {clause} ORDER BY id",
+                params,
+            ).fetchall()
+        return [dict(row) for row in rows]
+
+    def talent_stats(self, *, tenant_id: str) -> dict[str, Any]:
+        rows = self.list_talent(tenant_id=tenant_id, status="available")
+        ai = sum(1 for row in rows if str(row.get("talent_type") or "") == "ai")
+        human = len(rows) - ai
+        by_category: dict[str, int] = {}
+        for row in rows:
+            category = str(row.get("category") or "").strip() or "uncategorized"
+            by_category[category] = by_category.get(category, 0) + 1
+        return {
+            "total": len(rows),
+            "ai": ai,
+            "human": human,
+            "byCategory": [
+                {"category": name, "count": count} for name, count in by_category.items()
+            ],
+        }
+
+    def update_talent(
+        self,
+        talent_id: int,
+        *,
+        tenant_id: str,
+        fields: dict[str, Any],
+    ) -> dict[str, Any] | None:
+        existing = self.get_talent(talent_id, tenant_id=tenant_id)
+        if existing is None:
+            return None
+        updates: list[str] = []
+        params: list[Any] = []
+        if "name" in fields and fields["name"] is not None:
+            updates.append("name = ?")
+            params.append(str(fields["name"]))
+        if "skills" in fields and fields["skills"] is not None:
+            updates.append("skills = ?")
+            params.append(str(fields["skills"]))
+        if "description" in fields and fields["description"] is not None:
+            updates.append("description = ?")
+            params.append(str(fields["description"]))
+        if "source" in fields and fields["source"] is not None:
+            updates.append("source = ?")
+            params.append(str(fields["source"]))
+        if "agent_type" in fields:
+            updates.append("agent_type = ?")
+            params.append(fields["agent_type"] or None)
+        if "slug" in fields:
+            updates.append("slug = ?")
+            params.append(fields["slug"] or None)
+        if "avatar_emoji" in fields and fields["avatar_emoji"] is not None:
+            updates.append("avatar_emoji = ?")
+            params.append(str(fields["avatar_emoji"]))
+        if "category" in fields and fields["category"] is not None:
+            updates.append("category = ?")
+            params.append(str(fields["category"]))
+        if "talent_type" in fields and fields["talent_type"] is not None:
+            updates.append("talent_type = ?")
+            params.append(normalize_talent_type(str(fields["talent_type"])))
+        if "status" in fields and fields["status"] is not None:
+            updates.append("status = ?")
+            params.append(normalize_talent_status(str(fields["status"])))
+        if "employee_id" in fields:
+            updates.append("employee_id = ?")
+            params.append(fields["employee_id"])
+        if not updates:
+            return existing
+        updates.append("updated_at = ?")
+        params.append(utc_now())
+        params.extend([talent_id, tenant_id])
+        with self._connect() as conn:
+            conn.execute(
+                f"UPDATE talent_pool SET {', '.join(updates)} WHERE id = ? AND tenant_id = ?",
+                params,
+            )
+        return self.get_talent(talent_id, tenant_id=tenant_id)
+
+    def upsert_talent(
+        self,
+        *,
+        tenant_id: str,
+        name: str,
+        talent_type: str = "ai",
+        skills: str = "",
+        description: str = "",
+        source: str = "host",
+        status: str = "available",
+        agent_type: str | None = None,
+        slug: str | None = None,
+        avatar_emoji: str = "👤",
+        category: str = "",
+    ) -> tuple[dict[str, Any], str]:
+        listed = self.list_talent(tenant_id=tenant_id, status="all")
+        match = None
+        slug_key = (slug or "").strip()
+        needle = name.strip()
+        if slug_key:
+            match = next((row for row in listed if str(row.get("slug") or "") == slug_key), None)
+        if match is None:
+            match = next((row for row in listed if str(row.get("name") or "") == needle), None)
+        if match is None:
+            created = self.create_talent(
+                tenant_id=tenant_id,
+                name=needle,
+                talent_type=talent_type,
+                skills=skills,
+                description=description,
+                source=source,
+                status=status,
+                agent_type=agent_type,
+                slug=slug_key or None,
+                avatar_emoji=avatar_emoji,
+                category=category,
+            )
+            return created, "created"
+        updated = self.update_talent(
+            int(match["id"]),
+            tenant_id=tenant_id,
+            fields={
+                "name": needle,
+                "talent_type": talent_type,
+                "skills": skills or match.get("skills") or "",
+                "description": description or match.get("description") or "",
+                "source": source or match.get("source") or "host",
+                "status": status,
+                "agent_type": agent_type or match.get("agent_type"),
+                "slug": slug_key or match.get("slug"),
+                "avatar_emoji": avatar_emoji or match.get("avatar_emoji") or "👤",
+                "category": category or match.get("category") or "",
+            },
+        )
+        assert updated is not None
+        return updated, "updated"
+
+    def recruit_talent(
+        self,
+        talent_id: int,
+        *,
+        tenant_id: str,
+        department_id: int | None = None,
+    ) -> dict[str, Any]:
+        talent = self.get_talent(talent_id, tenant_id=tenant_id)
+        if talent is None:
+            raise KeyError("talent")
+        existing_id = talent.get("employee_id")
+        if existing_id:
+            employee = self.get_employee(int(existing_id), tenant_id=tenant_id)
+            if employee is not None:
+                if str(talent.get("status") or "") != "recruited":
+                    talent = (
+                        self.update_talent(
+                            talent_id, tenant_id=tenant_id, fields={"status": "recruited"}
+                        )
+                        or talent
+                    )
+                return {"talent": talent, "employee": employee, "created": False}
+        if department_id is not None:
+            dept = self.get_department(int(department_id), tenant_id=tenant_id)
+            if dept is None:
+                raise KeyError("department")
+            dept_id = int(dept["id"])
+        else:
+            dept_id = int(self.ensure_inbox_department(tenant_id=tenant_id)["id"])
+        employee, _action = self.upsert_directory_employee(
+            tenant_id=tenant_id,
+            name=str(talent.get("name") or ""),
+            role=str(talent.get("category") or talent.get("agent_type") or ""),
+            description=str(talent.get("description") or ""),
+            employee_type="ai" if str(talent.get("talent_type") or "") == "ai" else "human",
+            agent_type=talent.get("agent_type"),
+            skills=str(talent.get("skills") or ""),
+            avatar_emoji=str(talent.get("avatar_emoji") or "👤"),
+            status="active",
+            department_id=dept_id,
+        )
+        talent = self.update_talent(
+            talent_id,
+            tenant_id=tenant_id,
+            fields={"status": "recruited", "employee_id": int(employee["id"])},
+        )
+        assert talent is not None
+        return {"talent": talent, "employee": employee, "created": True}
 
     def _resolve_parent(self, tenant_id: str, parent_id: Any) -> int | None:
         if parent_id in (None, "", 0, "0"):

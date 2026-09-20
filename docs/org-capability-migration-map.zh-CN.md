@@ -1,6 +1,6 @@
 # openXYOS → FreeOS 能力迁移图（P0.2）
 
-**状态：** 基于 `main` 的盘点冻结（2026-09-20）。仅文档。
+**状态：** Wave 1 宿主原生组织（2026-09-20）把 **人才市场** 从 iframe 迁到 `org_ui_slice`。其余盘点冻结仍有效。
 
 **语言：** [English](org-capability-migration-map.md) · 简体中文
 
@@ -23,8 +23,8 @@
 | 状态 | 数量 | 含义 |
 |---|---:|---|
 | `native_host` | 9 | 宿主 Python/React 已拥有该能力（深度仍可能不够）。 |
-| `org_ui_slice` | 10 | 共享 `dashboard/src/org-ui` + `/api/org-module/*`，比原 App.tsx 薄。 |
-| `managed_node_iframe` | 13 | 完整原 UI/API 仍依赖桌面 `FREEOS_ORG_INTEGRATED` iframe 或 Node 代理。 |
+| `org_ui_slice` | 11 | 共享 `dashboard/src/org-ui` + `/api/org-module/*`，比原 App.tsx 薄。 |
+| `managed_node_iframe` | 12 | 完整原 UI/API 仍依赖桌面 `FREEOS_ORG_INTEGRATED` iframe 或 Node 代理。 |
 | `sidecar_optional` | 1 | 可选 `:3780`（`FREEOS_ORG_SIDECAR`）。 |
 | `export_only` | 1 | 商业导出流水线；不是默认桌面运行时。 |
 | `missing` | 0 | 没有整域在两边都不存在；缺口是深度/对等，不是空名。 |
@@ -34,23 +34,23 @@
 
 | 域 | 状态 | 依赖 Node？ | 商业导出？ | 优先级 | 下一步（一行） |
 |---|---|---|---|---|---|
-| [双向资产总线](#1-双向资产总线) | native_host | 部分 | 是 | P0 | 宿主自有 ingest/export，不依赖活着的 Node `/api/freeos/ingest`。 |
+| [双向资产总线](#1-双向资产总线) | native_host | 部分 | 是 | P0 | apply/循环把员工/人才落到宿主 sqlite，不依赖 Node；插件/MCP ingest 仍可选 Node。 |
 | [独立站导出](#2-独立站导出商业加售) | export_only | 部分 | 是 | P0 | 默认 `--mode full` 写出 openXYOS **源码树**；`--mode slice` 仍是 SPA+反代宿主桥。 |
 | [租户与身份（双入口）](#3-租户与身份双入口) | managed_node_iframe | 部分 | 是 | P0 | 两套身份空间；组织房间不再以 Node `/api/auth` 为权威。 |
 | [本地模型](#4-本地模型) | native_host | 部分 | 是 | P0 | 组织房间使用工作室同一套本机模型池，而不是边车 `/api/settings/ai`。 |
 | [宿主知识库](#5-宿主知识库) | native_host | 否 | 部分 | P0 | 默认本地 RAG；云连接器可选。 |
 | [组织知识](#6-组织知识笔记文件) | org_ui_slice | 部分 | 是 | P0 | 上传/文件夹/再解析走宿主 KB；不克隆边车 notes 库。 |
 | [蓝图与编译器](#10-蓝图与编译器) | native_host | 否 | 是 | P0 | 编译结果进入资产总线，便于导出蓝图源。 |
-| [托管 Node + iframe 壳](#7-托管-node--iframe-壳) | managed_node_iframe | 是 | 否 | P1 | 不再把 iframe 当 Organization 首页；收缩运行时。 |
-| [模块目录](#9-模块目录) | native_host | 否 | 是 | P1 | App.tsx 垂类原生迁入时扩展 key。 |
+| [托管 Node + iframe 壳](#7-托管-node--iframe-壳) | managed_node_iframe | 是 | 否 | P1 | 首页已是原生工作台；iframe 仅作原 App 过渡入口。收缩运行时。 |
+| [模块目录](#9-模块目录) | native_host | 否 | 是 | P1 | 叠加 `delivery`/`host_path`；App.tsx 垂类原生迁入时扩展 key。 |
 | [同事生命周期](#11-同事生命周期) | native_host | 否 | 是 | P1 | 与员工目录 / 人才市场 UI 打通。 |
-| [治理](#12-治理引擎--ui) | native_host | 部分 | 是 | P1 | 迁权限矩阵/通信规则；保留 PEP/PDP。 |
-| [组织工作台](#13-组织工作台装配--打包--循环) | native_host | 否 | 部分 | P1 | 集成模式下工厂页仍可到达（今日被 iframe 盖住）。 |
-| [工作台总览](#14-工作台总览) | org_ui_slice | 部分 | 是 | P1 | 无 Node 对齐 OpenDashboard 指标。 |
+| [治理](#12-治理引擎--ui) | native_host | 部分 | 是 | P1 | 暂停已出现在首页/总览；仍迁权限矩阵/通信规则。 |
+| [组织工作台](#13-组织工作台装配--打包--循环) | native_host | 否 | 部分 | P1 | 即便桌面集成，首页仍是原生工厂；原 App 只是过渡链接。 |
+| [工作台总览](#14-工作台总览) | org_ui_slice | 部分 | 是 | P1 | 宿主指标含人才与待处理暂停；OpenDashboard 仍在 Node。 |
 | [通知公告](#15-通知公告) | org_ui_slice | 否 | 是 | P1 | 对照原页做字段级对等。 |
 | [组织架构](#16-组织架构) | org_ui_slice | 部分 | 是 | P1 | 版本、汇报线、导入、头像。 |
-| [员工目录](#17-员工目录) | org_ui_slice | 部分 | 是 | P1 | 入职/离职/技能绑定，同一 sqlite。 |
-| [人才市场](#18-人才市场) | managed_node_iframe | 是 | 是 | P1 | 原生招聘写入宿主生命周期。 |
+| [员工目录](#17-员工目录) | org_ui_slice | 部分 | 是 | P1 | 人才页共用 sqlite；入职/离职仍在原 App。 |
+| [人才市场](#18-人才市场) | org_ui_slice | 部分 | 是 | P1 | 宿主列表/招募 + 资产总线落地；再补原 App 筛选深度。 |
 | [技能插件](#19-技能插件) | org_ui_slice | 部分 | 是 | P1 | 市场可留到导出；目录已在宿主。 |
 | [智能体定制](#20-智能体定制) | org_ui_slice | 部分 | 是 | P1 | 资料上传；不要依赖未挂载的边车 studio API。 |
 | [组织任务](#21-组织任务) | org_ui_slice | 否 | 是 | P1 | 附件；不是 cron/Chat。 |
@@ -85,7 +85,7 @@
 
 这些出货形态仍需原生迁入。它们是桥。
 
-1. **桌面集成 iframe** 嵌入完整 App — `FREEOS_ORG_INTEGRATED=1`（`desktop/src/process.go`）使 `/organization` 渲染 `<iframe src="/organization-app/dashboard?freeos_embed=1">`（`OrganizationEntry.tsx`）。FastAPI `org_ui.py` 把该路径代理到私有端口上的 Node。
+1. **桌面集成 iframe** 嵌入完整 App — `FREEOS_ORG_INTEGRATED=1`（`desktop/src/process.go`）仍把 `/organization-app` 代理到托管 Node。`/organization` 已是 **原生工作台**；原 App 只是可选过渡链接（`OrganizationEntry.tsx`）。FastAPI `org_ui.py` 把 `/organization-app` 代理到私有端口上的 Node。
 2. **`ManagedOrganizationRuntime`** — `src/octop/modules/org_os/managed_runtime.py`（重启循环、本机 `OPENXYOS_BASE_URL`）。
 3. **`/api/org-module/identity/*` 与 `/business/*`** — `org_identity.py` 把登录/注册和业务 CRUD 转发到 Node `/api/auth` 与 `/api/*`。
 4. **可选 `:3780` 边车** — `FREEOS_ORG_SIDECAR` / `SHIP_OPENXYOS_RUNTIME`。Phase 5 默认安装器已经零 Node；不要倒退。开关表与拆除计划：[node-runtime.zh-CN.md](node-runtime.zh-CN.md)。
@@ -112,7 +112,7 @@
 | **依赖 Node？** | 部分 |
 | **商业导出？** | 是 |
 | **优先级** | P0 · 波次 A |
-| **下一步** | 宿主自有 ingest/export 合同，使 apply 不必等 Node 才能把员工/人才/插件落到组织房间。 |
+| **下一步** | apply/循环把员工与人才落到宿主 `org_chart.sqlite`，不依赖 Node。插件/MCP ingest 在 Node 健康时仍是尽力而为。 |
 | **测试** | `tests/unit/test_asset_loop.py`、`test_openxyos_apply.py`、`test_org_loop.py`、`tests/e2e/test_org_growth_loop.py` |
 | **未知** | 独立商业导出是只带 CLI 工厂，还是应用内操作。 |
 
@@ -184,13 +184,13 @@
 
 | | |
 |---|---|
-| **今日位置** | `managed_runtime.py`、`/organization-app`、`OrganizationEntry.tsx`、openXYOS Vite `base: /organization-app/` |
+| **今日位置** | `managed_runtime.py`、`/organization-app`、`OrganizationEntry.tsx`（原生首页；原 App 是过渡链接）、openXYOS Vite `base: /organization-app/` |
 | **状态** | `managed_node_iframe` |
 | **依赖 Node？** | 是 |
 | **商业导出？** | 否（桥，不是可售产物） |
 | **优先级** | P1 · 波次 E |
-| **下一步** | App 面由原生路由接管后，去掉 iframe 首页和托管进程。开关见 [node-runtime.zh-CN.md](node-runtime.zh-CN.md)。`uv run` / Docker 保持零 Node。桌面 CI 可设 `SHIP_OPENXYOS_RUNTIME=1`（过渡）。不要把该开关扩成永久产品。 |
-| **测试** | `tests/unit/api/test_org_ui.py`、`tests/integration/test_dashboard_serve.py` |
+| **下一步** | Organization 首页已经是原生工作台。其余 App 垂类原生迁入后再收缩并去掉托管进程。开关见 [node-runtime.zh-CN.md](node-runtime.zh-CN.md)。`uv run` / Docker 保持零 Node。桌面 CI 可设 `SHIP_OPENXYOS_RUNTIME=1`（过渡）。不要把该开关扩成永久产品。 |
+| **测试** | `tests/unit/api/test_org_ui.py`、`tests/integration/test_dashboard_serve.py`、`OrganizationEntry.test.tsx` |
 
 ### 8. 可选 Node 边车（:3780）
 
@@ -213,7 +213,7 @@
 | **依赖 Node？** | 否 |
 | **商业导出？** | 是 |
 | **优先级** | P1 |
-| **下一步** | App.tsx 垂类原生迁入时扩展 key；保持漂移测试绿色。 |
+| **下一步** | 目录行叠加 `delivery` / `host_path`（key 仍与 `open-module-catalog.ts` 对齐）。App.tsx 垂类原生迁入时扩展 key；保持漂移测试绿色。 |
 | **测试** | `test_org_module.py` 中的目录对照 |
 
 ### 10. 蓝图与编译器
@@ -249,21 +249,20 @@
 | **依赖 Node？** | 部分 |
 | **商业导出？** | 是 |
 | **优先级** | P1 |
-| **下一步** | 把矩阵/规则/模板迁到宿主引擎；不要重写 PEP/PDP。 |
+| **下一步** | 待处理暂停已出现在工作台与总览。仍把矩阵/规则/模板迁到宿主引擎；不要重写 PEP/PDP。 |
 | **测试** | `test_org_governance.py`、`test_host_governance.py`、`GovernancePage.test.tsx` |
 
 ### 13. 组织工作台（装配 / 打包 / 循环）
 
 | | |
 |---|---|
-| **今日位置** | `/organization` 原生 Ant Design 工厂（`index.tsx`）。桌面 `integrated=true` 时被 **iframe 盖住**。 |
+| **今日位置** | `/organization` 原生 Ant Design 工厂（`index.tsx`）。桌面 `integrated=true` 时仍以本页为首页；原 App 只是可选过渡链接。 |
 | **状态** | `native_host` |
 | **依赖 Node？** | 否 |
 | **商业导出？** | 部分 |
 | **优先级** | P1 |
 | **下一步** | 工作室工厂与组织房间都可到达；iframe 不得吞掉 `/organization`。 |
-| **测试** | `dashboard/src/pages/Organization/index.test.tsx` |
-| **未知** | 产品是否要求不靠环境变量也能进两间房。 |
+| **测试** | `dashboard/src/pages/Organization/index.test.tsx`、`OrganizationEntry.test.tsx` |
 
 ### 14. 工作台总览
 
@@ -274,7 +273,7 @@
 | **依赖 Node？** | 部分 |
 | **商业导出？** | 是 |
 | **优先级** | P1 |
-| **下一步** | 无 Node 对齐 OpenDashboard/Dashboard 指标。 |
+| **下一步** | OpenDashboard / 商业 Dashboard 仍在 Node。宿主总览已展示名册、人才与待处理治理暂停，不依赖 Node。 |
 | **测试** | `test_org_workspace.py`、`WorkspacePage.test.tsx` |
 
 ### 15. 通知公告
@@ -305,26 +304,25 @@
 
 | | |
 |---|---|
-| **今日位置** | org-ui 员工与架构 **共用** `org_chart.sqlite`。原页入职/备选/离职/绩效/人才仍在 Node。 |
+| **今日位置** | org-ui 员工与架构 **共用** `org_chart.sqlite`。人才市场页签与资产总线落地共用这份库。原页入职/备选/离职/绩效仍在 Node。 |
 | **状态** | `org_ui_slice` |
 | **依赖 Node？** | 部分 |
 | **商业导出？** | 是 |
 | **优先级** | P1 |
-| **下一步** | 生命周期操作不要另开第二套员工库。 |
+| **下一步** | 入职/离职/绩效不要另开第二套员工库。 |
 | **测试** | `EmployeesPage.test.tsx`、`EmployeeDetailPage.test.tsx` |
 
 ### 18. 人才市场
 
 | | |
 |---|---|
-| **今日位置** | EmployeesPage 人才页 + `/api/talent`。仅 iframe；无宿主路由。 |
-| **状态** | `managed_node_iframe` |
-| **依赖 Node？** | 是 |
+| **今日位置** | org-ui 员工人才页签 + `/api/org-module/talent*`，写在 `org_chart.sqlite` 的 `talent_pool`。原 `/api/talent` 的筛选深度仍在 Node。 |
+| **状态** | `org_ui_slice` |
+| **依赖 Node？** | 部分 |
 | **商业导出？** | 是 |
 | **优先级** | P1 |
-| **下一步** | 原生列表/招聘写入宿主生命周期登记。 |
-| **测试** | 宿主无 |
-| **未知** | 证据来自清单里 UI 调用 `/api/talent`。 |
+| **下一步** | 对照原 App 补分类筛选、智能体定制发布到市场、离职。宿主列表/招募与资产总线落地已不依赖 Node。 |
+| **测试** | `test_org_talent.py`、`test_org_chart.py`、`EmployeesPage.test.tsx` |
 
 ### 19. 技能插件
 

@@ -149,6 +149,51 @@ export interface OrgEmployeesClient {
   remove(id: number): Promise<void>;
 }
 
+export interface OrgTalent {
+  id: number;
+  name: string;
+  talent_type: string;
+  skills?: string;
+  description?: string;
+  source?: string;
+  status: string;
+  agent_type?: string | null;
+  slug?: string | null;
+  avatar_emoji?: string;
+  category?: string;
+  employee_id?: number | null;
+}
+
+export interface TalentStats {
+  total: number;
+  ai: number;
+  human: number;
+  byCategory: { category: string; count: number }[];
+}
+
+export interface TalentListParams {
+  type?: string;
+  status?: string;
+  search?: string;
+}
+
+export interface OrgTalentRecruitResult {
+  talent: OrgTalent;
+  employee: OrgEmployee;
+  created: boolean;
+  colleague_slug?: string;
+}
+
+export interface OrgTalentClient {
+  list(params?: TalentListParams): Promise<OrgTalent[]>;
+  get(id: number): Promise<OrgTalent>;
+  stats(): Promise<TalentStats>;
+  recruit(
+    id: number,
+    departmentId?: number | null,
+  ): Promise<OrgTalentRecruitResult>;
+}
+
 export type GovernancePauseStatus =
   | "pending"
   | "approved"
@@ -508,6 +553,8 @@ export interface OrgCapability {
   description: string;
   description_zh: string;
   locked: boolean;
+  delivery?: string;
+  host_path?: string;
 }
 
 export interface OrgPrefs {
@@ -642,6 +689,9 @@ export interface OrgWorkspaceFreeos {
   skill_packages?: number;
   mcp?: number;
   tasks?: number;
+  directory_employees?: number;
+  talent_available?: number;
+  pending_pauses?: number;
 }
 
 export interface OrgWorkspaceOpenxyos {
@@ -674,6 +724,11 @@ export interface OrgWorkspaceOverview {
   catalog?: OrgCapability[];
   module_toggles?: Record<string, boolean>;
   notes?: string[];
+  governance?: {
+    pending_pauses?: number;
+    enabled?: boolean;
+    href?: string;
+  };
 }
 
 export interface OrgWorkspaceClient {
@@ -684,6 +739,7 @@ export interface OrgApiClient {
   announcements: OrgAnnouncementsClient;
   org: OrgChartClient;
   employees: OrgEmployeesClient;
+  talent: OrgTalentClient;
   governance: OrgGovernanceClient;
   skills: OrgSkillsClient;
   knowledge: OrgKnowledgeClient;
@@ -717,6 +773,7 @@ export function createOrgApiClient(opts: {
   settingsPrefix?: string;
   agentsPrefix?: string;
   workspacePrefix?: string;
+  talentPrefix?: string;
 }): OrgApiClient {
   const prefix = opts.announcementsPrefix ?? "/org-module/announcements";
   const orgPrefix = opts.orgPrefix ?? "/org-module/org";
@@ -728,6 +785,7 @@ export function createOrgApiClient(opts: {
   const settingsPrefix = opts.settingsPrefix ?? "/org-module";
   const agentsPrefix = opts.agentsPrefix ?? "/org-module";
   const workspacePrefix = opts.workspacePrefix ?? "/org-module";
+  const talentPrefix = opts.talentPrefix ?? "/org-module/talent";
   const fetchJson = opts.fetchJson;
 
   const announcements: OrgAnnouncementsClient = {
@@ -927,6 +985,43 @@ export function createOrgApiClient(opts: {
     },
     async remove(id) {
       return org.removeEmployee(id);
+    },
+  };
+
+  const talent: OrgTalentClient = {
+    async list(params = {}) {
+      const query = new URLSearchParams();
+      if (params.type) query.set("type", params.type);
+      if (params.status) query.set("status", params.status);
+      if (params.search) query.set("search", params.search);
+      const suffix = query.toString() ? `?${query.toString()}` : "";
+      return unwrap(
+        await fetchJson<OrgEnvelope<OrgTalent[]>>(`${talentPrefix}${suffix}`),
+      );
+    },
+    async get(id) {
+      return unwrap(
+        await fetchJson<OrgEnvelope<OrgTalent>>(`${talentPrefix}/${id}`),
+      );
+    },
+    async stats() {
+      return unwrap(
+        await fetchJson<OrgEnvelope<TalentStats>>(`${talentPrefix}/stats`),
+      );
+    },
+    async recruit(id, departmentId) {
+      return unwrap(
+        await fetchJson<OrgEnvelope<OrgTalentRecruitResult>>(
+          `${talentPrefix}/${id}/recruit`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(
+              departmentId == null ? {} : { department_id: departmentId },
+            ),
+          },
+        ),
+      );
     },
   };
 
@@ -1279,6 +1374,7 @@ export function createOrgApiClient(opts: {
     announcements,
     org,
     employees,
+    talent,
     governance,
     skills,
     knowledge,

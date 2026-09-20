@@ -18,11 +18,12 @@ from octop.api.routers.org_identity import router as identity_router
 from octop.api.routers.org_knowledge import router as knowledge_router
 from octop.api.routers.org_reflections import router as reflections_router
 from octop.api.routers.org_settings import router as settings_router
+from octop.api.routers.org_talent import router as talent_router
 from octop.api.routers.org_tasks import router as tasks_router
 from octop.infra.errors import ErrorCode, OctopError
 from octop.infra.server import OctopServer
 from octop.infra.utils.locale import resolve_request_locale
-from octop.modules.org_os.catalog import OPENXYOS_MODULES
+from octop.modules.org_os.catalog import catalog_with_host_delivery
 from octop.modules.org_os.empower import (
     assemble_from_blueprint,
     pack_to_openxyos,
@@ -45,6 +46,7 @@ from octop.modules.org_os.source_download import download_openxyos_source
 router = APIRouter()
 router.include_router(announcements_router)
 router.include_router(org_chart_router)
+router.include_router(talent_router)
 router.include_router(knowledge_router)
 router.include_router(tasks_router)
 router.include_router(reflections_router)
@@ -258,7 +260,7 @@ async def org_module_pack(
 async def org_module_catalog(
     _user: Any = Depends(current_user),
 ) -> dict[str, Any]:
-    return {"modules": list(OPENXYOS_MODULES)}
+    return {"modules": catalog_with_host_delivery()}
 
 
 @router.patch("", summary="Enable or disable the organization module")

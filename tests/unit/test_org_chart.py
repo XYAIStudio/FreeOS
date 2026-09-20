@@ -11,6 +11,7 @@ from fastapi.testclient import TestClient
 from octop.api.deps import current_user, get_server
 from octop.api.routers.org_chart import router as org_chart_router
 from octop.api.routers.org_module import router
+from octop.api.routers.org_talent import router as talent_router
 from octop.infra.users.identity import Role, User
 from octop.modules.org_os.contract import (
     SHARED_ORG_UI_MODULES,
@@ -197,3 +198,33 @@ def test_org_chart_routes_registered() -> None:
     module_paths = {getattr(route, "path", "") for route in router.routes}
     assert "/employees" in module_paths
     assert "/employees/spawn" in module_paths
+    talent_paths = {getattr(route, "path", "") for route in talent_router.routes}
+    assert "/talent" in talent_paths
+    assert "/talent/{talent_id}/recruit" in talent_paths
+
+
+def test_store_talent_upsert_and_recruit(tmp_path: Path) -> None:
+    store = OrgChartStore(tmp_path)
+    talent, created = store.upsert_talent(
+        tenant_id="default",
+        name="Policy Analyst",
+        talent_type="ai",
+        skills="policy",
+        slug="policy-analyst",
+    )
+    assert created == "created"
+    stats = store.talent_stats(tenant_id="default")
+    assert stats["total"] == 1
+    assert stats["ai"] == 1
+    landed = store.recruit_talent(int(talent["id"]), tenant_id="default")
+    assert landed["employee"]["name"] == "Policy Analyst"
+    assert landed["talent"]["status"] == "recruited"
+    assert store.list_talent(tenant_id="default", status="available") == []
+    again, updated = store.upsert_talent(
+        tenant_id="default",
+        name="Policy Analyst",
+        slug="policy-analyst",
+        skills="policy, risk",
+    )
+    assert updated == "updated"
+    assert again["id"] == talent["id"]

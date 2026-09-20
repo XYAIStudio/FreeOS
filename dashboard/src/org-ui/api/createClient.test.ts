@@ -40,6 +40,19 @@ describe("createOrgApiClient", () => {
           ],
         };
       }
+      if (path === "/org-module/talent") {
+        return {
+          success: true,
+          data: [
+            {
+              id: 7,
+              name: "Policy Analyst",
+              talent_type: "ai",
+              status: "available",
+            },
+          ],
+        };
+      }
       if (path === "/org-module/governance/pauses") {
         return {
           pauses: [{ pause_id: "p1", status: "pending", tool_name: "delete" }],
@@ -133,6 +146,7 @@ describe("createOrgApiClient", () => {
     expect(await client.announcements.unread()).toEqual({ count: 2 });
     expect((await client.org.tree())[0]?.name).toBe("HQ");
     expect((await client.employees.list())[0]?.name).toBe("Ada");
+    expect((await client.talent.list())[0]?.name).toBe("Policy Analyst");
     expect((await client.governance.pauses()).pauses[0]?.pause_id).toBe("p1");
     expect((await client.skills.list()).skills[0]?.slug).toBe("org-employees");
     expect((await client.knowledge.list()).bases[0]?.name).toBe("Policies");

@@ -36,6 +36,16 @@ def test_catalog_matches_vendored_openxyos() -> None:
     upstream = default_openxyos_catalog_path()
     assert upstream.is_file(), "modules/openxyos must be vendored"
     assert catalog_keys() == load_upstream_catalog_keys(upstream)
+    from octop.modules.org_os.catalog import CATALOG_HOST_DELIVERY, catalog_with_host_delivery
+
+    assert set(CATALOG_HOST_DELIVERY) == set(catalog_keys())
+    overlay = catalog_with_host_delivery()
+    employees = next(row for row in overlay if row["key"] == "employees")
+    assert employees["host_path"] == "/organization/employees"
+    assert employees["delivery"] == "org_ui_slice"
+    chat = next(row for row in overlay if row["key"] == "chat")
+    assert chat["delivery"] == "managed_node_iframe"
+    assert chat["host_path"] == ""
 
 
 def test_path_layout_prefers_freeos_home(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
@@ -279,6 +289,11 @@ def test_overview_reports_real_empty_counts(tmp_path: Path) -> None:
     assert payload["colleagues"] == []
     assert payload["experts"] == []
     assert payload["org_surfaces"]["employees"] == 0
+    assert payload["org_surfaces"]["talent"] == 0
+    assert payload["governance"]["pending_pauses"] == 0
+    assert payload["freeos"]["directory_employees"] == 0
+    catalog = payload["catalog"]
+    assert any(row["key"] == "employees" and row.get("host_path") for row in catalog)
     assert any(
         "in-host" in note.lower() or "FreeOS does the work" in note for note in payload["notes"]
     )
@@ -352,6 +367,7 @@ def test_overview_lists_in_host_colleagues_after_assemble(tmp_path: Path) -> Non
     assert any(row["spawned"] for row in payload["colleagues"])
     assert payload["experts"]
     assert payload["org_surfaces"]["employees"] >= 1
+    assert payload["org_surfaces"]["talent"] >= 1
     assert packed["applied"]["mirrored"] is True
     assert packed["applied"]["remote_applied"] is False
     assert payload["sidecar_reachable"] is False

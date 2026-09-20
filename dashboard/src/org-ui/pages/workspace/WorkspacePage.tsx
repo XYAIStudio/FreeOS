@@ -195,6 +195,12 @@ export function WorkspacePage({
 
   const lastSync = overview?.last_sync || labels.neverSynced;
   const tenant = overview?.openxyos.tenant_id || "—";
+  const pendingPauses =
+    overview?.governance?.pending_pauses ??
+    overview?.freeos.pending_pauses ??
+    0;
+  const talentCount =
+    overview?.freeos.talent_available ?? overview?.org_surfaces?.talent;
 
   return (
     <div className={styles.page} data-testid="org-ui-workspace">
@@ -208,6 +214,7 @@ export function WorkspacePage({
           </div>
           <p className={styles.subtitle}>{labels.subtitle}</p>
           <p className={styles.hint}>{labels.hostHint}</p>
+          <p className={styles.hint}>{labels.roomHint}</p>
         </div>
         <Button href={hrefs.workbench} data-testid="org-workspace-workbench">
           {labels.openWorkbench}
@@ -226,6 +233,22 @@ export function WorkspacePage({
           </Button>
         </div>
       </section>
+
+      {pendingPauses > 0 ? (
+        <section className={styles.callout} data-testid="org-workspace-pauses">
+          <p className={styles.calloutTitle}>
+            {labels.pauseBanner.replace("{count}", String(pendingPauses))}
+          </p>
+          <div className={styles.links}>
+            <Button
+              href={hrefs.governance}
+              data-testid="org-workspace-open-pauses"
+            >
+              {labels.pauseBannerAction}
+            </Button>
+          </div>
+        </section>
+      ) : null}
 
       {error ? (
         <p className={styles.error} data-testid="org-workspace-error">
@@ -269,6 +292,14 @@ export function WorkspacePage({
               {metric(overview?.openxyos.modules)}
             </span>
             <span className={styles.metricLabel}>{labels.modules}</span>
+          </article>
+          <article className={styles.metric}>
+            <span className={styles.metricValue}>{metric(talentCount)}</span>
+            <span className={styles.metricLabel}>{labels.talent}</span>
+          </article>
+          <article className={styles.metric}>
+            <span className={styles.metricValue}>{metric(pendingPauses)}</span>
+            <span className={styles.metricLabel}>{labels.pauses}</span>
           </article>
         </div>
       </section>

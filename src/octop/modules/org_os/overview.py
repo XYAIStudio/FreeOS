@@ -9,8 +9,9 @@ from pathlib import Path
 from typing import Any
 
 from octop.modules.org_os.apply.client import mirror_root
-from octop.modules.org_os.catalog import OPENXYOS_MODULES, catalog_keys
+from octop.modules.org_os.catalog import catalog_keys, catalog_with_host_delivery
 from octop.modules.org_os.lifecycle.store import LifecycleStore
+from octop.modules.org_os.org_chart.store import OrgChartStore
 from octop.modules.org_os.runtime.spawn import list_spawned_agents
 from octop.modules.org_os.service import OrgModuleService
 
@@ -57,6 +58,25 @@ def _mirror_surfaces(home: Path, tenant_id: str) -> dict[str, int]:
             continue
         counts[surface] = _list_len(raw, key)
     return counts
+
+
+def _host_surfaces(home: Path, tenant_id: str) -> dict[str, int]:
+    store = OrgChartStore(home)
+    directory = store.list_employees(tenant_id=tenant_id, status="active")
+    talent = store.list_talent(tenant_id=tenant_id, status="available")
+    return {
+        "employees": len(directory),
+        "talent": len(talent),
+        "directory": len(directory),
+        "skills": _count_skill_dirs(home),
+        "plugins": 0,
+    }
+
+
+def _pending_pauses(home: Path) -> int:
+    from octop.modules.org_os.governance.store import DurableGovernanceStore
+
+    return len(DurableGovernanceStore(home / "governance").list_pauses("pending"))
 
 
 def _colleague_rows(home: Path, tenant_id: str) -> list[dict[str, Any]]:
@@ -110,6 +130,7 @@ class DualLoopOverview:
     colleagues: list[dict[str, Any]] = field(default_factory=list)
     experts: list[dict[str, Any]] = field(default_factory=list)
     org_surfaces: dict[str, int] = field(default_factory=dict)
+    governance: dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -129,9 +150,10 @@ class DualLoopOverview:
             "colleagues": list(self.colleagues),
             "experts": list(self.experts),
             "org_surfaces": dict(self.org_surfaces),
+            "governance": dict(self.governance),
             "last_loop": self.last_loop,
             "notes": list(self.notes),
-            "catalog": list(OPENXYOS_MODULES),
+            "catalog": catalog_with_host_delivery(),
         }
 
 
@@ -150,7 +172,16 @@ def build_overview(
     colleagues = LifecycleStore(service.home, tid).list()
     spawned = list_spawned_agents(service.home)
     colleague_rows = _colleague_rows(service.home, tid)
-    org_surfaces = _mirror_surfaces(service.home, tid)
+    mirror = _mirror_surfaces(service.home, tid)
+    host = _host_surfaces(service.home, tid)
+    org_surfaces = {
+        "employees": host["employees"] or mirror["employees"],
+        "talent": host["talent"] or mirror["talent"],
+        "skills": host["skills"] or mirror["skills"],
+        "plugins": mirror["plugins"],
+        "directory": host["directory"],
+    }
+    pending_pauses = _pending_pauses(service.home)
     org_skills = _count_skill_dirs(service.home)
     proof = _read_loop_proof(service.home)
     last_sync = None
@@ -172,6 +203,9 @@ def build_overview(
         "skill_packages": skill_packages,
         "mcp": connectors,
         "tasks": cron_jobs,
+        "directory_employees": host["directory"],
+        "talent_available": host["talent"],
+        "pending_pauses": pending_pauses,
     }
     openxyos = {
         "reachable": status.sidecar.reachable,
@@ -180,11 +214,12 @@ def build_overview(
         "modules": len(catalog_keys()),
         "governance": status.governance_enabled,
         "tenant_id": status.tenant_id or tid,
-        "approvals": 0,
+        "approvals": pending_pauses,
     }
     notes = [
         "Organization runs in the FreeOS Python host. The Node sidecar is optional.",
         "FreeOS does the work. Organization capabilities (catalog, employees, growth loop) live in-host.",
+        "The organization room is arranged on its own; everyday studio login stays a separate space.",
         "Data plane: colleagues / experts / skills / MCP / tasks. Control plane: department employees / blueprints / modules / governance.",
     ]
     embed_ok = False
@@ -225,4 +260,9 @@ def build_overview(
             for row in spawned
         ],
         org_surfaces=org_surfaces,
+        governance={
+            "pending_pauses": pending_pauses,
+            "enabled": status.governance_enabled,
+            "href": "/organization/governance",
+        },
     )

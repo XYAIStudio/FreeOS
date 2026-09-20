@@ -113,10 +113,10 @@
       "item": "Desktop integrated iframe of the full openXYOS App",
       "evidence": [
         "desktop/src/process.go sets FREEOS_ORG_INTEGRATED=1",
-        "dashboard/src/pages/Organization/OrganizationEntry.tsx renders iframe src=/organization-app/dashboard?freeos_embed=1 when identity status.integrated",
+        "dashboard/src/pages/Organization/OrganizationEntry.tsx keeps native workbench as /organization home; original App is a transition link when integrated",
         "src/octop/api/routers/org_ui.py proxies /organization-app to the managed Node origin"
       ],
-      "native_port_needed": "Every App.tsx business route still served only through this iframe."
+      "native_port_needed": "Unmigrated App.tsx verticals (workflows, contracts, chat, …) still served through /organization-app. Organization home is already native."
     },
     {
       "item": "ManagedOrganizationRuntime (private-port Node, restart loop)",
@@ -155,8 +155,8 @@
   ],
   "status_counts": {
     "native_host": 9,
-    "org_ui_slice": 10,
-    "managed_node_iframe": 13,
+    "org_ui_slice": 11,
+    "managed_node_iframe": 12,
     "sidecar_optional": 1,
     "export_only": 1,
     "missing": 0,
@@ -184,7 +184,7 @@
       "depends_on_node": "partial",
       "needed_for_commercial_export": "yes",
       "priority": "P0",
-      "next_step": "Define a host-owned ingest/export contract so apply does not need a live Node /api/freeos/ingest to land employees/talent/plugins in the organization room.",
+      "next_step": "Employees and talent from apply/loop land on host org_chart.sqlite without Node. Plugins/MCP ingest is still best-effort when Node is healthy.",
       "wave": "A-assets-bus",
       "evidence": [
         "docs/asset-loop.md",
@@ -350,14 +350,14 @@
       "lives_today": [
         "src/octop/modules/org_os/managed_runtime.py",
         "src/octop/api/routers/org_ui.py /organization-app",
-        "dashboard/src/pages/Organization/OrganizationEntry.tsx",
+        "dashboard/src/pages/Organization/OrganizationEntry.tsx (native workbench home; original App is a transition link)",
         "modules/openxyos Vite base /organization-app/ when VITE_FREEOS_ORG_INTEGRATED"
       ],
       "status": "managed_node_iframe",
       "depends_on_node": "yes",
       "needed_for_commercial_export": "no",
       "priority": "P1",
-      "next_step": "Stop using the iframe as Organization home once App surfaces have native routes; shrink then remove ManagedOrganizationRuntime.",
+      "next_step": "Organization home is the native workbench; iframe is an optional original-App link when integrated. Shrink then remove ManagedOrganizationRuntime after remaining App verticals native-port. uv run / Docker stay zero-Node; desktop CI may set SHIP_OPENXYOS_RUNTIME=1 (transitional). Do not expand that flag as permanent.",
       "wave": "E-cut-node",
       "evidence": [
         "tests/integration/test_dashboard_serve.py redirects / to /organization-app/dashboard when integrated",
@@ -365,7 +365,8 @@
       ],
       "tests": [
         "tests/unit/api/test_org_ui.py",
-        "tests/integration/test_dashboard_serve.py"
+        "tests/integration/test_dashboard_serve.py",
+        "dashboard/src/pages/Organization/OrganizationEntry.test.tsx"
       ],
       "unknowns": []
     },
@@ -403,7 +404,7 @@
       "depends_on_node": "no",
       "needed_for_commercial_export": "yes",
       "priority": "P1",
-      "next_step": "Extend catalog keys when native-porting App.tsx verticals (workflows, contracts, assets, …); keep Python/TS drift tests green.",
+      "next_step": "GET /catalog and overview overlay delivery + host_path (keys stay aligned with open-module-catalog.ts). Extend keys when native-porting remaining App.tsx verticals.",
       "wave": "E-cut-node",
       "evidence": ["src/octop/modules/org_os/contract.py assert_shared_modules_in_catalog"],
       "tests": ["tests/unit/test_org_module.py catalog drift"],
@@ -469,7 +470,7 @@
       "depends_on_node": "partial",
       "needed_for_commercial_export": "yes",
       "priority": "P1",
-      "next_step": "Port sidecar permission matrix / comm-rules / workflow templates onto the host engine; do not rewrite PEP/PDP.",
+      "next_step": "Pending pauses already surface on workbench + workspace. Still port sidecar permission matrix / comm-rules / workflow templates onto the host engine; do not rewrite PEP/PDP.",
       "wave": "E-cut-node",
       "evidence": ["docs/org-merge-plan.md governance UI slice"],
       "tests": [
@@ -492,19 +493,18 @@
       "depends_on_node": "no",
       "needed_for_commercial_export": "partial",
       "priority": "P1",
-      "next_step": "Keep this as the studio-side factory; do not hide it behind the App iframe when integrated.",
+      "next_step": "Native workbench is Organization home even when desktop is integrated. Original App remains a transition link, not the home.",
       "wave": "E-cut-node",
       "evidence": [
         "dashboard/src/pages/Organization/index.test.tsx paints workbench without 3780 iframe",
-        "OrganizationEntry currently replaces this page with iframe when integrated=true"
+        "OrganizationEntry always mounts the native workbench; original App is opt-in when integrated"
       ],
       "tests": [
         "dashboard/src/pages/Organization/index.test.tsx",
+        "dashboard/src/pages/Organization/OrganizationEntry.test.tsx",
         "tests/unit/test_org_loop.py"
       ],
-      "unknowns": [
-        "Desktop integrated mode never shows the native workbench (OrganizationEntry iframe). Confirm product wants both rooms reachable without a flag."
-      ]
+      "unknowns": []
     },
     {
       "id": "workspace",
@@ -520,7 +520,7 @@
       "depends_on_node": "partial",
       "needed_for_commercial_export": "yes",
       "priority": "P1",
-      "next_step": "Replace thin overview with native metrics that match OpenDashboard/Dashboard without Node.",
+      "next_step": "OpenDashboard / commercial Dashboard still Node. Host overview now shows directory, talent, and pending governance pauses without Node.",
       "wave": "E-cut-node",
       "evidence": ["docs/org-full-parity-inventory.json /workspace host_route_exists true, / and /dashboard false"],
       "tests": [
@@ -589,7 +589,7 @@
       "depends_on_node": "partial",
       "needed_for_commercial_export": "yes",
       "priority": "P1",
-      "next_step": "Add onboard/reserve/offboard, performance summary, and skill binding without a second employee database.",
+      "next_step": "Onboard/reserve/offboard and performance summary still original App. Talent-market tab and asset-bus ingest already share this sqlite.",
       "wave": "E-cut-node",
       "evidence": ["docs/org-merge-plan.md employees postponed talent/offboard/performance"],
       "tests": [
@@ -603,21 +603,28 @@
       "name": "Talent market",
       "name_zh": "人才市场",
       "lives_today": [
-        "modules/openxyos/frontend/src/pages/EmployeesPage.tsx talent tab",
-        "modules/openxyos/backend/routes/talent.ts /api/talent",
-        "iframe-only in desktop integrated mode; no host route"
+        "dashboard/src/org-ui/pages/employees/ EmployeesPage talent tab",
+        "/organization/employees + GET/POST /api/org-module/talent*",
+        "same org_chart.sqlite talent_pool as people-directory",
+        "src/octop/modules/org_os/org_chart/host_ingest.py (asset-bus apply)",
+        "modules/openxyos EmployeesPage talent tab + /api/talent (unmigrated depth)"
       ],
-      "status": "managed_node_iframe",
-      "depends_on_node": "yes",
+      "status": "org_ui_slice",
+      "depends_on_node": "partial",
       "needed_for_commercial_export": "yes",
       "priority": "P1",
-      "next_step": "Native talent list/recruit that writes the host lifecycle registry (draft/market/recruit), not a sidecar-only table.",
+      "next_step": "Deepen vs original App: category filters, agent-studio publish-to-market, offboard. Host list/recruit and asset-bus ingest already land on org_chart.sqlite.",
       "wave": "E-cut-node",
-      "evidence": ["docs/org-full-parity-inventory.json /employees api_references /api/talent"],
-      "tests": [],
-      "unknowns": [
-        "No host unit tests for /api/talent. Inventory is the evidence that the UI calls it."
-      ]
+      "evidence": [
+        "tests/unit/test_org_talent.py",
+        "docs/org-full-parity-inventory.json /employees api_references /api/talent"
+      ],
+      "tests": [
+        "tests/unit/test_org_talent.py",
+        "tests/unit/test_org_chart.py",
+        "dashboard/src/org-ui/pages/employees/EmployeesPage.test.tsx"
+      ],
+      "unknowns": []
     },
     {
       "id": "skills",

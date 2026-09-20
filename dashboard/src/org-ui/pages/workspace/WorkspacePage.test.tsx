@@ -13,6 +13,8 @@ function mockClient(): OrgWorkspaceClient {
         employees: 2,
         spawned_colleagues: 1,
         org_skills: 3,
+        talent_available: 4,
+        pending_pauses: 1,
       },
       openxyos: {
         modules: 12,
@@ -38,6 +40,11 @@ function mockClient(): OrgWorkspaceClient {
         },
       ],
       module_toggles: { announcements: true, chat: true, reflections: false },
+      governance: {
+        pending_pauses: 1,
+        enabled: true,
+        href: "/organization/governance",
+      },
     })),
   };
 }
@@ -66,6 +73,11 @@ describe("WorkspacePage", () => {
       screen.getByTestId("org-workspace-chat-boundary"),
     ).toBeInTheDocument();
     expect(screen.getByTestId("org-workspace-metrics")).toHaveTextContent("2");
+    expect(screen.getByTestId("org-workspace-pauses")).toBeInTheDocument();
+    expect(screen.getByTestId("org-workspace-open-pauses")).toHaveAttribute(
+      "href",
+      "/organization/governance",
+    );
     expect(
       screen.getByTestId("org-workspace-open-announcements"),
     ).toHaveAttribute("href", "/organization/announcements");

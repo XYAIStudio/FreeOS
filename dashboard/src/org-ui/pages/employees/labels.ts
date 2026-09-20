@@ -2,7 +2,18 @@ import type { OrgLocale } from "../../shell";
 
 const EN = {
   title: "Employees",
-  subtitle: "People and AI colleagues on the host org directory.",
+  subtitle:
+    "People already in a department, plus the host talent market. Same sqlite as the org chart — no Node hop.",
+  tabDirectory: "Directory",
+  tabTalent: "Talent market",
+  talentSubtitle:
+    "Available talent from the asset bus and Agent Studio. Recruit writes the host directory and lifecycle.",
+  talentEmpty:
+    "No talent on the host market yet. Pack or loop assets to land rows here.",
+  talentRecruit: "Recruit",
+  talentRecruited: "Recruited into the directory",
+  talentLoadFailed: "Could not load talent",
+  talentRecruitFailed: "Could not recruit this talent",
   search: "Search name, role, or skills...",
   loading: "Loading employees...",
   empty: "No employees yet. Add a person after a department exists.",
@@ -42,7 +53,17 @@ const EN = {
 
 const ZH: typeof EN = {
   title: "员工目录",
-  subtitle: "宿主内的人机员工名册。",
+  subtitle:
+    "已入编部门的人机员工，以及宿主人才市场。与组织架构同一份 sqlite，不经过 Node。",
+  tabDirectory: "在职名册",
+  tabTalent: "人才市场",
+  talentSubtitle:
+    "资产总线与智能体定制落到宿主的待招人才。招募会写入名册和生命周期。",
+  talentEmpty: "宿主人才市场还是空的。打包或运行循环后会出现在这里。",
+  talentRecruit: "招募",
+  talentRecruited: "已招募进名册",
+  talentLoadFailed: "无法加载人才市场",
+  talentRecruitFailed: "招募失败",
   search: "搜索姓名、岗位或技能...",
   loading: "加载员工...",
   empty: "还没有员工。先有部门后再添加人员。",

@@ -7,6 +7,8 @@ export interface OrgCapability {
   description: string;
   description_zh: string;
   locked: boolean;
+  delivery?: string;
+  host_path?: string;
 }
 
 export interface OrgModuleStatus {
@@ -44,6 +46,9 @@ export interface OrgPlaneCounts {
   skill_packages: number;
   mcp: number;
   tasks: number;
+  directory_employees?: number;
+  talent_available?: number;
+  pending_pauses?: number;
 }
 
 export interface OrgControlPlane {
@@ -96,6 +101,11 @@ export interface OrgOverview {
   notes: string[];
   catalog: OrgCapability[];
   module_toggles?: Record<string, boolean>;
+  governance?: {
+    pending_pauses?: number;
+    enabled?: boolean;
+    href?: string;
+  };
 }
 
 export interface OrgSidecarStart {
