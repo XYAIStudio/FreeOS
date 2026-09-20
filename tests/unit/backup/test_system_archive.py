@@ -56,6 +56,7 @@ def test_legacy_manifest_defaults_plugins_omitted() -> None:
     assert loaded.includes_skill_packages is True
     assert loaded.includes_plugins is False
     assert loaded.includes_knowledge is False
+    assert loaded.includes_org is False
     assert loaded.includes_chats is True
 
 
@@ -135,6 +136,102 @@ def test_roundtrip_backup(layout: PathLayout, tmp_path: Path) -> None:
         manifest = json.loads(tf.extractfile("manifest.json").read().decode("utf-8"))
     assert manifest["manifest_version"] == MANIFEST_VERSION
     assert manifest["database_driver"] == "sqlite"
+
+
+def test_backup_packs_and_restores_host_org_trees(layout: PathLayout, tmp_path: Path) -> None:
+    pool = SqlitePool(layout.db)
+    run_migrations(pool)
+    (layout.org_dir).mkdir(parents=True, exist_ok=True)
+    (layout.org_dir / "org_chart.sqlite").write_bytes(b"org-sqlite")
+    (layout.org_os_dir).mkdir(parents=True, exist_ok=True)
+    (layout.org_os_dir / "prefs.json").write_text('{"name":"studio"}\n', encoding="utf-8")
+    layout.ensure_org_skills_dir()
+    (layout.org_skills_dir / "note.txt").write_text("skill", encoding="utf-8")
+    layout.ensure_governance_dir()
+    (layout.governance_dir / "audit.jsonl").write_text("{}\n", encoding="utf-8")
+
+    archive = tmp_path / "org-trees.tar.gz"
+    create_system_backup(
+        paths=layout,
+        agent_rows=[],
+        pool=pool,
+        db_config=DatabaseConfig(),
+        dest=archive,
+        include_config=False,
+        include_workspaces=False,
+        include_skill_packages=False,
+        include_plugins=False,
+        include_knowledge=False,
+        include_org=True,
+        include_chats=False,
+    )
+    pool.close()
+
+    with tarfile.open(archive, mode="r:gz") as tf:
+        names = set(tf.getnames())
+        manifest = json.loads(tf.extractfile("manifest.json").read().decode("utf-8"))
+    assert manifest["includes_org"] is True
+    assert "org/org_chart.sqlite" in names
+    assert "org-os/prefs.json" in names
+    assert "org-skills/note.txt" in names
+    assert "governance/audit.jsonl" in names
+
+    restore_root = layout.root.parent / "restored-org"
+    restore_layout = PathLayout(restore_root)
+    restore_pool = SqlitePool(restore_layout.db)
+    run_migrations(restore_pool)
+    result = restore_system_backup(
+        archive,
+        paths=restore_layout,
+        pool=restore_pool,
+        db_config=DatabaseConfig(),
+        restore_config=False,
+    )
+    restore_pool.close()
+    assert result["org_files"] >= 4
+    assert (restore_layout.org_dir / "org_chart.sqlite").read_bytes() == b"org-sqlite"
+    assert (restore_layout.org_os_dir / "prefs.json").read_text(encoding="utf-8") == '{"name":"studio"}\n'
+
+
+def test_legacy_backup_without_includes_org_keeps_live_org_files(
+    layout: PathLayout, tmp_path: Path
+) -> None:
+    pool = SqlitePool(layout.db)
+    run_migrations(pool)
+    archive = tmp_path / "no-org.tar.gz"
+    create_system_backup(
+        paths=layout,
+        agent_rows=[],
+        pool=pool,
+        db_config=DatabaseConfig(),
+        dest=archive,
+        include_config=False,
+        include_workspaces=False,
+        include_skill_packages=False,
+        include_plugins=False,
+        include_knowledge=False,
+        include_org=False,
+        include_chats=False,
+    )
+    pool.close()
+
+    restore_root = layout.root.parent / "keep-org"
+    restore_layout = PathLayout(restore_root)
+    restore_layout.org_dir.mkdir(parents=True)
+    live = restore_layout.org_dir / "org_chart.sqlite"
+    live.write_bytes(b"keep-me")
+    restore_pool = SqlitePool(restore_layout.db)
+    run_migrations(restore_pool)
+    result = restore_system_backup(
+        archive,
+        paths=restore_layout,
+        pool=restore_pool,
+        db_config=DatabaseConfig(),
+        restore_config=False,
+    )
+    restore_pool.close()
+    assert result["org_files"] == 0
+    assert live.read_bytes() == b"keep-me"
 
 
 def test_backup_packs_config_workspace_dir(layout: PathLayout, tmp_path: Path) -> None:

@@ -26,7 +26,7 @@ FreeOS/Octop remains the execution runtime.
 - [ADR 001](adr/001-single-process-model.md) — single process, no external queue
 - [ADR 003](adr/003-org-ui-single-source-dual-delivery.md) — org-ui single source, dual delivery (Accepted; read the Current banner)
 - [org-merge-plan.md](org-merge-plan.md) — Phases 0–5 history; Phase-5 zero-Node is a transition default
-- [org-export.md](org-export.md) — standalone commercial openXYOS source pack (`freeos org export-standalone`)
+- [node-runtime.md](node-runtime.md) — zero-Node defaults, transitional desktop flags, cut plan
 - [asset-loop.md](asset-loop.md) — operator self-growth loop
 - [ADR index](adr/)
 
@@ -339,8 +339,12 @@ Tenant hint: `FREEOS_ORG_TENANT_ID` or `modules.org_os.tenant_id`.
 | Org tenants, employees, matrix | sidecar DB — **not** the production SoT |
 | Brand assets | `dashboard/public/`, `docs/assets/` |
 
-`freeos backup` does not include sidecar SQL.js files unless operators
-copy the openXYOS working directory themselves.
+`freeos backup` packs host organization trees under `{home}/org/` (SQLite
+slices), `{home}/org-os/` (prefs / toggles / optional sidecar DB), plus
+`org-skills/`, `tenants/`, `asset-packs/`, `openxyos-mirror/`, and
+`governance/`. It does **not** pack the live openXYOS workdir
+(`%LOCALAPPDATA%\FreeOS\openxyos` or `{home}/openxyos`). Older archives
+without `includes_org` leave those live directories untouched on restore.
 
 ## Remaining `octop` identifiers (intentional)
 
@@ -367,6 +371,7 @@ copy the openXYOS working directory themselves.
 | Role | Path |
 |---|---|
 | Architecture (this file) | `docs/architecture-integration.md` |
+| Node flags + cut plan | `docs/node-runtime.md` |
 | Org-ui dual-delivery ADR | `docs/adr/003-org-ui-single-source-dual-delivery.md` |
 | Org merge plan (Phases 0–5) | `docs/org-merge-plan.md` |
 | BFF router | `src/octop/api/routers/org_module.py` |

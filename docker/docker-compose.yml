@@ -3,6 +3,8 @@
 #
 # One service. No Node / openXYOS sidecar. Organization is in-host.
 # Product home name is FREEOS_HOME; OCTOP_* and ~/.octop remain aliases.
+# Published image: ghcr.io/xyaistudio/freeos
+# Local build tag remains octop:latest (compatibility).
 #
 # 用法（在仓库根目录执行）:
 #   docker compose -f docker/docker-compose.yml up -d

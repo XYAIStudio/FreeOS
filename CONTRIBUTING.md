@@ -86,15 +86,15 @@ Branch from `main` → PR into `main` (tag if shipping a patch) → PR into `dev
 
 # 贡献指南
 
-感谢你对 Octop 的关注！Octop 是 [Octop Harness](https://github.com/TencentCloud) 生态中的可自托管 AI 助手平台，支持多用户与多 Agent。
+感谢你对 **FreeOS**（[XYAIStudio/FreeOS](https://github.com/XYAIStudio/FreeOS)）的关注。本仓库是 Octop + openXYOS 的独立下游；产品意图见 [docs/product-contract.md](docs/product-contract.md)。质量门禁仍是 Octop 宿主的 `make all`。
 
 ## 环境搭建
 
 **前置条件：** Python 3.12+、Node.js 18+、[uv](https://docs.astral.sh/uv/)
 
 ```bash
-git clone https://github.com/TencentCloud/Octop.git octop
-cd octop
+git clone https://github.com/XYAIStudio/FreeOS.git
+cd FreeOS
 make install
 make install-hooks    # 每个 clone 执行一次：提交前跑 make all + 前端 build
 make all              # format-all + 后端 lint / typecheck / test

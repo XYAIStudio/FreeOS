@@ -11,18 +11,20 @@
 
 **Please do not open a public GitHub issue for security vulnerabilities.**
 
-- **GitHub Security Advisory:** [Create advisory](https://github.com/TencentCloud/Octop/security/advisories/new)
+- **GitHub Security Advisory:** [Create advisory](https://github.com/XYAIStudio/FreeOS/security/advisories/new)
 - **Email:** jubaoliang@gmail.com
 
 We aim to acknowledge reports within **3 business days** and provide a fix timeline within **7 business days** for confirmed issues.
 
+Octop upstream advisories (MIT host this project is derived from) live at [TencentCloud/Octop](https://github.com/TencentCloud/Octop/security/advisories). Report **FreeOS** issues here, not there.
+
 ## Scope
 
-Octop is a self-hosted control plane. Operators are responsible for:
+FreeOS is a self-hosted control plane. Operators are responsible for:
 
-- Securing the host and network exposure of `octop run`
+- Securing the host and network exposure of `freeos run` / `octop run`
 - Rotating JWT secrets and admin credentials
-- Reviewing tool guard rules under `~/.octop/security/tool_guard/`
+- Reviewing tool guard rules under `{FREEOS_HOME}/security/tool_guard/` (legacy `~/.octop/security/tool_guard/`)
 - Protecting LLM API keys and IM channel credentials
 
 See [docs/configuration.md](docs/configuration.md) for deployment hardening guidance.

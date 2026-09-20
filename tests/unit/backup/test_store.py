@@ -137,6 +137,7 @@ def test_peek_backup_contents_reads_manifest(tmp_path: Path) -> None:
         include_skill_packages=False,
         include_plugins=False,
         include_knowledge=False,
+        include_org=False,
         include_chats=False,
     )
     pool.close()
@@ -146,6 +147,7 @@ def test_peek_backup_contents_reads_manifest(tmp_path: Path) -> None:
         includes_skill_packages=False,
         includes_plugins=False,
         includes_knowledge=False,
+        includes_org=False,
         includes_chats=False,
     )
     write_backup_file(layout, "octop-backup-peek.tar.gz", archive.read_bytes())
@@ -155,6 +157,7 @@ def test_peek_backup_contents_reads_manifest(tmp_path: Path) -> None:
     assert item.includes_skill_packages is False
     assert item.includes_plugins is False
     assert item.includes_knowledge is False
+    assert item.includes_org is False
     assert item.includes_chats is False
 
 
@@ -268,6 +271,7 @@ def test_peek_reads_first_member_manifest_only(
         includes_skill_packages=False,
         includes_plugins=False,
         includes_knowledge=False,
+        includes_org=False,
         includes_chats=False,
     )
     # First-member peek should read far less than the on-disk archive size.

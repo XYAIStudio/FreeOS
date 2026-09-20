@@ -1,6 +1,6 @@
 services:
   octop:
-    image: ghcr.io/tencentcloud/octop:latest
+    image: ghcr.io/xyaistudio/freeos:latest
     container_name: octop
     restart: unless-stopped
     pull_policy: always

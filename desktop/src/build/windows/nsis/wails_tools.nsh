@@ -141,9 +141,8 @@ RequestExecutionLevel "${REQUEST_EXECUTION_LEVEL}"
     ${EndIf}
 !macroend
 
-# Production Setup copies the complete openxyos-runtime.zip and runtime
-# bootstrap scripts. It does not start Node in the installer; FreeOS owns that
-# lifecycle after installation. Development-only builds may omit the runtime.
+# Default Setup is zero-Node (in-host Organization). SHIP_OPENXYOS_RUNTIME=1
+# copies the transitional openxyos-runtime.zip; Setup does not start Node.
 # Do not FileWrite goto-label .cmd scripts here. Do not register logon autostart.
 !macro wails.provisionOpenXYOS
     !insertmacro wails.userLocalAppData
@@ -163,6 +162,7 @@ RequestExecutionLevel "${REQUEST_EXECUTION_LEVEL}"
             !error "OPENXYOS_RUNTIME_ZIP_PRESENT is set but ${OPENXYOS_RUNTIME_ZIP} is missing"
         !endif
     !else
+        DetailPrint "$(OPENXYOS_OPTIONAL_SKIP)"
         DetailPrint "$(OPENXYOS_OPTIONAL_ABSENT)"
     !endif
     SetDetailsPrint listonly

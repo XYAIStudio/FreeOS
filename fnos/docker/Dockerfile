@@ -7,7 +7,7 @@
 # Playwright Chromium 不再预装，浏览器自动化可在控制台按需安装。
 #
 # 构建上下文必须为仓库根目录（fnpack / CI 中以仓库根为 context）：
-#   docker build -f fnos/docker/Dockerfile -t ghcr.io/tencentcloud/octop:latest .
+#   docker build -f fnos/docker/Dockerfile -t ghcr.io/xyaistudio/freeos:latest .
 #
 # 国内加速（可选 build-arg）：
 #   PIP_INDEX_URL / PIP_TRUSTED_HOST / NPM_REGISTRY / APT_MIRROR

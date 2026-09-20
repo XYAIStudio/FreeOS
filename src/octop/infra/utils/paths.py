@@ -140,6 +140,21 @@ class PathLayout:
         return out
 
     @property
+    def org_dir(self) -> Path:
+        """Host organization SQLite stores: ``{home}/org/*.sqlite``."""
+        return self.root / "org"
+
+    @property
+    def org_os_dir(self) -> Path:
+        """Org-module prefs, toggles, optional sidecar data: ``{home}/org-os/``."""
+        return self.root / "org-os"
+
+    @property
+    def openxyos_mirror_dir(self) -> Path:
+        """Durable asset-loop mirror: ``{home}/openxyos-mirror/``."""
+        return self.root / "openxyos-mirror"
+
+    @property
     def org_skills_dir(self) -> Path:
         """Generated openXYOS module skills: ``~/.freeos/org-skills/``."""
         return self.root / "org-skills"

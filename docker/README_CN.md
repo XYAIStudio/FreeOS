@@ -1,10 +1,17 @@
-# Octop Docker 部署
+# FreeOS Docker 部署
 
 ---
 
-本目录包含 Octop / FreeOS 的 Docker 构建与部署相关文件。Compose **只有一个
-Python 进程**，没有 Node / openXYOS 边车。Organization 在宿主内运行
-（`/api/org-module/*`）。
+本目录包含 FreeOS 的 Docker 构建与部署相关文件（仍保留 Octop 兼容标识）。
+Compose **只有一个 Python 进程**，没有 Node / openXYOS 边车。Organization 在宿主内运行
+（`/api/org-module/*`）。对外规范镜像：
+
+```bash
+docker pull ghcr.io/xyaistudio/freeos:latest
+```
+
+本地 Compose 仍用 `octop:latest` 作兼容标签。说明见
+[docs/node-runtime.zh-CN.md](../docs/node-runtime.zh-CN.md)。
 
 **目录命名：** 产品名是 `FREEOS_HOME`。本镜像与 Compose 仍用 `OCTOP_*` 和
 `~/.octop` 作为兼容别名（`HOME=/data` → `/data/.octop`）。需要显式路径时

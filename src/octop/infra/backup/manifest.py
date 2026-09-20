@@ -32,6 +32,7 @@ class BackupManifest:
     includes_skill_packages: bool = True
     includes_plugins: bool = False
     includes_knowledge: bool = False
+    includes_org: bool = False
     includes_chats: bool = True
 
     def to_json(self) -> str:
@@ -49,6 +50,7 @@ class BackupManifest:
             "includes_skill_packages": self.includes_skill_packages,
             "includes_plugins": self.includes_plugins,
             "includes_knowledge": self.includes_knowledge,
+            "includes_org": self.includes_org,
             "includes_chats": self.includes_chats,
             "agents": [asdict(a) for a in self.agents],
         }
@@ -87,6 +89,8 @@ class BackupManifest:
             includes_knowledge=(
                 bool(data["includes_knowledge"]) if "includes_knowledge" in data else False
             ),
+            # Older archives never packed {home}/org/*.sqlite or org-os/.
+            includes_org=bool(data["includes_org"]) if "includes_org" in data else False,
             # Legacy archives dumped the full database; missing key means chats are present.
             includes_chats=bool(data["includes_chats"]) if "includes_chats" in data else True,
         )

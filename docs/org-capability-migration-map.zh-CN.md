@@ -88,7 +88,7 @@
 1. **桌面集成 iframe** 嵌入完整 App — `FREEOS_ORG_INTEGRATED=1`（`desktop/src/process.go`）使 `/organization` 渲染 `<iframe src="/organization-app/dashboard?freeos_embed=1">`（`OrganizationEntry.tsx`）。FastAPI `org_ui.py` 把该路径代理到私有端口上的 Node。
 2. **`ManagedOrganizationRuntime`** — `src/octop/modules/org_os/managed_runtime.py`（重启循环、本机 `OPENXYOS_BASE_URL`）。
 3. **`/api/org-module/identity/*` 与 `/business/*`** — `org_identity.py` 把登录/注册和业务 CRUD 转发到 Node `/api/auth` 与 `/api/*`。
-4. **可选 `:3780` 边车** — `FREEOS_ORG_SIDECAR` / `SHIP_OPENXYOS_RUNTIME`。Phase 5 默认安装器已经零 Node；不要倒退。
+4. **可选 `:3780` 边车** — `FREEOS_ORG_SIDECAR` / `SHIP_OPENXYOS_RUNTIME`。Phase 5 默认安装器已经零 Node；不要倒退。开关表与拆除计划：[node-runtime.zh-CN.md](node-runtime.zh-CN.md)。
 5. **尚未达到 App 对等的 Open-12 宿主切片** — [org-full-parity-inventory.json](org-full-parity-inventory.json) 里 `host_route_exists=true` **不等于**验收。清单把每条路由记为 `parity=not_accepted`。仍缺：汇报线、人才市场、插件市场、组织沟通、公司/AI/数据库设置、附件……
 6. **遗留 `OrgMiniBrowser.tsx`** — 未再被路由引用的 iframe 壳。不要把它复活成 Organization 首页。
 
@@ -189,7 +189,7 @@
 | **依赖 Node？** | 是 |
 | **商业导出？** | 否（桥，不是可售产物） |
 | **优先级** | P1 · 波次 E |
-| **下一步** | App 面由原生路由接管后，去掉 iframe 首页和托管进程。 |
+| **下一步** | App 面由原生路由接管后，去掉 iframe 首页和托管进程。开关见 [node-runtime.zh-CN.md](node-runtime.zh-CN.md)。`uv run` / Docker 保持零 Node。桌面 CI 可设 `SHIP_OPENXYOS_RUNTIME=1`（过渡）。不要把该开关扩成永久产品。 |
 | **测试** | `tests/unit/api/test_org_ui.py`、`tests/integration/test_dashboard_serve.py` |
 
 ### 8. 可选 Node 边车（:3780）
@@ -201,7 +201,7 @@
 | **依赖 Node？** | 是 |
 | **商业导出？** | 否 |
 | **优先级** | P2 · 波次 E |
-| **下一步** | 原生覆盖完成前可选用；不要重新打进默认安装器。 |
+| **下一步** | 原生覆盖完成前可选用；不要重新打进默认安装器。见 [node-runtime.zh-CN.md](node-runtime.zh-CN.md)。 |
 | **测试** | `tests/unit/test_org_module.py` |
 
 ### 9. 模块目录

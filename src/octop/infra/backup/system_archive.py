@@ -56,6 +56,16 @@ _SKILL_PACKAGES_DIR = "skill-packages"
 _PLUGINS_DIR = "plugins"
 _KNOWLEDGE_DIR = "knowledge"
 _MANIFEST_NAME = "manifest.json"
+# Host organization trees (not the live openXYOS workdir under LocalAppData).
+_ORG_BACKUP_TREES = (
+    "org",
+    "org-os",
+    "org-skills",
+    "tenants",
+    "asset-packs",
+    "openxyos-mirror",
+    "governance",
+)
 _SQLITE_DB_ARC = f"{_DB_DIR}/octop.db"
 _PG_DUMP_ARC = f"{_DB_DIR}/octop.dump"
 _MIGRATION_VERSION_SUFFIX = "-migrated-from-lightclaw"
@@ -151,6 +161,7 @@ def _build_manifest(
     include_skill_packages: bool,
     include_plugins: bool,
     include_knowledge: bool,
+    include_org: bool,
     include_chats: bool,
 ) -> BackupManifest:
     try:
@@ -180,6 +191,7 @@ def _build_manifest(
         includes_skill_packages=include_skill_packages,
         includes_plugins=include_plugins,
         includes_knowledge=include_knowledge,
+        includes_org=include_org,
         includes_chats=include_chats,
     )
 
@@ -196,6 +208,7 @@ def create_system_backup(
     include_skill_packages: bool = True,
     include_plugins: bool = True,
     include_knowledge: bool = True,
+    include_org: bool = True,
     include_chats: bool = False,
 ) -> str:
     """Write a ``.tar.gz`` archive to *dest* (streamed to disk).
@@ -236,6 +249,7 @@ def create_system_backup(
         include_skill_packages=include_skill_packages,
         include_plugins=include_plugins,
         include_knowledge=include_knowledge,
+        include_org=include_org,
         include_chats=include_chats,
     )
     filename = suggested_backup_filename()
@@ -340,6 +354,11 @@ def create_system_backup(
                         _KNOWLEDGE_DIR,
                         skip_chats=False,
                     )
+                if include_org:
+                    for tree in _ORG_BACKUP_TREES:
+                        src = paths.root / tree
+                        if src.is_dir():
+                            _add_dir(tf, src, tree, skip_chats=False)
 
         partial.replace(dest)
     except Exception:
@@ -630,6 +649,15 @@ def restore_system_backup(
                 _KNOWLEDGE_DIR,
             )
 
+        restored_org_files = 0
+        if manifest.includes_org:
+            for tree in _ORG_BACKUP_TREES:
+                restored_org_files += _replace_tree_from_archive(
+                    extracted,
+                    paths.root / tree,
+                    tree,
+                )
+
         preserved_chat_rows, skipped_chat_rows = (
             restore_preserved_chats(pool, saved_chats) if saved_chats is not None else (0, 0)
         )
@@ -643,6 +671,7 @@ def restore_system_backup(
         "skill_package_files": restored_skill_package_files,
         "plugin_files": restored_plugin_files,
         "knowledge_files": restored_knowledge_files,
+        "org_files": restored_org_files,
         "restore_config": restore_config,
         "chats_restored": manifest.includes_chats,
         "preserved_chat_rows": preserved_chat_rows,
