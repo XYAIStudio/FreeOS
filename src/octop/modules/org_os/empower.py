@@ -127,7 +127,7 @@ def pack_to_openxyos(service: OrgModuleService) -> dict[str, Any]:
         pack.directory,
         home=service.home,
         tenant_id=service.tenant_id() or "default",
-        base_url=service.sidecar_url() if sidecar.reachable else "",
+        base_url=service.explicit_sidecar_url() if sidecar.reachable else "",
     )
     return {"pack": pack.to_dict(), "applied": applied.to_dict()}
 

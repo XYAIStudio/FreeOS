@@ -117,7 +117,7 @@ _PATTERNS: tuple[tuple[re.Pattern[str], str, tuple[str, ...]], ...] = (
         (),
     ),
     (
-        re.compile(r"^OPENXYOS_BASE_URL unset; applied to local mirror only$"),
+        re.compile(r"^OPENXYOS_BASE_URL / runtime.json unset; applied to local mirror only$"),
         "org.notes.mirror_only",
         (),
     ),
@@ -229,7 +229,7 @@ _PATTERNS: tuple[tuple[re.Pattern[str], str, tuple[str, ...]], ...] = (
     ),
     (
         re.compile(
-            r"^Assets are visible on the logged-in tenant's Employees, Talent, Skills, and Plugins lists\.$"
+            r"^Assets land on this organization's Employees, Talent, Skills, and Plugins lists\.$"
         ),
         "org.notes.visible_on_ui_tenant",
         (),

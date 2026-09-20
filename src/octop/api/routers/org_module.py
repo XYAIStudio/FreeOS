@@ -69,6 +69,13 @@ def _service(server: OctopServer) -> OrgModuleService:
     return org_module_from_paths(server.paths)
 
 
+def _organization_id(user: Any) -> int | None:
+    raw = getattr(user, "organization_id", None)
+    if isinstance(raw, int) and raw > 0:
+        return raw
+    return None
+
+
 def _plane_counts(server: OctopServer, user: Any) -> dict[str, int]:
     services = getattr(server, "services", None)
     user_id = getattr(user, "id", None)
@@ -639,8 +646,8 @@ async def import_assets(
     try:
         imported = import_openxyos_assets(
             service.home,
-            tenant_id=body.tenant_id or service.tenant_id() or "default",
-            sidecar_url=service.sidecar_url(),
+            tenant_id=service.workspace_tenant_id(body.tenant_id),
+            sidecar_url=service.explicit_sidecar_url(),
             catalog=body.catalog,
             blueprint_path=Path(body.blueprint_path) if body.blueprint_path else None,
             policies_path=Path(body.policies_path) if body.policies_path else None,
@@ -658,7 +665,7 @@ class AssetApplyBody(BaseModel):
 
 
 class LoopRunBody(BaseModel):
-    tenant_id: str = "1"
+    tenant_id: str = ""
     blueprint_path: str | None = None
     policies_path: str | None = None
     base_url: str = ""
@@ -673,7 +680,7 @@ class EmployeeSpawnBody(BaseModel):
 async def apply_assets(
     body: AssetApplyBody,
     server: OctopServer = Depends(get_server),
-    _user: Any = Depends(require_permission("plugins")),
+    user: Any = Depends(require_permission("plugins")),
 ) -> dict[str, Any]:
     from pathlib import Path
 
@@ -685,8 +692,10 @@ async def apply_assets(
         return apply_asset_pack(
             dest,
             home=service.home,
-            tenant_id=body.tenant_id or service.tenant_id() or "default",
-            base_url=body.base_url,
+            tenant_id=service.workspace_tenant_id(
+                body.tenant_id, organization_id=_organization_id(user)
+            ),
+            base_url=body.base_url or service.explicit_sidecar_url(),
         ).to_dict()
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
@@ -725,12 +734,15 @@ async def run_loop(
     try:
         proof = run_growth_loop(
             service.home,
-            tenant_id=body.tenant_id or service.tenant_id() or "1",
+            tenant_id=service.workspace_tenant_id(
+                body.tenant_id, organization_id=_organization_id(user)
+            ),
             blueprint_path=Path(body.blueprint_path) if body.blueprint_path else None,
             policies_path=Path(body.policies_path) if body.policies_path else None,
             sidecar_url=body.base_url or service.explicit_sidecar_url(),
             config_path=service.config_path,
             owner_user_id=int(getattr(user, "id", 0) or 0) or None,
+            organization_id=_organization_id(user),
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc

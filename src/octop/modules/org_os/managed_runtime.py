@@ -1,15 +1,24 @@
-"""Owned Node business process: private port, restart, and host-bound shutdown."""
+"""Owned Node business process: private port, restart, and host-bound shutdown.
+
+The listening origin is written to ``{FREEOS_HOME}/org-os/runtime.json`` so CLI
+and ``/api/org-module/*`` can ingest into the same control plane without
+hard-coding ``127.0.0.1:3780`` or requiring the caller to export
+``OPENXYOS_BASE_URL``.
+"""
 
 from __future__ import annotations
 
 import asyncio
 import contextlib
+import json
 import logging
 import os
 import shutil
 import socket
 import subprocess
 from pathlib import Path
+from typing import Any
+from urllib.parse import urlparse
 
 from octop.modules.org_os.sidecar_launch import (
     find_sidecar_runtime,
@@ -19,12 +28,103 @@ from octop.modules.org_os.sidecar_launch import (
 
 logger = logging.getLogger(__name__)
 
+RUNTIME_JSON_NAME = "runtime.json"
+
+
+def runtime_json_path(home: Path) -> Path:
+    return Path(home) / "org-os" / RUNTIME_JSON_NAME
+
+
+def _pid_looks_dead(pid: int) -> bool:
+    if pid <= 0:
+        return True
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return True
+    except (PermissionError, OSError, ValueError):
+        return False
+    return False
+
+
+def _clean_base_url(raw: str) -> str:
+    cleaned = (raw or "").strip().rstrip("/")
+    parsed = urlparse(cleaned)
+    if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+        return ""
+    return cleaned
+
+
+def read_runtime_base_url(home: Path) -> str:
+    """Return the managed control-plane origin, or empty when none is live."""
+    path = runtime_json_path(home)
+    if not path.is_file():
+        return ""
+    try:
+        raw = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError, UnicodeError):
+        return ""
+    if not isinstance(raw, dict):
+        return ""
+    pid = raw.get("pid")
+    if isinstance(pid, int) and _pid_looks_dead(pid):
+        return ""
+    url = raw.get("base_url")
+    if isinstance(url, str):
+        return _clean_base_url(url)
+    return ""
+
+
+def write_runtime_record(
+    home: Path,
+    *,
+    base_url: str,
+    port: int | None = None,
+    pid: int | None = None,
+    managed: bool = True,
+) -> Path:
+    """Persist the live control-plane origin for host/CLI ingest."""
+    cleaned = _clean_base_url(base_url)
+    if not cleaned:
+        raise ValueError("managed runtime URL is not an http(s) origin")
+    path = runtime_json_path(home)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    payload: dict[str, Any] = {"base_url": cleaned, "managed": bool(managed)}
+    if port is not None:
+        payload["port"] = int(port)
+    if pid is not None:
+        payload["pid"] = int(pid)
+    path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+    return path
+
+
+def update_runtime_pid(home: Path, pid: int) -> None:
+    path = runtime_json_path(home)
+    data: dict[str, Any] = {}
+    if path.is_file():
+        try:
+            raw = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError, UnicodeError):
+            raw = {}
+        if isinstance(raw, dict):
+            data = raw
+    data["pid"] = int(pid)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+
+
+def clear_runtime_record(home: Path) -> None:
+    path = runtime_json_path(home)
+    with contextlib.suppress(OSError):
+        path.unlink()
+
 
 class ManagedOrganizationRuntime:
     def __init__(self, home: Path) -> None:
         self.home = home
         self.process: asyncio.subprocess.Process | None = None
         self.task: asyncio.Task[None] | None = None
+        self.base_url: str = ""
 
     async def start(self) -> None:
         source = Path(__file__).resolve().parents[4] / "modules" / "openxyos"
@@ -48,8 +148,15 @@ class ManagedOrganizationRuntime:
         with socket.socket() as sock:
             sock.bind(("127.0.0.1", 0))
             port = sock.getsockname()[1]
+        self.base_url = f"http://127.0.0.1:{port}"
         os.environ["FREEOS_ORG_SIDECAR_PORT"] = str(port)
-        os.environ["OPENXYOS_BASE_URL"] = f"http://127.0.0.1:{port}"
+        os.environ["OPENXYOS_BASE_URL"] = self.base_url
+        await asyncio.to_thread(
+            write_runtime_record,
+            self.home,
+            base_url=self.base_url,
+            port=port,
+        )
         env = await asyncio.to_thread(sidecar_launch_env, self.home)
         env.update(
             {
@@ -73,6 +180,10 @@ class ManagedOrganizationRuntime:
                         stderr=log,
                         creationflags=subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0,
                     )
+                    if self.process.pid:
+                        await asyncio.to_thread(
+                            update_runtime_pid, self.home, int(self.process.pid)
+                        )
                     result = await self.process.wait()
                 logger.error("Organization runtime exited (%s); restarting in %ss", result, delay)
                 await asyncio.sleep(delay)
@@ -92,3 +203,5 @@ class ManagedOrganizationRuntime:
             except TimeoutError:
                 self.process.kill()
                 await self.process.wait()
+        await asyncio.to_thread(clear_runtime_record, self.home)
+        self.base_url = ""

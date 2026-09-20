@@ -731,7 +731,7 @@
       "planes": "Data plane: colleagues / experts / skills / MCP / tasks. Control plane: department employees / blueprints / modules / governance.",
       "sidecar_offline": "openXYOS sidecar is offline — start it to sync blueprints and approvals.",
       "sidecar_reconnecting": "openXYOS sidecar is offline — reconnecting the install-time local console.",
-      "mirror_only": "OPENXYOS_BASE_URL unset; applied to local mirror only.",
+      "mirror_only": "No control-plane URL; applied to local mirror only.",
       "local_mirror_short": "Local mirror is the durable record.",
       "imported_export": "imported live control-plane export",
       "export_unreachable": "sidecar export unreachable; using catalog/blueprint fallback",
@@ -752,7 +752,7 @@
       "loop_skip_already": "skipped promotion for {slug}: already {lifecycle}",
       "loop_skip_illegal": "skipped illegal transition for {slug}: cannot move {current} → {target}",
       "loop_skip_unknown": "skipped promotion for {slug}: unknown colleague",
-      "visible_on_ui_tenant": "Assets are visible on the logged-in tenant's Employees, Talent, Skills, and Plugins lists.",
+      "visible_on_ui_tenant": "Assets land on this organization's Employees, Talent, Skills, and Plugins lists.",
       "imported_skill": "imported openXYOS skill {slug}",
       "imported_plugin": "imported openXYOS plugin {slug}",
       "imported_mcp": "imported openXYOS MCP {slug}"

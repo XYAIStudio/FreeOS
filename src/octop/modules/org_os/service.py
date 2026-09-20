@@ -115,11 +115,17 @@ class OrgModuleService:
 
         The implicit ``http://127.0.0.1:3780`` default is display-only. Growth
         loop / apply must not treat that fallback as a required control plane.
+        A live managed runtime (``org-os/runtime.json``) is an explicit origin.
         """
         for key in ("OPENXYOS_BASE_URL", "FREEOS_ORG_SIDECAR_URL"):
             env = os.environ.get(key, "").strip()
             if env:
                 return normalize_sidecar_url(env)
+        from octop.modules.org_os.managed_runtime import read_runtime_base_url  # noqa: PLC0415
+
+        recorded = read_runtime_base_url(self.home)
+        if recorded:
+            return normalize_sidecar_url(recorded)
         section = self._section()
         raw = section.get("sidecar_url")
         if isinstance(raw, str) and raw.strip():
@@ -136,6 +142,22 @@ class OrgModuleService:
         section = self._section()
         raw = section.get("tenant_id")
         return str(raw).strip() if raw is not None and str(raw).strip() else ""
+
+    def workspace_tenant_id(self, explicit: str = "", *, organization_id: int | None = None) -> str:
+        """Org workspace tenant for ingest/mirror — never a hardcoded ``1``.
+
+        Precedence: caller argument, ``FREEOS_ORG_TENANT_ID`` / config, then the
+        signed-in organization room id. FreeOS studio identity stays separate.
+        """
+        cleaned = (explicit or "").strip()
+        if cleaned:
+            return cleaned
+        tid = self.tenant_id()
+        if tid:
+            return tid
+        if organization_id is not None and int(organization_id) > 0:
+            return str(int(organization_id))
+        return "default"
 
     def governance_enabled(self) -> bool:
         section = self._section()

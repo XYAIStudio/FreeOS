@@ -5,6 +5,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
+
 from octop.modules.org_os.apply.apply import apply_asset_pack, import_applied_surfaces
 from octop.modules.org_os.assets.importer import import_openxyos_assets
 from octop.modules.org_os.assets.pack import publish_asset_pack
@@ -13,7 +15,7 @@ from tests.support.openxyos_harness import ControlPlaneState, start_control_plan
 _FIXTURE = Path(__file__).resolve().parents[1] / "fixtures" / "org-loop" / "agent-blueprint.v1.json"
 
 
-def test_apply_without_url_is_mirror_only(tmp_path: Path, monkeypatch) -> None:
+def test_apply_without_url_is_mirror_only(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("OPENXYOS_BASE_URL", raising=False)
     monkeypatch.delenv("FREEOS_ORG_SIDECAR_URL", raising=False)
     import_openxyos_assets(
@@ -90,7 +92,7 @@ def test_apply_uses_ingest_token(tmp_path: Path) -> None:
         server.server_close()
 
 
-def test_apply_sends_ui_tenant_not_configured_tenant(tmp_path: Path) -> None:
+def test_apply_ingests_org_workspace_tenant_not_sidecar_session(tmp_path: Path) -> None:
     import_openxyos_assets(
         tmp_path, tenant_id="1", catalog=True, blueprint_path=_FIXTURE, spawn_agents=False
     )
@@ -101,9 +103,9 @@ def test_apply_sends_ui_tenant_not_configured_tenant(tmp_path: Path) -> None:
     try:
         result = apply_asset_pack(pack.directory, home=tmp_path, tenant_id="1", base_url=url)
         assert result.remote_applied is True
-        assert result.tenant_id == 2
-        assert state.ingested.get("tenant_id") == 2
-        assert result.landed.get("tenant_id") == 2
+        assert result.tenant_id == 1
+        assert state.ingested.get("tenant_id") == 1
+        assert result.landed.get("tenant_id") == 1
         assert result.preview_path == "/employees"
         assert result.landed.get("landed", {}).get("employees", {}).get("created", 0) >= 1
         employees = state.ingested.get("employees") or []
@@ -113,6 +115,32 @@ def test_apply_sends_ui_tenant_not_configured_tenant(tmp_path: Path) -> None:
         talent = state.ingested.get("talent") or []
         assert talent
         assert all(item.get("status") == "available" for item in talent)
+    finally:
+        server.shutdown()
+        server.server_close()
+
+
+def test_apply_ingests_via_runtime_json_without_env_url(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from octop.modules.org_os.managed_runtime import write_runtime_record
+
+    monkeypatch.delenv("OPENXYOS_BASE_URL", raising=False)
+    monkeypatch.delenv("FREEOS_ORG_SIDECAR_URL", raising=False)
+    import_openxyos_assets(
+        tmp_path, tenant_id="42", catalog=True, blueprint_path=_FIXTURE, spawn_agents=False
+    )
+    pack = publish_asset_pack(tmp_path, tenant_id="42", out_dir=tmp_path / "asset-packs" / "latest")
+    state = ControlPlaneState()
+    state.ui_tenant_id = 9
+    url, server = start_control_plane(state)
+    try:
+        write_runtime_record(tmp_path, base_url=url)
+        result = apply_asset_pack(pack.directory, home=tmp_path, tenant_id="42", base_url="")
+        assert result.remote_applied is True
+        assert result.control_plane_url == url
+        assert state.ingested.get("tenant_id") == 42
+        assert "/api/freeos/ingest" in state.posts
     finally:
         server.shutdown()
         server.server_close()

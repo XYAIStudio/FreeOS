@@ -363,7 +363,7 @@ describe("OrganizationPage", () => {
         mirror_dir: "/tmp/mirror",
         remote_applied: false,
         mirrored: true,
-        notes: ["OPENXYOS_BASE_URL unset; applied to local mirror only"],
+        notes: ["OPENXYOS_BASE_URL / runtime.json unset; applied to local mirror only"],
       },
     });
 

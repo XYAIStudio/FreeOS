@@ -731,7 +731,7 @@
       "planes": "数据面：同事 / 专家 / 技能 / MCP / 任务。控制面：部门员工 / 蓝图 / 模块 / 治理。",
       "sidecar_offline": "openXYOS 边车离线 — 启动后才能同步蓝图与审批。",
       "sidecar_reconnecting": "openXYOS 边车离线 — 正在自动连接安装期本机控制台。",
-      "mirror_only": "未设置 OPENXYOS_BASE_URL；仅写入本地镜像。",
+      "mirror_only": "未配置控制面地址；仅写入本地镜像。",
       "local_mirror_short": "本地镜像是可靠记录。",
       "imported_export": "已导入在线控制面导出",
       "export_unreachable": "边车导出不可达；回退到目录/蓝图",
@@ -752,7 +752,7 @@
       "loop_skip_already": "已跳过 {slug} 的晋升：当前已是 {lifecycle}",
       "loop_skip_illegal": "已跳过 {slug} 的非法迁移：无法从 {current} 转到 {target}",
       "loop_skip_unknown": "已跳过 {slug} 的晋升：未知同事",
-      "visible_on_ui_tenant": "资产已出现在当前登录租户的员工 / 人才 / 技能 / 插件列表中。",
+      "visible_on_ui_tenant": "资产已落到本组织的员工 / 人才 / 技能 / 插件列表。",
       "imported_skill": "已导入 openXYOS 技能 {slug}",
       "imported_plugin": "已导入 openXYOS 插件 {slug}",
       "imported_mcp": "已导入 openXYOS MCP {slug}"

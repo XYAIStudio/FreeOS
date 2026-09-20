@@ -344,8 +344,8 @@ def assets_import(
     service = _service()
     imported = import_openxyos_assets(
         service.home,
-        tenant_id=tenant_id or service.tenant_id() or "default",
-        sidecar_url=service.sidecar_url(),
+        tenant_id=service.workspace_tenant_id(tenant_id),
+        sidecar_url=service.explicit_sidecar_url(),
         catalog=catalog,
         blueprint_path=blueprint_path,
         policies_path=policies_path,
@@ -367,8 +367,8 @@ def assets_apply(pack_dir: Path | None, tenant_id: str, base_url: str) -> None:
     result = apply_asset_pack(
         dest,
         home=service.home,
-        tenant_id=tenant_id or service.tenant_id() or "default",
-        base_url=base_url,
+        tenant_id=service.workspace_tenant_id(tenant_id),
+        base_url=base_url or service.explicit_sidecar_url(),
     )
     click.echo(json.dumps(result.to_dict(), indent=2))
 
@@ -400,13 +400,17 @@ def org_loop() -> None:
 
 
 @org_loop.command("run")
-@click.option("--tenant-id", default="1")
+@click.option(
+    "--tenant-id",
+    default="",
+    help="Org workspace tenant. Defaults to config / FREEOS_ORG_TENANT_ID.",
+)
 @click.option("--blueprint", "blueprint_path", type=click.Path(path_type=Path, exists=True))
 @click.option("--policies", "policies_path", type=click.Path(path_type=Path, exists=True))
 @click.option(
     "--base-url",
     default="",
-    help="openXYOS origin. Defaults to OPENXYOS_BASE_URL / FREEOS_ORG_SIDECAR_URL.",
+    help="openXYOS origin. Defaults to OPENXYOS_BASE_URL / runtime.json / FREEOS_ORG_SIDECAR_URL.",
 )
 def loop_run(
     tenant_id: str, blueprint_path: Path | None, policies_path: Path | None, base_url: str
@@ -417,10 +421,10 @@ def loop_run(
     service = _service()
     proof = run_growth_loop(
         service.home,
-        tenant_id=tenant_id or service.tenant_id() or "1",
+        tenant_id=service.workspace_tenant_id(tenant_id),
         blueprint_path=blueprint_path,
         policies_path=policies_path,
-        sidecar_url=base_url or service.sidecar_url(),
+        sidecar_url=base_url or service.explicit_sidecar_url(),
         config_path=service.config_path,
     )
     click.echo(json.dumps(proof.to_dict(), indent=2))

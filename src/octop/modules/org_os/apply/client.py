@@ -22,13 +22,22 @@ from octop.modules.org_os.sidecar_secrets import INGEST_TOKEN_KEY, resolve_inges
 DEFAULT_CONTROL_URL = "http://127.0.0.1:3780"
 
 
-def resolve_control_plane_url(*candidates: str) -> str:
-    """Prefer ``OPENXYOS_BASE_URL``, then explicit args, then sidecar env."""
+def resolve_control_plane_url(*candidates: str, home: Path | None = None) -> str:
+    """Prefer ``OPENXYOS_BASE_URL``, then explicit args, sidecar env, runtime.json."""
     ordered = [
         os.environ.get("OPENXYOS_BASE_URL", "").strip(),
         *candidates,
         os.environ.get("FREEOS_ORG_SIDECAR_URL", "").strip(),
     ]
+    home_path = home
+    if home_path is None:
+        raw_home = (os.environ.get("FREEOS_HOME") or os.environ.get("OCTOP_HOME") or "").strip()
+        if raw_home:
+            home_path = Path(raw_home)
+    if home_path is not None:
+        from octop.modules.org_os.managed_runtime import read_runtime_base_url  # noqa: PLC0415
+
+        ordered.append(read_runtime_base_url(home_path))
     for raw in ordered:
         cleaned = (raw or "").strip().rstrip("/")
         parsed = urlparse(cleaned)
@@ -75,10 +84,10 @@ class OpenXyosControlClient:
         home: Path | None = None,
         retries: int = 4,
     ) -> None:
-        self.base_url = resolve_control_plane_url(base_url)
         self.timeout = timeout
         self.retries = max(retries, 1)
         self.home = Path(home) if home is not None else None
+        self.base_url = resolve_control_plane_url(base_url, home=self.home)
         self.headers = dict(headers or {})
         token = self.headers.get("X-FreeOS-Ingest-Token") or resolve_ingest_token(self.home)
         env_token = (os.environ.get(INGEST_TOKEN_KEY) or "").strip()
