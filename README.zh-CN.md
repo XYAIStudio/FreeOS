@@ -6,14 +6,31 @@
   <a href="https://github.com/TencentCloud/Octop"><img alt="Upstream: Octop" src="https://img.shields.io/badge/upstream-Octop-MIT-1677ff" /></a>
   <a href="https://github.com/XYAIStudio/openXYOS"><img alt="Organization module: openXYOS" src="https://img.shields.io/badge/organization-openXYOS-Apache--2.0-0f766e" /></a>
 </p>
-FreeOS 是面向组织协作、知识沉淀与智能体编排的开源本地优先平台。它把 FreeOS 的增强服务与 openXYOS 的本机定制工作台结合起来，帮助团队把行业经验转化为可运行、可迭代、可独立交付的管理系统。
+
+**FreeOS：自由的 AI 工作室，想象空间由你来打开**
+
+## 创立初心
+
+FreeOS 诞生于一个简单而清晰的目标：在 Octop 的自托管多智能体能力之上，让每个人都能同时拥有 Octop + openXYOS 两套系统的力量——不必在「对话与自动化」和「组织与治理」之间二选一。
+
+我们希望模型尽量跑在本地，知识尽量留在本地；Octop 与 openXYOS 已有的能力与资产能够互通、互相增强。用户可以在此基础上开发、优化、自我定制，生长出更贴合自身场景的新 openXYOS，并导出其系统源码，以便进一步产品化与商业化。
+
+为避免整包内嵌 openXYOS 带来的安装负担与体积膨胀，FreeOS 选择另一条路：把 openXYOS 的网页与组织能力，逐步转化为 Octop 宿主上的原生能力，从而形成新的统一系统——FreeOS。当前桌面中的托管 Node / 内嵌组织页，只是通往这一终态的过渡桥，而非终点。
+
+在使用方式上，FreeOS 更像你自己的工作室：先在本机安顿好，注册登录、数据与会话都留在你够得着的地方；以后若需要与更广的服务或授权衔接，会以可选方式慢慢打开，不挡你起步。组织相关能力则像工作室里另一间可独立布置的房间——方便试用、演练和长出自己的组织流程；与日常对话、助手协作同在一个 FreeOS 里，又各自留白，不把两种用法捏成同一种进入方式。
+
+一句话：FreeOS = 本地可控的 Octop 底座 + 可生长、可导出的组织能力，双系统合一，双身份分立。
+
+权威契约：[产品契约](docs/product-contract.zh-CN.md) · [English](docs/product-contract.md)。
+
+**接下来不要做：** 不要把捆绑 Node / 内嵌组织页当成终点；不要把工作室日常与组织房间捏成同一种进入方式；不要把更广的服务或授权当成起步门槛。资产总线、导出重写、拆除 Node、迁移地图是后续项（P0.2+）。
 
 ## 能做什么
 
 - 创建并编排专家、智能助手、流程、知识库和组织能力。
-- 在 openXYOS 本地工作台中按行业需求定制角色、界面与自动化。
-- 配置自己的模型后，启用智能体、群聊、知识加工与生成能力。
-- 使用 FreeOS 的模板、治理、质量校验和装配能力，并导出独立部署的系统代码。
+- 在组织能力上按行业需求定制角色、界面与自动化（当前桌面的托管 Node / 内嵌组织页是过渡桥）。
+- 配置本地模型与知识库后，启用智能体、群聊、知识加工与生成能力。
+- 开发、优化、自我定制，生长更贴合自身场景的新 openXYOS，并导出其系统源码。
 
 ## 快速开始
 
@@ -26,7 +43,6 @@ uv sync
 uv run freeos run
 ```
 
-本地 openXYOS 的账户与模型设置由用户自己控制；FreeOS 账户只管理其云端与付费增强服务。不要将 API Key、令牌或真实客户资料提交到公开仓库。
+不要将 API Key、令牌或真实客户资料提交到公开仓库。
 
-完整功能、架构和发布说明请见 [English README](README.md) 与 [Wiki](https://github.com/XYAIStudio/FreeOS/wiki)。
-
+完整功能、架构和发布说明请见 [English README](README.md)、[中文宿主说明](README_CN.md) 与 [Wiki](https://github.com/XYAIStudio/FreeOS/wiki)。

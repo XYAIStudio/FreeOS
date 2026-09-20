@@ -1,5 +1,16 @@
 # FreeOS × openXYOS integration architecture
 
+> **Historical vs Current.**
+>
+> **Current (canonical):** [product-contract.md](product-contract.md).
+> Everyday studio use settles in locally first; organization capabilities are another room in the same studio.
+> Managed Node and full-App iframe are a **transition bridge**.
+> End state: migrate openXYOS **into** the host; exportable openXYOS source is a goal.
+> Phase-5 zero-Node and `:3780` iframe are shipping bridges, not destinations.
+>
+> **Historical:** the control/data-plane split, self-growth loop, and optional
+> sidecar diagrams below still describe how the repo runs today.
+
 FreeOS is the **Octop-derived data plane** (MIT: skills, workspace FS, memory,
 cron, multi-agent, MCP, sandboxes, real IM channels) plus a **control-plane
 contract** from openXYOS (Apache-2.0: org hierarchy, multi-tenant modules,
@@ -11,9 +22,10 @@ FreeOS/Octop remains the execution runtime.
 
 ## Related
 
+- [product-contract.md](product-contract.md) — **canonical product intent**
 - [ADR 001](adr/001-single-process-model.md) — single process, no external queue
-- [ADR 003](adr/003-org-ui-single-source-dual-delivery.md) — org-ui single source, dual delivery (Accepted)
-- [org-merge-plan.md](org-merge-plan.md) — Phases 0–5; Phase 5 default installer is zero-Node (sidecar opt-in)
+- [ADR 003](adr/003-org-ui-single-source-dual-delivery.md) — org-ui single source, dual delivery (Accepted; read the Current banner)
+- [org-merge-plan.md](org-merge-plan.md) — Phases 0–5 history; Phase-5 zero-Node is a transition default
 - [org-export.md](org-export.md) — standalone commercial Organization site (`freeos org export-standalone`)
 - [asset-loop.md](asset-loop.md) — operator self-growth loop
 - [ADR index](adr/)

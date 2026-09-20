@@ -1,8 +1,10 @@
 # 独立组织站导出（Phase 4 包 + Phase 5 默认安装器）
 
-`freeos org export-standalone --out <dir>` 从 **同一套** `dashboard/src/org-ui` 生成可部署的 openXYOS 风格独立站。这是商业加售的交付物，不是第二份手维护前端。
+> **Historical vs Current.** **Current：** [产品契约](product-contract.zh-CN.md)。导出可商业化的 openXYOS **系统源码** 是目标；本页描述的 `export-standalone`（SPA + 反代到宿主）是早期交付，不是完成品。Phase-5 默认零 Node 与可选 sidecar/iframe 都是过渡桥。组织像工作室里另一间房间，与日常用法各自留白。本文件不改导出实现（那是后续项）。
 
-默认 FreeOS 安装器 **不** 捆绑 Node，也 **不** 自动拉起 openXYOS。Sidecar 仅作可选兼容（`FREEOS_ORG_SIDECAR=1` / `SHIP_OPENXYOS_RUNTIME=1`）。这是 **Phase 5** 已落地的默认拓扑：一个 Python 进程 + 宿主内 Organization。
+`freeos org export-standalone --out <dir>` 从 **同一套** `dashboard/src/org-ui` 生成可部署的 openXYOS 风格独立站。这是商业加售的早期交付物，不是第二份手维护前端。
+
+默认 FreeOS 安装器 **不** 捆绑 Node，也 **不** 自动拉起 openXYOS。Sidecar 仅作可选兼容（`FREEOS_ORG_SIDECAR=1` / `SHIP_OPENXYOS_RUNTIME=1`）。这是 **Phase 5** 已落地的默认拓扑（过渡态）：一个 Python 进程 + 宿主内 Organization。
 
 ## 生成
 
@@ -42,7 +44,7 @@ npm run dev
 FREEOS_UPSTREAM=http://127.0.0.1:8088 docker compose up --build
 ```
 
-浏览器打开 `http://127.0.0.1:3780`，用 **FreeOS 用户** 登录。
+浏览器打开 `http://127.0.0.1:3780`。**Historical / 当前实现：** 登录打 FreeOS `/api/auth/login`。**Current 契约：** 导出站最终应能带上组织房间自己的进入方式；不要把「用工作室日常入口登录独立站」写成终态模型。
 
 ## 过渡路径 vs 目标终态
 

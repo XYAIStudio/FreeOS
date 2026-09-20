@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <strong>FreeOS — 自托管多智能体 OS，能生产并回收自己的 AI 员工。</strong>
+  <strong>FreeOS：自由的 AI 工作室，想象空间由你来打开</strong>
 </p>
 
 <p align="center">产品闭环：<code>uv run freeos org loop run</code>。详见 <a href="README.md">README.md</a> 与 <a href="docs/asset-loop.md">docs/asset-loop.md</a>。</p>
@@ -22,6 +22,7 @@
 </p>
 
 <p align="center">
+  <a href="#-创立初心">创立初心</a> ·
   <a href="#-概述">概述</a> ·
   <a href="#-亮点">亮点</a> ·
   <a href="#-核心技术">核心技术</a> ·
@@ -35,6 +36,12 @@
   <a href="README.md">English</a> · <a href="README.zh-CN.md">简体中文简介</a> · <a href="README.zh-TW.md">繁體中文</a> · <a href="README.ja.md">日本語</a> · <a href="README.ko.md">한국어</a> · <a href="README.fr.md">Français</a> · <a href="README.es.md">Español</a> · <a href="README.ru.md">Русский</a>
 </p>
 
+> **Historical vs Current.** 中文产品入口是 [README.zh-CN.md](README.zh-CN.md)。权威意图见 [产品契约](docs/product-contract.zh-CN.md)。
+>
+> **Current：** 见下文创立初心与 [产品契约](docs/product-contract.zh-CN.md)：双系统合一；组织像工作室里另一间可独立布置的房间；托管 Node / 内嵌组织页是过渡桥。
+>
+> **Historical：** 下文大量沿自 Octop 宿主能力说明（安装脚本、控制台、CLI、亮点表）。那些能力仍在 FreeOS 宿主里，但本文 **不是** Octop 官方产品页，也不再把 FreeOS 写成「只管理云端与付费增强服务」。
+
 ---
 
 ## FreeOS 项目定位与开源来源
@@ -45,15 +52,29 @@ FreeOS 是独立的下游二次开发项目，不是 Octop 官方发行版。我
 - [**openXYOS**](https://github.com/XYAIStudio/openXYOS)（Apache-2.0）提供组织模型、智能体蓝图、治理契约和本机定制工作台基础。
 - FreeOS 提供集成桥接、行业模板与知识加工、治理校验、版本装配和独立代码导出。我们不宣称获得 Octop、腾讯云或其商标的认可、认证、赞助或官方支持。
 
-完整的许可证分层、署名要求与对外表述见 [NOTICE](NOTICE)、[上游归属说明](docs/upstream-attribution.md) 和 [集成架构](docs/architecture-integration.md)。
+完整的许可证分层、署名要求与对外表述见 [NOTICE](NOTICE)、[上游归属说明](docs/upstream-attribution.md)、[产品契约](docs/product-contract.zh-CN.md) 和 [集成架构](docs/architecture-integration.md)。
+
+## 🌱 创立初心
+
+FreeOS 诞生于一个简单而清晰的目标：在 Octop 的自托管多智能体能力之上，让每个人都能同时拥有 Octop + openXYOS 两套系统的力量——不必在「对话与自动化」和「组织与治理」之间二选一。
+
+我们希望模型尽量跑在本地，知识尽量留在本地；Octop 与 openXYOS 已有的能力与资产能够互通、互相增强。用户可以在此基础上开发、优化、自我定制，生长出更贴合自身场景的新 openXYOS，并导出其系统源码，以便进一步产品化与商业化。
+
+为避免整包内嵌 openXYOS 带来的安装负担与体积膨胀，FreeOS 选择另一条路：把 openXYOS 的网页与组织能力，逐步转化为 Octop 宿主上的原生能力，从而形成新的统一系统——FreeOS。当前桌面中的托管 Node / 内嵌组织页，只是通往这一终态的过渡桥，而非终点。
+
+在使用方式上，FreeOS 更像你自己的工作室：先在本机安顿好，注册登录、数据与会话都留在你够得着的地方；以后若需要与更广的服务或授权衔接，会以可选方式慢慢打开，不挡你起步。组织相关能力则像工作室里另一间可独立布置的房间——方便试用、演练和长出自己的组织流程；与日常对话、助手协作同在一个 FreeOS 里，又各自留白，不把两种用法捏成同一种进入方式。
+
+一句话：FreeOS = 本地可控的 Octop 底座 + 可生长、可导出的组织能力，双系统合一，双身份分立。
+
+权威契约：[产品契约](docs/product-contract.zh-CN.md)。
 
 ## 📌 概述
 
-**Octop** 是一个开源、自托管的 AI 助手。它不仅是工具，更是可并行运作的数字生命体。通过多 Agent 架构，它为团队、家庭和个人构建了既独立又协作的智能环境。并且这一切都运行在你的机器上——完全自托管的设计让隐私不再是妥协，而单进程启动的便捷性，则让强大的 Web 控制台、CLI 与 IM 集成触手可及。
+下面「亮点 / 功能特性 / 快速开始」描述的是 **从 Octop 继承、仍在 FreeOS 宿主中的能力**（控制台、CLI、IM、知识库等），不是把本仓库重新标成 Octop。
 
 借助飞书、钉钉、QQ、Discord、企业微信或 HTTP/SSE/WebSocket API 与任意 Agent 对话；通过**专家库**一键创建专业角色，通过 **Connector**（OAuth + MCP）接入外部服务，通过 **ACP** 与 IDE / 终端 AI 工具双向协作。
 
-> Octop 的设计目标：让每一次对话、工作区与凭据都留在你自己的机器上，同时为每个用户配备一组可按场景切换的专业 Agent。
+> 宿主设计目标（继承自 Octop）：让每一次对话、工作区与凭据都留在你自己的机器上，同时为每个用户配备一组可按场景切换的专业 Agent。
 
 ## ✨ 亮点
 
@@ -289,8 +310,9 @@ docker run -d \
 
 ## 📑 目录
 
-- [亮点](#-亮点)
+- [创立初心](#-创立初心)
 - [概述](#-概述)
+- [亮点](#-亮点)
 - [核心技术](#-核心技术)
 - [功能特性](#-功能特性)
 - [规划](#-规划)
@@ -456,7 +478,7 @@ OctopServer
 
 详见 [docs/architecture.md](docs/architecture.md)、[docs/adr/001-single-process-model.md](docs/adr/001-single-process-model.md) 与 [docs/adr/002-database-backends.md](docs/adr/002-database-backends.md)。
 
-组织模块目标架构（Dashboard 子 UI + 可导出独立站，单源双交付）见 [docs/adr/003-org-ui-single-source-dual-delivery.md](docs/adr/003-org-ui-single-source-dual-delivery.md) 与 [docs/org-merge-plan.md](docs/org-merge-plan.md)。
+产品意图（工作室比喻、Node 只是桥）见 [docs/product-contract.zh-CN.md](docs/product-contract.zh-CN.md)。组织模块目标架构（Dashboard 子 UI + 可导出独立站，单源双交付）见 [docs/adr/003-org-ui-single-source-dual-delivery.md](docs/adr/003-org-ui-single-source-dual-delivery.md) 与 [docs/org-merge-plan.md](docs/org-merge-plan.md)（先读文首 Historical vs Current）。
 
 ### 📁 项目结构
 

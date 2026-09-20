@@ -1,5 +1,7 @@
 # Octop 用户帮助文档
 
+> **Historical vs Current.** 本文沿自 Octop 宿主操作说明（安装、向导、模型、对话）。**Current：** 产品是 [FreeOS](../README.zh-CN.md)；权威意图见 [产品契约](product-contract.zh-CN.md)。数据目录优先 `FREEOS_HOME` / `~/.freeos`（仍识别 `~/.octop`）。先在本机安顿好；组织能力像工作室里另一间可独立布置的房间。
+
 > 本帮助文档面向最终用户，介绍 **安装 → 设置向导 → 配置模型 → 基本使用** 的完整流程。
 > 所有运行时数据默认存放在 `~/.octop/`（可通过 `OCTOP_HOME` 覆盖）。
 

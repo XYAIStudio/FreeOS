@@ -6,7 +6,7 @@
   <a href="https://github.com/TencentCloud/Octop"><img alt="Upstream: Octop" src="https://img.shields.io/badge/upstream-Octop-MIT-1677ff" /></a>
   <a href="https://github.com/XYAIStudio/openXYOS"><img alt="Organization module: openXYOS" src="https://img.shields.io/badge/organization-openXYOS-Apache--2.0-0f766e" /></a>
 </p>
-FreeOS est une plateforme open source, locale par défaut, destinée à la collaboration organisationnelle, à la capitalisation des connaissances et à l’orchestration d’agents IA. Elle associe les services d’extension de FreeOS à l’espace de personnalisation local openXYOS afin de transformer l’expérience métier en systèmes de gestion exécutables, évolutifs et déployables de façon indépendante.
+FreeOS réunit Octop et openXYOS sur une seule plateforme auto-hébergée. Modèles et bases de connaissances d’abord en local. Les actifs des deux mondes s’enrichissent. On doit pouvoir exporter une nouvelle source openXYOS. La direction : migrer openXYOS **dans** l’hôte, pas embarquer Node pour toujours. Contrat : [product-contract.md](docs/product-contract.md).
 
 ## Capacités
 
@@ -26,7 +26,7 @@ uv sync
 uv run freeos run
 ```
 
-Les comptes locaux et les paramètres de modèle d’openXYOS restent sous le contrôle de l’utilisateur. Le compte FreeOS ne gère que les services cloud et les extensions payantes. Ne publiez jamais de clé API, jeton ou donnée client réelle.
+FreeOS ressemble davantage à un studio à soi : on s’installe d’abord en local, inscription, connexion, données et sessions à portée de main. Des services ou licences plus larges pourront s’ouvrir plus tard, en option, sans barrer le départ. Les capacités d’organisation sont comme une autre pièce de ce studio, à aménager librement — même FreeOS que le chat et les assistants du quotidien, sans fondre les deux façons d’entrer en une seule. Ne publiez jamais de clé API, jeton ou donnée client réelle.
 
 Consultez le [README anglais](README.md) et le [Wiki](https://github.com/XYAIStudio/FreeOS/wiki) pour les détails.
 

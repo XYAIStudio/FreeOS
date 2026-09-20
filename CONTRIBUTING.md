@@ -1,14 +1,16 @@
-# Contributing to Octop
+# Contributing to FreeOS
 
-Thank you for your interest in contributing! Octop is the control-plane application in the [Octop Harness](https://github.com/TencentCloud) ecosystem.
+> This repository is **FreeOS** ([XYAIStudio/FreeOS](https://github.com/XYAIStudio/FreeOS)), an independent downstream of Octop + openXYOS. Product intent: [docs/product-contract.md](docs/product-contract.md). The workflow below is still the Octop-derived host quality bar (`make all`). Clone URL: `https://github.com/XYAIStudio/FreeOS.git`.
+
+Thank you for your interest in contributing.
 
 ## Getting started
 
 **Prerequisites:** Python 3.12+, Node.js 18+, [uv](https://docs.astral.sh/uv/)
 
 ```bash
-git clone https://github.com/TencentCloud/Octop.git octop
-cd octop
+git clone https://github.com/XYAIStudio/FreeOS.git
+cd FreeOS
 make install          # backend dev dependencies
 make install-hooks    # once per clone: pre-commit runs make all + dashboard build
 make all              # format-all + backend lint + typecheck + test (ship bar)
