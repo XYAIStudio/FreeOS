@@ -1,6 +1,6 @@
 # FreeOS desktop (Wails v3 + green portable)
 
-> Product intent: [docs/product-contract.md](../docs/product-contract.md). Managed Node + iframe (desktop 0.0.3) and Phase-5 default zero-Node are **transition bridges**. End state: native openXYOS-in-host, plus exportable source. Dual identity: FreeOS local auth ≠ organization-module test auth.
+> Product intent: [docs/product-contract.md](../docs/product-contract.md). Managed Node + iframe (desktop 0.0.3) and Phase-5 default zero-Node are **transition bridges**. End state: native openXYOS-in-host, plus exportable source. Everyday host signup stays local; organization capabilities use a relatively separate workspace with a clear boundary.
 
 Windows end-user product: **download the NSIS `.exe` → install → open FreeOS**
 (Octop host shell + in-host Organization). The full openXYOS Node stack is

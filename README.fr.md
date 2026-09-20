@@ -26,7 +26,7 @@ uv sync
 uv run freeos run
 ```
 
-**Double identité :** les utilisateurs du logiciel FreeOS s’inscrivent et se connectent **en local** sur l’hôte (pas les comptes officiels Octop). Le module organisation est un environnement de test indépendant, avec son propre système d’utilisateurs ; il n’est **pas** l’autorité d’identité de l’hôte. Ne publiez jamais de clé API, jeton ou donnée client réelle.
+On commence par s’inscrire et se connecter dans son propre environnement ; données et sessions restent locales. Un compte externe ou une licence commerciale pourra s’ouvrir plus tard, en option — ce n’est pas un prérequis. Les capacités d’organisation apparaissent comme un espace de travail relativement distinct, qui coopère avec l’usage quotidien de l’hôte tout en gardant une frontière nette. Ne publiez jamais de clé API, jeton ou donnée client réelle.
 
 Consultez le [README anglais](README.md) et le [Wiki](https://github.com/XYAIStudio/FreeOS/wiki) pour les détails.
 

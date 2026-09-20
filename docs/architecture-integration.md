@@ -3,7 +3,7 @@
 > **Historical vs Current.**
 >
 > **Current (canonical):** [product-contract.md](product-contract.md).
-> Dual identity (FreeOS local auth ≠ organization-module test auth).
+> Everyday host signup stays in your own environment; organization capabilities are a relatively separate workspace with a clear boundary.
 > Managed Node and full-App iframe are a **transition bridge**.
 > End state: migrate openXYOS **into** the host; exportable openXYOS source is a goal.
 > Phase-5 zero-Node and `:3780` iframe are shipping bridges, not destinations.

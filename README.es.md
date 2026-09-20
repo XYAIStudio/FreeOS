@@ -26,7 +26,7 @@ uv sync
 uv run freeos run
 ```
 
-**Doble identidad:** los usuarios del software FreeOS se registran e inician sesión **en local** en el anfitrión (no son cuentas oficiales de Octop). El módulo de organización es un entorno de prueba independiente, con su propio sistema de usuarios; **no** es la autoridad de identidad del anfitrión. No publique claves API, tokens ni datos reales de clientes.
+Empiece registrándose e iniciando sesión en su propio entorno; los datos y las sesiones quedan en local. Una cuenta externa o una licencia comercial podrá abrirse más adelante, de forma opcional, no como requisito de partida. Las capacidades de organización aparecen como un espacio de trabajo relativamente aparte, que colabora con el uso cotidiano del anfitrión y mantiene un límite claro. No publique claves API, tokens ni datos reales de clientes.
 
 Consulte el [README en inglés](README.md) y el [Wiki](https://github.com/XYAIStudio/FreeOS/wiki) para más información.
 

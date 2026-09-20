@@ -46,13 +46,13 @@ We want models to run locally when possible, and knowledge to stay local. Existi
 
 To avoid the install cost and size of shipping a full embedded openXYOS tree, FreeOS takes another path: gradually turn openXYOS web and organization capabilities into **native** capabilities on the Octop host, forming one unified system — FreeOS. The managed Node process and embedded organization page in the current desktop build are a **bridge** to that end state, not the destination.
 
-On identity, FreeOS is local-first: users register and log in locally first, unbound from Octop official accounts. Later this may connect to a FreeOS official-site user system for commercial licensing. The integrated organization module (openXYOS) is an **independent test environment** with its **own** user system, separate from FreeOS software accounts; neither replaces the other.
+In how you use it, FreeOS first lets you sign up and sign in inside your own environment, keeping data and sessions under local control. Linking to an external account system or commercial licensing can open later, as an option — not as a starting gate. Organization capabilities appear as a relatively separate workspace for trying, rehearsing, and customizing organization-side flows. That workspace works with everyday host use, yet each keeps a clear boundary, so the two scenes are not folded into one account model.
 
 In one line: **FreeOS = a locally controlled Octop base + growable, exportable organization capabilities; two systems in one, two identities kept apart.**
 
 Canonical contract: [docs/product-contract.md](docs/product-contract.md) · [中文](docs/product-contract.zh-CN.md).
 
-**Non-goals for the next increments:** do not freeze bundled Node or the embedded organization page as the architecture; do not collapse org test users into FreeOS software users; do not bind host login to Octop official. Asset bus, export rewrite, Node removal, and migration maps are later work (P0.2+), not this freeze.
+**Non-goals for the next increments:** do not freeze bundled Node or the embedded organization page as the architecture; do not fold the organization workspace and everyday host use into one account model; do not make an external account system the starting gate. Asset bus, export rewrite, Node removal, and migration maps are later work (P0.2+), not this freeze.
 
 The web shell, README banner, favicons, and PWA icons use the FreeOS circular mark (gray ring, yellow / green / red teardrops, blue center).
 
@@ -110,7 +110,7 @@ Operator detail: [docs/asset-loop.md](docs/asset-loop.md).
    `FreeOS-desktop-windows-arm64-<version>.exe`（ARM 电脑）。
 2. 双击安装包。安装程序会放到「程序文件」并创建开始菜单和桌面快捷方式。
 3. 打开 **FreeOS**。第一次启动会解压内置运行环境（可能要一两分钟），然后直接进入可用会话，无需先登录。
-4. 保存、导出或发布到账号时再 **本地注册或登录**（FreeOS 软件用户，不绑 Octop 官方）。侧栏 **Organization** 当前默认走宿主内组织能力；桌面 0.0.3 托管 Node + iframe、以及可选的完整 openXYOS Node 栈（`127.0.0.1:3780`，导出/同步/高级部署）都是 **过渡桥**，终态是把 openXYOS 迁入宿主。组织模块测试账号与 FreeOS 软件用户不是同一套。
+4. 保存、导出或发布到账号时再在本机完成注册或登录（外部账号与商业授权不是起步门槛）。侧栏 **Organization** 当前默认走宿主内组织能力；桌面 0.0.3 托管 Node + iframe、以及可选的完整 openXYOS Node 栈（`127.0.0.1:3780`，导出/同步/高级部署）都是 **过渡桥**，终态是把 openXYOS 迁入宿主。组织工作空间与宿主日常使用彼此协作，账号逻辑保持清晰边界。
 
 数据目录默认是 `%USERPROFILE%\.freeos`（可用环境变量 `FREEOS_HOME` 改）。旧版 Octop 的 `~/.octop` 仍会被识别。卸载安装包会清空安装目录（默认为 `Program Files\FreeOS`）并删除快捷方式，但**不会**删除该用户数据目录；详见 [desktop/README.md](desktop/README.md#windows-uninstall)。
 
@@ -181,7 +181,7 @@ FREEOS_ORG_SIDECAR=1 bash scripts/run-org-sidecar.sh
 Default origin if opted in: `http://127.0.0.1:3780`. Organization and
 `freeos org loop run` do **not** wait for `/api/health/livez`.
 
-**Auth (dual identity):** FreeOS software users are **local-first** host registration/login — not Octop official, and not the organization-module test users. The integrated openXYOS organization module is an **independent test environment** with its own user system. Organization identity is **not** the authority over FreeOS host identity. The proxy still forwards `X-FreeOS-User*` and `X-FreeOS-Tenant-Id` for workspace/sandbox scoping (one tenant = one workspace/sandbox — not prompt isolation).
+**Auth:** Signup and sign-in start in your own environment. Organization capabilities use a relatively separate workspace with its own boundary; the two scenes work together and are not folded into one account model. External account systems and commercial licensing are optional later, not a starting gate. The proxy still forwards `X-FreeOS-User*` and `X-FreeOS-Tenant-Id` for workspace/sandbox scoping (one tenant = one workspace/sandbox — not prompt isolation).
 
 ### Manual loop steps (the one command above already does this)
 

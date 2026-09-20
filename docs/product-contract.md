@@ -20,22 +20,22 @@ We want models to run locally when possible, and knowledge to stay local. Existi
 
 To avoid the install cost and size of shipping a full embedded openXYOS tree, FreeOS takes another path: gradually turn openXYOS web and organization capabilities into **native** capabilities on the Octop host, forming one unified system — FreeOS. The managed Node process and embedded organization page in the current desktop build are a **bridge** to that end state, not the destination.
 
-On identity, FreeOS is local-first: users register and log in locally first, unbound from Octop official accounts. Later this may connect to a FreeOS official-site user system for commercial licensing. The integrated organization module (openXYOS) is an **independent test environment** with its **own** user system, separate from FreeOS software accounts; neither replaces the other.
+In how you use it, FreeOS first lets you sign up and sign in inside your own environment, keeping data and sessions under local control. Linking to an external account system or commercial licensing can open later, as an option — not as a starting gate. Organization capabilities appear as a relatively separate workspace for trying, rehearsing, and customizing organization-side flows. That workspace works with everyday host use, yet each keeps a clear boundary, so the two scenes are not folded into one account model.
 
 In one line: **FreeOS = a locally controlled Octop base + growable, exportable organization capabilities; two systems in one, two identities kept apart.**
 
 The sections below are an operational restatement of the same intent. They must not change it.
 
-## Dual identity
+## Usage boundary
 
-Two user systems exist. They are **not** the same, and neither is “the” identity of the other.
+Signup and sign-in start in your own environment; data and sessions stay under local control. Linking to an external account system or commercial licensing is optional later, not a starting gate. Organization capabilities appear as a relatively separate workspace for trying, rehearsing, and customizing organization-side flows. They work with everyday host use, yet each keeps a clear boundary.
 
-| Identity | What it is | What it is not |
+| Scene | How it is used | Boundary |
 |---|---|---|
-| **FreeOS software users** | Local-first registration and login on the host app. Later the host **may** connect to a FreeOS official site for **commercial licensing**. | Not Octop official accounts. Not the organization-module test users. |
-| **Organization-module users** | The integrated openXYOS organization module is an **independent test environment** with its **own** user system. | Not the authority over FreeOS host identity. Not the software-license account. |
+| **Everyday host use** | Sign up and sign in in your own environment; data and sessions stay local | External accounts and commercial licensing may open later, as an option |
+| **Organization workspace** | A relatively separate space to try, rehearse, and customize organization-side flows | Works with the host; do not fold the two scenes into one account model |
 
-Do **not** say that organization registration/login is the unique identity authority over the FreeOS host.
+Do not describe organization-side login as the sole entry or sole authority for everyday host use.
 
 ## Transition bridge (not the destination)
 
@@ -66,8 +66,8 @@ Operators should be able to customize the organization system and **eventually e
 This freeze is documentation. The next engineering increments must not invert it.
 
 - Do **not** treat bundled/managed Node, or a full-App iframe, as the permanent runtime.
-- Do **not** collapse organization test users into FreeOS software users, or make org login the host identity authority.
-- Do **not** bind FreeOS app auth to Octop official accounts.
+- Do **not** fold the organization workspace and everyday host use into one account model, or treat organization-side login as the host’s only entry.
+- Do **not** make an external account system or commercial licensing a starting requirement.
 - Do **not** implement the asset bus, the export rewrite, Node removal, or migration maps **in the name of this contract** — those are later items (P0.2+). Follow this intent when they land.
 - Do **not** silently contradict this file. If a historical ADR or merge plan still says otherwise, keep the old prose under **Historical** and point here for **Current**.
 
@@ -75,7 +75,7 @@ This freeze is documentation. The next engineering increments must not invert it
 
 A new contributor who has read [README.md](../README.md) and this file should be able to state:
 
-1. FreeOS local auth ≠ organization-module test auth.
+1. Everyday host signup and the organization workspace keep a clear account boundary.
 2. Managed Node is a bridge.
 3. The end state is to migrate openXYOS into the host.
 4. Exportable openXYOS source is a goal.
