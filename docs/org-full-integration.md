@@ -2,7 +2,7 @@
 
 > **Historical vs Current.**
 >
-> **Current（权威）：** [产品契约](product-contract.zh-CN.md)。宿主日常使用在本机完成注册登录；组织能力以相对独立的工作空间呈现，两边协作又保有清晰边界。托管 Node / 全量 App iframe 是 **过渡桥**；终态是把 openXYOS **迁入** 宿主做成原生能力，并导出可商业化源码。
+> **Current（权威）：** [产品契约](product-contract.zh-CN.md)。先在本机安顿好；组织能力像工作室里另一间可独立布置的房间。托管 Node / 全量 App iframe 是 **过渡桥**；终态是把 openXYOS **迁入** 宿主做成原生能力，并导出可商业化源码。
 >
 > **Historical：** 下文 2026-09-19 的全量页面/链路验收清单仍可用于「要对齐哪些原系统能力」。文末「安装包内托管 Node + 组织登录为唯一身份权威、默认产品不再以零 Node 为约束」已 **作废**，不得再当现行架构。Phase-5 零 Node 与全量 iframe 都是迁原生途中的过渡态，不是终点。
 
@@ -47,7 +47,7 @@
 
 1. 扫描原始页面及依赖 → `uv run python scripts/org-parity-inventory.py` 生成 `org-full-parity-inventory.json`。
 2. 逐项核验原 API 挂载、字段、操作和关联 → 原系统断点单列，不用迁移状态掩盖。
-3. **Historical 路径（已取代）：** 保留完整 Node 业务后端并由 FreeOS 托管。**Current：** 把网页与能力迁入宿主原生部分；Node 仅作过渡桥。组织能力以相对独立的工作空间呈现，与宿主日常使用保有清晰边界。
+3. **Historical 路径（已取代）：** 保留完整 Node 业务后端并由 FreeOS 托管。**Current：** 把网页与能力迁入宿主原生部分；Node 仅作过渡桥。组织能力像工作室里另一间可独立布置的房间，与日常对话、助手同在一个 FreeOS。
 4. 按业务链而非菜单数量交付 → 对照原页验收，同一账号连续完成业务流程。
 5. 全量质量门禁和最终安装验收 → 未通过不得宣称整体完成。
 
@@ -57,4 +57,4 @@
 
 ~~后端路线已确认：安装包内托管 Node 组织运行时，FreeOS 统一启动、停止、代理和健康恢复；组织注册登录是唯一身份权威。默认产品不再以“零 Node”作为架构约束。~~
 
-**Current：** 见 [产品契约](product-contract.zh-CN.md)。托管 Node 是桥；组织工作空间与宿主日常使用保有清晰边界；终态是原生迁入 + 可导出源码。Phase-5 零 Node 与全量 iframe 均为过渡。
+**Current：** 见 [产品契约](product-contract.zh-CN.md)。托管 Node 是桥；组织像工作室里另一间房间，与日常用法各自留白；终态是原生迁入 + 可导出源码。Phase-5 零 Node 与全量 iframe 均为过渡。

@@ -2,7 +2,7 @@
 
 > **Historical vs Current.**
 >
-> **Current（权威）：** [产品契约](product-contract.zh-CN.md) / [product-contract.md](product-contract.md)。宿主日常使用与组织工作空间保有清晰边界；托管 Node 与全量 App iframe 是过渡桥；终态是把 openXYOS **迁入** 宿主。Phase-5 默认零 Node 是精简默认路径，**不是**「未迁页面已经完成」或「永远不再需要桥」。
+> **Current（权威）：** [产品契约](product-contract.zh-CN.md) / [product-contract.md](product-contract.md)。先在本机安顿；组织像工作室里另一间可独立布置的房间；托管 Node 与全量 App iframe 是过渡桥；终态是把 openXYOS **迁入** 宿主。Phase-5 默认零 Node 是精简默认路径，**不是**「未迁页面已经完成」或「永远不再需要桥」。
 >
 > **Historical：** 以下 Phase 0–5 记录 Open-12 切片与安装器瘦身。2026-09-19 范围修正（全量 App.tsx）见 [全量融合验收合同](org-full-integration.md)——其中 **能力对齐清单仍可用**，文末 Node + 组织身份权威 已作废。
 

@@ -26,7 +26,7 @@ uv sync
 uv run freeos run
 ```
 
-On commence par s’inscrire et se connecter dans son propre environnement ; données et sessions restent locales. Un compte externe ou une licence commerciale pourra s’ouvrir plus tard, en option — ce n’est pas un prérequis. Les capacités d’organisation apparaissent comme un espace de travail relativement distinct, qui coopère avec l’usage quotidien de l’hôte tout en gardant une frontière nette. Ne publiez jamais de clé API, jeton ou donnée client réelle.
+FreeOS ressemble davantage à un studio à soi : on s’installe d’abord en local, inscription, connexion, données et sessions à portée de main. Des services ou licences plus larges pourront s’ouvrir plus tard, en option, sans barrer le départ. Les capacités d’organisation sont comme une autre pièce de ce studio, à aménager librement — même FreeOS que le chat et les assistants du quotidien, sans fondre les deux façons d’entrer en une seule. Ne publiez jamais de clé API, jeton ou donnée client réelle.
 
 Consultez le [README anglais](README.md) et le [Wiki](https://github.com/XYAIStudio/FreeOS/wiki) pour les détails.
 

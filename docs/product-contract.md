@@ -22,7 +22,7 @@ We want models to run locally when possible, and knowledge to stay local. Existi
 
 To avoid the install cost and size of shipping a full embedded openXYOS tree, FreeOS takes another path: gradually turn openXYOS web and organization capabilities into **native** capabilities on the Octop host, forming one unified system — FreeOS. The managed Node process and embedded organization page in the current desktop build are a **bridge** to that end state, not the destination.
 
-In how you use it, FreeOS first lets you sign up and sign in inside your own environment, keeping data and sessions under local control. Linking to an external account system or commercial licensing can open later, as an option — not as a starting gate. Organization capabilities appear as a relatively separate workspace for trying, rehearsing, and customizing organization-side flows. That workspace works with everyday host use, yet each keeps a clear boundary, so the two scenes are not folded into one account model.
+In how you use it, FreeOS is more like a studio of your own: settle in locally first, with signup, login, data, and sessions staying within reach; links to broader services or licensing can open later as options, never as a gate at the start. Organization capabilities are like another room in that studio you can arrange on its own — for trying, rehearsing, and growing your own org workflows — sharing one FreeOS with everyday chat and assistants, yet leaving each use its own space so the two ways in don’t collapse into one.
 
 In one line: **FreeOS = a locally controlled Octop base + growable, exportable organization capabilities; two systems in one, two identities kept apart.**
 
@@ -30,14 +30,14 @@ The sections below are an operational restatement of the same intent. They must 
 
 ## Usage boundary
 
-Signup and sign-in start in your own environment; data and sessions stay under local control. Linking to an external account system or commercial licensing is optional later, not a starting gate. Organization capabilities appear as a relatively separate workspace for trying, rehearsing, and customizing organization-side flows. They work with everyday host use, yet each keeps a clear boundary.
+FreeOS is more like a studio of your own: settle in locally first. Organization capabilities are another room in that studio you can arrange on its own. Both live in one FreeOS; each keeps its space, so the two ways in don’t collapse into one.
 
-| Scene | How it is used | Boundary |
+| Scene | How it is used | Space left |
 |---|---|---|
-| **Everyday host use** | Sign up and sign in in your own environment; data and sessions stay local | External accounts and commercial licensing may open later, as an option |
-| **Organization workspace** | A relatively separate space to try, rehearse, and customize organization-side flows | Works with the host; do not fold the two scenes into one account model |
+| **Everyday studio** | Settle in locally: signup, login, data, and sessions stay within reach | Broader services or licensing can open later as options, never as a gate at the start |
+| **Organization room** | A room you can arrange on its own — trying, rehearsing, growing your own org workflows | Shares one FreeOS with everyday chat and assistants; the two ways in don’t collapse into one |
 
-Do not describe organization-side login as the sole entry or sole authority for everyday host use.
+Do not describe the organization room as the only way into everyday studio use.
 
 ## Transition bridge (not the destination)
 
@@ -68,8 +68,8 @@ Operators should be able to customize the organization system and **eventually e
 This freeze is documentation. The next engineering increments must not invert it.
 
 - Do **not** treat bundled/managed Node, or a full-App iframe, as the permanent runtime.
-- Do **not** fold the organization workspace and everyday host use into one account model, or treat organization-side login as the host’s only entry.
-- Do **not** make an external account system or commercial licensing a starting requirement.
+- Do **not** collapse everyday studio use and the organization room into one way in.
+- Do **not** make broader services or licensing a gate at the start.
 - Do **not** implement the asset bus, the export rewrite, Node removal, or migration maps **in the name of this contract** — those are later items (P0.2+). Follow this intent when they land.
 - Do **not** silently contradict this file. If a historical ADR or merge plan still says otherwise, keep the old prose under **Historical** and point here for **Current**.
 
@@ -77,7 +77,7 @@ This freeze is documentation. The next engineering increments must not invert it
 
 A new contributor who has read [README.md](../README.md) and this file should be able to state:
 
-1. Everyday host signup and the organization workspace keep a clear account boundary.
+1. Everyday chat/assistants and organization live in one FreeOS; organization is another room you can arrange on its own, so the two ways in don’t collapse into one.
 2. Managed Node is a bridge.
 3. The end state is to migrate openXYOS into the host.
 4. Exportable openXYOS source is a goal.

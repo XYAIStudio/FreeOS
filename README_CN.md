@@ -38,7 +38,7 @@
 
 > **Historical vs Current.** 中文产品入口是 [README.zh-CN.md](README.zh-CN.md)。权威意图见 [产品契约](docs/product-contract.zh-CN.md)。
 >
-> **Current：** 见下文创立初心与 [产品契约](docs/product-contract.zh-CN.md)：双系统合一；宿主日常使用与组织工作空间保有清晰边界；托管 Node / 内嵌组织页是过渡桥。
+> **Current：** 见下文创立初心与 [产品契约](docs/product-contract.zh-CN.md)：双系统合一；组织像工作室里另一间可独立布置的房间；托管 Node / 内嵌组织页是过渡桥。
 >
 > **Historical：** 下文大量沿自 Octop 宿主能力说明（安装脚本、控制台、CLI、亮点表）。那些能力仍在 FreeOS 宿主里，但本文 **不是** Octop 官方产品页，也不再把 FreeOS 写成「只管理云端与付费增强服务」。
 
@@ -62,7 +62,7 @@ FreeOS 诞生于一个简单而清晰的目标：在 Octop 的自托管多智能
 
 为避免整包内嵌 openXYOS 带来的安装负担与体积膨胀，FreeOS 选择另一条路：把 openXYOS 的网页与组织能力，逐步转化为 Octop 宿主上的原生能力，从而形成新的统一系统——FreeOS。当前桌面中的托管 Node / 内嵌组织页，只是通往这一终态的过渡桥，而非终点。
 
-在使用方式上，FreeOS 首先保证你能在自己的环境里独立完成注册与登录，把数据与会话留在本机可控范围；与外部账号体系、商业授权的衔接，会在合适的时机以可选方式开放，而不是作为起步门槛。组织相关能力则以相对独立的工作空间呈现——便于试用、演练与定制组织侧流程；它与宿主侧的日常使用彼此协作，又各自保有清晰边界，避免把两套场景揉成一套账号逻辑。
+在使用方式上，FreeOS 更像你自己的工作室：先在本机安顿好，注册登录、数据与会话都留在你够得着的地方；以后若需要与更广的服务或授权衔接，会以可选方式慢慢打开，不挡你起步。组织相关能力则像工作室里另一间可独立布置的房间——方便试用、演练和长出自己的组织流程；与日常对话、助手协作同在一个 FreeOS 里，又各自留白，不把两种用法捏成同一种进入方式。
 
 一句话：FreeOS = 本地可控的 Octop 底座 + 可生长、可导出的组织能力，双系统合一，双身份分立。
 
@@ -478,7 +478,7 @@ OctopServer
 
 详见 [docs/architecture.md](docs/architecture.md)、[docs/adr/001-single-process-model.md](docs/adr/001-single-process-model.md) 与 [docs/adr/002-database-backends.md](docs/adr/002-database-backends.md)。
 
-产品意图（使用边界、Node 只是桥）见 [docs/product-contract.zh-CN.md](docs/product-contract.zh-CN.md)。组织模块目标架构（Dashboard 子 UI + 可导出独立站，单源双交付）见 [docs/adr/003-org-ui-single-source-dual-delivery.md](docs/adr/003-org-ui-single-source-dual-delivery.md) 与 [docs/org-merge-plan.md](docs/org-merge-plan.md)（先读文首 Historical vs Current）。
+产品意图（工作室比喻、Node 只是桥）见 [docs/product-contract.zh-CN.md](docs/product-contract.zh-CN.md)。组织模块目标架构（Dashboard 子 UI + 可导出独立站，单源双交付）见 [docs/adr/003-org-ui-single-source-dual-delivery.md](docs/adr/003-org-ui-single-source-dual-delivery.md) 与 [docs/org-merge-plan.md](docs/org-merge-plan.md)（先读文首 Historical vs Current）。
 
 ### 📁 项目结构
 

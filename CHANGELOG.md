@@ -8,7 +8,7 @@
 
 ### 文档
 
-- 冻结 FreeOS 产品契约（P0.1）：[docs/product-contract.md](docs/product-contract.md) / [docs/product-contract.zh-CN.md](docs/product-contract.zh-CN.md)。核心愿景采用「创立初心」定稿（中文原文；英文 README 为忠实对应；使用方式段保持委婉：本机注册登录为起步，组织能力为相对独立工作空间）。产品口号：**FreeOS：自由的 AI 工作室，想象空间由你来打开** / *FreeOS: a free AI studio — the space for imagination is yours to open.* 托管 Node / 内嵌组织页仅为过渡桥，终态是把 openXYOS 迁入宿主并导出可商业化源码。取代先前「组织身份为唯一权威」与「永久 / 默认捆绑 Node 运行时」表述。冲突文档改为 Historical vs Current，不删工程历史。
+- 冻结 FreeOS 产品契约（P0.1）：[docs/product-contract.md](docs/product-contract.md) / [docs/product-contract.zh-CN.md](docs/product-contract.zh-CN.md)。核心愿景采用「创立初心」定稿（中文原文；英文 README 为忠实对应；使用方式段为工作室比喻：本机安顿起步，组织像另一间可独立布置的房间）。产品口号：**FreeOS：自由的 AI 工作室，想象空间由你来打开** / *FreeOS: a free AI studio — the space for imagination is yours to open.* 托管 Node / 内嵌组织页仅为过渡桥，终态是把 openXYOS 迁入宿主并导出可商业化源码。取代先前「组织身份为唯一权威」与「永久 / 默认捆绑 Node 运行时」表述。冲突文档改为 Historical vs Current，不删工程历史。
 
 ### 新增
 

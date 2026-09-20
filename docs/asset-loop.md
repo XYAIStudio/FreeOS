@@ -1,6 +1,6 @@
 # FreeOS self-growth loop
 
-> Product intent: [product-contract.md](product-contract.md). The loop is how Octop and openXYOS **assets interoperate**. Sidecar ingest on `:3780` is a bridge; the durable mirror works without Node. Running the loop does not fold the organization workspace into everyday host account logic.
+> Product intent: [product-contract.md](product-contract.md). The loop is how Octop and openXYOS **assets interoperate**. Sidecar ingest on `:3780` is a bridge; the durable mirror works without Node. Running the loop does not collapse the organization room and everyday studio use into one way in.
 
 FreeOS **grows its own AI workforce**. The loop is the product:
 

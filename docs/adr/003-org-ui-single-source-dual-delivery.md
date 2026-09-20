@@ -5,7 +5,7 @@
 
 > **Historical vs Current.**
 >
-> **Current (canonical):** [product-contract.md](../product-contract.md). Everyday host signup stays in your own environment; organization capabilities are a relatively separate workspace with a clear boundary. Managed Node and full-App iframe are a **transition bridge**. End state: migrate openXYOS into the host. Phase-5 zero-Node is a lean default, not a claim that unmigrated App surfaces are done.
+> **Current (canonical):** [product-contract.md](../product-contract.md). Settle in locally first; organization capabilities are another room in the same studio. Managed Node and full-App iframe are a **transition bridge**. End state: migrate openXYOS into the host. Phase-5 zero-Node is a lean default, not a claim that unmigrated App surfaces are done.
 >
 > **Historical (2026-09-19 scope amendment, superseded for runtime/identity):** full openXYOS UI/function/relationship parity, including App.tsx business modules and organizational chat capabilities. Open-12-only and permanent chat-exclusion clauses in the body below are historical scope; capability inventory lives in [org-full-integration.md](../org-full-integration.md). The sentence that approved “FreeOS-managed bundled Node + organization-owned registration/login as unique identity authority” is **void**.
 
@@ -17,7 +17,7 @@
 
 ## 摘要（Chinese summary）
 
-组织模块代码是**唯一事实来源**（页面/能力对齐）。openXYOS 网页应变成 **FreeOS Dashboard `/organization/...` 下的子 UI**，并最终能 **导出** 独立 openXYOS 系统源码。默认一个安装器、一个 Python 进程；Node sidecar / iframe 仅作过渡桥。宿主日常使用与组织工作空间保有清晰账号边界。**不**用 openXYOS Chat 替换 FreeOS/Octop 的 Agent 对话运行时。
+组织模块代码是**唯一事实来源**（页面/能力对齐）。openXYOS 网页应变成 **FreeOS Dashboard `/organization/...` 下的子 UI**，并最终能 **导出** 独立 openXYOS 系统源码。默认一个安装器、一个 Python 进程；Node sidecar / iframe 仅作过渡桥。组织能力像工作室里另一间可独立布置的房间，与日常对话、助手同在一个 FreeOS。**不**用 openXYOS Chat 替换 FreeOS/Octop 的 Agent 对话运行时。
 
 落地形态：壳无关的 `org-ui` 包 + 薄 Dashboard 适配器 + `freeos org export-standalone` 导出流水线。托管 Node / iframe **不是** 终态（见 [产品契约](../product-contract.zh-CN.md)）。
 
@@ -43,7 +43,7 @@ Phase 0 mapped the overlap. This ADR freezes the merge contract before any page 
 Ship **one** organization UI source and **two** deliveries:
 
 1. **完整组织应用为功能基线** — 保留 openXYOS 页面、路由和业务关系，迁入同域 `/organization/`（iframe 仅为过渡）。
-2. **FreeOS 为产品宿主** — 统一生命周期与同域交付。**Current：** 把能力做成宿主原生部分；托管 Node 只是桥。组织能力以相对独立的工作空间呈现，与宿主日常使用协作并保有清晰账号边界。
+2. **FreeOS 为产品宿主** — 统一生命周期与同域交付。**Current：** 把能力做成宿主原生部分；托管 Node 只是桥。组织能力像工作室里另一间可独立布置的房间，与日常对话、助手协作同在一个 FreeOS。
 3. **独立站为同一产物的交付形态** — 最终目标是可导出的 openXYOS 系统源码；今日 `export-standalone` 是早期交付。
 
 ```
@@ -66,7 +66,7 @@ Ship **one** organization UI source and **two** deliveries:
 |---|---|
 | 完整组织应用为功能基线 | 所有已实现网页模块、页面内部能力与关系以其为对照（迁入宿主，不是永远 iframe） |
 | FreeOS 是产品宿主 | `/organization/` 同域交付，宿主负责生命周期、代理和商业化入口 |
-| ~~组织身份为唯一权威~~ | **Historical / void.** Current：组织能力以相对独立的工作空间呈现，与宿主日常使用协作并保有清晰账号边界；不要揉成一套账号逻辑。 |
+| ~~组织身份为唯一权威~~ | **Historical / void.** Current：组织能力像工作室里另一间可独立布置的房间，与日常对话、助手同在一个 FreeOS，两种进入方式不捏成一种。 |
 | ~~一个安装器 · 内置托管 Node~~ | **Historical as destination.** 默认安装器可零 Node（Phase 5）；托管 Node + iframe 仅为过渡桥。 |
 | 独立站可生成 | 自托管是交付方式，不分叉功能代码；最终目标是可导出的 openXYOS 系统源码 |
 | 两类对话均保留 | 组织协作聊天与 FreeOS Agent 对话分别保留并按入口使用 |
@@ -93,7 +93,7 @@ Phase 2 proves the contract on **Announcements** (see [org-merge-plan.md](../org
 ## Consequences
 
 - New org pages **must** land in `org-ui` (or a path that export can import). Dashboard-only copies and sidecar-only copies are out of contract.
-- `org-ui` takes a **`ShellAdapter` / `IdentityBridge`**: embedded host mode uses the everyday host session; the organization workspace keeps its own boundary (see [product-contract.md](../product-contract.md)). Standalone export uses local JWT. Default UX is **no extra login wall on the host chrome**.
+- `org-ui` takes a **`ShellAdapter` / `IdentityBridge`**: embedded host mode uses the everyday studio session; the organization room keeps its own space (see [product-contract.md](../product-contract.md)). Standalone export uses local JWT. Default UX is **no extra login wall on the host chrome**.
 - Host **`/api/org-module/*`** remains the in-process BFF (catalog, loop, lifecycle, governance, asset factory). Business CRUD (e.g. `/api/announcements`) migrates **per slice**; unmigrated routes may still proxy to an opt-in sidecar.
 - Chat, IM, cron, and agent runtime stay on the host. The OpenApp `/chat` page is **not** a migration target.
 - Default desktop/NSIS/portable builds stay **zero-Node**. Sidecar zip is opt-in (`SHIP_OPENXYOS_RUNTIME=1`).

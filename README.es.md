@@ -26,7 +26,7 @@ uv sync
 uv run freeos run
 ```
 
-Empiece registrándose e iniciando sesión en su propio entorno; los datos y las sesiones quedan en local. Una cuenta externa o una licencia comercial podrá abrirse más adelante, de forma opcional, no como requisito de partida. Las capacidades de organización aparecen como un espacio de trabajo relativamente aparte, que colabora con el uso cotidiano del anfitrión y mantiene un límite claro. No publique claves API, tokens ni datos reales de clientes.
+FreeOS se parece más a un estudio propio: primero se acomoda en local, con registro, inicio de sesión, datos y sesiones al alcance. Servicios o licencias más amplios podrán abrirse después, de forma opcional, sin cerrar el comienzo. Las capacidades de organización son como otra habitación de ese estudio, para disponerla a su modo — el mismo FreeOS que el chat y los asistentes de cada día, sin fundir las dos formas de entrar en una sola. No publique claves API, tokens ni datos reales de clientes.
 
 Consulte el [README en inglés](README.md) y el [Wiki](https://github.com/XYAIStudio/FreeOS/wiki) para más información.
 

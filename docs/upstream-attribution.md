@@ -34,7 +34,7 @@ Octop 的 MIT 许可证允许商业使用、修改、分发、再授权与销售
   [`modules/openxyos/TRADEMARKS.md`](../modules/openxyos/TRADEMARKS.md) 并取得必要授权。
 - 对外应使用 FreeOS 自己的产品名称、标志、网站和支持渠道，避免让用户误以为安装包
   来自上游官方。
-- 产品意图（本机起步、组织工作空间保有边界、Node 只是桥、迁入宿主）见
+- 产品意图（本机安顿、组织像另一间房间、Node 只是桥、迁入宿主）见
   [产品契约](product-contract.zh-CN.md)，不要与本文件的许可证/商标边界混淆。
 
 ## 发行与交付清单

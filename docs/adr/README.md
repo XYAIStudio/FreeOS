@@ -1,6 +1,6 @@
 # Architecture Decision Records
 
-Canonical product intent (local signup, organization as a separate workspace, Node as bridge, native migration):
+Canonical product intent (local studio, organization as another room, Node as bridge, native migration):
 [product-contract.md](../product-contract.md).
 
 | ADR | Title | Status |
