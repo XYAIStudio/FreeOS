@@ -125,15 +125,21 @@ build_openxyos() {
     rsync -a --delete \
       --exclude node_modules --exclude dist --exclude .git --exclude .github \
       --exclude backups --exclude dist-backup-20260626 --exclude V0.5 \
+      --include '.env.example' --exclude '.env' --exclude '.env.*' \
+      --exclude '.freeos' --exclude '.octop' --exclude 'octop.db' --exclude '*.sqlite' \
       "${src}/" "${work}/"
   else
     python3 - "$src" "$work" <<'PY'
 import shutil, sys
 from pathlib import Path
 src, dest = Path(sys.argv[1]), Path(sys.argv[2])
-skip = {"node_modules", "dist", ".git", ".github", "backups", "dist-backup-20260626", "V0.5"}
+skip = {"node_modules", "dist", ".git", ".github", "backups", "dist-backup-20260626", "V0.5", ".freeos", ".octop"}
 for item in src.iterdir():
     if item.name in skip:
+        continue
+    if item.name == ".env" or (item.name.startswith(".env.") and item.name != ".env.example"):
+        continue
+    if item.name == "octop.db" or item.suffix in {".sqlite", ".sqlite3", ".db"}:
         continue
     target = dest / item.name
     if item.is_dir():

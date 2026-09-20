@@ -306,6 +306,19 @@ assemble_one() {
   stamp="${stamp:-local}-$(date -u +%Y%m%d%H%M%S)"
   printf '%s\n' "$stamp" > "${staging}/FREEOS_STAMP"
 
+  echo "[package] ${plat}: scanning staging for secrets / user home data" >&2
+  py_scan=""
+  if command -v python3 >/dev/null 2>&1; then
+    py_scan=python3
+  elif command -v python >/dev/null 2>&1; then
+    py_scan=python
+  fi
+  if [[ -z "$py_scan" ]]; then
+    echo "[package] need python to scan packaged secrets" >&2
+    exit 1
+  fi
+  "$py_scan" "${REPO_ROOT}/desktop/portable/scan_packaged_secrets.py" "$staging"
+
   rm -f "$zip_path"
   echo "[package] ${plat}: zipping → ${zip_path}"
   local zip_name zip_stem

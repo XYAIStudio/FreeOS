@@ -966,7 +966,7 @@ function migrateDatabase() {
 
   const existingConfig = dbGet("SELECT COUNT(*) as c FROM ai_config") as any;
   if (existingConfig.c === 0) {
-    dbRun("INSERT INTO ai_config (key, value, description, tenant_id) VALUES (?, ?, ?, ?)", ["llm_api_key", process.env.LLM_API_KEY || "", "LLM API 密钥", 1]);
+    dbRun("INSERT INTO ai_config (key, value, description, tenant_id) VALUES (?, ?, ?, ?)", ["llm_api_key", "", "LLM API 密钥", 1]);
     dbRun("INSERT INTO ai_config (key, value, description, tenant_id) VALUES (?, ?, ?, ?)", ["llm_api_base", process.env.LLM_API_BASE || "", "LLM API 地址", 1]);
     dbRun("INSERT INTO ai_config (key, value, description, tenant_id) VALUES (?, ?, ?, ?)", ["llm_model", process.env.LLM_MODEL || "", "LLM 模型", 1]);
     dbRun("INSERT INTO ai_config (key, value, description, tenant_id) VALUES (?, ?, ?, ?)", ["ai_reply_enabled", "true", "是否启用AI自动回复", 1]);

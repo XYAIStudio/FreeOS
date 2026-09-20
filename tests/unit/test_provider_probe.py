@@ -193,3 +193,26 @@ async def test_chat_probe_skips_embeddings_endpoint() -> None:
     assert result["ok"] is True
     client.assert_not_called()
     fake.ainvoke.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_cloud_probe_blocks_empty_api_key_without_http() -> None:
+    row = SimpleNamespace(
+        name="DeepSeek",
+        kind="openai",
+        base_url="https://api.deepseek.com",
+        api_key="",
+        extra_json=None,
+        get_models=lambda: [{"id": "deepseek-chat", "name": "DeepSeek"}],
+    )
+    with (
+        patch("octop.infra.agents.providers.probe.httpx.AsyncClient") as client,
+        patch("octop.infra.agents.providers.probe.build_probe_chat_model") as chat,
+    ):
+        result = await probe_provider_row(row, locale="en")
+
+    assert result["ok"] is False
+    assert "API key" in result["error"]
+    assert "Ollama" in result["error"]
+    client.assert_not_called()
+    chat.assert_not_called()

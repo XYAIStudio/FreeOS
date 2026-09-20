@@ -71,6 +71,21 @@ async function main() {
     });
     assert.equal(invalid.status, 400);
 
+    const emptyCloud = await request(tokens.admin, "/api/settings/ai/onboarding", {
+      method: "PUT",
+      body: JSON.stringify({ providerId: "deepseek", apiKey: "" }),
+    });
+    assert.equal(emptyCloud.status, 400);
+
+    const local = await request(tokens.admin, "/api/settings/ai/onboarding", {
+      method: "PUT",
+      body: JSON.stringify({ providerId: "ollama", apiKey: "" }),
+    });
+    assert.equal(local.status, 200);
+    const localRows = dbAll("SELECT key, value FROM ai_config WHERE tenant_id = ?", [tenantA]) as any[];
+    assert.equal(localRows.find(row => row.key === "llm_api_key")?.value, "ollama");
+    assert.equal(localRows.find(row => row.key === "llm_api_base")?.value, "http://127.0.0.1:11434/v1");
+
     const context = await request(tokens.tenantB, "/api/context");
     assert.equal((await context.json() as any).tenantId, tenantB);
     console.log("LLM onboarding, key masking, and tenant isolation integration tests passed");

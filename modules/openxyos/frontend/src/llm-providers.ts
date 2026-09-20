@@ -1,4 +1,5 @@
 export const EXPERIENCE_MODELS = [
+  { id: "ollama", provider: "Ollama", name: "Ollama (Local)", baseUrl: "http://127.0.0.1:11434/v1", model: "llama3.2", hint: "本机模型，无需云厂商密钥", hintEn: "Local models, no cloud API key", local: true },
   { id: "deepseek", provider: "DeepSeek", name: "DeepSeek V4 Flash", baseUrl: "https://api.deepseek.com", model: "deepseek-v4-flash", hint: "高性价比推理与通用对话", hintEn: "Cost-efficient reasoning and general chat" },
   { id: "qwen", provider: "阿里云百炼", name: "通义千问 Plus", baseUrl: "https://dashscope.aliyuncs.com/compatible-mode/v1", model: "qwen-plus", hint: "中文与企业场景", hintEn: "Chinese and enterprise scenarios" },
   { id: "openai", provider: "OpenAI", name: "GPT-5 mini", baseUrl: "https://api.openai.com/v1", model: "gpt-5-mini", hint: "通用智能与工具调用", hintEn: "General intelligence and tool use" },

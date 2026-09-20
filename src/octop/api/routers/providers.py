@@ -20,6 +20,7 @@ from octop.infra.agents.providers.presets import load_provider_presets
 from octop.infra.agents.providers.probe import (
     fetch_openai_compatible_models,
     make_probe_provider_row,
+    missing_cloud_api_key_result,
     probe_provider_row,
     provider_headers,
 )
@@ -311,7 +312,7 @@ async def admin_test_provider_draft(
         base_url=body.base_url,
     )
     if not api_key:
-        return {"ok": False, "error": "api_key is required"}
+        return missing_cloud_api_key_result(resolve_request_locale(request))
     model_id = body.model_id.strip()
     if not model_id:
         return {"ok": False, "error": "model_id is required"}
@@ -350,7 +351,7 @@ async def admin_fetch_provider_models(
         base_url=body.base_url,
     )
     if not api_key:
-        return {"ok": False, "error": "api_key is required"}
+        return missing_cloud_api_key_result(resolve_request_locale(request))
     draft = SimpleNamespace(extra_json=body.extra_json)
     return await fetch_openai_compatible_models(
         base_url=base_url or None,

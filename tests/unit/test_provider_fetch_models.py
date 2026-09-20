@@ -174,3 +174,22 @@ async def test_fetch_models_server_error_friendly() -> None:
     assert result["ok"] is False
     assert "temporarily unavailable" in result["error"].lower()
     assert "503" not in result["error"]
+
+
+@pytest.mark.asyncio
+async def test_fetch_models_blocks_empty_cloud_api_key() -> None:
+    mock_client = AsyncMock()
+    mock_client.get = AsyncMock()
+    mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+    mock_client.__aexit__ = AsyncMock(return_value=None)
+
+    with patch("octop.infra.agents.providers.probe.httpx.AsyncClient", return_value=mock_client):
+        result = await fetch_openai_compatible_models(
+            base_url="https://api.deepseek.com",
+            api_key="",
+            locale="en",
+        )
+
+    assert result["ok"] is False
+    assert "API key" in result["error"]
+    mock_client.get.assert_not_called()
