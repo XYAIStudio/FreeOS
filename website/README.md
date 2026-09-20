@@ -78,6 +78,6 @@ website/dist/
 ## 内容边界
 
 - 产品事实以 [docs/product-contract.zh-CN.md](../docs/product-contract.zh-CN.md) 为准；架构细节见 `docs/architecture-integration.md`、`docs/asset-loop.md`。
-- Windows 安装包指向 [最新 GitHub Release](https://github.com/XYAIStudio/FreeOS/releases/latest)（当前 Latest 为 v0.0.3）。
+- 安装包一律指向 [GitHub Releases 列表](https://github.com/XYAIStudio/FreeOS/releases)，不写死版本号或直链 `.exe`。
 - 页脚按 `NOTICE` 致谢 Octop（MIT）与 openXYOS（Apache-2.0）；FreeOS 是独立维护的下游，沿用上游许可。
 - 视觉节奏参考 XYAI Labs 公开站的章节编号与玻璃质感，文案仍是 FreeOS 产品自己的话。

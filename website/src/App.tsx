@@ -178,7 +178,7 @@ export default function App() {
             </p>
             <p className="lead">{t.hero.lead}</p>
             <div className="hero-actions">
-              <a className="btn primary" href="#download">
+              <a className="btn primary" href={LINKS.releases} target="_blank" rel="noreferrer">
                 <IconDownload />
                 {t.hero.download}
               </a>
@@ -281,23 +281,13 @@ export default function App() {
             <h2>{t.download.title}</h2>
             <p>{t.download.lead}</p>
           </div>
-          <div className="dl-grid">
-            <a className="dl-card" href={LINKS.windowsAmd64}>
-              <img src={mascotSrc("tasks")} alt={poseAlts.tasks} width={200} height={200} />
-              <b>{t.download.amd64}</b>
-              <span>{t.download.amd64Meta}</span>
-            </a>
-            <a className="dl-card" href={LINKS.windowsArm64}>
-              <img src={mascotSrc("type")} alt={poseAlts.type} width={200} height={200} />
-              <b>{t.download.arm64}</b>
-              <span>{t.download.arm64Meta}</span>
+          <div className="hero-actions">
+            <a className="btn primary" href={LINKS.releases} target="_blank" rel="noreferrer">
+              <IconDownload />
+              {t.download.cta}
             </a>
           </div>
-          <p className="center-link">
-            <a href={LINKS.releases} target="_blank" rel="noreferrer">
-              {t.download.allReleases} →
-            </a>
-          </p>
+          <p className="center-link">{t.download.hint}</p>
           <div className="steps-cli">
             <ol className="steps">
               <li className="steps-title">{t.download.stepsTitle}</li>
@@ -395,7 +385,7 @@ uv run freeos org loop run`}
           <h2>{t.cta.title}</h2>
           <p>{t.cta.lead}</p>
           <div className="hero-actions">
-            <a className="btn primary" href={LINKS.releaseTag} target="_blank" rel="noreferrer">
+            <a className="btn primary" href={LINKS.releases} target="_blank" rel="noreferrer">
               <IconDownload />
               {t.cta.download}
             </a>
