@@ -14,6 +14,7 @@ from octop.api.deps import (
     ACCESS_TOKEN_RESPONSE_HEADER,
     decode_token,
     is_jwt_exempt_path,
+    is_organization_business_path,
     maybe_sliding_renew_token,
     sign_token,
 )
@@ -39,6 +40,9 @@ def test_exempt_paths() -> None:
     assert not is_jwt_exempt_path("/api/auth/oidc/config/test")
     assert not is_jwt_exempt_path("/api/auth/me")
     assert not is_jwt_exempt_path("/api/agents")
+    assert is_jwt_exempt_path("/api/org-module/identity/status")
+    assert is_jwt_exempt_path("/api/org-module/identity/login")
+    assert not is_jwt_exempt_path("/api/org-module/business/api/org")
 
 
 @pytest.fixture
@@ -143,3 +147,19 @@ async def test_maybe_sliding_renew_helper_threshold(client) -> None:
     renewed = maybe_sliding_renew_token(srv, short, user)
     assert renewed is not None
     assert renewed != short
+
+
+def test_organization_business_path_is_not_the_studio_door() -> None:
+    assert is_organization_business_path("/api/org-module/business/api/settings")
+    assert not is_organization_business_path("/api/auth/me")
+
+
+async def test_host_session_survives_open_organization_room(client, monkeypatch) -> None:
+    c, _srv, home = client
+    await bootstrap_admin(c, home)
+    monkeypatch.setattr("octop.api.middleware.jwt_auth.integrated_organization", lambda: True)
+    token = await login(c)
+    r = await c.get("/api/auth/me", headers=bearer(token))
+    assert r.status_code == 200
+    assert r.json()["role"] == "admin"
+    assert r.json().get("organization_user_id") in (None, 0)

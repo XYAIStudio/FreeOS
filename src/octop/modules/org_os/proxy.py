@@ -36,19 +36,23 @@ def sidecar_target(base_url: str, path: str, query: str = "") -> str:
 
 
 def identity_headers(user: Any, *, tenant_id: str | None = None) -> dict[str, str]:
-    """Map a FreeOS/Octop user onto sidecar request headers (MVP, not SSO)."""
+    """Map a FreeOS/Octop user onto sidecar request headers (MVP, not SSO).
+
+    Studio guests keep a host session; they must not appear as organization-room
+    admins. Room roles travel in ``organization_role`` after a real org login.
+    """
     headers: dict[str, str] = {}
     if user is not None:
         username = getattr(user, "username", None) or getattr(user, "uname", None)
         user_id = getattr(user, "id", None)
-        role = getattr(user, "role", None)
-        user_tenant = getattr(user, "tenant_id", None)
+        org_user_id = getattr(user, "organization_user_id", None)
         if username:
             headers["X-FreeOS-User"] = str(username)
         if user_id is not None:
             headers["X-FreeOS-User-Id"] = str(user_id)
-        if role:
-            headers["X-FreeOS-Role"] = str(role)
+        role = str(getattr(user, "organization_role", None) or "user") if org_user_id else "guest"
+        headers["X-FreeOS-Role"] = role
+        user_tenant = getattr(user, "tenant_id", None) or getattr(user, "organization_id", None)
         if user_tenant is not None and str(user_tenant).strip():
             headers["X-FreeOS-Tenant-Id"] = str(user_tenant)
     if tenant_id and str(tenant_id).strip():

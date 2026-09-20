@@ -11,6 +11,8 @@
     "subtitle": "A dual loop: FreeOS does the work, openXYOS governs the org — they grow each other.",
     "heroTitle": "Organization",
     "heroStory": "FreeOS does the work. openXYOS owns organization and governance. They grow each other.",
+    "roomDoorHint": "Organization is another room you can furnish on its own: try, rehearse, and grow your workflows. It shares the studio with everyday chat, and each door keeps its own space.",
+    "roomFrameTitle": "Organization room",
     "toggleLabel": "Enable organization module",
     "enableModule": "Enable organization module",
     "manageOs": "Organization OS",
@@ -4956,6 +4958,9 @@
   "login": {
     "title": "Sign in",
     "subtitle": "An intelligent partner that understands you, helps you, and grows with you",
+    "studioHint": "Settle in locally first. Sign-up, sign-in, and data stay within reach.",
+    "roomDoorHint": "Organization is another room in the studio, with its own key.",
+    "roomDoorLink": "Enter that room",
     "username": "Username or email",
     "password": "Password",
     "submit": "Sign in",

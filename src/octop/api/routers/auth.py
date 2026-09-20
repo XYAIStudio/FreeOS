@@ -18,7 +18,6 @@ from octop.infra.users.local_session import (
 )
 from octop.infra.users.permissions import effective_permissions
 from octop.infra.utils.locale import normalize_locale, resolve_request_locale
-from octop.modules.org_os.integration import integrated_organization
 
 router = APIRouter()
 
@@ -82,8 +81,6 @@ class ChangePasswordBody(BaseModel):
 @router.post("/login", summary="Sign in")
 async def login(body: LoginBody, server: Any = Depends(get_server)) -> dict[str, Any]:
     """Exchange username (or email) and password for a JWT access token and user profile."""
-    if integrated_organization():
-        raise OctopError(ErrorCode.FORBIDDEN, "use organization sign-in")
     if server.user_manager.count() == 0:
         raise OctopError(ErrorCode.SETUP_REQUIRED, "initial admin not created")
     user = await server.user_manager.authenticate(body.username, body.password)
@@ -101,8 +98,6 @@ class RegisterBody(BaseModel):
 @router.post("/local-session", summary="Open a local guest or single-user session")
 async def local_session(request: Request, server: Any = Depends(get_server)) -> dict[str, Any]:
     """Issue a JWT without a login form on desktop / loopback first launch."""
-    if integrated_organization():
-        raise OctopError(ErrorCode.FORBIDDEN, "organization sign-in required")
     if not _is_local_client(request):
         raise OctopError(ErrorCode.FORBIDDEN, "local session is only available on this device")
     locale = normalize_locale(resolve_request_locale(request))
@@ -118,8 +113,6 @@ async def register(
     server: Any = Depends(get_server),
 ) -> dict[str, Any]:
     """Set username and password on the auto-provisioned local user."""
-    if integrated_organization():
-        raise OctopError(ErrorCode.FORBIDDEN, "use organization registration")
     locale = normalize_locale(resolve_request_locale(request))
     claimed = await claim_local_account(
         server,
@@ -135,8 +128,6 @@ async def register(
 @router.post("/logout", status_code=204, summary="Sign out")
 async def logout(user: Any = Depends(current_user), server: Any = Depends(get_server)) -> Response:
     """Record an audit event for the current session. JWTs are stateless and not revoked server-side."""
-    if integrated_organization():
-        raise OctopError(ErrorCode.FORBIDDEN, "use organization sign-out")
     server.services.audit_repo.write(actor=user.username, action="auth.logout")
     return Response(status_code=204)
 
@@ -156,10 +147,6 @@ async def change_password(
     server: Any = Depends(get_server),
 ) -> Response:
     """Verify the old password and set a new one for the current user."""
-    if integrated_organization():
-        raise OctopError(
-            ErrorCode.FORBIDDEN, "organization credentials are managed by organization"
-        )
     await server.user_manager.change_password(user.username, body.old_password, body.new_password)
     return Response(status_code=204)
 
@@ -181,8 +168,6 @@ async def update_me(
     (e.g. ``{"display_name": null}``) clears the field, while an omitted field
     leaves the current value untouched.
     """
-    if integrated_organization():
-        raise OctopError(ErrorCode.FORBIDDEN, "organization profile is managed by organization")
     provided = body.model_dump(exclude_unset=True)
     if "display_name" in provided:
         await server.user_manager.set_display_name(user.username, body.display_name)

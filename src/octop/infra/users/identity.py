@@ -30,3 +30,8 @@ class User:
     @property
     def is_admin(self) -> bool:
         return self.role is Role.ADMIN
+
+    @property
+    def has_organization_identity(self) -> bool:
+        """True when this host row is a mapping of an organization-room principal."""
+        return self.organization_user_id is not None

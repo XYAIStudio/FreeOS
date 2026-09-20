@@ -171,8 +171,8 @@ export default function AuthPage() {
             </h2>
             <p className="text-sm text-text-muted">
               {tx(
-                "登录或注册，开启AI驱动的智能管理",
-                "Sign in or create an account to begin AI-native management.",
+                "这是工作室里的另一间房间。门口的登记本与本机工作室分开，各自留白。",
+                "This is another room in the studio. It keeps its own guestbook, apart from the local studio door.",
               )}
             </p>
           </div>
@@ -182,10 +182,13 @@ export default function AuthPage() {
           >
             <span className="text-lg shrink-0">🧪</span>
             <span className="leading-relaxed">
-              <strong>{tx("本机测试环境", "Local test environment")}</strong>
+              <strong>{tx("走进另一间房间", "Another room in the studio")}</strong>
               <br />
               <span className="text-text-muted">
-                {tx("直接进入可自定义的 openXYOS 本地工作台", "Enter the customizable local openXYOS workspace.")}
+                {tx(
+                  "试用、布置这里的流程；钥匙只开这扇门。",
+                  "Try and arrange the workflows here. This key opens only this door.",
+                )}
               </span>
             </span>
             <button

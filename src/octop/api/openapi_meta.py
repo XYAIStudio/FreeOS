@@ -26,6 +26,9 @@ Most endpoints require a JWT bearer token:
 3. `POST /api/auth/login` with `username` and `password`, or complete the OIDC flow
    with `/api/auth/oidc/start` and `/api/auth/oidc/exchange` when SSO is enabled.
 4. Send `Authorization: Bearer <access_token>` on subsequent requests.
+5. Organization-room APIs (`/api/org-module/identity/*`, `/api/org-module/business/*`)
+   use a separate organization session. An organization admin is never promoted to
+   the host admin role.
 
 Access tokens use sliding renewal: when less than one-third of
 `access_token_ttl_seconds` remains, authenticated responses may include a fresh
@@ -35,7 +38,9 @@ token when present.
 Public endpoints (no token): `/api/docs`, `/api/openapi.json`, `/api/health`,
 `/api/setup/*`, `/api/auth/login`, `/api/auth/local-session`, `/api/auth/oidc/status`, `/api/auth/oidc/start`,
 `/api/auth/oidc/callback`, `/api/auth/oidc/exchange`, `/api/auth/invite/validate`,
-`/api/auth/invite/redeem`, `/api/connectors/oauth/callback`,
+`/api/auth/invite/redeem`, `/api/org-module/identity/status`, `/api/org-module/identity/login`,
+`/api/org-module/identity/register`, `/api/org-module/identity/refresh`,
+`/api/connectors/oauth/callback`,
 and `/api/internal/mcp/*`.
 
 ## Agent scope

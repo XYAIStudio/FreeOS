@@ -57,6 +57,8 @@ terms in [NOTICE](../NOTICE) and
 | **Control plane** | openXYOS sidecar (`modules/openxyos`) | Org tree, tenants, module catalog, blueprints `openxyos.agent-blueprint.v1`, governance/audit, talent market, module contract |
 | **Data plane** | FreeOS host (Octop) | Agent runtime, SKILL.md, workspace FS, harness-memory, cron, multi-agent, MCP connectors, sandboxes, Feishu/DingTalk/Discord/… |
 
+**两扇门。** 工作室日常（本机注册 / 登录 / 数据）与组织房间（试用、布置组织流程）同在一个 FreeOS 里，各自留白。房间管理员不会被抬成宿主 `Role.ADMIN`；工作室访客也不会拿宿主通行证去写房间里的业务。
+
 ```
   Control plane (openXYOS)          Data plane (FreeOS / Octop)
   ────────────────────────          ───────────────────────────

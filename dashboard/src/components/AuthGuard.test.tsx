@@ -12,7 +12,8 @@ vi.mock("../api/modules/auth", () => ({
     localSession: (...args: unknown[]) => localSession(...args),
     getAuthStatus: (...args: unknown[]) => getAuthStatus(...args),
     me: (...args: unknown[]) => me(...args),
-    organizationIdentityStatus: (...args: unknown[]) => organizationIdentityStatus(...args),
+    organizationIdentityStatus: (...args: unknown[]) =>
+      organizationIdentityStatus(...args),
   },
 }));
 
@@ -136,6 +137,36 @@ describe("AuthGuard local session", () => {
     expect(await screen.findByText("model setup")).toBeInTheDocument();
     expect(screen.queryByText("login wall")).toBeNull();
     expect(screen.queryByText("usable app")).toBeNull();
+    expect(getAuthToken()).toBe("guest-token");
+  });
+
+  it("opens the studio door even when the organization room is available", async () => {
+    organizationIdentityStatus.mockResolvedValue({
+      integrated: true,
+      authority: "dual",
+      studio: "freeos",
+      room: "organization",
+    });
+    getAuthStatus.mockResolvedValue({ setup_required: true });
+    localSession.mockResolvedValue({
+      access_token: "guest-token",
+      token_type: "Bearer",
+      expires_in: 3600,
+      user: {
+        id: 1,
+        username: "local",
+        role: "admin",
+        display_name: "FreeOS",
+        locale: "zh",
+        is_local: true,
+      },
+      token: "guest-token",
+    });
+
+    renderGuard();
+
+    expect(await screen.findByText("usable app")).toBeInTheDocument();
+    expect(screen.queryByText("login wall")).toBeNull();
     expect(getAuthToken()).toBe("guest-token");
   });
 

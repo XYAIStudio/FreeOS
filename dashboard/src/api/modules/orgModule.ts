@@ -30,7 +30,9 @@ export interface OrgModuleStatus {
 
 export interface OrganizationIdentityStatus {
   integrated: boolean;
-  authority: "organization" | string;
+  authority: "organization" | "studio" | "dual" | string;
+  studio?: "freeos" | string;
+  room?: "organization" | string | null;
 }
 
 export interface OrgPlaneCounts {

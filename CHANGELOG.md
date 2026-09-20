@@ -13,6 +13,7 @@
 
 ### 新增
 
+- 双身份边界（P1.3）：工作室本机登录与组织房间登录分成两扇门。组织管理员不再被抬成宿主 `Role.ADMIN`；工作室访客不能拿宿主通行证写组织房间业务。界面与文档用「工作室 / 另一间房间 / 各自留白」说明两条路径。
 - P1.2：`freeos org export-standalone` 默认 `--mode full` 写出可商业化 openXYOS **源码包**（`openxyos/` Apache-2.0 完整 App.tsx 树 + `slice/` MIT 宿主桥 + `modules.json` 对照清单）。`--mode slice` 保留原先 org-ui SPA + `FREEOS_UPSTREAM` 反代。工作室智能体对话不导出；组织沟通协作在完整树。说明见 `docs/org-export.md`。
 - Organization P1.1（双向资产总线）：`freeos org loop run` / `POST /api/org-module/loop/run` / `assets apply` 在托管组织运行时、`OPENXYOS_BASE_URL` 或 `{FREEOS_HOME}/org-os/runtime.json` 可用时，把资产包 ingest 进当前**组织工作区租户**（`remote_applied=true`），不再只写 `openxyos-mirror/`。无运行时地址时仍为镜像-only，且不拉起 Node。回流后同事仍登记为 `org-<slug>` 聊天智能体。FreeOS 工作室账号与组织房间身份分开。说明见 `docs/asset-loop.md`。
 - P0.2：openXYOS → FreeOS 能力迁移图（`docs/org-capability-migration-map.md` / `.zh-CN.md` + `docs/org-capability-migration-map.json`）。按域记录原生宿主 / org-ui 切片 / 托管 Node iframe / 可选边车 / 仅导出；波次为资产总线 → 导出 → 双身份 UX → 本地模型/知识库 → 拆除 Node。不改运行时。

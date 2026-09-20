@@ -11,6 +11,8 @@
     "subtitle": "FreeOS 数据面与 openXYOS 控制面的双循环：干活与治理互相生长。",
     "heroTitle": "组织",
     "heroStory": "FreeOS 负责干活，openXYOS 负责组织与治理，两者互相生长。",
+    "roomDoorHint": "组织像工作室里另一间可独立布置的房间：试用、演练、长出自己的流程；与日常对话同在一个 FreeOS 里，又各自留白。",
+    "roomFrameTitle": "组织房间",
     "toggleLabel": "启用组织模块",
     "enableModule": "启用组织模块",
     "manageOs": "组织OS管理",
@@ -5095,6 +5097,9 @@
   "login": {
     "title": "登录",
     "subtitle": "懂你、帮你、陪你成长的智能伙伴",
+    "studioHint": "先在本机安顿好。注册、登录和数据都留在你够得着的地方。",
+    "roomDoorHint": "组织能力像工作室里的另一间房间，钥匙不是同一把。",
+    "roomDoorLink": "走进那间房间",
     "username": "用户名或邮箱",
     "password": "密码",
     "submit": "登录",

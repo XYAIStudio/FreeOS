@@ -11,11 +11,8 @@ const freeosOrganization =
 
 function organizationUrl(url: string): string {
   if (!freeosOrganization || !url.startsWith("/api/")) return url;
-  // FreeOS owns paid services such as creation, governance, and code export.
-  // The bundled OpenXYOS instance remains the user's local, self-owned test
-  // environment, so its account, registration, and business APIs must never
-  // be gated by a FreeOS account. Keep them on the same origin through the
-  // private sidecar proxy rather than exposing its loopback port.
+  // The organization room keeps its own guestbook. Proxy same-origin
+  // through /organization-app so studio credentials never gate this door.
   return `/organization-app${url}`;
 }
 

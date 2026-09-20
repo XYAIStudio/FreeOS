@@ -19,6 +19,7 @@ from octop.api.routers.org_knowledge import router as knowledge_router
 from octop.api.routers.org_reflections import router as reflections_router
 from octop.api.routers.org_settings import router as settings_router
 from octop.api.routers.org_tasks import router as tasks_router
+from octop.infra.errors import ErrorCode, OctopError
 from octop.infra.server import OctopServer
 from octop.infra.utils.locale import resolve_request_locale
 from octop.modules.org_os.catalog import OPENXYOS_MODULES
@@ -298,6 +299,10 @@ async def org_module_proxy(
             status_code=409,
             detail="organization module is disabled; enable it from /organization",
         )
+    if request.method not in {"GET", "HEAD", "OPTIONS"} and not getattr(
+        user, "has_organization_identity", False
+    ):
+        raise OctopError(ErrorCode.FORBIDDEN, "organization room identity required")
     health = service.probe_sidecar()
     if not health.reachable:
         raise HTTPException(

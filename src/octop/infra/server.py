@@ -352,7 +352,7 @@ class OctopServer:
         await self._boot_runtime(config)
         self._started = True
         assert self.user_manager is not None
-        if desktop and not integrated_organization() and self.user_manager.count() == 0:
+        if desktop and self.user_manager.count() == 0:
             await ensure_local_user(self, locale="zh")
             logger.info("desktop first-run: bound local SQLite and provisioned guest session")
         self._emit_wizard_password(user_count=self.user_manager.count())

@@ -405,6 +405,7 @@ export default function OrganizationPage() {
 
         <div className={styles.workbench} data-testid="org-native-workbench">
           <p className={styles.heroStory}>{t("organization.heroStory")}</p>
+          <p className={styles.heroStory}>{t("organization.roomDoorHint")}</p>
           <p className={styles.heroStory}>{t("organization.glossary")}</p>
 
           <section className={styles.actions} data-testid="org-in-host-pages">

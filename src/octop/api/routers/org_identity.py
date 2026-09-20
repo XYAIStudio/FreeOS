@@ -21,9 +21,15 @@ def require_integrated() -> None:
         raise OctopError(ErrorCode.FORBIDDEN, "integrated organization is disabled")
 
 
-@router.get("/identity/status", summary="Organization identity authority")
+@router.get("/identity/status", summary="Studio and organization-room identity doors")
 async def identity_status() -> dict[str, Any]:
-    return {"integrated": integrated_organization(), "authority": "organization"}
+    integrated = integrated_organization()
+    return {
+        "integrated": integrated,
+        "authority": "dual" if integrated else "studio",
+        "studio": "freeos",
+        "room": "organization" if integrated else None,
+    }
 
 
 async def forward(request: Request, server: Any, path: str) -> Response:
@@ -69,4 +75,6 @@ async def business_proxy(
 ) -> Response:
     if not (path.startswith("api/") or path.startswith("uploads/")):
         raise OctopError(ErrorCode.FORBIDDEN, "unsupported organization resource")
+    if not getattr(_user, "has_organization_identity", False):
+        raise OctopError(ErrorCode.FORBIDDEN, "organization room identity required")
     return await forward(request, server, path)

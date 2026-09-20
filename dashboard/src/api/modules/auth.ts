@@ -1,4 +1,5 @@
 import { clearSetupRequired, markSetupRequired, request } from "../request";
+import type { OrganizationIdentityStatus } from "./orgModule";
 
 /**
  * Auth + setup module — adapted to octop's multi-user backend.
@@ -53,6 +54,8 @@ export interface OctopUser {
   permissions?: string[];
   /** True while the desktop/loopback guest has not registered. */
   is_local?: boolean;
+  /** Organization-room role when this profile is a mapping; never host admin. */
+  organization_role?: string | null;
 }
 
 export interface LoginResponse {
@@ -114,6 +117,9 @@ interface RawOrganizationSession {
   };
 }
 
+export const ORG_ROOM_TOKEN_KEY = "org_room_token";
+export const ORG_ROOM_USER_KEY = "org_room_user";
+
 function organizationSession(raw: RawOrganizationSession): LoginResponse {
   const token = raw.data.tokens.accessToken;
   const user = raw.data.user;
@@ -124,15 +130,31 @@ function organizationSession(raw: RawOrganizationSession): LoginResponse {
     expires_in: raw.data.tokens.expiresIn ?? 3600,
     organization: true,
     organization_user: user,
-    user: {
-      id: user.id,
-      username: user.email,
-      role: user.role === "super_admin" ? "admin" : "user",
-      display_name: user.nickname || user.email,
-      locale: "zh",
-      permissions: [],
-    },
+    user: hostUserFromOrganization(user),
   };
+}
+
+/** Organization-room principal as a studio profile — always a host `user`. */
+export function hostUserFromOrganization(
+  user: OrganizationIdentityUser,
+): OctopUser {
+  return {
+    id: user.id,
+    username: user.email,
+    role: "user",
+    display_name: user.nickname || user.email,
+    locale: "zh",
+    permissions: [],
+    organization_role: user.role,
+  };
+}
+
+export function setOrgRoomSession(
+  token: string,
+  user: OrganizationIdentityUser,
+): void {
+  localStorage.setItem(ORG_ROOM_TOKEN_KEY, token);
+  localStorage.setItem(ORG_ROOM_USER_KEY, JSON.stringify(user));
 }
 
 /** Coalesce AuthGuard / Login / Setup probing the same endpoint in parallel. */
@@ -154,9 +176,7 @@ function applySetupFlags(status: AuthStatus): AuthStatus {
 
 export const authApi = {
   organizationIdentityStatus: () =>
-    request<{ integrated: boolean; authority: string }>(
-      "/org-module/identity/status",
-    ),
+    request<OrganizationIdentityStatus>("/org-module/identity/status"),
 
   organizationLogin: async (
     email: string,
