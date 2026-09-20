@@ -243,7 +243,7 @@ def publish_asset_pack(
         mcp_count=mcp_count,
         agent_count=agent_count,
         notes=[
-            "Assets are visible on the logged-in tenant's Employees, Talent, Skills, and Plugins lists.",
+            "Assets land on this organization's Employees, Talent, Skills, and Plugins lists.",
             "One tenant = one workspace; do not unpack this pack into a shared sandbox.",
             "Agent .env values are redacted except tenant/slug/schema keys.",
         ],

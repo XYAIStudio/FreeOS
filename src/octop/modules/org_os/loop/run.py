@@ -116,24 +116,26 @@ def _promote(store: LifecycleStore, slug: str) -> tuple[dict[str, str], list[str
 def run_growth_loop(
     home: Path,
     *,
-    tenant_id: str = "1",
+    tenant_id: str = "",
     blueprint_path: Path | None = None,
     policies_path: Path | None = None,
     sidecar_url: str = "",
     config_path: Path | None = None,
     owner_user_id: int | None = None,
+    organization_id: int | None = None,
 ) -> LoopProof:
     """Run the finished self-growth loop against *home*.
 
-    Uses bundled fixtures and the in-host org registry. When
-    ``OPENXYOS_BASE_URL`` (or an explicit *sidecar_url*) is set, outbound
-    packs are also POSTed to that optional control plane. The loop never
+    Uses bundled fixtures and the in-host org registry. When a managed
+    organization runtime, ``OPENXYOS_BASE_URL``, or ``org-os/runtime.json``
+    (or an explicit *sidecar_url*) is present, outbound packs are POSTed to
+    that control plane for the current org workspace tenant. The loop never
     starts or waits for a local Node sidecar.
     """
     home = Path(home)
     home.mkdir(parents=True, exist_ok=True)
-    tid = tenant_id or "1"
     service = OrgModuleService(config_path=config_path or (home / "config.json"), home=home)
+    tid = service.workspace_tenant_id(tenant_id, organization_id=organization_id)
     service.set_enabled(True, sidecar_url=sidecar_url or None)
     service.set_governance_enabled(True, tenant_id=tid)
 
@@ -141,7 +143,7 @@ def run_growth_loop(
     policies = Path(policies_path) if policies_path else policies_fixture()
     if not blueprint.is_file():
         raise FileNotFoundError(f"blueprint fixture missing: {blueprint}")
-    control_url = resolve_control_plane_url(sidecar_url)
+    control_url = resolve_control_plane_url(sidecar_url, service.explicit_sidecar_url(), home=home)
 
     imported = import_openxyos_assets(
         home,

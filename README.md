@@ -73,7 +73,7 @@ For the exact license split, notices and trademark-safe wording, see [NOTICE](NO
 
 ## Run the self-growth loop
 
-This is the product path. One command compiles a blueprint into a colleague, promotes it `draft → market → recruit → shadow → active`, registers a FreeOS chat agent, publishes an asset pack, applies that pack onto openXYOS-shaped surfaces as department employees (live HTTP when `OPENXYOS_BASE_URL` is set, otherwise a durable local mirror), imports the control plane back, and proves governance still **blocks** high-risk tools.
+This is the product path. One command compiles a blueprint into a colleague, promotes it `draft → market → recruit → shadow → active`, registers a FreeOS chat agent, publishes an asset pack, applies that pack onto openXYOS-shaped surfaces as department employees (live HTTP when a managed runtime / `OPENXYOS_BASE_URL` / `org-os/runtime.json` is present, otherwise a durable local mirror), imports the control plane back, and proves governance still **blocks** high-risk tools.
 
 ```bash
 git clone https://github.com/XYAIStudio/FreeOS.git
@@ -92,8 +92,8 @@ uv run pytest tests/e2e/test_org_growth_loop.py tests/unit/test_org_loop.py test
 
 | When | What happens |
 |---|---|
-| `OPENXYOS_BASE_URL` unset / sidecar down | Uses `tests/fixtures/org-loop/` and writes `{FREEOS_HOME}/openxyos-mirror/` |
-| `OPENXYOS_BASE_URL` (or `FREEOS_ORG_SIDECAR_URL`) set | Also POST `/api/freeos/ingest` (employees, talent, plugins, skills) when the sidecar is healthy |
+| No runtime URL | Uses `tests/fixtures/org-loop/` and writes `{FREEOS_HOME}/openxyos-mirror/` (`remote_applied=false`; Node is not started) |
+| Managed runtime, `OPENXYOS_BASE_URL`, `FREEOS_ORG_SIDECAR_URL`, or `{FREEOS_HOME}/org-os/runtime.json` | Also POST `/api/freeos/ingest` for the current org workspace tenant (`remote_applied=true`) |
 
 High-risk tools (`outbound`, `delete`, `pay`, `prod`) are default-denied in the host tool path (`OrgGovernanceMiddleware` + `xyos-governance-mcp`). `execute` stays false until `freeos org governance approve <id>` and the agent re-checks with the same args.
 

@@ -60,6 +60,20 @@ def _items(doc: Any, key: str) -> list[dict[str, Any]]:
     return []
 
 
+def _ingest_tenant_id(workspace_tenant: str, client: OpenXyosControlClient) -> int | None:
+    """Map the org workspace tenant onto the control-plane ingest tenant.
+
+    Numeric workspace tenants win. A sidecar session id is only a fallback when
+    the workspace tenant is not a positive integer (never a hardcoded ``1``).
+    """
+    tid = (workspace_tenant or "").strip()
+    if tid.isdigit() and int(tid) > 0:
+        return int(tid)
+    if client.base_url:
+        return client.ui_tenant_id()
+    return None
+
+
 def apply_asset_pack(
     pack_dir: Path,
     *,
@@ -184,17 +198,11 @@ def apply_asset_pack(
         control_plane_url=client.base_url,
         notes=[
             "Local mirror is the durable record.",
-            "Assets are visible on the logged-in tenant's Employees, Talent, Skills, and Plugins lists.",
+            "Assets land on this organization's Employees, Talent, Skills, and Plugins lists.",
         ],
     )
 
-    ui_tenant = client.ui_tenant_id() if client.base_url else None
-    if ui_tenant is not None:
-        ingest_tenant: int | None = ui_tenant
-    elif tid.isdigit() and int(tid) > 0:
-        ingest_tenant = int(tid)
-    else:
-        ingest_tenant = None
+    ingest_tenant = _ingest_tenant_id(tid, client)
     result.tenant_id = ingest_tenant
 
     ingest_payload: dict[str, Any] = {
@@ -284,7 +292,7 @@ def apply_asset_pack(
             f"control plane at {client.base_url} did not accept drafts; mirror is complete"
         )
     elif not client.base_url:
-        result.notes.append("OPENXYOS_BASE_URL unset; applied to local mirror only")
+        result.notes.append("OPENXYOS_BASE_URL / runtime.json unset; applied to local mirror only")
     return result
 
 

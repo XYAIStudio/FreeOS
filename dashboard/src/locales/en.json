@@ -179,7 +179,7 @@
     "assembleNext": "Next: open Conversations and invite colleagues to a group. Unassigned helpers stay on Experts.",
     "assemblePreviewExperts": "Opening Experts so you can select the imported colleagues.",
     "packReceipt": "Packed and pushed to the signed-in openXYOS tenant.",
-    "packLanded": "Signed-in tenant {{tenant}}: employees {{employees}}, talent {{talent}}, skills {{skills}}, plugins {{plugins}}",
+    "packLanded": "Organization workspace {{tenant}}: employees {{employees}}, talent {{talent}}, skills {{skills}}, plugins {{plugins}}",
     "packPreviewEmployees": "The preview now opens Employees so you can confirm the result.",
     "navWorkbench": "Workbench",
     "navWorkspace": "Workspace",

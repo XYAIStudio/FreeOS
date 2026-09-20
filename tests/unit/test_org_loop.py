@@ -161,6 +161,41 @@ def test_growth_loop_applies_to_live_control_plane(tmp_path: Path) -> None:
         assert "/api/freeos/ingest" in state.posts
         assert "employees" in proof.imported_roundtrip["remote_surfaces"]
         assert proof.landed
+        spawned = list_spawned_agents(tmp_path)
+        assert {item.slug for item in spawned} >= {"policy-analyst", "ops-coordinator"}
+        assert all(item.agent_id.startswith("org-") for item in spawned)
+    finally:
+        server.shutdown()
+        server.server_close()
+
+
+def test_growth_loop_ingests_when_runtime_json_present(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from octop.modules.org_os.managed_runtime import write_runtime_record
+    from octop.modules.org_os.service import OrgModuleService
+
+    monkeypatch.delenv("OPENXYOS_BASE_URL", raising=False)
+    monkeypatch.delenv("FREEOS_ORG_SIDECAR_URL", raising=False)
+    monkeypatch.delenv("FREEOS_ORG_SIDECAR", raising=False)
+    service = OrgModuleService(config_path=tmp_path / "config.json", home=tmp_path)
+    service.set_enabled(True)
+    service.set_governance_enabled(True, tenant_id="42")
+    state = ControlPlaneState()
+    state.ui_tenant_id = 9
+    url, server = start_control_plane(state)
+    try:
+        write_runtime_record(tmp_path, base_url=url)
+        proof = run_growth_loop(tmp_path, config_path=tmp_path / "config.json")
+        assert proof.ok is True
+        assert proof.remote_applied is True
+        assert proof.tenant_id == "42"
+        assert state.ingested.get("tenant_id") == 42
+        assert "/api/freeos/ingest" in state.posts
+        spawned = list_spawned_agents(tmp_path)
+        assert spawned
+        assert all(item.agent_id.startswith("org-") for item in spawned)
+        assert (tmp_path / "org-agents" / "registry.json").is_file()
     finally:
         server.shutdown()
         server.server_close()

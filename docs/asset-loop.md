@@ -26,7 +26,7 @@ That path:
 - compiles colleagues and promotes `draft → market → recruit → shadow → active`
 - **registers real FreeOS agents** (`org-<slug>`) so they appear in chat routing
 - publishes `freeos.asset-pack.v1`
-- **applies** the pack to openXYOS via `/api/freeos/ingest` (shared ingest token, no login wall) when the sidecar is healthy, always a durable `{FREEOS_HOME}/openxyos-mirror/`
+- **applies** the pack via `/api/freeos/ingest` when a managed organization runtime, `OPENXYOS_BASE_URL`, or `{FREEOS_HOME}/org-os/runtime.json` is available (always a durable `{FREEOS_HOME}/openxyos-mirror/` as well). Ingest uses the **current org workspace tenant**, not a hardcoded `1`. Without a runtime URL the loop stays mirror-only and does not start Node.
 - imports the applied surfaces back
 - proves a high-risk tool is blocked (`execute=false`)
 
@@ -86,7 +86,15 @@ uv run freeos org employee export-profile my-analyst --tenant-id 1
 ```
 
 `assets publish` writes `{FREEOS_HOME}/asset-packs/latest/`.
-`assets apply` POSTs to `/api/freeos/ingest` when the sidecar is reachable and always writes `{FREEOS_HOME}/openxyos-mirror/<tenant>/`. Ingest targets the **signed-in openXYOS tenant** (the embed login), so employees / talent / skills / plugins show in the normal list UIs.
+`assets apply` POSTs to `/api/freeos/ingest` when a control-plane URL is present (`OPENXYOS_BASE_URL`, `FREEOS_ORG_SIDECAR_URL`, or `{FREEOS_HOME}/org-os/runtime.json` from the managed runtime) and always writes `{FREEOS_HOME}/openxyos-mirror/<tenant>/`. Ingest follows the **org workspace tenant** (config / `FREEOS_ORG_TENANT_ID` / the organization room), so department employees, talent, skills, and plugins land in that workspace. FreeOS studio accounts stay separate from the org room. With no runtime URL, apply is mirror-only and does not start Node.
+
+## Host ↔ org asset bus
+
+| Direction | What moves |
+|---|---|
+| FreeOS → org | Asset pack apply / `POST /api/org-module/loop/run` ingest employees, talent, skills, plugins, MCP into the control plane when a runtime URL exists (`remote_applied=true`) |
+| Org → FreeOS | Import + spawn registers chat-addressable colleagues as `org-<slug>` agents |
+| No runtime | Same loop; durable `openxyos-mirror/` only; `remote_applied=false` |
 
 ## Where files live
 
@@ -102,6 +110,7 @@ uv run freeos org employee export-profile my-analyst --tenant-id 1
 | Imported policy matrix | `{FREEOS_HOME}/governance/imported-policies.json` |
 | Asset pack | `{FREEOS_HOME}/asset-packs/latest/` |
 | Control-plane mirror | `{FREEOS_HOME}/openxyos-mirror/<tenant>/` |
+| Managed runtime origin | `{FREEOS_HOME}/org-os/runtime.json` |
 | Loop proof | `{FREEOS_HOME}/asset-packs/loop-proof.json` |
 
 ## High-risk actions

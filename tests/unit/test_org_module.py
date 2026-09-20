@@ -3,6 +3,9 @@
 from __future__ import annotations
 
 import json
+import os
+import subprocess
+import sys
 from pathlib import Path
 
 import httpx
@@ -14,12 +17,19 @@ from octop.modules.org_os.catalog import (
     default_openxyos_catalog_path,
     load_upstream_catalog_keys,
 )
+from octop.modules.org_os.managed_runtime import (
+    clear_runtime_record,
+    read_runtime_base_url,
+    write_runtime_record,
+)
 from octop.modules.org_os.proxy import identity_headers, sidecar_target
 from octop.modules.org_os.service import (
     DEFAULT_SIDECAR_URL,
     ORG_PLUGIN_ID,
     OrgModuleService,
 )
+
+posix_only = pytest.mark.skipif(os.name != "posix", reason="pid liveness uses os.kill")
 
 
 def test_catalog_matches_vendored_openxyos() -> None:
@@ -276,6 +286,41 @@ def test_probe_sidecar_skips_default_3780_without_opt_in(
     assert health.reachable is False
     assert health.detail == "sidecar optional; not configured"
     assert service.explicit_sidecar_url() == ""
+    assert service.workspace_tenant_id() == "default"
+    assert service.workspace_tenant_id(organization_id=7) == "7"
+
+
+def test_explicit_sidecar_url_reads_runtime_json(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.delenv("OPENXYOS_BASE_URL", raising=False)
+    monkeypatch.delenv("FREEOS_ORG_SIDECAR_URL", raising=False)
+    monkeypatch.delenv("FREEOS_ORG_SIDECAR", raising=False)
+    write_runtime_record(tmp_path, base_url="http://127.0.0.1:4099", port=4099)
+    service = OrgModuleService(config_path=tmp_path / "config.json", home=tmp_path)
+    assert service.explicit_sidecar_url() == "http://127.0.0.1:4099"
+    assert read_runtime_base_url(tmp_path) == "http://127.0.0.1:4099"
+    clear_runtime_record(tmp_path)
+    assert service.explicit_sidecar_url() == ""
+
+
+def test_workspace_tenant_prefers_config_over_organization_id(tmp_path: Path) -> None:
+    service = OrgModuleService(config_path=tmp_path / "config.json", home=tmp_path)
+    service.set_governance_enabled(True, tenant_id="42")
+    assert service.workspace_tenant_id("", organization_id=9) == "42"
+    assert service.workspace_tenant_id("acme", organization_id=9) == "acme"
+
+
+@posix_only
+def test_runtime_json_ignores_dead_pid(tmp_path: Path) -> None:
+    proc = subprocess.Popen(  # noqa: S603
+        [sys.executable, "-c", "import time; time.sleep(30)"],
+    )
+    pid = int(proc.pid)
+    proc.kill()
+    proc.wait()
+    write_runtime_record(tmp_path, base_url="http://127.0.0.1:4099", pid=pid)
+    assert read_runtime_base_url(tmp_path) == ""
 
 
 def test_overview_lists_in_host_colleagues_after_assemble(tmp_path: Path) -> None:
