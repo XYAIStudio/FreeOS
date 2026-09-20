@@ -430,3 +430,55 @@ async def test_finish_rejects_invalid_token_after_admin_exists(env: Any) -> None
         headers={"Authorization": "Bearer faketoken"},
     )
     assert r.status_code == 401
+
+
+async def test_finish_rejects_empty_cloud_api_key(env: Any) -> None:
+    c, srv, home = env
+    pw = read_password(Path.home())
+    tok = (await c.post("/api/setup/verify-password", json={"password": pw})).json()["wizard_token"]
+    admin = (
+        await c.post(
+            "/api/setup/initial-admin",
+            json={"username": "admin", "password": "TestPass12"},
+            headers={"Authorization": f"Bearer {tok}"},
+        )
+    ).json()
+    srv.wizard_tokens.clear()
+    r = await c.post(
+        "/api/setup/finish",
+        json={
+            "provider_draft": {
+                "name": "DeepSeek",
+                "type": "openai",
+                "api_key": "",
+                "base_url": "https://api.deepseek.com",
+                "models": [{"id": "deepseek-chat", "name": "DeepSeek", "enabled": True}],
+            }
+        },
+        headers={"Authorization": f"Bearer {admin['access_token']}"},
+    )
+    assert r.status_code == 400, r.text
+    body = r.json()
+    assert body["error"]["code"] == "PROVIDER_API_KEY_REQUIRED"
+    assert srv.services.provider_repo.list_all() == []
+
+
+async def test_test_provider_rejects_empty_cloud_api_key(env: Any) -> None:
+    c, _srv, home = env
+    pw = read_password(Path.home())
+    tok = (await c.post("/api/setup/verify-password", json={"password": pw})).json()["wizard_token"]
+    r = await c.post(
+        "/api/setup/test-provider",
+        json={
+            "name": "DeepSeek",
+            "type": "openai",
+            "api_key": "",
+            "base_url": "https://api.deepseek.com",
+            "model_id": "deepseek-chat",
+        },
+        headers={"Authorization": f"Bearer {tok}"},
+    )
+    assert r.status_code == 200
+    body = r.json()
+    assert body["ok"] is False
+    assert "API key" in body["error"] or "Ollama" in body["error"]

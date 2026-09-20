@@ -6,6 +6,10 @@
 
 ## [Unreleased]
 
+### 安全
+
+- 桌面安装包与配置模板不再允许嵌入云厂商 API Key（含 DeepSeek）。首次运行不会预填真实密钥：优先本机 Ollama，云调用在密钥为空时直接拒绝并提示用户自行填写。打包时排除 `.env`；生产/air-gap sidecar 不再回退 `LLM_API_KEY` 环境变量。已发布的 **0.0.1–0.0.4** 安装包必须下架，并轮换可能泄露的 DeepSeek 密钥。
+
 ### 文档
 
 - 增加阿拉伯语（`README.ar.md`）与葡萄牙语（`README.pt.md`）项目简介，并在各语言 README 的语言切换链接中列出。

@@ -21,6 +21,13 @@ _FETCH_MODELS_TIMEOUT_S = 30.0
 _EMBEDDING_PROBE_TEXT = "ping"
 
 
+def missing_cloud_api_key_result(locale: str = "en") -> dict[str, Any]:
+    """User-visible probe/fetch error when a cloud provider has no API key."""
+    from octop.i18n import error_message
+
+    return {"ok": False, "error": error_message("PROVIDER_API_KEY_REQUIRED", locale)}
+
+
 def provider_headers(row: Any) -> dict[str, str]:
     raw = getattr(row, "extra_json", None)
     if not raw:
@@ -230,6 +237,11 @@ async def probe_provider_row(
             result["error"] = _friendly_probe_error(str(result["error"]), locale=locale)
         return result
 
+    from octop.infra.utils.local_endpoint import placeholder_api_key
+
+    if not placeholder_api_key(getattr(row, "base_url", None), getattr(row, "api_key", None)):
+        return missing_cloud_api_key_result(locale)
+
     mid = _probe_model_id(row, model_id)
     if _should_probe_embedding(row, model_id=mid, embedding=embedding):
         return await _probe_embedding_endpoint(row, model_id=mid, locale=locale)
@@ -258,6 +270,11 @@ async def fetch_openai_compatible_models(
     locale: str = "en",
 ) -> dict[str, Any]:
     """List models via OpenAI-compatible ``GET {base}/models``."""
+    from octop.infra.utils.local_endpoint import placeholder_api_key
+
+    api_key = placeholder_api_key(base_url, api_key)
+    if not api_key:
+        return missing_cloud_api_key_result(locale)
     url = _models_list_url(base_url)
     headers: dict[str, str] = {"Authorization": f"Bearer {api_key}"}
     extra_headers = ensure_opencode_session_header(base_url, extra_headers)

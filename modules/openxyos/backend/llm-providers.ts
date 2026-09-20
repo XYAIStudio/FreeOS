@@ -1,4 +1,11 @@
 export const LLM_PROVIDERS = {
+  ollama: {
+    provider: "Ollama",
+    name: "Ollama (Local)",
+    baseUrl: "http://127.0.0.1:11434/v1",
+    model: "llama3.2",
+    local: true,
+  },
   deepseek: {
     provider: "DeepSeek",
     name: "DeepSeek V4 Flash",

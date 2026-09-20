@@ -316,7 +316,11 @@ settingsRoutes.put("/ai/onboarding", requireAdmin, (req: AuthRequest, res) => {
     const apiKey = String(req.body?.apiKey || "").trim();
     const preset = LLM_PROVIDERS[providerId];
     if (!preset) return res.status(400).json({ success: false, error: settingsError(req, "请选择受支持的大模型", "Choose a supported AI model") });
-    if (apiKey.length < 8 || apiKey.length > 512 || /\s/.test(apiKey)) {
+    const isLocal = providerId === "ollama" || Boolean("local" in preset && preset.local);
+    if (!isLocal && (apiKey.length < 8 || apiKey.length > 512 || /\s/.test(apiKey))) {
+      return res.status(400).json({ success: false, error: settingsError(req, "API Key 格式无效", "API key format is invalid") });
+    }
+    if (isLocal && apiKey && (apiKey.length > 512 || /\s/.test(apiKey))) {
       return res.status(400).json({ success: false, error: settingsError(req, "API Key 格式无效", "API key format is invalid") });
     }
 
@@ -324,7 +328,7 @@ settingsRoutes.put("/ai/onboarding", requireAdmin, (req: AuthRequest, res) => {
       llm_provider: providerId,
       llm_api_base: preset.baseUrl,
       llm_model: preset.model,
-      llm_api_key: apiKey,
+      llm_api_key: isLocal ? (apiKey || "ollama") : apiKey,
       ai_reply_enabled: "true",
     };
     for (const [key, value] of Object.entries(values)) {

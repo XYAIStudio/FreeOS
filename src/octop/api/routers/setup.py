@@ -13,7 +13,11 @@ from pydantic import BaseModel, Field
 from octop.api.deps import get_server, require_database, resolve_user_from_token, sign_token
 from octop.infra.agents.providers.model_flags import resolve_provider_credentials
 from octop.infra.agents.providers.presets import load_provider_presets
-from octop.infra.agents.providers.probe import make_probe_provider_row, probe_provider_row
+from octop.infra.agents.providers.probe import (
+    make_probe_provider_row,
+    missing_cloud_api_key_result,
+    probe_provider_row,
+)
 from octop.infra.errors import ErrorCode, OctopError
 from octop.infra.setup import password_file as _wizard
 from octop.infra.setup.wizard_tokens import RateLimited
@@ -183,7 +187,10 @@ async def _apply_provider_draft(server: Any, draft: ProviderDraftBody) -> None:
         base_url=draft.base_url,
     )
     if not api_key:
-        raise OctopError(ErrorCode.INTERNAL_ERROR, "api_key is required", status=400)
+        raise OctopError(
+            ErrorCode.PROVIDER_API_KEY_REQUIRED,
+            "cloud model API key is required",
+        )
     if not base_url:
         raise OctopError(ErrorCode.INTERNAL_ERROR, "base_url is required", status=400)
 
@@ -419,7 +426,7 @@ async def test_provider_draft(
         base_url=body.base_url,
     )
     if not api_key:
-        return {"ok": False, "error": "api_key is required"}
+        return missing_cloud_api_key_result(resolve_request_locale(request))
     row = make_probe_provider_row(
         name=body.name,
         kind=body.type,

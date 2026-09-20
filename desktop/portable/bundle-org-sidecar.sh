@@ -125,6 +125,7 @@ build_openxyos() {
     rsync -a --delete \
       --exclude node_modules --exclude dist --exclude .git --exclude .github \
       --exclude backups --exclude dist-backup-20260626 --exclude V0.5 \
+      --include '.env.example' --exclude '.env' --exclude '.env.*' \
       "${src}/" "${work}/"
   else
     python3 - "$src" "$work" <<'PY'
@@ -134,6 +135,8 @@ src, dest = Path(sys.argv[1]), Path(sys.argv[2])
 skip = {"node_modules", "dist", ".git", ".github", "backups", "dist-backup-20260626", "V0.5"}
 for item in src.iterdir():
     if item.name in skip:
+        continue
+    if item.name == ".env" or (item.name.startswith(".env.") and item.name != ".env.example"):
         continue
     target = dest / item.name
     if item.is_dir():

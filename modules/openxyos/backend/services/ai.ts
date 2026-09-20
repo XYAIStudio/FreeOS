@@ -28,13 +28,21 @@ export function sanitizeLLMInput(text: string): string {
     .slice(0, 16_000);
 }
 
+function allowEnvLlmFallback(): boolean {
+  const environment = (process.env.NODE_ENV || "").trim().toLowerCase();
+  if (environment === "production" || environment === "private-production") return false;
+  if ((process.env.AIR_GAP_MODE || "").trim().toLowerCase() === "true") return false;
+  return true;
+}
+
 function getLLMConfig(): { apiKey: string; baseUrl: string; model: string } {
   const tenantId = getRequestTenantId() ?? 1;
   const getValue = (key: string) => dbGet("SELECT value FROM ai_config WHERE key = ? AND tenant_id = ?", [key, tenantId]) as any;
+  const envFallback = allowEnvLlmFallback();
   return {
-    apiKey: getValue("llm_api_key")?.value || process.env.LLM_API_KEY || "",
-    baseUrl: getValue("llm_api_base")?.value || process.env.LLM_API_BASE || "",
-    model: getValue("llm_model")?.value || process.env.LLM_MODEL || "",
+    apiKey: getValue("llm_api_key")?.value || (envFallback ? process.env.LLM_API_KEY || "" : ""),
+    baseUrl: getValue("llm_api_base")?.value || (envFallback ? process.env.LLM_API_BASE || "" : ""),
+    model: getValue("llm_model")?.value || (envFallback ? process.env.LLM_MODEL || "" : ""),
   };
 }
 
@@ -50,7 +58,7 @@ function endpoint(baseUrl: string): string {
 export async function callLLM(messages: AIMessage[], temperature = 0.7, maxTokens = 1024): Promise<AIResponse> {
   const { apiKey, baseUrl, model } = getLLMConfig();
   if (!aiIsEnabled()) return { content: "[系统] AI 功能已被管理员关闭。", tokens_used: 0, model: "disabled" };
-  if (!apiKey || !baseUrl || !model) return { content: "[系统] 请先在系统设置中完成模型服务配置。", tokens_used: 0, model: "unconfigured" };
+  if (!apiKey || !baseUrl || !model) return { content: "[系统] 尚未配置云模型 API Key。请在系统设置中填写你自己的密钥，或改用本机模型（如 Ollama）。", tokens_used: 0, model: "unconfigured" };
   if (!assertModelEndpointAllowed(baseUrl)) return { content: "[系统] 当前网络策略不允许连接该模型服务。", tokens_used: 0, model: "blocked" };
 
   const controller = new AbortController();
