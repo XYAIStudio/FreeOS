@@ -12,7 +12,12 @@ described in [Chat (WebSocket)](#chat-websocket).
 
 | Header | Value |
 |--------|-------|
-| `Authorization` | `Bearer <access_token>` from `POST /api/auth/login` |
+| `Authorization` | `Bearer <access_token>` from `POST /api/auth/login` or `POST /api/auth/local-session` |
+
+Studio (FreeOS) tokens and organization-room tokens are separate doors. Room
+login lives at `POST /api/org-module/identity/login`; room business APIs are
+under `/api/org-module/business/*` and require an organization session. An
+organization admin is never promoted to the host admin role.
 
 Tokens expire after `OCTOP_ACCESS_TOKEN_TTL` seconds (default 24 h).
 Rotating the JWT secret (`octop admin rotate-jwt-secret`) invalidates

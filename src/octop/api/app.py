@@ -10,13 +10,7 @@ from typing import Any
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import (
-    FileResponse,
-    HTMLResponse,
-    JSONResponse,
-    PlainTextResponse,
-    RedirectResponse,
-)
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, PlainTextResponse
 from scalar_fastapi import get_scalar_api_reference
 
 from octop.api.middleware.jwt_auth import install as install_jwt_auth
@@ -279,25 +273,12 @@ def build_app(server: OctopServer) -> FastAPI:
         ],
     )
 
-    # Must precede the dashboard catch-all.  This keeps the original complete
-    # organization SPA under the FreeOS origin, including deep-linked modules.
+    # Must precede the dashboard catch-all.  This keeps the organization-room
+    # SPA under the FreeOS origin, including deep-linked modules.  Studio nav
+    # to /organization stays in the dashboard shell (another room, same house).
     from octop.api.routers.org_ui import router as organization_ui_router
-    from octop.modules.org_os.integration import integrated_organization
 
     app.include_router(organization_ui_router)
-
-    if integrated_organization():
-
-        @app.get("/organization", include_in_schema=False)
-        async def organization_entry() -> RedirectResponse:
-            """Enter the organization-owned UI without loading the legacy shell.
-
-            The integrated deployment has its own identity and complete OpenXYOS
-            application.  Sending this entry through the dashboard SPA would first
-            invoke the legacy FreeOS auth guard and can render its retired
-            OrganizationPage instead of the organization product.
-            """
-            return RedirectResponse(url="/organization-app/dashboard", status_code=307)
 
     if enable_mobile:
         _mount_routers(

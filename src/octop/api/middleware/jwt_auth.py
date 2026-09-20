@@ -21,9 +21,10 @@ from octop.api.deps import (
     authenticate_request,
     extract_raw_token,
     is_jwt_exempt_request,
+    is_organization_business_path,
     maybe_sliding_renew_token,
 )
-from octop.infra.errors import OctopError
+from octop.infra.errors import ErrorCode, OctopError
 from octop.modules.org_os.integration import integrated_organization, organization_user
 
 _INSTALL_ATTR = "_octop_jwt_auth_installed"
@@ -49,7 +50,11 @@ def install(app: Any, server: Any) -> None:
             access_token=request.query_params.get("access_token"),
         )
         try:
-            if integrated_organization():
+            if is_organization_business_path(path):
+                if not integrated_organization():
+                    raise OctopError(
+                        ErrorCode.FORBIDDEN, "organization room is not open", status=403
+                    )
                 request.state.octop_user = await organization_user(server, raw or "")
             else:
                 request.state.octop_user = authenticate_request(request, server)
@@ -66,7 +71,7 @@ def install(app: Any, server: Any) -> None:
             return JSONResponse(status_code=exc.status, content=exc.to_envelope())
 
         response = await call_next(request)
-        if raw is not None and not integrated_organization():
+        if raw is not None and not is_organization_business_path(path):
             try:
                 renewed = maybe_sliding_renew_token(server, raw, request.state.octop_user)
             except OctopError:

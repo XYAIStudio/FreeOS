@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import sqlite3
 from pathlib import Path
 
@@ -146,6 +147,59 @@ async def test_organization_admin_can_manage_cloud_and_local_models(
         "voice",
         "search",
     }.issubset(user.permissions)
+
+
+async def test_organization_super_admin_is_not_host_admin(manager: UserManager):
+    profile = {
+        "id": 11,
+        "tenant_id": 4,
+        "email": "root@example.local",
+        "nickname": "Root",
+        "role": "super_admin",
+    }
+
+    user = await manager.resolve_organization_user(
+        issuer="http://organization.local",
+        profile=profile,
+    )
+
+    assert user.role is Role.USER
+    assert user.is_admin is False
+    assert user.has_organization_identity is True
+    assert user.organization_role == "super_admin"
+    assert "users" not in user.permissions
+
+
+async def test_organization_super_admin_mapping_demotes_stored_host_admin(
+    manager: UserManager,
+):
+    profile = {
+        "id": 11,
+        "tenant_id": 4,
+        "email": "root@example.local",
+        "nickname": "Root",
+        "role": "super_admin",
+    }
+    subject = "organization:http://organization.local:4:11"
+    username = "org_" + hashlib.sha256(subject.encode()).hexdigest()[:40]
+    uid = manager._services.user_repo.create(
+        username=username,
+        password_hash=None,
+        role=Role.ADMIN.value,
+        display_name="Root",
+        sso_subject=subject,
+    )
+
+    user = await manager.resolve_organization_user(
+        issuer="http://organization.local",
+        profile=profile,
+    )
+
+    assert user.id == uid
+    assert user.role is Role.USER
+    row = manager.get_row(uid)
+    assert row is not None
+    assert row.role == Role.USER.value
 
 
 async def test_change_password_rejects_null_password_hash(manager: UserManager):

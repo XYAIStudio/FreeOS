@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Spin } from "antd";
 import { message } from "@/utils/antdMessage";
 
@@ -22,7 +22,7 @@ export default function LoginPage() {
   const [searchParams] = useSearchParams();
   const [oidc, setOidc] = useState<OidcStatus | null>(null);
   const [mode, setMode] = useState<AuthFormMode>("login");
-  const [organizationIdentity, setOrganizationIdentity] = useState(false);
+  const [roomOpen, setRoomOpen] = useState(false);
   const desktop = isDesktopShell(`?${searchParams.toString()}`);
 
   useEffect(() => {
@@ -34,12 +34,9 @@ export default function LoginPage() {
     const boot = async () => {
       try {
         const organization = await authApi.organizationIdentityStatus();
-        if (organization.integrated) {
-          if (!cancelled) setOrganizationIdentity(true);
-          return;
-        }
+        if (!cancelled) setRoomOpen(Boolean(organization.integrated));
       } catch {
-        // Continue with the standalone host login when integration is unavailable.
+        // Continue with the studio door when the room is not open yet.
       }
       const attempts = desktop ? 20 : 4;
       const delayMs = desktop ? 250 : 150;
@@ -115,7 +112,7 @@ export default function LoginPage() {
     navigate("/chat", { replace: true });
   };
 
-  if (desktop && !organizationIdentity) {
+  if (desktop) {
     return (
       <div
         style={{
@@ -171,14 +168,38 @@ export default function LoginPage() {
         >
           {mode === "register" ? t("login.registerTitle") : t("login.title")}
         </h2>
+        <p
+          style={{
+            margin: 0,
+            fontSize: 13,
+            lineHeight: 1.6,
+            color: "var(--fn-text-tertiary)",
+            textAlign: "center",
+          }}
+        >
+          {t("login.studioHint")}
+        </p>
 
         <AuthForm
           mode={mode}
           onModeChange={setMode}
           onSuccess={onSuccess}
           oidc={oidc}
-          organizationIdentity={organizationIdentity}
         />
+        {roomOpen ? (
+          <p
+            style={{
+              margin: 0,
+              fontSize: 13,
+              lineHeight: 1.6,
+              color: "var(--fn-text-tertiary)",
+              textAlign: "center",
+            }}
+          >
+            {t("login.roomDoorHint")}{" "}
+            <Link to="/organization">{t("login.roomDoorLink")}</Link>
+          </p>
+        ) : null}
       </div>
     </div>
   );

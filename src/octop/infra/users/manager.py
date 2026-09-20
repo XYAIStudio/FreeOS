@@ -323,12 +323,13 @@ class UserManager:
     async def resolve_organization_user(self, *, issuer: str, profile: dict[str, Any]) -> User:
         """Mirror an already validated organization principal; never copy passwords.
 
-        Tenant admins are ordinary host users. Only platform super admins may
-        receive the host-global admin role. Subjects include issuer and tenant.
+        Organization-room roles stay in ``organization_role``. They never become
+        the host-global admin role — even ``super_admin``. Subjects include
+        issuer and tenant.
         """
         subject = f"organization:{issuer}:{int(profile['tenant_id'])}:{int(profile['id'])}"
         username = "org_" + hashlib.sha256(subject.encode()).hexdigest()[:40]
-        role = Role.ADMIN if profile.get("role") == "super_admin" else Role.USER
+        role = Role.USER
         permissions = ["channels", "connectors", "skill_packages", "knowledge_bases"]
         if profile.get("role") in {"admin", "super_admin"}:
             permissions.extend(

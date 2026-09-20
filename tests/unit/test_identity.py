@@ -24,3 +24,20 @@ def test_user_label_falls_back_to_username():
 def test_user_is_admin():
     assert User(id=1, username="a", role=Role.ADMIN, display_name=None).is_admin
     assert not User(id=2, username="b", role=Role.USER, display_name=None).is_admin
+
+
+def test_organization_mapping_is_not_host_admin():
+    guest = User(id=1, username="local", role=Role.ADMIN, display_name="FreeOS")
+    mapped = User(
+        id=2,
+        username="org_abc",
+        role=Role.USER,
+        display_name="Owner",
+        organization_id=3,
+        organization_user_id=7,
+        organization_role="super_admin",
+    )
+    assert guest.is_admin
+    assert not guest.has_organization_identity
+    assert mapped.has_organization_identity
+    assert not mapped.is_admin

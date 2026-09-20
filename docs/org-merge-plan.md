@@ -156,19 +156,24 @@ uv run freeos org export-standalone --out dist/openxyos-web
 
 ## IdentityBridge 草图
 
-今日 BFF 已把 FreeOS 用户映射为 `X-FreeOS-User` / `X-FreeOS-User-Id` / `X-FreeOS-Role` / `X-FreeOS-Tenant-Id`，并 **剥离** `Authorization`，避免把宿主 JWT 当成 sidecar session（`proxy.py` → `identity_headers`）。那是代理模型，不是最终 UX。
+今日 BFF 已把 FreeOS 用户映射为 `X-FreeOS-User` / `X-FreeOS-User-Id` / `X-FreeOS-Role` / `X-FreeOS-Tenant-Id`，并 **剥离** `Authorization`，避免把宿主 JWT 当成 sidecar session（`proxy.py` → `identity_headers`）。工作室访客的 `X-FreeOS-Role` 是 `guest`，不会把宿主管理员写成房间管理员。
 
-目标：页面只依赖桥，不依赖「第二套登录墙」。
+目标：宿主内已迁页面继续用工作室会话；完整组织房间（`/organization-app`、`/api/org-module/identity/*`、`/api/org-module/business/*`）用房间自己的登记本。两扇门同在一个 FreeOS，不捏成同一种进入方式。
 
 ```
 org-ui  →  IdentityBridge.getSession()
             IdentityBridge.authHeaders()
             IdentityBridge.apiBase()
 
-嵌入 Dashboard（默认）：
+嵌入 Dashboard（默认 / 已迁切片）：
   session = FreeOS JWT / 当前用户
   apiBase = 同源 /api
-  无第二次登录
+  宿主内公告、架构、任务等用这扇工作室门
+
+组织房间（integrated runtime / 完整 App）：
+  session = 组织 JWT（`org_room_token` 或 iframe `token`）
+  apiBase = `/organization-app` 或 `/api/org-module/business`
+  房间管理员映射为宿主 `Role.USER`，`organization_role` 留在房间里
 
 独立导出站：
   session = 本地 JWT（现有 openXYOS auth）

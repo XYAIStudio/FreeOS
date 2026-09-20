@@ -232,7 +232,21 @@ def test_identity_headers() -> None:
     headers = identity_headers(_User())
     assert headers["X-FreeOS-User"] == "ada"
     assert headers["X-FreeOS-User-Id"] == "7"
-    assert headers["X-FreeOS-Role"] == "admin"
+    assert headers["X-FreeOS-Role"] == "guest"
+
+
+def test_identity_headers_organization_room_keeps_org_role() -> None:
+    class _User:
+        id = 7
+        username = "org_ada"
+        role = "admin"
+        organization_user_id = 3
+        organization_role = "super_admin"
+        organization_id = 9
+
+    headers = identity_headers(_User())
+    assert headers["X-FreeOS-Role"] == "super_admin"
+    assert headers["X-FreeOS-Tenant-Id"] == "9"
 
 
 def test_identity_headers_tenant_override() -> None:

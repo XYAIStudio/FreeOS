@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next";
 import { getAuthToken, setAuthToken } from "../api";
 import {
   authApi,
+  setOrgRoomSession,
   type LoginResponse,
   type OidcStatus,
 } from "../api/modules/auth";
@@ -62,13 +63,10 @@ export default function AuthForm({
   };
 
   const applySession = async (res: LoginResponse) => {
-    setAuthToken(res.access_token);
-    if (res.organization) {
-      localStorage.setItem("token", res.access_token);
-      localStorage.setItem(
-        "user",
-        JSON.stringify(res.organization_user ?? res.user),
-      );
+    if (res.organization && res.organization_user) {
+      setOrgRoomSession(res.access_token, res.organization_user);
+    } else {
+      setAuthToken(res.access_token);
     }
     await applyUserLocale(res.user.locale);
     void refreshServerLabels(res.user.locale);

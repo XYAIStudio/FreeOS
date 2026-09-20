@@ -148,20 +148,17 @@ def resolve_user_from_token(server: OctopServer, token: str) -> User:
     return user
 
 
+def is_organization_business_path(path: str) -> bool:
+    """True for organization-room business APIs that require an org JWT."""
+    return path.startswith("/api/org-module/business/")
+
+
 async def resolve_user_from_access_token(server: OctopServer, token: str) -> User:
-    """Resolve either the integrated organization session or an Octop JWT.
+    """Resolve the studio (FreeOS) JWT for WebSocket handshakes.
 
-    HTTP requests normally receive their organization user from ``JwtAuthMiddleware``.
-    WebSocket handshakes do not pass through that HTTP middleware, so they must use
-    the same identity authority explicitly.
+    Organization-room tokens are a separate door and must not replace the
+    host session. HTTP org-business routes authenticate via ``organization_user``.
     """
-    from octop.modules.org_os.integration import (  # noqa: PLC0415
-        integrated_organization,
-        organization_user,
-    )
-
-    if integrated_organization():
-        return cast("User", await organization_user(server, token))
     return resolve_user_from_token(server, token)
 
 

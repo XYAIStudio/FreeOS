@@ -71,13 +71,13 @@ async def test_path_traversal_is_blocked(tmp_octop_home: Path) -> None:
                 assert "root:" not in r.text
 
 
-async def test_organization_entry_uses_openxyos_when_integration_is_enabled(
+async def test_organization_entry_stays_in_studio_shell_when_room_is_open(
     tmp_octop_home: Path, monkeypatch
 ) -> None:
-    monkeypatch.setenv("FREEOS_ORG_INTEGRATED", "1")
     async with octop_client(tmp_octop_home) as (_client, srv):
+        monkeypatch.setenv("FREEOS_ORG_INTEGRATED", "1")
         app = build_app(srv)
         with TestClient(app) as c:
             response = c.get("/organization", follow_redirects=False)
-    assert response.status_code == 307
-    assert response.headers["location"] == "/organization-app/dashboard"
+    assert response.status_code != 307
+    assert response.headers.get("location") != "/organization-app/dashboard"
