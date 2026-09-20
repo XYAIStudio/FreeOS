@@ -4,7 +4,11 @@ import { Spin } from "antd";
 import { clearAuthToken, getAuthToken, setAuthToken } from "../api/request";
 import { authApi, type OctopUser } from "../api/modules/auth";
 import { applyUserLocale } from "../utils/locale";
-import { needsDesktopModelOnboarding } from "../utils/desktopOnboarding";
+import {
+  DESKTOP_MODEL_SETUP_PATH,
+  desktopPostSessionPath,
+  needsDesktopModelOnboarding,
+} from "../utils/desktopOnboarding";
 import { isDesktopShell } from "../utils/desktopShell";
 import { CurrentUserProvider } from "../hooks/useCurrentUser";
 import { AuthPromptProvider } from "../context/AuthPromptContext";
@@ -40,11 +44,10 @@ export default function AuthGuard({ children }: AuthGuardProps) {
     };
 
     const enterAfterSession = async (me: OctopUser, hasProviders: boolean) => {
-      // Local session is the this-device door: optional model, then first chat.
-      if (needsDesktopModelOnboarding(hasProviders)) {
-        if (!cancelled) navigate("/setup", { replace: true });
-        return;
-      }
+      // Open → optional model (skippable) → first agent. Never the login wall.
+      const next = desktopPostSessionPath(hasProviders);
+      if (!cancelled) navigate(next, { replace: true });
+      if (next === DESKTOP_MODEL_SETUP_PATH) return;
       await adopt(me);
     };
 

@@ -32,6 +32,7 @@ function renderLogin() {
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/chat" element={<div>usable app</div>} />
+        <Route path="/chat/:agentId" element={<div>first chat</div>} />
         <Route path="/setup" element={<div>setup wizard</div>} />
         <Route path="/projects" element={<div>conversation list</div>} />
       </Routes>
@@ -115,7 +116,7 @@ describe("LoginPage local session", () => {
     expect(getAuthToken()).toBe("guest-token");
   });
 
-  it("opens returning desktop users on the conversation list", async () => {
+  it("opens returning desktop users on the first agent, not the list", async () => {
     localSession.mockResolvedValue({
       access_token: "guest-token",
       token_type: "Bearer",
@@ -141,15 +142,17 @@ describe("LoginPage local session", () => {
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/chat" element={<div>usable app</div>} />
+          <Route path="/chat/:agentId" element={<div>first chat</div>} />
           <Route path="/setup" element={<div>model setup</div>} />
           <Route path="/projects" element={<div>conversation list</div>} />
         </Routes>
       </MemoryRouter>,
     );
 
-    expect(await screen.findByText("conversation list")).toBeInTheDocument();
+    expect(await screen.findByText("first chat")).toBeInTheDocument();
     expect(screen.queryByText("login form")).toBeNull();
     expect(screen.queryByText("model setup")).toBeNull();
+    expect(screen.queryByText("conversation list")).toBeNull();
   });
 
   it("does not render the login form inside the desktop shell", async () => {

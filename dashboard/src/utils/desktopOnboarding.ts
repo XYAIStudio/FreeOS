@@ -6,8 +6,8 @@ export const DESKTOP_FIRST_AGENT_ID = "main";
 /** Canvas for the first-run assistant — not the shared conversation list. */
 export const DESKTOP_FIRST_CHAT_PATH = `/chat/${DESKTOP_FIRST_AGENT_ID}`;
 
-/** Returning desktop users land on the shared workspace conversation list. */
-export const DESKTOP_RETURNING_HOME_PATH = "/projects";
+/** After the door is open, land on the first agent — not the workspace list. */
+export const DESKTOP_RETURNING_HOME_PATH = DESKTOP_FIRST_CHAT_PATH;
 
 export const DESKTOP_MODEL_SETUP_PATH = "/setup";
 
@@ -37,15 +37,15 @@ export function needsDesktopModelOnboarding(hasProviders = false): boolean {
 }
 
 /**
- * Path after a desktop local session is adopted.
- * First launch → model setup; later launches → conversation list (not a loop).
+ * Path after a this-device local session is adopted.
+ * First launch → optional model setup; later launches → first agent chat.
  */
 export function desktopPostSessionPath(hasProviders = false): string {
   if (needsDesktopModelOnboarding(hasProviders)) {
     return DESKTOP_MODEL_SETUP_PATH;
   }
   if (hasProviders) markDesktopModelOnboardingDone();
-  return DESKTOP_RETURNING_HOME_PATH;
+  return DESKTOP_FIRST_CHAT_PATH;
 }
 
 /** After skip or a successful model save: chat with the default first agent. */

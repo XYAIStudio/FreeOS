@@ -139,8 +139,9 @@ describe("SetupPage desktop first-run", () => {
 
     renderSetup();
 
-    expect(await screen.findByText("conversation list")).toBeInTheDocument();
+    expect(await screen.findByText("first chat")).toBeInTheDocument();
     expect(screen.queryByText("model step")).toBeNull();
+    expect(screen.queryByText("conversation list")).toBeNull();
     expect(isDesktopModelOnboardingDone()).toBe(true);
   });
 
