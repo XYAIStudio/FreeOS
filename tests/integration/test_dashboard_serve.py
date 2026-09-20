@@ -69,3 +69,15 @@ async def test_path_traversal_is_blocked(tmp_octop_home: Path) -> None:
                 r = c.get(encoded)
                 assert r.status_code in (200, 404)
                 assert "root:" not in r.text
+
+
+async def test_organization_entry_uses_openxyos_when_integration_is_enabled(
+    tmp_octop_home: Path, monkeypatch
+) -> None:
+    monkeypatch.setenv("FREEOS_ORG_INTEGRATED", "1")
+    async with octop_client(tmp_octop_home) as (_client, srv):
+        app = build_app(srv)
+        with TestClient(app) as c:
+            response = c.get("/organization", follow_redirects=False)
+    assert response.status_code == 307
+    assert response.headers["location"] == "/organization-app/dashboard"
