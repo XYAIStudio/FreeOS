@@ -211,6 +211,17 @@ def _reasoning_profile(provider_id: str, model_id: str) -> dict[str, Any] | None
     return None
 
 
+_LOCAL_PRESET_RANK = {"ollama": 0, "onnx": 1}
+
+
+def _prefer_local_presets(presets: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Put Ollama / ONNX first so CLI, wizard, and APIs surface the local path."""
+    local = [p for p in presets if p.get("id") in _LOCAL_PRESET_RANK]
+    rest = [p for p in presets if p.get("id") not in _LOCAL_PRESET_RANK]
+    local.sort(key=lambda p: _LOCAL_PRESET_RANK.get(str(p.get("id") or ""), 99))
+    return local + rest
+
+
 def load_provider_presets() -> list[dict[str, Any]]:
     """Serialize harness-agent provider templates for API / CLI."""
     from importlib import resources
@@ -269,6 +280,7 @@ def load_provider_presets() -> list[dict[str, Any]]:
             len(out),
         )
         out.insert(insert_at, onnx_preset)
+    out = _prefer_local_presets(out)
     for preset in out:
         provider_id = str(preset.get("id") or "")
         for model in preset.get("models") or []:

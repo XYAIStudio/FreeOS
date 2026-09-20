@@ -34,6 +34,7 @@ def test_capability_defaults_enabled_on_desktop(monkeypatch: pytest.MonkeyPatch)
     capability = gate.get_capability(lambda _key: None)
 
     assert capability["feature_enabled"] is True
+    assert capability["backend"] == "onnx"
     assert capability["usable"] is False
 
 

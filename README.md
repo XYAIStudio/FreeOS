@@ -130,7 +130,17 @@ uv run freeos run
 
 `freeos` is the product CLI. `octop` remains a package-compatible alias.
 
-Open the dashboard (default listen port is printed by `run`, commonly `http://127.0.0.1:18900`). Complete the first-run wizard.
+Open the dashboard (default listen port is printed by `run`, commonly `http://127.0.0.1:18900`). Complete the first-run wizard — **Ollama / a local OpenAI-compatible URL is the first choice**; cloud keys stay optional.
+
+### Local models and knowledge bases
+
+FreeOS prefers runtimes and files on this computer. Cloud vendors are optional.
+
+| What | Where |
+|---|---|
+| Chat models | First-run wizard (Ollama selected first) or **Models → Local**: start Ollama, register GGUF, or add a local OpenAI-compatible URL (LM Studio, llama.cpp, vLLM). |
+| Knowledge | Sidebar **Knowledge Bases**: mount a local folder first. Local ONNX embeddings are the default vector path. ima / WeKnora remain optional connectors. |
+| Detail | [User guide](docs/user-guide.md#四配置模型llm-供应商) · [Configuration](docs/configuration.md#local-models-and-knowledge-bases) · [Product contract](docs/product-contract.md#local-models-and-knowledge-bases) |
 
 Data directory precedence:
 

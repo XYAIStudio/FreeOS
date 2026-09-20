@@ -276,7 +276,7 @@ octop run --host 0.0.0.0 --port 8088
 octop service start
 ```
 
-打开 **http://127.0.0.1:8088**。Docker 首次初始化会自动生成随机管理员密码（写入 `/data/.octop/credential.txt`），除非设置了 `OCTOP_DEFAULT_PASSWORD`。交互式 `octop init` / 设置向导会让你自行设置密码（至少 8 位，且同时包含字母和数字）。
+打开 **http://127.0.0.1:8088**。Docker 首次初始化会自动生成随机管理员密码（写入 `/data/.octop/credential.txt`），除非设置了 `OCTOP_DEFAULT_PASSWORD`。交互式 `octop init` / 设置向导会让你自行设置密码（至少 8 位，且同时包含字母和数字）。向导模型步默认先选本机 Ollama；知识库默认走本机文件夹 + ONNX 向量，云厂商与 ima 是可选项。详见 [docs/user-guide.md](docs/user-guide.md)。
 
 ### Docker（推荐用于生产部署）
 
@@ -384,7 +384,7 @@ octop user list
 
 ### 支持的 LLM 供应商
 
-OpenAI 兼容 API、DashScope（千问）、Ollama 等预设 — 在控制台或通过 `octop provider` 按 Agent 配置。
+**本机优先：** Ollama、本机 OpenAI 兼容端点（LM Studio / llama.cpp / vLLM）、本机 ONNX Embedding。云厂商（OpenAI 兼容 API、DashScope 等）是可选项 — 在向导或控制台「模型 → 本地」先配本机，再按需加云。
 
 ### 支持的通道
 

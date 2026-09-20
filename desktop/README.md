@@ -36,6 +36,10 @@ Same precedence as the FreeOS CLI/server:
   FreeOS-native page (`/api/org-module/*`), not an iframe of 3780.
 - Shell prefs → `{home}/desktop-settings.json`
 
+## Local models and knowledge
+
+First launch opens the model wizard with **Ollama first**. Skip is fine; **Models → Local** can start Ollama, register GGUF, or add a local OpenAI-compatible URL. **Knowledge Bases** mounts a folder on this computer; local ONNX is the default embedding path. Cloud vendors and ima stay optional. See [docs/user-guide.md](../docs/user-guide.md) and [docs/configuration.md](../docs/configuration.md#local-models-and-knowledge-bases).
+
 ## Windows install finish
 
 The NSIS finish page offers **运行 FreeOS** / **Run FreeOS**, checked by

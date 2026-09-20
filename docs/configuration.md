@@ -207,8 +207,10 @@ step; password verification works without a pool. The modern flow uses
    SQLite or PostgreSQL, probe, persist `config.json`, bind pool + migrate.
 3. `POST /api/setup/initial-admin` — creates the seed admin (requires DB).
 4. `POST /api/setup/test-provider` — pings an optional provider draft.
+   Local Ollama / loopback OpenAI-compatible URLs do not need a vendor key
+   (a placeholder is filled).
 5. `POST /api/setup/finish` — bootstraps default `main` agent and unlocks
-   the rest of the API.
+   the rest of the API. The dashboard wizard lists **Ollama first**.
 
 `GET /api/setup/status` returns `setup_required`, wizard password fields,
 plus `database_bound` / `database_driver`. `setup_lockdown` middleware
@@ -218,6 +220,18 @@ For unattended installs, use `octop init --yes` with
 `OCTOP_ADMIN_USERNAME` / `OCTOP_ADMIN_PASSWORD` (and
 `OCTOP_REQUIRE_SETUP_PASSWORD=false` if the env-var path is used). This
 runs the same migrations + admin creation without the HTTP wizard.
+
+## Local models and knowledge bases
+
+Prefer runtimes and files on the operator's machine. Cloud vendors stay optional.
+
+| Surface | Default path |
+|---|---|
+| Chat | Wizard / **Models → Local**: Ollama (`http://127.0.0.1:11434/v1`), GGUF register, or a custom local OpenAI-compatible URL (LM Studio `:1234`, llama.cpp `:8080`). |
+| Embeddings / RAG | Knowledge base foundation settings default to **local ONNX**. Optional extra: `uv sync --extra local-embedding`. |
+| Knowledge files | Sidebar **Knowledge Bases**: mount a local folder. ima / WeKnora are optional connectors. Desktop first-run enables the feature (`knowledge_bases_enabled`). |
+
+Related: [user-guide.md](user-guide.md), [product-contract.md](product-contract.md#local-models-and-knowledge-bases).
 
 ## Secrets
 
