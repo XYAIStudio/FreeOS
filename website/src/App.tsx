@@ -121,6 +121,9 @@ export default function App() {
           <a href="#engines" onClick={closeNav}>
             {t.nav.engines}
           </a>
+          <a href="#journey" onClick={closeNav}>
+            {t.nav.journey}
+          </a>
           <a href="#capabilities" onClick={closeNav}>
             {t.nav.capabilities}
           </a>
@@ -246,6 +249,37 @@ export default function App() {
           </div>
           <DualLoop locale={locale} />
           <p className="engine-note">{t.engines.note}</p>
+        </section>
+
+        <section id="journey" className="section journey">
+          <div className="heading">
+            <small>{t.journey.kicker}</small>
+            <h2>{t.journey.title}</h2>
+            <p>{t.journey.lead}</p>
+          </div>
+          <div className="journey-showcase">
+            <figure className="journey-media">
+              <img
+                src="./openxyos-agent-workflow.gif"
+                alt={t.journey.caption}
+                width={900}
+                height={563}
+                loading="lazy"
+              />
+              <figcaption>{t.journey.caption}</figcaption>
+            </figure>
+            <aside className="journey-summary">
+              <ol className="journey-steps">
+                {t.journey.steps.map((step, i) => (
+                  <li key={step}>
+                    <em>{String(i + 1).padStart(2, "0")}</em>
+                    <span>{step}</span>
+                  </li>
+                ))}
+              </ol>
+              <p>{t.journey.note}</p>
+            </aside>
+          </div>
         </section>
 
         <section id="capabilities" className="section capabilities">

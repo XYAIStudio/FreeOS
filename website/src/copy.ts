@@ -21,6 +21,7 @@ export const copy = {
     skip: "跳到正文",
     nav: {
       engines: "双引擎",
+      journey: "智能体流程",
       capabilities: "能力",
       download: "下载",
       loop: "闭环",
@@ -77,8 +78,16 @@ export const copy = {
       flowSpawn: "再孵化或升级运行时智能体",
       note: "对话与助手仍在日常房间里跑；组织房间负责蓝图与治理。谢谢 Octop 与 openXYOS 把能力交到同一间工作室。",
     },
+    journey: {
+      kicker: "02 / 实机流程",
+      title: "让行业设想成为组织成员",
+      lead: "从画像和资料开始，生成受治理约束的智能体蓝图，进入人才市场，再由人类招募并装配进组织。",
+      caption: "来自 FreeOS 内组织 openXYOS 首页的实际运行录屏。四个阶段自动推进，展示智能体从设想到入职的完整路径。",
+      steps: ["画像与资料", "生成智能体", "进入人才市场", "组织内协作"],
+      note: "每一步都有明确的治理边界。用户可以继续定制能力与组织流程，并将成熟方案导出为新的 openXYOS 系统源码。",
+    },
     capabilities: {
-      kicker: "02 / 能力",
+      kicker: "03 / 能力",
       title: "个人伙伴的手，组织操作系统的骨",
       lead: "可验证的运行时能力，加上可交付的组织治理。全部用 FreeOS 自己的语言来说。",
       groups: [
@@ -105,7 +114,7 @@ export const copy = {
       ],
     },
     download: {
-      kicker: "03 / 下载",
+      kicker: "04 / 下载",
       title: "下载、安装、打开即用",
       lead: "官网只负责介绍。到 GitHub Releases 页选择适合你电脑的安装包，打开即可进入工作室：日常对话与组织控制台都在里面。第一次启动会解压内置环境，可能要一两分钟。组织运行时若随包装出现，是迁向宿主原生界面途中的过渡，不是终点。",
       cta: "从 Releases 下载",
@@ -122,7 +131,7 @@ export const copy = {
       cliHint: "克隆仓库后：",
     },
     loop: {
-      kicker: "04 / 闭环",
+      kicker: "05 / 闭环",
       title: "组织会自己长出下一位同事",
       lead: "freeos org loop run 是产品路径，不是演示脚本。它把蓝图变成可聊天的员工，走完生命周期，再把资产装回控制面，并证明高风险工具仍然被拦住。",
       steps: [
@@ -136,7 +145,7 @@ export const copy = {
       lifeNote: "见习只读并受治理；转正后才打开岗位定时任务。离任会收回密钥，并把记忆归档到组织知识库。",
     },
     faq: {
-      kicker: "05 / 问答",
+      kicker: "06 / 问答",
       title: "工作室里的几件事",
       items: [
         {
@@ -196,6 +205,7 @@ export const copy = {
     skip: "Skip to content",
     nav: {
       engines: "Engines",
+      journey: "Agent flow",
       capabilities: "Capabilities",
       download: "Download",
       loop: "The loop",
@@ -252,8 +262,16 @@ export const copy = {
       flowSpawn: "Spawn or upgrade runtime agents",
       note: "Chat and assistants stay in the everyday room. The organization room holds blueprints and governance. Thanks to Octop and openXYOS for the capabilities that share this studio.",
     },
+    journey: {
+      kicker: "02 / Live workflow",
+      title: "Turn an agent concept into an organization member",
+      lead: "Start with a profile and trusted sources, generate a governed agent blueprint, publish it to the talent market, then recruit and assemble it into the organization.",
+      caption: "A real capture from the openXYOS organization homepage inside FreeOS. Four stages advance automatically to show the path from concept to onboarding.",
+      steps: ["Profile & sources", "Generate agent", "Enter talent market", "Work in the organization"],
+      note: "Every stage has an explicit governance boundary. Users can keep tailoring capabilities and organization flows, then export a mature design as new openXYOS system source code.",
+    },
     capabilities: {
-      kicker: "02 / Capabilities",
+      kicker: "03 / Capabilities",
       title: "A companion’s hands. An organization OS’s bones.",
       lead: "A verifiable runtime, plus deliverable org governance — spoken in FreeOS’s own voice.",
       groups: [
@@ -280,7 +298,7 @@ export const copy = {
       ],
     },
     download: {
-      kicker: "03 / Download",
+      kicker: "04 / Download",
       title: "Download, install, open, and use",
       lead: "This site introduces the product. On the GitHub Releases page, pick the installer for your machine and open a studio: everyday chat and the organization console are both inside. First launch unpacks a runtime and may take a minute or two. If a managed organization runtime ships with the package, it is a bridge toward native host UI — not the destination.",
       cta: "Download from Releases",
@@ -297,7 +315,7 @@ export const copy = {
       cliHint: "After cloning the repo:",
     },
     loop: {
-      kicker: "04 / The loop",
+      kicker: "05 / The loop",
       title: "The organization grows its next colleague",
       lead: "freeos org loop run is the product path, not a demo. It turns a blueprint into a chat-addressable employee, walks the lifecycle, applies assets back to the control plane, and proves high-risk tools still stop.",
       steps: [
@@ -311,7 +329,7 @@ export const copy = {
       lifeNote: "Shadow is read-only and governed. Cron from job duties turns on only when active. Offboard revokes secrets and archives memory into org knowledge.",
     },
     faq: {
-      kicker: "05 / FAQ",
+      kicker: "06 / FAQ",
       title: "A few things about the studio",
       items: [
         {
