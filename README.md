@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <strong>FreeOS: a free AI studio — the space for imagination is yours to open.</strong>
+  <strong>Your FreeOS, free for you.</strong>
 </p>
 
 <p align="center">

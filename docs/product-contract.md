@@ -12,7 +12,7 @@ Related but subordinate: [architecture-integration.md](architecture-integration.
 
 ## Founding intent (canonical vision)
 
-> **FreeOS: a free AI studio — the space for imagination is yours to open.**
+> **Your FreeOS, free for you.**
 
 Chinese original: [product-contract.zh-CN.md](product-contract.zh-CN.md). Do not drift from that meaning.
 
