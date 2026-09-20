@@ -124,10 +124,11 @@ On first open the shell:
 2. Does **not** extract or start `openxyos-runtime` unless `FREEOS_ORG_SIDECAR=1`.
 3. Starts the FreeOS host with `FREEOS_HOME` and `FREEOS_ORG_ENABLE=1`.
    It does not set `OPENXYOS_BASE_URL` / `FREEOS_ORG_SIDECAR_URL` by default.
-4. Opens the desktop window on the host UI with a local guest session (no
-   login wall). Chat and **Organization** are both available in-host — no
-   Node process on 3780 is required. Register or sign in later when a save
-   needs an account.
+4. Opens the desktop window on `/chat/main` with a local guest session (no
+   login wall). First session is optional model setup (skippable) → first
+   agent chat. **Organization** stays a later sidebar room — it is not the
+   first screen. No Node process on 3780 is required. Register or sign in
+   later when a save needs an account.
 
 ## Build green zip
 

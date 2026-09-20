@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -90,12 +91,19 @@ func dashboardURL(port int) string {
 
 // withDesktopQuery marks the SPA as the Wails shell so it can skip PWA
 // service-worker caching and treat first open as a local desktop session.
+// Origin-only URLs open the first agent (`/chat/main`), not `/` → `/projects`
+// and not the organization room.
 func withDesktopQuery(base string) string {
 	if strings.Contains(base, "desktop=1") {
 		return base
 	}
+	trimmed := strings.TrimRight(base, "/")
 	if strings.Contains(base, "?") {
 		return base + "&desktop=1"
 	}
-	return strings.TrimRight(base, "/") + "/?desktop=1"
+	parsed, err := url.Parse(trimmed)
+	if err == nil && (parsed.Path == "" || parsed.Path == "/") {
+		return trimmed + "/chat/main?desktop=1"
+	}
+	return trimmed + "?desktop=1"
 }

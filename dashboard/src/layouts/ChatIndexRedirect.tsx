@@ -1,5 +1,7 @@
 import { Navigate, useLocation } from "react-router-dom";
 import { useAgent } from "../context/AgentContext";
+import { DESKTOP_FIRST_CHAT_PATH } from "../utils/desktopOnboarding";
+import { isDesktopShell } from "../utils/desktopShell";
 import { CONVERSATION_LIST_PATH, chatCanvasPath } from "./conversationHome";
 
 type ChatIntentState = {
@@ -18,8 +20,8 @@ function hasChatIntent(state: unknown): boolean {
 
 /**
  * Bare ``/chat`` is not a second conversation home.
- * Intent (new chat / prefill / attach KB) opens the canvas; otherwise the
- * shared workspace 对话 list.
+ * Desktop opens the first agent; the web console uses the shared 对话 list.
+ * Intent (new chat / prefill / attach KB) still opens a canvas.
  */
 export default function ChatIndexRedirect() {
   const location = useLocation();
@@ -31,6 +33,14 @@ export default function ChatIndexRedirect() {
         <Navigate to={chatCanvasPath(agentId)} replace state={location.state} />
       );
     }
+  }
+  if (isDesktopShell(location.search)) {
+    return (
+      <Navigate
+        to={`${DESKTOP_FIRST_CHAT_PATH}${location.search}${location.hash}`}
+        replace
+      />
+    );
   }
   return <Navigate to={CONVERSATION_LIST_PATH} replace />;
 }

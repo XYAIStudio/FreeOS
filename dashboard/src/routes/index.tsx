@@ -4,6 +4,8 @@ import { SYSTEM_SETTINGS_TO_PERSONALIZATION } from "../pages/Agent/Personalizati
 import { isSystemSettingsNavPath } from "../pages/SystemSettings/tabs";
 import ChatIndexRedirect from "../layouts/ChatIndexRedirect";
 import { resolveWorkspaceNavKey } from "../layouts/conversationHome";
+import { DESKTOP_FIRST_CHAT_PATH } from "../utils/desktopOnboarding";
+import { isDesktopShell } from "../utils/desktopShell";
 
 // Lazy-loaded pages — Common
 const ExpertsPage = lazy(() => import("../pages/Experts"));
@@ -63,6 +65,15 @@ const NotFoundPage = lazy(() => import("../components/NotFoundPage"));
 
 function RedirectPreserveSearch({ to }: { to: string }) {
   const location = useLocation();
+  return <Navigate to={`${to}${location.search}${location.hash}`} replace />;
+}
+
+/** Desktop first paint is studio chat; the web console still uses `/projects`. */
+function RootRedirect() {
+  const location = useLocation();
+  const to = isDesktopShell(location.search)
+    ? DESKTOP_FIRST_CHAT_PATH
+    : "/projects";
   return <Navigate to={`${to}${location.search}${location.hash}`} replace />;
 }
 
@@ -476,6 +487,6 @@ export const routeConfigs: RouteConfig[] = [
 
   // Misc
   { path: "/pwa-debug", element: <PwaDebugPage /> },
-  { path: "/", element: <RedirectPreserveSearch to="/projects" /> },
+  { path: "/", element: <RootRedirect /> },
   { path: "*", element: <NotFoundPage /> },
 ];
