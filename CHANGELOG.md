@@ -9,6 +9,7 @@
 ### 文档
 
 - 冻结 FreeOS 产品契约（P0.1）：[docs/product-contract.md](docs/product-contract.md) / [docs/product-contract.zh-CN.md](docs/product-contract.zh-CN.md)。核心愿景采用「创立初心」定稿（中文原文；英文 README 为忠实对应；使用方式段为工作室比喻：本机安顿起步，组织像另一间可独立布置的房间）。产品口号：**FreeOS：自由的 AI 工作室，想象空间由你来打开** / *Your FreeOS, free for you.* 托管 Node / 内嵌组织页仅为过渡桥，终态是把 openXYOS 迁入宿主并导出可商业化源码。取代先前「组织身份为唯一权威」与「永久 / 默认捆绑 Node 运行时」表述。冲突文档改为 Historical vs Current，不删工程历史。
+- 官网 `website/` 文案对齐产品契约：中文口号作 Hero / 标题，英文 *Your FreeOS, free for you.* 作 EN 标题与 meta；工作室比喻贯穿介绍与 FAQ；下载指向最新 Release（安装包 0.0.3）；不再承诺永久零 Node，托管运行时写成迁向宿主原生界面的过渡。
 
 ### 新增
 

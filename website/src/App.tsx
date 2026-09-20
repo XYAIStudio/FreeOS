@@ -294,7 +294,7 @@ export default function App() {
             </a>
           </div>
           <p className="center-link">
-            <a href={LINKS.releaseTag} target="_blank" rel="noreferrer">
+            <a href={LINKS.releases} target="_blank" rel="noreferrer">
               {t.download.allReleases} →
             </a>
           </p>
@@ -424,6 +424,9 @@ uv run freeos org loop run`}
             <a href={LINKS.site}>{t.footer.home}</a>
             <a href={LINKS.releases} target="_blank" rel="noreferrer">
               {t.footer.links.releases}
+            </a>
+            <a href={LINKS.productContract} target="_blank" rel="noreferrer">
+              {t.footer.links.contract}
             </a>
             <a href={LINKS.architecture} target="_blank" rel="noreferrer">
               {t.footer.links.docs}
