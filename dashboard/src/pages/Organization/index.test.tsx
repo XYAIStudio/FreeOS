@@ -124,6 +124,15 @@ const overview: OrgOverview = {
   module_toggles: { org: true },
 };
 
+vi.mock("../../hooks/useCurrentUser", () => ({
+  useCurrentUser: () => ({
+    id: 1,
+    username: "ada",
+    display_name: "Ada",
+    role: "admin",
+  }),
+}));
+
 vi.mock("../../api/modules/orgModule", () => ({
   orgModuleApi: {
     identityStatus: vi.fn(async () => ({
@@ -141,6 +150,7 @@ vi.mock("../../api/modules/orgModule", () => ({
     runLoop: vi.fn(),
     setModules: vi.fn(),
     downloadSource: vi.fn(),
+    resolvePause: vi.fn(),
   },
 }));
 
@@ -176,6 +186,7 @@ describe("OrganizationPage", () => {
     vi.mocked(orgModuleApi.assemble).mockReset();
     vi.mocked(orgModuleApi.pack).mockReset();
     vi.mocked(orgModuleApi.runLoop).mockReset();
+    vi.mocked(orgModuleApi.resolvePause).mockReset();
     vi.mocked(message.success).mockReset();
     vi.mocked(message.error).mockReset();
   });
@@ -430,12 +441,26 @@ describe("OrganizationPage", () => {
         pending_pauses: 2,
         enabled: true,
         href: "/organization/governance",
+        pauses: [
+          {
+            pause_id: "p1",
+            tool_name: "shell",
+            reason: "high risk",
+            status: "pending",
+          },
+        ],
       },
       freeos: { ...overview.freeos, pending_pauses: 2 },
     });
     renderOrg();
     expect(await screen.findByTestId("org-pause-banner")).toBeInTheDocument();
     expect(screen.getByTestId("org-pause-open")).toBeInTheDocument();
+    expect(screen.getByTestId("org-pause-row-p1")).toBeInTheDocument();
+    expect(screen.getByTestId("org-pause-approve-p1")).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId("org-pause-approve-p1"));
+    await waitFor(() => {
+      expect(orgModuleApi.resolvePause).toHaveBeenCalledWith("p1", true);
+    });
     expect(
       await screen.findByTestId("org-original-app-hint"),
     ).toBeInTheDocument();

@@ -40,6 +40,7 @@ export function TaskDetailPage({
   const [newSubtask, setNewSubtask] = useState("");
   const [newComment, setNewComment] = useState("");
   const [error, setError] = useState("");
+  const [uploading, setUploading] = useState(false);
 
   const statusLabel = (status: string) =>
     ({
@@ -150,6 +151,41 @@ export function TaskDetailPage({
     try {
       await client.addComment(taskId, newComment.trim());
       setNewComment("");
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : labels.required);
+    }
+  };
+
+  const uploadFile = async (file: File) => {
+    setUploading(true);
+    try {
+      await client.uploadAttachment(taskId, file);
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : labels.required);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const downloadFile = async (attachmentId: number, filename: string) => {
+    try {
+      const blob = await client.downloadAttachment(taskId, attachmentId);
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : labels.required);
+    }
+  };
+
+  const removeFile = async (attachmentId: number) => {
+    try {
+      await client.removeAttachment(taskId, attachmentId);
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : labels.required);
@@ -361,6 +397,51 @@ export function TaskDetailPage({
                 {labels.save}
               </Button>
             </div>
+          </div>
+
+          <div className={styles.detailCard} style={{ marginTop: 16 }}>
+            <Typography.Title level={5}>
+              {labels.attachments} ({(task.attachments || []).length})
+            </Typography.Title>
+            {(task.attachments || []).length === 0 ? (
+              <p className={styles.hint}>{labels.noAttachments}</p>
+            ) : (
+              (task.attachments || []).map((file) => (
+                <div key={file.id} className={styles.subtask}>
+                  <span>
+                    {file.filename} ({file.size_bytes} B)
+                  </span>
+                  <Button
+                    size="small"
+                    onClick={() => void downloadFile(file.id, file.filename)}
+                    data-testid={`org-task-attachment-download-${file.id}`}
+                  >
+                    {labels.download}
+                  </Button>
+                  <Button
+                    size="small"
+                    danger
+                    onClick={() => void removeFile(file.id)}
+                    data-testid={`org-task-attachment-remove-${file.id}`}
+                  >
+                    {labels.delete}
+                  </Button>
+                </div>
+              ))
+            )}
+            <input
+              type="file"
+              data-testid="org-task-attachment-input"
+              style={{ marginTop: 8 }}
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+                event.target.value = "";
+                if (file) void uploadFile(file);
+              }}
+            />
+            {uploading ? (
+              <p className={styles.hint}>{labels.addAttachment}</p>
+            ) : null}
           </div>
         </div>
 

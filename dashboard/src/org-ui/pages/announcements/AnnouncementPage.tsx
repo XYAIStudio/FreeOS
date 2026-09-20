@@ -66,6 +66,9 @@ export function AnnouncementPage({
   const [loading, setLoading] = useState(true);
   const [unreadCount, setUnreadCount] = useState(0);
   const [detail, setDetail] = useState<Announcement | null>(null);
+  const [readers, setReaders] = useState<
+    Array<{ user_id: number; user_name: string; read_at: string }>
+  >([]);
   const [showForm, setShowForm] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
   const [form, setForm] = useState({
@@ -115,6 +118,12 @@ export function AnnouncementPage({
     try {
       const next = await client.get(row.id);
       setDetail(next);
+      try {
+        const log = await client.readers(row.id);
+        setReaders(log.readers);
+      } catch {
+        setReaders([]);
+      }
       setItems((prev) =>
         prev.map((item) =>
           item.id === row.id ? { ...item, is_read: true } : item,
@@ -363,7 +372,10 @@ export function AnnouncementPage({
         open={Boolean(detail)}
         title={detail?.title}
         footer={null}
-        onCancel={() => setDetail(null)}
+        onCancel={() => {
+          setDetail(null);
+          setReaders([]);
+        }}
         width={720}
       >
         {detail ? (
@@ -385,6 +397,23 @@ export function AnnouncementPage({
               ) : null}
             </Space>
             <div className={styles.detailBody}>{detail.content}</div>
+            <div style={{ marginTop: 16 }}>
+              <Typography.Text type="secondary">
+                {labels.readers} ({readers.length})
+              </Typography.Text>
+              {readers.length === 0 ? (
+                <p className={styles.preview}>{labels.noReaders}</p>
+              ) : (
+                <ul data-testid="org-announcement-readers">
+                  {readers.map((reader) => (
+                    <li key={`${reader.user_id}-${reader.read_at}`}>
+                      {reader.user_name || `#${reader.user_id}`} ·{" "}
+                      {format(reader.read_at)}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
           </div>
         ) : null}
       </Modal>

@@ -247,6 +247,13 @@ _PATTERNS: tuple[tuple[re.Pattern[str], str, tuple[str, ...]], ...] = (
         (),
     ),
     (
+        re.compile(
+            r"^Catalog enablement, announcement readers, task files, and reporting lines stay in this room\.$"
+        ),
+        "org.notes.room_depth",
+        (),
+    ),
+    (
         re.compile(r"^imported openXYOS skill (.+)$"),
         "org.notes.imported_skill",
         ("slug",),

@@ -216,9 +216,12 @@ export function SettingsPage({
       <section className={styles.card} data-testid="org-settings-modules">
         <h2 className={styles.cardTitle}>{labels.modulesTitle}</h2>
         <p className={styles.hint}>{labels.modulesHint}</p>
+        <p className={styles.hint}>{labels.deliveryHint}</p>
         <div className={styles.moduleList}>
           {catalog.map((row) => {
             const on = toggles[row.key] !== false;
+            const hostPage =
+              row.delivery !== "managed_node_iframe" && Boolean(row.host_path);
             return (
               <div
                 key={row.key}
@@ -228,6 +231,14 @@ export function SettingsPage({
                 <div className={styles.moduleMeta}>
                   <div className={styles.moduleName}>{capLabel(row)}</div>
                   <div className={styles.moduleDesc}>{capDesc(row)}</div>
+                  <div className={styles.moduleTags}>
+                    <Tag data-testid={`org-settings-delivery-${row.key}`}>
+                      {hostPage ? labels.deliveryHost : labels.deliveryIframe}
+                    </Tag>
+                    {row.host_path ? (
+                      <span className={styles.modulePath}>{row.host_path}</span>
+                    ) : null}
+                  </div>
                 </div>
                 {row.locked ? (
                   <Tag>{labels.locked}</Tag>

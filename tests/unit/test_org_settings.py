@@ -71,6 +71,11 @@ def test_api_snapshot_and_prefs_reuse_modules(tmp_path: Path) -> None:
     assert "llm_keys" in body["not_on_this_page"]
     assert body["system_settings"]["overview"] == "/system-settings"
     assert any(row["key"] == "settings" and row["locked"] for row in body["catalog"])
+    chat = next(row for row in body["catalog"] if row["key"] == "chat")
+    assert chat["delivery"] == "managed_node_iframe"
+    announcements = next(row for row in body["catalog"] if row["key"] == "announcements")
+    assert announcements["delivery"] == "org_ui_slice"
+    assert announcements["host_path"] == "/organization/announcements"
     assert body["modules"]["settings"] is True
     assert body["prefs"] == {"name": "", "description": ""}
 

@@ -3,14 +3,19 @@
 from __future__ import annotations
 
 import asyncio
+from pathlib import Path
 from typing import Any
 
-from fastapi import APIRouter, Depends, Query, Request
-from fastapi.responses import JSONResponse
+from fastapi import APIRouter, Depends, File, Query, Request, UploadFile
+from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel, Field
 
+from octop.api.common.content_disposition import content_disposition
+from octop.api.common.upload_limit import read_upload_capped
 from octop.api.deps import current_user, get_server
+from octop.config import DEFAULT_MAX_UPLOAD_MB, upload_mb_to_bytes
 from octop.i18n import tr
+from octop.infra.errors import OctopError
 from octop.infra.server import OctopServer
 from octop.infra.utils.locale import resolve_request_locale
 from octop.modules.org_os.org_chart.store import OrgChartStore
@@ -342,3 +347,118 @@ async def add_comment(
     if row is None:
         return _fail(request, "org.tasks.not_found", 404)
     return _ok(row)
+
+
+def _max_upload_bytes(server: OctopServer) -> int:
+    services = getattr(server, "services", None)
+    config = getattr(services, "config", None) if services is not None else None
+    value = getattr(config, "max_upload_bytes", None)
+    if isinstance(value, int) and value > 0:
+        return value
+    return upload_mb_to_bytes(DEFAULT_MAX_UPLOAD_MB)
+
+
+@router.get(
+    "/tasks/{task_id}/attachments",
+    summary="List organization task attachments",
+    response_model=None,
+)
+async def list_attachments(
+    task_id: int,
+    request: Request,
+    server: OctopServer = Depends(get_server),
+    _user: Any = Depends(current_user),
+) -> dict[str, Any] | JSONResponse:
+    store = _store(server)
+    tenant = _tenant_id(server)
+    task = await asyncio.to_thread(store.get, task_id, tenant_id=tenant)
+    if task is None:
+        return _fail(request, "org.tasks.not_found", 404)
+    rows = await asyncio.to_thread(store.list_attachments, task_id, tenant_id=tenant)
+    return _ok(rows)
+
+
+@router.post(
+    "/tasks/{task_id}/attachments",
+    summary="Upload an organization task attachment",
+    response_model=None,
+)
+async def upload_attachment(
+    task_id: int,
+    request: Request,
+    server: OctopServer = Depends(get_server),
+    user: Any = Depends(current_user),
+    upload: UploadFile = File(...),
+) -> dict[str, Any] | JSONResponse:
+    store = _store(server)
+    tenant = _tenant_id(server)
+    try:
+        data = await read_upload_capped(upload, max_bytes=_max_upload_bytes(server))
+    except OctopError:
+        return _fail(request, "org.tasks.attachment_too_large", 413)
+    filename = (upload.filename or "").strip() or "attachment"
+    media_type = (upload.content_type or "application/octet-stream").split(";")[0]
+    row = await asyncio.to_thread(
+        store.add_attachment,
+        task_id,
+        tenant_id=tenant,
+        filename=filename,
+        data=data,
+        media_type=media_type,
+        uploaded_by=_user_id(user),
+        uploader_name=_creator_name(user),
+    )
+    if row is None:
+        return _fail(request, "org.tasks.not_found", 404)
+    return _ok(row)
+
+
+@router.get(
+    "/tasks/{task_id}/attachments/{attachment_id}/file",
+    summary="Download an organization task attachment",
+    response_model=None,
+)
+async def download_attachment(
+    task_id: int,
+    attachment_id: int,
+    request: Request,
+    server: OctopServer = Depends(get_server),
+    _user: Any = Depends(current_user),
+) -> FileResponse | JSONResponse:
+    store = _store(server)
+    row = await asyncio.to_thread(
+        store.get_attachment, task_id, attachment_id, tenant_id=_tenant_id(server)
+    )
+    if row is None:
+        return _fail(request, "org.tasks.attachment_not_found", 404)
+    path = Path(str(row.get("path") or ""))
+    if not path.is_file():
+        return _fail(request, "org.tasks.attachment_not_found", 404)
+    return FileResponse(
+        path,
+        media_type=str(row.get("media_type") or "application/octet-stream"),
+        headers={
+            "Content-Disposition": content_disposition(str(row.get("filename") or "attachment"))
+        },
+    )
+
+
+@router.delete(
+    "/tasks/{task_id}/attachments/{attachment_id}",
+    summary="Delete an organization task attachment",
+    response_model=None,
+)
+async def delete_attachment(
+    task_id: int,
+    attachment_id: int,
+    request: Request,
+    server: OctopServer = Depends(get_server),
+    _user: Any = Depends(current_user),
+) -> dict[str, Any] | JSONResponse:
+    store = _store(server)
+    deleted = await asyncio.to_thread(
+        store.delete_attachment, task_id, attachment_id, tenant_id=_tenant_id(server)
+    )
+    if not deleted:
+        return _fail(request, "org.tasks.attachment_not_found", 404)
+    return _ok()

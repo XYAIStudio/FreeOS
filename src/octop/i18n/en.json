@@ -754,6 +754,7 @@
       "loop_skip_unknown": "skipped promotion for {slug}: unknown colleague",
       "visible_on_ui_tenant": "Assets land on this organization's Employees, Talent, Skills, and Plugins lists.",
       "host_directory": "Host directory and talent market updated without Node.",
+      "room_depth": "Catalog enablement, announcement readers, task files, and reporting lines stay in this room.",
       "dual_identity": "The organization room is arranged on its own; everyday studio login stays a separate space.",
       "imported_skill": "imported openXYOS skill {slug}",
       "imported_plugin": "imported openXYOS plugin {slug}",
@@ -772,6 +773,8 @@
       "invalid_status": "Invalid task status",
       "no_updates": "No changes were provided",
       "assignee_invalid": "The assignee does not exist or is not an active directory employee",
+      "attachment_too_large": "This attachment exceeds the upload size limit",
+      "attachment_not_found": "Attachment not found",
       "unavailable": "Task service is temporarily unavailable. Please try again"
     },
     "reflections": {
@@ -796,7 +799,9 @@
       "parent_not_found": "Parent department not found",
       "has_employees": "Department still has employees and cannot be deleted",
       "has_children": "Department still has child departments and cannot be deleted",
-      "cycle": "A department cannot be nested under itself or its descendants"
+      "cycle": "A department cannot be nested under itself or its descendants",
+      "reports_to_not_found": "Reporting-line manager was not found in this organization",
+      "reports_to_cycle": "A person cannot report to themselves or through a reporting-line cycle"
     },
     "talent": {
       "forbidden": "Permission denied",

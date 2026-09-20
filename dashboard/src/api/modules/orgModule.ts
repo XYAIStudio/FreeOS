@@ -105,7 +105,18 @@ export interface OrgOverview {
     pending_pauses?: number;
     enabled?: boolean;
     href?: string;
+    pauses?: OrgGovernancePause[];
   };
+}
+
+export interface OrgGovernancePause {
+  pause_id: string;
+  tool_name: string;
+  category?: string;
+  action?: string;
+  reason?: string;
+  status?: string;
+  created_at?: number;
 }
 
 export interface OrgSidecarStart {
@@ -233,4 +244,15 @@ export const orgModuleApi = {
         body: JSON.stringify({ dest }),
       },
     ),
+  resolvePause: (pauseId: string, approve: boolean) =>
+    request<{
+      status: string;
+      execute: boolean;
+      blocked: boolean;
+      reason: string;
+    }>("/org-module/governance/resolve", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ pause_id: pauseId, approve }),
+    }),
 };

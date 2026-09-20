@@ -145,6 +145,20 @@
   line-height: 1.4;
 }
 
+.moduleTags {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.modulePath {
+  font-size: 11px;
+  color: var(--fn-text-secondary, #667085);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
 .empty {
   text-align: center;
   padding: 48px 12px;

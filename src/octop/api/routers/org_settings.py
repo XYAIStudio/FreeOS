@@ -17,7 +17,7 @@ from octop.api.deps import current_user, get_server
 from octop.i18n import tr
 from octop.infra.server import OctopServer
 from octop.infra.utils.locale import resolve_request_locale
-from octop.modules.org_os.catalog import OPENXYOS_MODULES
+from octop.modules.org_os.catalog import catalog_with_host_delivery
 from octop.modules.org_os.module_toggles import load_module_toggles
 from octop.modules.org_os.prefs import load_org_prefs, save_org_prefs
 from octop.modules.org_os.service import org_module_from_paths
@@ -68,7 +68,7 @@ def _snapshot(server: OctopServer) -> dict[str, Any]:
     home = _home(server)
     return {
         "scope": "org_module",
-        "catalog": list(OPENXYOS_MODULES),
+        "catalog": catalog_with_host_delivery(),
         "modules": load_module_toggles(home),
         "prefs": load_org_prefs(home),
         "system_settings": dict(SYSTEM_SETTINGS),

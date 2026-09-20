@@ -754,6 +754,7 @@
       "loop_skip_unknown": "已跳过 {slug} 的晋升：未知同事",
       "visible_on_ui_tenant": "资产已落到本组织的员工 / 人才 / 技能 / 插件列表。",
       "host_directory": "已写入宿主员工名册与人才市场，不依赖 Node。",
+      "room_depth": "目录启用、公告已读、任务附件和汇报线都留在这间组织房间。",
       "dual_identity": "组织房间可以单独布置；日常工作室登录仍是另一套空间。",
       "imported_skill": "已导入 openXYOS 技能 {slug}",
       "imported_plugin": "已导入 openXYOS 插件 {slug}",
@@ -772,6 +773,8 @@
       "invalid_status": "无效的任务状态",
       "no_updates": "没有可更新的字段",
       "assignee_invalid": "受派员工不存在或未在职",
+      "attachment_too_large": "附件超过上传大小限制",
+      "attachment_not_found": "附件不存在",
       "unavailable": "任务服务暂时不可用，请稍后重试"
     },
     "reflections": {
@@ -796,7 +799,9 @@
       "parent_not_found": "上级部门不存在",
       "has_employees": "部门下还有员工，无法删除",
       "has_children": "部门下还有子部门，无法删除",
-      "cycle": "不能把部门挂到自身或其下级之下"
+      "cycle": "不能把部门挂到自身或其下级之下",
+      "reports_to_not_found": "汇报对象不在本组织名册中",
+      "reports_to_cycle": "不能向自己汇报，也不能形成汇报环"
     },
     "talent": {
       "forbidden": "无权限",

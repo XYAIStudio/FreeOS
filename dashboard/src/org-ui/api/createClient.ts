@@ -43,6 +43,12 @@ export interface OrgEnvelope<T> {
   error?: string;
 }
 
+export interface AnnouncementReader {
+  user_id: number;
+  user_name: string;
+  read_at: string;
+}
+
 export interface OrgAnnouncementsClient {
   list(params: {
     page: number;
@@ -51,6 +57,9 @@ export interface OrgAnnouncementsClient {
     search?: string;
   }): Promise<AnnouncementListData>;
   get(id: number): Promise<Announcement>;
+  readers(
+    id: number,
+  ): Promise<{ readers: AnnouncementReader[]; count: number }>;
   unread(): Promise<{ count: number }>;
   markRead(id: number): Promise<void>;
   markAllRead(): Promise<{ marked: number }>;
@@ -74,6 +83,8 @@ export interface OrgEmployee {
   department_name?: string | null;
   status: string;
   is_online?: boolean;
+  reports_to?: number | null;
+  reports_to_name?: string | null;
   created_at?: string;
   updated_at?: string | null;
 }
@@ -111,6 +122,7 @@ export interface EmployeeWrite {
   skills?: string;
   avatar_emoji?: string;
   status?: string;
+  reports_to?: number | null;
 }
 
 export interface OrgChartClient {
@@ -122,6 +134,14 @@ export interface OrgChartClient {
   createEmployee(body: EmployeeWrite): Promise<OrgEmployee>;
   updateEmployee(id: number, body: EmployeeWrite): Promise<OrgEmployee>;
   removeEmployee(id: number): Promise<void>;
+  importChart(body: {
+    departments?: Array<Record<string, unknown>>;
+    reporting_lines?: Array<Record<string, unknown>>;
+  }): Promise<{
+    departments: { created: number; updated: number; skipped: number };
+    reporting_lines: { applied: number; skipped: number };
+    tree: OrgDepartment[];
+  }>;
 }
 
 export interface EmployeeListParams {
@@ -428,8 +448,10 @@ export interface OrgTask {
   subtask_count?: number;
   subtask_done?: number;
   comment_count?: number;
+  attachment_count?: number;
   subtasks?: OrgTaskSubtask[];
   comments?: OrgTaskComment[];
+  attachments?: OrgTaskAttachment[];
 }
 
 export interface OrgTaskSubtask {
@@ -447,6 +469,18 @@ export interface OrgTaskComment {
   user_name?: string;
   content: string;
   comment_type: string;
+  created_at: string;
+}
+
+export interface OrgTaskAttachment {
+  id: number;
+  task_id: number;
+  filename: string;
+  stored_name?: string;
+  media_type?: string;
+  size_bytes: number;
+  uploaded_by?: number | null;
+  uploader_name?: string;
   created_at: string;
 }
 
@@ -488,6 +522,10 @@ export interface OrgTasksClient {
   ): Promise<OrgTaskSubtask>;
   removeSubtask(id: number, subtaskId: number): Promise<void>;
   addComment(id: number, content: string): Promise<OrgTaskComment>;
+  listAttachments(id: number): Promise<OrgTaskAttachment[]>;
+  uploadAttachment(id: number, file: File): Promise<OrgTaskAttachment>;
+  downloadAttachment(id: number, attachmentId: number): Promise<Blob>;
+  removeAttachment(id: number, attachmentId: number): Promise<void>;
 }
 
 export type OrgReflectionType =
@@ -728,11 +766,14 @@ export interface OrgWorkspaceOverview {
     pending_pauses?: number;
     enabled?: boolean;
     href?: string;
+    pauses?: GovernancePause[];
   };
 }
 
 export interface OrgWorkspaceClient {
   overview(): Promise<OrgWorkspaceOverview>;
+  pauses(status?: string): Promise<GovernancePauseList>;
+  resolve(pauseId: string, approve: boolean): Promise<GovernanceDecision>;
 }
 
 export interface OrgApiClient {
@@ -763,6 +804,8 @@ async function unwrap<T>(payload: OrgEnvelope<T>): Promise<T> {
  */
 export function createOrgApiClient(opts: {
   fetchJson: OrgFetcher;
+  uploadForm?: <T>(path: string, body: FormData) => Promise<T>;
+  fetchBlob?: (path: string) => Promise<Blob>;
   announcementsPrefix?: string;
   orgPrefix?: string;
   governancePrefix?: string;
@@ -805,6 +848,13 @@ export function createOrgApiClient(opts: {
     async get(id) {
       return unwrap(
         await fetchJson<OrgEnvelope<Announcement>>(`${prefix}/${id}`),
+      );
+    },
+    async readers(id) {
+      return unwrap(
+        await fetchJson<
+          OrgEnvelope<{ readers: AnnouncementReader[]; count: number }>
+        >(`${prefix}/${id}/readers`),
       );
     },
     async unread() {
@@ -940,6 +990,25 @@ export function createOrgApiClient(opts: {
           `${orgPrefix}/employees/${id}`,
           { method: "DELETE" },
         ),
+      );
+    },
+    async importChart(body) {
+      return unwrap(
+        await fetchJson<
+          OrgEnvelope<{
+            departments: {
+              created: number;
+              updated: number;
+              skipped: number;
+            };
+            reporting_lines: { applied: number; skipped: number };
+            tree: OrgDepartment[];
+          }>
+        >(`${orgPrefix}/import`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        }),
       );
     },
   };
@@ -1219,6 +1288,42 @@ export function createOrgApiClient(opts: {
         ),
       );
     },
+    async listAttachments(id) {
+      return unwrap(
+        await fetchJson<OrgEnvelope<OrgTaskAttachment[]>>(
+          `${tasksPrefix}/${id}/attachments`,
+        ),
+      );
+    },
+    async uploadAttachment(id, file) {
+      if (!opts.uploadForm) {
+        throw new Error("upload is not available");
+      }
+      const body = new FormData();
+      body.append("upload", file);
+      return unwrap(
+        await opts.uploadForm<OrgEnvelope<OrgTaskAttachment>>(
+          `${tasksPrefix}/${id}/attachments`,
+          body,
+        ),
+      );
+    },
+    async downloadAttachment(id, attachmentId) {
+      if (!opts.fetchBlob) {
+        throw new Error("download is not available");
+      }
+      return opts.fetchBlob(
+        `${tasksPrefix}/${id}/attachments/${attachmentId}/file`,
+      );
+    },
+    async removeAttachment(id, attachmentId) {
+      await unwrap(
+        await fetchJson<OrgEnvelope<undefined>>(
+          `${tasksPrefix}/${id}/attachments/${attachmentId}`,
+          { method: "DELETE" },
+        ),
+      );
+    },
   };
 
   const reflections: OrgReflectionsClient = {
@@ -1367,6 +1472,12 @@ export function createOrgApiClient(opts: {
         return raw.data;
       }
       throw new Error(raw?.error || "request failed");
+    },
+    async pauses(status) {
+      return governance.pauses(status);
+    },
+    async resolve(pauseId, approve) {
+      return governance.resolve(pauseId, approve);
     },
   };
 

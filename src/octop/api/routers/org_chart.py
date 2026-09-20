@@ -29,6 +29,11 @@ class DepartmentWriteBody(BaseModel):
     level: int | None = None
 
 
+class OrgImportBody(BaseModel):
+    departments: list[dict[str, Any]] = Field(default_factory=list)
+    reporting_lines: list[dict[str, Any]] = Field(default_factory=list)
+
+
 class EmployeeWriteBody(BaseModel):
     name: str | None = None
     department_id: int | None = None
@@ -39,6 +44,7 @@ class EmployeeWriteBody(BaseModel):
     skills: str | None = None
     avatar_emoji: str | None = None
     status: str | None = None
+    reports_to: int | None = None
 
 
 def _tenant_id(server: OctopServer) -> str:
@@ -256,9 +262,14 @@ async def create_employee(
             skills=body.skills or "",
             avatar_emoji=body.avatar_emoji or "👤",
             status=body.status or "active",
+            reports_to=body.reports_to,
         )
-    except KeyError:
+    except KeyError as exc:
+        if str(exc) == "'reports_to'" or "reports_to" in str(exc):
+            return _fail(request, "org.chart.reports_to_not_found", 400)
         return _fail(request, "org.chart.department_not_found", 400)
+    except ValueError:
+        return _fail(request, "org.chart.reports_to_cycle", 400)
     return _ok({"id": row["id"], **row})
 
 
@@ -289,11 +300,38 @@ async def update_employee(
             tenant_id=_tenant_id(server),
             fields=fields,
         )
-    except KeyError:
+    except KeyError as exc:
+        if str(exc) == "'reports_to'" or "reports_to" in str(exc):
+            return _fail(request, "org.chart.reports_to_not_found", 400)
         return _fail(request, "org.chart.department_not_found", 400)
+    except ValueError as exc:
+        if "reports_to" in str(exc):
+            return _fail(request, "org.chart.reports_to_cycle", 400)
+        return _fail(request, "org.chart.cycle", 400)
     if row is None:
         return _fail(request, "org.chart.employee_not_found", 404)
     return _ok(row)
+
+
+@router.post("/org/import", summary="Import departments and reporting lines", response_model=None)
+async def import_org_chart(
+    body: OrgImportBody,
+    request: Request,
+    server: OctopServer = Depends(get_server),
+    user: Any = Depends(current_user),
+) -> dict[str, Any] | JSONResponse:
+    if not _can_write(user):
+        return _fail(request, "org.chart.forbidden", 403)
+    store = _store(server)
+    tenant = _tenant_id(server)
+    departments = await asyncio.to_thread(
+        store.import_departments, tenant_id=tenant, items=list(body.departments)
+    )
+    reporting = await asyncio.to_thread(
+        store.import_reporting_lines, tenant_id=tenant, items=list(body.reporting_lines)
+    )
+    tree = await asyncio.to_thread(store.tree, tenant_id=tenant)
+    return _ok({"departments": departments, "reporting_lines": reporting, "tree": tree})
 
 
 @router.delete(

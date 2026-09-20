@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { WorkspacePage } from "./WorkspacePage";
 import type { OrgWorkspaceClient } from "../../api/createClient";
@@ -44,7 +44,30 @@ function mockClient(): OrgWorkspaceClient {
         pending_pauses: 1,
         enabled: true,
         href: "/organization/governance",
+        pauses: [
+          {
+            pause_id: "p1",
+            tool_name: "shell",
+            category: "outbound",
+            action: "exec",
+            actor_id: "agent-1",
+            tenant_id: "acme",
+            args_digest: "abc",
+            reason: "high risk",
+            status: "pending",
+            created_at: 1,
+            resolved_at: null,
+            ttl_seconds: 600,
+          },
+        ],
       },
+    })),
+    pauses: vi.fn(async () => ({ pauses: [], enabled: true })),
+    resolve: vi.fn(async () => ({
+      status: "approved",
+      execute: true,
+      blocked: false,
+      reason: "ok",
     })),
   };
 }
@@ -78,6 +101,7 @@ describe("WorkspacePage", () => {
       "href",
       "/organization/governance",
     );
+    expect(screen.getByTestId("org-workspace-approve-p1")).toBeInTheDocument();
     expect(
       screen.getByTestId("org-workspace-open-announcements"),
     ).toHaveAttribute("href", "/organization/announcements");
@@ -100,5 +124,14 @@ describe("WorkspacePage", () => {
     expect(
       screen.getByTestId("org-workspace-module-employees"),
     ).toBeInTheDocument();
+  });
+
+  it("approves a pending pause from the workspace banner", async () => {
+    const client = mockClient();
+    render(<WorkspacePage client={client} session={admin} locale="en" />);
+    fireEvent.click(await screen.findByTestId("org-workspace-approve-p1"));
+    await waitFor(() => {
+      expect(client.resolve).toHaveBeenCalledWith("p1", true);
+    });
   });
 });

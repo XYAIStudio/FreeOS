@@ -36,6 +36,8 @@ const EN = {
   confirmDelete: "Delete this announcement?",
   editShort: "Edit",
   deleteShort: "Delete",
+  readers: "Readers",
+  noReaders: "Nobody has opened this yet.",
 };
 
 const ZH: typeof EN = {
@@ -74,6 +76,8 @@ const ZH: typeof EN = {
   confirmDelete: "确定删除该公告？",
   editShort: "编辑",
   deleteShort: "删除",
+  readers: "已读名单",
+  noReaders: "还没有人打开过这条公告。",
 };
 
 export type AnnouncementLabels = typeof EN;

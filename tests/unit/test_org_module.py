@@ -291,12 +291,15 @@ def test_overview_reports_real_empty_counts(tmp_path: Path) -> None:
     assert payload["org_surfaces"]["employees"] == 0
     assert payload["org_surfaces"]["talent"] == 0
     assert payload["governance"]["pending_pauses"] == 0
+    assert payload["governance"]["pauses"] == []
+    assert payload["governance"]["href"] == "/organization/governance"
     assert payload["freeos"]["directory_employees"] == 0
     catalog = payload["catalog"]
     assert any(row["key"] == "employees" and row.get("host_path") for row in catalog)
     assert any(
         "in-host" in note.lower() or "FreeOS does the work" in note for note in payload["notes"]
     )
+    assert any("reporting lines stay in this room" in note for note in payload["notes"])
     assert not any("start it to sync" in note for note in payload["notes"])
 
 

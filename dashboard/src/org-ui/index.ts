@@ -4,6 +4,7 @@ export { createOrgApiClient } from "./api/createClient";
 export type {
   Announcement,
   AnnouncementListData,
+  AnnouncementReader,
   AnnouncementWrite,
   DepartmentWrite,
   EmployeeListParams,
@@ -39,6 +40,7 @@ export type {
   OrgKnowledgeStats,
   OrgKnowledgeWrite,
   OrgTask,
+  OrgTaskAttachment,
   OrgTaskComment,
   OrgTaskListParams,
   OrgTaskPriority,

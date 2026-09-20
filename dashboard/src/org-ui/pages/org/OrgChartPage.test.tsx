@@ -20,6 +20,11 @@ function mockClient(): OrgChartClient {
     createEmployee: vi.fn(),
     updateEmployee: vi.fn(),
     removeEmployee: vi.fn(),
+    importChart: vi.fn(async () => ({
+      departments: { created: 1, updated: 0, skipped: 0 },
+      reporting_lines: { applied: 0, skipped: 0 },
+      tree: [],
+    })),
   };
 }
 
@@ -66,7 +71,39 @@ describe("OrgChartPage", () => {
     fireEvent.click(screen.getByTestId("org-chart-dept-submit"));
     await waitFor(() => {
       expect(client.createDepartment).toHaveBeenCalledWith(
-        expect.objectContaining({ name: "HQ", parent_id: null }),
+        expect.objectContaining({
+          name: "HQ",
+          parent_id: null,
+          function_type: "functional",
+        }),
+      );
+    });
+  });
+
+  it("imports departments through the injected client", async () => {
+    const client = mockClient();
+    render(
+      <OrgChartPage
+        client={client}
+        session={{
+          userId: 1,
+          displayName: "Ada",
+          role: "admin",
+          isAdmin: true,
+        }}
+        locale="en"
+      />,
+    );
+    fireEvent.click(await screen.findByTestId("org-chart-import"));
+    fireEvent.change(screen.getByTestId("org-chart-import-departments"), {
+      target: { value: '[{"name":"HQ"}]' },
+    });
+    fireEvent.click(screen.getByTestId("org-chart-import-submit"));
+    await waitFor(() => {
+      expect(client.importChart).toHaveBeenCalledWith(
+        expect.objectContaining({
+          departments: [{ name: "HQ" }],
+        }),
       );
     });
   });

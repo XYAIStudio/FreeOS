@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { request } from "../../../api/request";
+import { request, requestBlob, requestUpload } from "../../../api/request";
 import { useCurrentUser } from "../../../hooks/useCurrentUser";
 import PageShell from "../../../layouts/PageShell";
 import {
@@ -21,6 +21,8 @@ export default function OrganizationTaskDetailPage() {
     () =>
       createOrgApiClient({
         fetchJson: (path, init) => request(path, init),
+        uploadForm: (path, body) => requestUpload(path, body),
+        fetchBlob: (path) => requestBlob(path),
       }),
     [],
   );

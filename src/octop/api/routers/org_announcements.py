@@ -140,6 +140,7 @@ async def read_all_announcements(
         store.mark_all_read,
         tenant_id=_tenant_id(server),
         user_id=_user_id(user),
+        user_name=_creator_name(user),
     )
     return _ok({"marked": marked})
 
@@ -161,7 +162,12 @@ async def get_announcement(
     if row is None:
         return _fail(request, "org.announcements.not_found", 404)
     uid = _user_id(user)
-    await asyncio.to_thread(store.mark_read, announcement_id, user_id=uid)
+    await asyncio.to_thread(
+        store.mark_read,
+        announcement_id,
+        user_id=uid,
+        user_name=_creator_name(user),
+    )
     decorated = await asyncio.to_thread(
         store.decorate,
         row,
@@ -186,8 +192,33 @@ async def read_announcement(
     row = await asyncio.to_thread(store.get, announcement_id, tenant_id=_tenant_id(server))
     if row is None:
         return _fail(request, "org.announcements.not_found", 404)
-    await asyncio.to_thread(store.mark_read, announcement_id, user_id=_user_id(user))
+    await asyncio.to_thread(
+        store.mark_read,
+        announcement_id,
+        user_id=_user_id(user),
+        user_name=_creator_name(user),
+    )
     return _ok()
+
+
+@router.get(
+    "/announcements/{announcement_id}/readers",
+    summary="Who has read this announcement",
+    response_model=None,
+)
+async def announcement_readers(
+    announcement_id: int,
+    request: Request,
+    server: OctopServer = Depends(get_server),
+    _user: Any = Depends(current_user),
+) -> dict[str, Any] | JSONResponse:
+    store = _store(server)
+    rows = await asyncio.to_thread(
+        store.list_readers, announcement_id, tenant_id=_tenant_id(server)
+    )
+    if rows is None:
+        return _fail(request, "org.announcements.not_found", 404)
+    return _ok({"readers": rows, "count": len(rows)})
 
 
 @router.post("/announcements", summary="Publish an announcement", response_model=None)

@@ -177,3 +177,24 @@ def test_engine_evaluate_roundtrip_used_by_ui(tmp_path: Path) -> None:
     )
     assert decision.status == "pending"
     assert engine.store.list_pauses("pending")[0].pause_id == decision.pause_id
+
+
+def test_overview_includes_pending_pause_rows(tmp_path: Path) -> None:
+    from octop.modules.org_os.overview import build_overview
+    from octop.modules.org_os.service import OrgModuleService
+
+    store = DurableGovernanceStore(tmp_path / "governance")
+    pause = store.create_pause(
+        tool_name="delete_employee",
+        category="delete",
+        action="delete",
+        actor_id="1",
+        tenant_id="default",
+        args_digest="abc",
+        reason="needs a human",
+    )
+    service = OrgModuleService(config_path=tmp_path / "config.json", home=tmp_path)
+    payload = build_overview(service).to_dict()
+    assert payload["governance"]["pending_pauses"] == 1
+    assert payload["governance"]["pauses"][0]["pause_id"] == pause.pause_id
+    assert payload["governance"]["pauses"][0]["tool_name"] == "delete_employee"

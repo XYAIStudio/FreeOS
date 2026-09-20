@@ -165,3 +165,23 @@
   padding: 48px 12px;
   color: var(--fn-text-secondary, #667085);
 }
+
+.pauseList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pauseRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.pauseMeta {
+  font-size: 13px;
+  color: var(--fn-text-secondary, #667085);
+  line-height: 1.4;
+}

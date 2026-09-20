@@ -24,6 +24,7 @@
 
 ### 新增
 
+- Wave 2（宿主原生组织深度）：公告已读名单、任务附件（`{FREEOS_HOME}/org/task-files`）、架构图汇报线/部门类型/JSON 导入、工作台与总览内联批准宿主治理暂停、目录启用展示 `delivery`/`host_path`。不扩展永久 Node，不删除 `ManagedOrganizationRuntime`。双身份工作室 vs 组织房间不变。迁移图计数不变（9 native / 11 slice / 12 iframe）。
 - Wave 1（宿主原生组织）：人才市场落到宿主 `org_chart.sqlite`（`talent_pool`）与 `/api/org-module/talent*`；资产总线 apply 无 Node 也写入名册/人才；治理待处理暂停出现在组织首页与工作台总览；`/organization` 即使桌面集成也不再被 iframe 吞掉（原 App 仅作过渡链接）；目录叠加 `delivery`/`host_path`。双身份边界与默认零 Node 不变。迁移图：人才市场 `managed_node_iframe` → `org_ui_slice`（13→12 iframe，10→11 slice）。
 - 双身份边界（P1.3）：工作室本机登录与组织房间登录分成两扇门。组织管理员不再被抬成宿主 `Role.ADMIN`；工作室访客不能拿宿主通行证写组织房间业务。界面与文档用「工作室 / 另一间房间 / 各自留白」说明两条路径。
 - P1.2：`freeos org export-standalone` 默认 `--mode full` 写出可商业化 openXYOS **源码包**（`openxyos/` Apache-2.0 完整 App.tsx 树 + `slice/` MIT 宿主桥 + `modules.json` 对照清单）。`--mode slice` 保留原先 org-ui SPA + `FREEOS_UPSTREAM` 反代。工作室智能体对话不导出；组织沟通协作在完整树。说明见 `docs/org-export.md`。

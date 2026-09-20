@@ -1,6 +1,6 @@
 # openXYOS → FreeOS 能力迁移图（P0.2）
 
-**状态：** Wave 1 宿主原生组织（2026-09-20）把 **人才市场** 从 iframe 迁到 `org_ui_slice`。其余盘点冻结仍有效。
+**状态：** Wave 2 宿主原生组织（2026-09-20）加深了公告已读名单、任务附件、架构图汇报线/部门类型/导入、工作台与总览内联批准治理暂停、以及目录启用 UX。计数不变：9 native / 11 slice / 12 iframe。Wave 1 人才市场仍是 `org_ui_slice`。
 
 **语言：** [English](org-capability-migration-map.md) · 简体中文
 
@@ -42,20 +42,20 @@
 | [组织知识](#6-组织知识笔记文件) | org_ui_slice | 部分 | 是 | P0 | 上传/文件夹/再解析走宿主 KB；不克隆边车 notes 库。 |
 | [蓝图与编译器](#10-蓝图与编译器) | native_host | 否 | 是 | P0 | 编译结果进入资产总线，便于导出蓝图源。 |
 | [托管 Node + iframe 壳](#7-托管-node--iframe-壳) | managed_node_iframe | 是 | 否 | P1 | 首页已是原生工作台；iframe 仅作原 App 过渡入口。收缩运行时。 |
-| [模块目录](#9-模块目录) | native_host | 否 | 是 | P1 | 叠加 `delivery`/`host_path`；App.tsx 垂类原生迁入时扩展 key。 |
+| [模块目录](#9-模块目录) | native_host | 否 | 是 | P1 | 设置/工作台展示 `delivery`/`host_path`；App.tsx 垂类原生迁入时扩展 key。 |
 | [同事生命周期](#11-同事生命周期) | native_host | 否 | 是 | P1 | 与员工目录 / 人才市场 UI 打通。 |
-| [治理](#12-治理引擎--ui) | native_host | 部分 | 是 | P1 | 暂停已出现在首页/总览；仍迁权限矩阵/通信规则。 |
+| [治理](#12-治理引擎--ui) | native_host | 部分 | 是 | P1 | 工作台/总览可内联批准宿主暂停；仍迁权限矩阵/通信规则。 |
 | [组织工作台](#13-组织工作台装配--打包--循环) | native_host | 否 | 部分 | P1 | 即便桌面集成，首页仍是原生工厂；原 App 只是过渡链接。 |
-| [工作台总览](#14-工作台总览) | org_ui_slice | 部分 | 是 | P1 | 宿主指标含人才与待处理暂停；OpenDashboard 仍在 Node。 |
-| [通知公告](#15-通知公告) | org_ui_slice | 否 | 是 | P1 | 对照原页做字段级对等。 |
-| [组织架构](#16-组织架构) | org_ui_slice | 部分 | 是 | P1 | 版本、汇报线、导入、头像。 |
+| [工作台总览](#14-工作台总览) | org_ui_slice | 部分 | 是 | P1 | 内联批准暂停；OpenDashboard 仍在 Node。 |
+| [通知公告](#15-通知公告) | org_ui_slice | 否 | 是 | P1 | 宿主已读名单；其余原页字段仍可补。 |
+| [组织架构](#16-组织架构) | org_ui_slice | 部分 | 是 | P1 | 汇报线、部门类型、JSON 导入已在宿主 sqlite；版本/头像仍在原 App。 |
 | [员工目录](#17-员工目录) | org_ui_slice | 部分 | 是 | P1 | 人才页共用 sqlite；入职/离职仍在原 App。 |
 | [人才市场](#18-人才市场) | org_ui_slice | 部分 | 是 | P1 | 宿主列表/招募 + 资产总线落地；再补原 App 筛选深度。 |
 | [技能插件](#19-技能插件) | org_ui_slice | 部分 | 是 | P1 | 市场可留到导出；目录已在宿主。 |
 | [智能体定制](#20-智能体定制) | org_ui_slice | 部分 | 是 | P1 | 资料上传；不要依赖未挂载的边车 studio API。 |
-| [组织任务](#21-组织任务) | org_ui_slice | 否 | 是 | P1 | 附件；不是 cron/Chat。 |
+| [组织任务](#21-组织任务) | org_ui_slice | 否 | 是 | P1 | 宿主附件在 `org/task-files`；不是 cron/Chat。 |
 | [反思引擎](#22-反思引擎) | org_ui_slice | 否 | 是 | P1 | 仅迁原页仍引用的边车附加能力。 |
-| [组织设置](#23-组织设置) | org_ui_slice | 部分 | 是 | P1 | 房间侧公司/角色/备份；工作室侧保留宿主密钥。 |
+| [组织设置](#23-组织设置) | org_ui_slice | 部分 | 是 | P1 | 目录启用展示 delivery；公司/角色/备份仍在原 App。 |
 | [组织沟通](#24-组织沟通协作) | managed_node_iframe | 是 | 是 | P1 | 原生组织会话；**不要**替换 Octop 智能体对话。 |
 | [源码下载](#34-openxyos-源码下载) | native_host | 否 | 是 | P1 | 与波次 B 导出物合一，不要三套「源码」。 |
 | [可选 :3780 边车](#8-可选-node-边车3780) | sidecar_optional | 是 | 否 | P2 | 原生覆盖完成前可选用；不打进默认安装器。 |
@@ -89,7 +89,7 @@
 2. **`ManagedOrganizationRuntime`** — `src/octop/modules/org_os/managed_runtime.py`（重启循环、本机 `OPENXYOS_BASE_URL`）。
 3. **`/api/org-module/identity/*` 与 `/business/*`** — `org_identity.py` 把登录/注册和业务 CRUD 转发到 Node `/api/auth` 与 `/api/*`。
 4. **可选 `:3780` 边车** — `FREEOS_ORG_SIDECAR` / `SHIP_OPENXYOS_RUNTIME`。Phase 5 默认安装器已经零 Node；不要倒退。开关表与拆除计划：[node-runtime.zh-CN.md](node-runtime.zh-CN.md)。
-5. **尚未达到 App 对等的 Open-12 宿主切片** — [org-full-parity-inventory.json](org-full-parity-inventory.json) 里 `host_route_exists=true` **不等于**验收。清单把每条路由记为 `parity=not_accepted`。仍缺：汇报线、人才市场、插件市场、组织沟通、公司/AI/数据库设置、附件……
+5. **尚未达到 App 对等的 Open-12 宿主切片** — [org-full-parity-inventory.json](org-full-parity-inventory.json) 里 `host_route_exists=true` **不等于**验收。清单把每条路由记为 `parity=not_accepted`。仍缺：人才市场筛选深度、插件市场、组织沟通、公司/AI/数据库设置、架构图版本/头像……
 6. **遗留 `OrgMiniBrowser.tsx`** — 未再被路由引用的 iframe 壳。不要把它复活成 Organization 首页。
 
 ## 证据规则
@@ -213,7 +213,7 @@
 | **依赖 Node？** | 否 |
 | **商业导出？** | 是 |
 | **优先级** | P1 |
-| **下一步** | 目录行叠加 `delivery` / `host_path`（key 仍与 `open-module-catalog.ts` 对齐）。App.tsx 垂类原生迁入时扩展 key；保持漂移测试绿色。 |
+| **下一步** | 设置与工作台已展示 `delivery` / `host_path`。App.tsx 垂类原生迁入时扩展 key；保持漂移测试绿色。 |
 | **测试** | `test_org_module.py` 中的目录对照 |
 
 ### 10. 蓝图与编译器
@@ -249,7 +249,7 @@
 | **依赖 Node？** | 部分 |
 | **商业导出？** | 是 |
 | **优先级** | P1 |
-| **下一步** | 待处理暂停已出现在工作台与总览。仍把矩阵/规则/模板迁到宿主引擎；不要重写 PEP/PDP。 |
+| **下一步** | 工作台与总览可内联批准/驳回宿主 PEP 暂停。仍把矩阵/规则/模板迁到宿主引擎；不要重写 PEP/PDP。 |
 | **测试** | `test_org_governance.py`、`test_host_governance.py`、`GovernancePage.test.tsx` |
 
 ### 13. 组织工作台（装配 / 打包 / 循环）
@@ -273,7 +273,7 @@
 | **依赖 Node？** | 部分 |
 | **商业导出？** | 是 |
 | **优先级** | P1 |
-| **下一步** | OpenDashboard / 商业 Dashboard 仍在 Node。宿主总览已展示名册、人才与待处理治理暂停，不依赖 Node。 |
+| **下一步** | OpenDashboard / 商业 Dashboard 仍在 Node。宿主总览已列出待处理暂停，管理员可在页内批准/驳回。 |
 | **测试** | `test_org_workspace.py`、`WorkspacePage.test.tsx` |
 
 ### 15. 通知公告
@@ -285,19 +285,19 @@
 | **依赖 Node？** | 否 |
 | **商业导出？** | 是 |
 | **优先级** | P1 |
-| **下一步** | 置顶/未读/访客日志对等到宿主库。 |
+| **下一步** | 已读/访客名单已在宿主库。其余原页附加能力再补。 |
 | **测试** | `test_org_announcements.py`、`AnnouncementPage.test.tsx` |
 
 ### 16. 组织架构
 
 | | |
 |---|---|
-| **今日位置** | org-ui 树/CRUD 在 `org_chart.sqlite`。原页的版本、汇报线、导入、头像仍在 Node。 |
+| **今日位置** | org-ui 树/CRUD 在 `org_chart.sqlite`，含汇报线、部门类型与 JSON 导入。原页的版本、头像仍在 Node。 |
 | **状态** | `org_ui_slice` |
 | **依赖 Node？** | 部分 |
 | **商业导出？** | 是 |
 | **优先级** | P1 |
-| **下一步** | 把推迟的 OrgChart 能力迁到同一 sqlite。 |
+| **下一步** | 版本与头像仍在原 App。汇报线、部门类型、JSON 导入已落到同一 sqlite。 |
 | **测试** | `test_org_chart.py`、`OrgChartPage.test.tsx` |
 
 ### 17. 员工目录
@@ -358,7 +358,7 @@
 | **依赖 Node？** | 否 |
 | **商业导出？** | 是 |
 | **优先级** | P1 |
-| **下一步** | 附件。 |
+| **下一步** | 附件落在 `{FREEOS_HOME}/org/task-files`。组织任务仍区别于 Octop cron 与 Chat。 |
 | **测试** | `test_org_tasks.py`、Tasks 页测试 |
 
 ### 22. 反思引擎
@@ -382,7 +382,7 @@
 | **依赖 Node？** | 部分 |
 | **商业导出？** | 是 |
 | **优先级** | P1 |
-| **下一步** | 房间侧公司/角色/备份进宿主；不要把工作室密钥/时区抄进组织设置。 |
+| **下一步** | 目录启用已展示 `delivery`/`host_path`。房间侧公司/角色/备份仍在原 App；不要把工作室密钥/时区抄进组织设置。 |
 | **测试** | `test_org_settings.py`、`SettingsPage.test.tsx` |
 
 ### 24. 组织沟通协作

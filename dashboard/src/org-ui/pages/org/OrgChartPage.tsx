@@ -22,6 +22,7 @@ type DeptForm = {
   name: string;
   description: string;
   parent_id: number | null;
+  function_type: string;
 };
 
 type EmpForm = {
@@ -31,6 +32,7 @@ type EmpForm = {
   employee_type: string;
   avatar_emoji: string;
   department_id: number;
+  reports_to: number | null;
 };
 
 function countEmployees(dept: OrgDepartment): number {
@@ -51,6 +53,34 @@ function flattenDepartments(nodes: OrgDepartment[]): OrgDepartment[] {
   };
   walk(nodes);
   return out;
+}
+
+function flattenEmployees(nodes: OrgDepartment[]): OrgEmployee[] {
+  const out: OrgEmployee[] = [];
+  for (const dept of flattenDepartments(nodes)) {
+    out.push(...(dept.employees ?? []));
+  }
+  return out;
+}
+
+function functionTypeLabel(
+  value: string | undefined,
+  labels: ReturnType<typeof orgChartLabels>,
+): string {
+  switch (value) {
+    case "regional":
+      return labels.functionRegional;
+    case "branch":
+      return labels.functionBranch;
+    case "project":
+      return labels.functionProject;
+    case "site":
+      return labels.functionSite;
+    case "dispatched":
+      return labels.functionDispatched;
+    default:
+      return labels.functionFunctional;
+  }
 }
 
 function matchesQuery(dept: OrgDepartment, query: string): boolean {
@@ -99,6 +129,7 @@ export function OrgChartPage({ client, session, locale }: OrgChartPageProps) {
     name: "",
     description: "",
     parent_id: null,
+    function_type: "functional",
   });
   const [empForm, setEmpForm] = useState<EmpForm>({
     name: "",
@@ -107,8 +138,14 @@ export function OrgChartPage({ client, session, locale }: OrgChartPageProps) {
     employee_type: "human",
     avatar_emoji: "👤",
     department_id: 0,
+    reports_to: null,
   });
   const [error, setError] = useState("");
+  const [importOpen, setImportOpen] = useState(false);
+  const [importDepartments, setImportDepartments] = useState(
+    '[{"name":"HQ"},{"name":"Eng","parent":"HQ"}]',
+  );
+  const [importLines, setImportLines] = useState("[]");
 
   const fetchTree = useCallback(async () => {
     setLoading(true);
@@ -130,6 +167,15 @@ export function OrgChartPage({ client, session, locale }: OrgChartPageProps) {
     [tree],
   );
   const flatDepts = useMemo(() => flattenDepartments(tree), [tree]);
+  const allPeople = useMemo(() => flattenEmployees(tree), [tree]);
+  const functionOptions = [
+    { value: "functional", label: labels.functionFunctional },
+    { value: "regional", label: labels.functionRegional },
+    { value: "branch", label: labels.functionBranch },
+    { value: "project", label: labels.functionProject },
+    { value: "site", label: labels.functionSite },
+    { value: "dispatched", label: labels.functionDispatched },
+  ];
   const query = search.trim();
   const filtered = useMemo(
     () => tree.filter((node) => matchesQuery(node, query)),
@@ -138,7 +184,12 @@ export function OrgChartPage({ client, session, locale }: OrgChartPageProps) {
 
   const openCreateDept = (parentId: number | null) => {
     setError("");
-    setDeptForm({ name: "", description: "", parent_id: parentId });
+    setDeptForm({
+      name: "",
+      description: "",
+      parent_id: parentId,
+      function_type: "functional",
+    });
     setDeptModal({ mode: "create", parentId });
   };
 
@@ -148,6 +199,7 @@ export function OrgChartPage({ client, session, locale }: OrgChartPageProps) {
       name: dept.name,
       description: dept.description || "",
       parent_id: dept.parent_id,
+      function_type: dept.function_type || "functional",
     });
     setDeptModal({ mode: "edit", dept });
   };
@@ -161,6 +213,7 @@ export function OrgChartPage({ client, session, locale }: OrgChartPageProps) {
       employee_type: "human",
       avatar_emoji: "👤",
       department_id: departmentId,
+      reports_to: null,
     });
     setEmpModal({ mode: "create", departmentId });
   };
@@ -174,6 +227,7 @@ export function OrgChartPage({ client, session, locale }: OrgChartPageProps) {
       employee_type: emp.employee_type || "human",
       avatar_emoji: emp.avatar_emoji || "👤",
       department_id: emp.department_id,
+      reports_to: emp.reports_to ?? null,
     });
     setEmpModal({ mode: "edit", emp });
     setDetail(null);
@@ -191,12 +245,14 @@ export function OrgChartPage({ client, session, locale }: OrgChartPageProps) {
           name,
           description: deptForm.description,
           parent_id: deptForm.parent_id,
+          function_type: deptForm.function_type,
         });
       } else {
         await client.createDepartment({
           name,
           description: deptForm.description,
           parent_id: deptForm.parent_id,
+          function_type: deptForm.function_type,
         });
       }
       setDeptModal(null);
@@ -221,6 +277,7 @@ export function OrgChartPage({ client, session, locale }: OrgChartPageProps) {
           employee_type: empForm.employee_type,
           avatar_emoji: empForm.avatar_emoji,
           department_id: empForm.department_id,
+          reports_to: empForm.reports_to,
         });
       } else {
         await client.createEmployee({
@@ -230,6 +287,7 @@ export function OrgChartPage({ client, session, locale }: OrgChartPageProps) {
           employee_type: empForm.employee_type,
           avatar_emoji: empForm.avatar_emoji,
           department_id: empForm.department_id,
+          reports_to: empForm.reports_to,
         });
       }
       setEmpModal(null);
@@ -264,6 +322,32 @@ export function OrgChartPage({ client, session, locale }: OrgChartPageProps) {
     }
   };
 
+  const submitImport = async () => {
+    try {
+      const departments = JSON.parse(importDepartments || "[]") as unknown;
+      const reportingLines = JSON.parse(importLines || "[]") as unknown;
+      if (!Array.isArray(departments) || !Array.isArray(reportingLines)) {
+        setError(labels.importInvalid);
+        return;
+      }
+      await client.importChart({
+        departments: departments as Array<Record<string, unknown>>,
+        reporting_lines: reportingLines as Array<Record<string, unknown>>,
+      });
+      setImportOpen(false);
+      setError("");
+      await fetchTree();
+    } catch (err) {
+      setError(
+        err instanceof SyntaxError
+          ? labels.importInvalid
+          : err instanceof Error
+          ? err.message
+          : labels.importInvalid,
+      );
+    }
+  };
+
   const renderNode = (dept: OrgDepartment) => {
     if (query && !matchesQuery(dept, query)) return null;
     const people = dept.employees ?? [];
@@ -278,6 +362,7 @@ export function OrgChartPage({ client, session, locale }: OrgChartPageProps) {
           <Typography.Text className={styles.nodeTitle}>
             {dept.name}
           </Typography.Text>
+          <Tag>{functionTypeLabel(dept.function_type, labels)}</Tag>
           <Tag>{countEmployees(dept)}</Tag>
           {session.isAdmin ? (
             <Space size={4} className={styles.actions}>
@@ -356,14 +441,25 @@ export function OrgChartPage({ client, session, locale }: OrgChartPageProps) {
           </Tag>
         </div>
         {session.isAdmin ? (
-          <Button
-            type="primary"
-            icon={<Plus size={14} />}
-            onClick={() => openCreateDept(null)}
-            data-testid="org-chart-add-root"
-          >
-            {labels.addRoot}
-          </Button>
+          <Space wrap>
+            <Button
+              type="primary"
+              icon={<Plus size={14} />}
+              onClick={() => openCreateDept(null)}
+              data-testid="org-chart-add-root"
+            >
+              {labels.addRoot}
+            </Button>
+            <Button
+              onClick={() => {
+                setError("");
+                setImportOpen(true);
+              }}
+              data-testid="org-chart-import"
+            >
+              {labels.importChart}
+            </Button>
+          </Space>
         ) : null}
       </div>
 
@@ -407,6 +503,13 @@ export function OrgChartPage({ client, session, locale }: OrgChartPageProps) {
             <Tag>
               {detail.employee_type === "ai" ? labels.typeAi : labels.typeHuman}
             </Tag>
+            <div>
+              {labels.fieldReportsTo}:{" "}
+              {detail.reports_to_name ||
+                allPeople.find((person) => person.id === detail.reports_to)
+                  ?.name ||
+                labels.noManager}
+            </div>
             {detail.description ? (
               <p className={styles.nodeMeta}>{detail.description}</p>
             ) : null}
@@ -478,6 +581,20 @@ export function OrgChartPage({ client, session, locale }: OrgChartPageProps) {
                     (deptModal?.mode === "edit" ? deptModal.dept.id : -1),
                 )
                 .map((dept) => ({ value: dept.id, label: dept.name }))}
+            />
+          </div>
+          <div>
+            <Typography.Text type="secondary">
+              {labels.fieldFunction}
+            </Typography.Text>
+            <Select
+              style={{ width: "100%" }}
+              value={deptForm.function_type}
+              onChange={(value) =>
+                setDeptForm({ ...deptForm, function_type: value })
+              }
+              options={functionOptions}
+              data-testid="org-chart-function-type"
             />
           </div>
           {error ? (
@@ -567,6 +684,68 @@ export function OrgChartPage({ client, session, locale }: OrgChartPageProps) {
                 value: dept.id,
                 label: dept.name,
               }))}
+            />
+          </div>
+          <div>
+            <Typography.Text type="secondary">
+              {labels.fieldReportsTo}
+            </Typography.Text>
+            <Select
+              allowClear
+              style={{ width: "100%" }}
+              value={empForm.reports_to ?? undefined}
+              placeholder={labels.noManager}
+              onChange={(value) =>
+                setEmpForm({ ...empForm, reports_to: value ?? null })
+              }
+              options={allPeople
+                .filter(
+                  (person) =>
+                    person.id !==
+                    (empModal?.mode === "edit" ? empModal.emp.id : -1),
+                )
+                .map((person) => ({ value: person.id, label: person.name }))}
+              data-testid="org-chart-reports-to"
+            />
+          </div>
+          {error ? (
+            <Typography.Text type="danger">{error}</Typography.Text>
+          ) : null}
+        </Space>
+      </Modal>
+
+      <Modal
+        open={importOpen}
+        title={labels.importChart}
+        onCancel={() => setImportOpen(false)}
+        onOk={() => void submitImport()}
+        okText={labels.importSubmit}
+        okButtonProps={{ "data-testid": "org-chart-import-submit" }}
+      >
+        <Space direction="vertical" style={{ width: "100%" }} size={12}>
+          <Typography.Text type="secondary">
+            {labels.importHint}
+          </Typography.Text>
+          <div>
+            <Typography.Text type="secondary">
+              {labels.importDepartments}
+            </Typography.Text>
+            <Input.TextArea
+              rows={5}
+              value={importDepartments}
+              onChange={(event) => setImportDepartments(event.target.value)}
+              data-testid="org-chart-import-departments"
+            />
+          </div>
+          <div>
+            <Typography.Text type="secondary">
+              {labels.importLines}
+            </Typography.Text>
+            <Input.TextArea
+              rows={4}
+              value={importLines}
+              onChange={(event) => setImportLines(event.target.value)}
+              data-testid="org-chart-import-lines"
             />
           </div>
           {error ? (
