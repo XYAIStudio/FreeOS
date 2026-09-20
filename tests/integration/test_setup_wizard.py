@@ -463,6 +463,44 @@ async def test_finish_rejects_empty_cloud_api_key(env: Any) -> None:
     assert srv.services.provider_repo.list_all() == []
 
 
+async def test_finish_ignores_cloud_api_key_environment(
+    env: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Empty wizard draft must not pick up maintainer/cloud keys from the process env."""
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "sk-" + "a" * 32)
+    monkeypatch.setenv("OPENAI_API_KEY", "sk-" + "b" * 32)
+    monkeypatch.setenv("LLM_API_KEY", "sk-" + "c" * 32)
+    c, srv, home = env
+    pw = read_password(Path.home())
+    tok = (await c.post("/api/setup/verify-password", json={"password": pw})).json()["wizard_token"]
+    admin = (
+        await c.post(
+            "/api/setup/initial-admin",
+            json={"username": "admin2", "password": "TestPass12"},
+            headers={"Authorization": f"Bearer {tok}"},
+        )
+    ).json()
+    srv.wizard_tokens.clear()
+    r = await c.post(
+        "/api/setup/finish",
+        json={
+            "provider_draft": {
+                "name": "DeepSeek",
+                "type": "openai",
+                "api_key": "",
+                "base_url": "https://api.deepseek.com/v1",
+                "models": [
+                    {"id": "deepseek-v4-flash", "name": "DeepSeek V4 Flash", "enabled": True}
+                ],
+            }
+        },
+        headers={"Authorization": f"Bearer {admin['access_token']}"},
+    )
+    assert r.status_code == 400, r.text
+    assert r.json()["error"]["code"] == "PROVIDER_API_KEY_REQUIRED"
+    assert srv.services.provider_repo.list_all() == []
+
+
 async def test_test_provider_rejects_empty_cloud_api_key(env: Any) -> None:
     c, _srv, home = env
     pw = read_password(Path.home())

@@ -165,8 +165,46 @@ def test_packaged_templates_have_no_embedded_cloud_keys() -> None:
 def test_sidecar_packaging_excludes_dotenv() -> None:
     script = (REPO / "desktop" / "portable" / "bundle-org-sidecar.sh").read_text(encoding="utf-8")
     assert "--exclude '.env'" in script
+    assert "--exclude '.freeos'" in script
+    assert "--exclude 'octop.db'" in script
     assert ".env.example" in script
     assert 'item.name == ".env"' in script
+
+
+def test_package_sh_scans_staging_before_zip() -> None:
+    script = (REPO / "desktop" / "portable" / "package.sh").read_text(encoding="utf-8")
+    assert "scan_packaged_secrets.py" in script
+    workflow = (REPO / ".github" / "workflows" / "octop-desktop.yml").read_text(encoding="utf-8")
+    assert "LLM_API_KEY" not in workflow
+    assert "DEEPSEEK_API_KEY" not in workflow
+    assert "LIVE_OPENAI" not in workflow
+
+
+def test_staging_scanner_rejects_home_db_and_dotenv(tmp_path: Path) -> None:
+    import importlib.util
+
+    scan_path = REPO / "desktop" / "portable" / "scan_packaged_secrets.py"
+    spec = importlib.util.spec_from_file_location("scan_packaged_secrets", scan_path)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    iter_findings = module.iter_findings
+
+    clean = tmp_path / "clean"
+    clean.mkdir()
+    (clean / "README.txt").write_text("ok\n", encoding="utf-8")
+    assert iter_findings(clean) == []
+
+    dirty = tmp_path / "dirty"
+    dirty.mkdir()
+    (dirty / ".env").write_text("LLM_API_KEY=sk-" + "a" * 32 + "\n", encoding="utf-8")
+    (dirty / "octop.db").write_bytes(b"sqlite")
+    (dirty / ".freeos").mkdir()
+    hits = iter_findings(dirty)
+    assert hits
+    assert any(".env" in hit for hit in hits)
+    assert any("octop.db" in hit for hit in hits)
+    assert any(".freeos" in hit for hit in hits)
 
 
 def test_secret_patterns_catch_deepseek_like_defaults() -> None:

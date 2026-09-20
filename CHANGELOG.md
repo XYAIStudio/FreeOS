@@ -8,7 +8,7 @@
 
 ### 安全
 
-- 桌面安装包与配置模板不再允许嵌入云厂商 API Key（含 DeepSeek）。首次运行不会预填真实密钥：优先本机 Ollama，云调用在密钥为空时直接拒绝并提示用户自行填写。打包时排除 `.env`；生产/air-gap sidecar 不再回退 `LLM_API_KEY` 环境变量。已发布的 **0.0.1–0.0.4** 安装包必须下架，并轮换可能泄露的 DeepSeek 密钥。
+- 桌面安装包与配置模板不再允许嵌入云厂商 API Key（含 DeepSeek）。首次运行不会预填真实密钥：优先本机 Ollama，云调用在密钥为空时直接拒绝并提示用户自行填写（即使环境里有 `DEEPSEEK_API_KEY` / `OPENAI_API_KEY` / `LLM_API_KEY` 也不写入 `providers`）。打包排除 `.env`、`octop.db`、`.freeos`，打 zip 前扫描 staging。生产/air-gap sidecar 不再回退 `LLM_API_KEY`。已发布的 **0.0.1–0.0.4** 安装包须下架（已从 Release 删除），并轮换可能泄露的 DeepSeek 密钥。
 
 ### 文档
 
