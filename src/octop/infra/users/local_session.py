@@ -7,6 +7,7 @@ import logging
 import os
 import re
 from typing import Any
+from urllib.parse import urlparse
 
 from octop.config import DatabaseConfig
 from octop.infra.agents.default_agent import SETUP_DEFAULT_AGENT_ID, try_bootstrap_default_agent
@@ -32,16 +33,63 @@ def is_desktop_process() -> bool:
     return bool((os.environ.get("OCTOP_GREEN_PACKAGES") or "").strip())
 
 
+def hostname_from_host_header(host: str) -> str:
+    """Strip ``:port`` from a Host header, including bracketed IPv6."""
+    h = (host or "").strip()
+    if not h:
+        return ""
+    if h.startswith("["):
+        end = h.find("]")
+        if end != -1:
+            return h[1:end].lower()
+    if h.count(":") == 1:
+        return h.split(":", 1)[0].lower()
+    return h.lower()
+
+
+def hostname_from_url(url: str) -> str:
+    """Hostname from an Origin / Referer URL, or empty when missing."""
+    raw = (url or "").strip()
+    if not raw:
+        return ""
+    parsed = urlparse(raw if "://" in raw else f"http://{raw}")
+    host = parsed.hostname or ""
+    return host.lower()
+
+
 def is_loopback_host(host: str) -> bool:
-    """True for localhost, IPv4/IPv6 loopback, and IPv4-mapped ::ffff:127.0.0.1."""
-    h = (host or "").strip().lower()
+    """True for localhost, ``*.localhost``, IPv4/IPv6 loopback, and mapped IPv4."""
+    h = hostname_from_host_header(host)
     if h.startswith("[") and h.endswith("]"):
         h = h[1:-1]
     if h in {"127.0.0.1", "::1", "localhost", "testclient"}:
         return True
+    if h.endswith(".localhost"):
+        return True
     if h.startswith("::ffff:"):
         return h.rsplit(":", 1)[-1] in {"127.0.0.1", "localhost"}
     return False
+
+
+def request_looks_local(
+    *,
+    client_host: str = "",
+    forwarded_for: str = "",
+    http_host: str = "",
+    origin: str = "",
+    referer: str = "",
+) -> bool:
+    """True when this HTTP request is from the machine that runs the server."""
+    if is_desktop_process():
+        return True
+    candidates = (
+        client_host,
+        (forwarded_for or "").split(",")[0].strip(),
+        hostname_from_host_header(http_host),
+        hostname_from_url(origin),
+        hostname_from_url(referer),
+    )
+    return any(is_loopback_host(value) for value in candidates if value)
 
 
 def is_unclaimed_local_user(server: Any, user: User) -> bool:
@@ -140,17 +188,18 @@ async def ensure_local_user(server: Any, *, locale: str) -> User:
         user = _single_user(server)
         if user is not None:
             return user
-        if is_desktop_process():
-            picked = preferred_existing_user(server)
-            if picked is not None:
-                logger.info(
-                    "desktop local-session using existing user %s id=%s",
-                    picked.username,
-                    picked.id,
-                )
-                return picked
-            return await _provision_local_user(server, locale=loc)
-        raise OctopError(ErrorCode.FORBIDDEN, "interactive login required")
+        # Already gated by the HTTP handler as this device (desktop / loopback).
+        # Returning installs often have extra org-mapped rows, so never demand
+        # interactive login here — pick a studio principal or mint a guest.
+        picked = preferred_existing_user(server)
+        if picked is not None:
+            logger.info(
+                "local-session using existing user %s id=%s",
+                picked.username,
+                picked.id,
+            )
+            return picked
+        return await _provision_local_user(server, locale=loc)
 
 
 async def claim_local_account(

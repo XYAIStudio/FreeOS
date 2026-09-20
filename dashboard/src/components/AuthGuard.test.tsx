@@ -282,4 +282,31 @@ describe("AuthGuard local session", () => {
     expect(screen.queryByText("usable app")).toBeNull();
     view.unmount();
   });
+
+  it("keeps retrying after the router drops ?desktop=1", async () => {
+    sessionStorage.setItem("freeos:desktop-shell", "1");
+    getAuthStatus.mockResolvedValue({ setup_required: false, desktop: false });
+    localSession.mockRejectedValue(new Error("interactive login required"));
+
+    const view = render(
+      <MemoryRouter initialEntries={["/chat"]}>
+        <Routes>
+          <Route
+            path="/chat"
+            element={
+              <AuthGuard>
+                <div>usable app</div>
+              </AuthGuard>
+            }
+          />
+          <Route path="/login" element={<div>login wall</div>} />
+          <Route path="/setup" element={<div>setup wizard</div>} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => expect(localSession).toHaveBeenCalled());
+    expect(screen.queryByText("login wall")).toBeNull();
+    view.unmount();
+  });
 });

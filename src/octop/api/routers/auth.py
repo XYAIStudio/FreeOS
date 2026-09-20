@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 from fastapi import APIRouter, Depends, Request, Response
@@ -13,26 +14,24 @@ from octop.infra.users.local_session import (
     claim_local_account,
     ensure_local_user,
     is_desktop_process,
-    is_loopback_host,
     is_unclaimed_local_user,
+    request_looks_local,
 )
 from octop.infra.users.permissions import effective_permissions
 from octop.infra.utils.locale import normalize_locale, resolve_request_locale
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 
 def _is_local_client(request: Request) -> bool:
-    if is_desktop_process():
-        return True
-    host = (request.client.host if request.client else "") or ""
-    if is_loopback_host(host):
-        return True
-    forwarded = (request.headers.get("x-forwarded-for") or "").split(",")[0].strip()
-    if is_loopback_host(forwarded):
-        return True
-    req_host = (request.headers.get("host") or "").split(":")[0].lower()
-    return is_loopback_host(req_host)
+    return request_looks_local(
+        client_host=(request.client.host if request.client else "") or "",
+        forwarded_for=request.headers.get("x-forwarded-for") or "",
+        http_host=request.headers.get("host") or "",
+        origin=request.headers.get("origin") or "",
+        referer=request.headers.get("referer") or "",
+    )
 
 
 def _user_json(
@@ -99,6 +98,14 @@ class RegisterBody(BaseModel):
 async def local_session(request: Request, server: Any = Depends(get_server)) -> dict[str, Any]:
     """Issue a JWT without a login form on desktop / loopback first launch."""
     if not _is_local_client(request):
+        logger.warning(
+            "local-session denied client=%s host=%s origin=%s forwarded=%s desktop=%s",
+            request.client.host if request.client else "",
+            request.headers.get("host"),
+            request.headers.get("origin"),
+            request.headers.get("x-forwarded-for"),
+            is_desktop_process(),
+        )
         raise OctopError(ErrorCode.FORBIDDEN, "local session is only available on this device")
     locale = normalize_locale(resolve_request_locale(request))
     user = await ensure_local_user(server, locale=locale)

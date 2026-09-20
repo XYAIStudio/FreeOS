@@ -95,7 +95,10 @@ function handleSetupRequired(): void {
 /** Remembered Wails shell flag — keep ``?desktop=1`` if the query was dropped. */
 function setupRedirectPath(): string {
   try {
-    if (window.sessionStorage.getItem("freeos:desktop-shell") === "1") {
+    if (
+      window.sessionStorage.getItem("freeos:desktop-shell") === "1" ||
+      window.localStorage.getItem("freeos:desktop-shell") === "1"
+    ) {
       return "/setup?desktop=1";
     }
   } catch {
@@ -204,7 +207,7 @@ function buildHeaders(path: string, extra?: HeadersInit): HeadersInit {
 
   // Apply the global JWT first; the caller's `extra` (including a
   // wizard token) can still override it below.
-  const token = getAuthToken();
+  const token = getAuthToken().trim();
   if (token) {
     headers.Authorization = `Bearer ${token}`;
   }
@@ -242,7 +245,7 @@ function buildAuthHeaders(path: string): Record<string, string> {
   const headers: Record<string, string> = {
     "Accept-Language": i18n.language?.startsWith("zh") ? "zh" : "en",
   };
-  const token = getAuthToken();
+  const token = getAuthToken().trim();
   if (token) {
     headers.Authorization = `Bearer ${token}`;
   }
@@ -271,6 +274,16 @@ function handleUnauthorized(): void {
     path.startsWith("/invite")
   )
     return;
+  try {
+    if (
+      window.sessionStorage.getItem("freeos:desktop-shell") === "1" ||
+      window.localStorage.getItem("freeos:desktop-shell") === "1"
+    ) {
+      return;
+    }
+  } catch {
+    /* private mode */
+  }
   _redirectingToLogin = true;
 
   const takenOver = !window.dispatchEvent(

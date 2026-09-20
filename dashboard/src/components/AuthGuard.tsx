@@ -125,7 +125,7 @@ export default function AuthGuard({ children }: AuthGuardProps) {
           return;
         }
 
-        const token = getAuthToken();
+        const token = getAuthToken().trim();
         if (!token) {
           if (
             await tryLocalSession(

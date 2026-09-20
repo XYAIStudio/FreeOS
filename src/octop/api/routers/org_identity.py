@@ -34,12 +34,16 @@ async def identity_status() -> dict[str, Any]:
 
 async def forward(request: Request, server: Any, path: str) -> Response:
     require_integrated()
+    extra_headers: dict[str, str] = {}
+    authorization = (request.headers.get("authorization") or "").strip()
+    if authorization:
+        extra_headers["Authorization"] = authorization
     try:
         return await proxy_request(
             request,
             base_url=org_module_from_paths(server.paths).sidecar_url(),
             path=path,
-            extra_headers={"Authorization": request.headers.get("authorization", "")},
+            extra_headers=extra_headers,
         )
     except httpx.HTTPError as exc:
         raise OctopError(
