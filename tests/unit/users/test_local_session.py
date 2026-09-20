@@ -12,10 +12,12 @@ from octop.infra.users.identity import Role, User
 from octop.infra.users.local_session import (
     LOCAL_SESSION_SETTING,
     LOCAL_USERNAME,
+    hostname_from_host_header,
     is_desktop_process,
     is_loopback_host,
     is_unclaimed_local_user,
     preferred_existing_user,
+    request_looks_local,
     require_claimed_account,
 )
 
@@ -71,6 +73,44 @@ def test_is_loopback_host_accepts_mapped_ipv4() -> None:
     assert is_loopback_host("[::1]") is True
     assert is_loopback_host("::ffff:127.0.0.1") is True
     assert is_loopback_host("10.0.0.4") is False
+
+
+def test_is_loopback_host_accepts_localhost_names_and_ports() -> None:
+    assert is_loopback_host("localhost:8088") is True
+    assert is_loopback_host("127.0.0.1:8088") is True
+    assert is_loopback_host("[::1]:8088") is True
+    assert is_loopback_host("wails.localhost") is True
+    assert is_loopback_host("wails.localhost:34115") is True
+    assert hostname_from_host_header("[::1]:8088") == "::1"
+
+
+def test_request_looks_local_uses_origin_when_peer_is_lan(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.delenv("OCTOP_DESKTOP", raising=False)
+    monkeypatch.delenv("FREEOS_DESKTOP", raising=False)
+    monkeypatch.delenv("OCTOP_GREEN_PACKAGES", raising=False)
+    assert (
+        request_looks_local(
+            client_host="192.168.1.50",
+            http_host="192.168.1.50:8088",
+            origin="http://127.0.0.1:8088",
+        )
+        is True
+    )
+    assert (
+        request_looks_local(
+            client_host="8.8.8.8",
+            http_host="example.com",
+            origin="https://example.com",
+        )
+        is False
+    )
+
+
+def test_request_looks_local_true_on_desktop_env(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("OCTOP_DESKTOP", "1")
+    assert request_looks_local(client_host="8.8.8.8", http_host="example.com") is True
 
 
 def test_preferred_existing_user_picks_sole_admin() -> None:

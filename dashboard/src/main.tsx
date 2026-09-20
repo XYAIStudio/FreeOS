@@ -2,6 +2,7 @@
 // registered synchronously before Chrome fires the event (which can happen
 // before React mounts and useEffect runs).
 import "./pwa-prompt";
+import { isDesktopShell } from "./utils/desktopShell";
 
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
@@ -14,6 +15,8 @@ import {
 } from "./utils/reloadOnStaleChunk";
 
 if (typeof window !== "undefined") {
+  // Capture `?desktop=1` before React Router replaces `/`.
+  isDesktopShell();
   // Recover from post-deploy stale hashed chunks (white screen → soft reload).
   installChunkLoadRecovery();
 

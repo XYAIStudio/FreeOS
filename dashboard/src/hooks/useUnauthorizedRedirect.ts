@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { UNAUTHORIZED_EVENT } from "../api/request";
+import { isDesktopShell } from "../utils/desktopShell";
 
 /**
  * Route an expired session to /login through the router.
@@ -15,6 +16,7 @@ export function useUnauthorizedRedirect(): void {
   useEffect(() => {
     const handler = (event: Event) => {
       event.preventDefault();
+      if (isDesktopShell()) return;
       navigate("/login", { replace: true });
     };
     window.addEventListener(UNAUTHORIZED_EVENT, handler);

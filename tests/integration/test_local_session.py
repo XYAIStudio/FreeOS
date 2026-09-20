@@ -66,7 +66,13 @@ async def test_save_requires_account_then_register(fresh_client) -> None:
     assert me.json()["is_local"] is False
 
 
-async def test_local_session_refuses_when_multiple_users(app_client) -> None:
+async def test_local_session_loopback_picks_admin_when_multiple_users(
+    app_client, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Returning ~/.freeos with extra users still gets a studio session on loopback."""
+    monkeypatch.delenv("OCTOP_DESKTOP", raising=False)
+    monkeypatch.delenv("FREEOS_DESKTOP", raising=False)
+    monkeypatch.delenv("OCTOP_GREEN_PACKAGES", raising=False)
     c, _srv, home = app_client
     await bootstrap_admin(c, home, username="alice", password="TestPass12")
     tok = (
@@ -75,7 +81,43 @@ async def test_local_session_refuses_when_multiple_users(app_client) -> None:
     admin_auth = {"Authorization": f"Bearer {tok}"}
     await create_user(c, admin_auth, username="bob", password="TestPass12")
     r = await c.post("/api/auth/local-session")
-    assert r.status_code == 403
+    assert r.status_code == 200
+    assert r.json()["user"]["username"] == "alice"
+    assert r.json()["user"]["role"] == "admin"
+
+
+async def test_local_session_rejects_non_loopback_client(
+    tmp_octop_home: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.delenv("OCTOP_DESKTOP", raising=False)
+    monkeypatch.delenv("FREEOS_DESKTOP", raising=False)
+    monkeypatch.delenv("OCTOP_GREEN_PACKAGES", raising=False)
+    async with octop_client(tmp_octop_home, bind_database=False) as (c, _srv):
+        app = c._octop_app  # type: ignore[attr-defined]
+        async with httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=app, client=("8.8.8.8", 43210)),
+            base_url="http://example.com",
+        ) as remote:
+            r = await remote.post("/api/auth/local-session")
+            assert r.status_code == 403
+            assert r.json()["error"]["code"] == "FORBIDDEN"
+
+
+async def test_local_session_accepts_wails_localhost_host(
+    tmp_octop_home: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.delenv("OCTOP_DESKTOP", raising=False)
+    monkeypatch.delenv("FREEOS_DESKTOP", raising=False)
+    monkeypatch.delenv("OCTOP_GREEN_PACKAGES", raising=False)
+    async with octop_client(tmp_octop_home, bind_database=False) as (c, _srv):
+        app = c._octop_app  # type: ignore[attr-defined]
+        async with httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=app, client=("192.168.0.20", 43210)),
+            base_url="http://wails.localhost:34115",
+        ) as webview:
+            r = await webview.post("/api/auth/local-session")
+            assert r.status_code == 200
+            assert r.json()["user"]["username"] == "local"
 
 
 async def test_desktop_first_run_skips_server_wizard(
@@ -119,3 +161,23 @@ async def test_local_session_desktop_picks_admin_when_multiple_users(
     assert r.status_code == 200
     assert r.json()["user"]["username"] == "alice"
     assert r.json()["user"]["role"] == "admin"
+
+
+async def test_desktop_returning_existing_db_without_jwt(
+    app_client, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Existing SQLite + no session cookie still enters via local-session."""
+    c, _srv, home = app_client
+    await bootstrap_admin(c, home, username="owner", password="TestPass12")
+    monkeypatch.setenv("OCTOP_DESKTOP", "1")
+    status = await c.get("/api/setup/status")
+    assert status.json()["setup_required"] is False
+    assert status.json()["desktop"] is True
+    r = await c.post("/api/auth/local-session")
+    assert r.status_code == 200
+    assert r.json()["user"]["username"] == "owner"
+    me = await c.get(
+        "/api/auth/me",
+        headers={"Authorization": f"Bearer {r.json()['access_token']}"},
+    )
+    assert me.status_code == 200

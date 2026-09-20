@@ -476,6 +476,6 @@ export const routeConfigs: RouteConfig[] = [
 
   // Misc
   { path: "/pwa-debug", element: <PwaDebugPage /> },
-  { path: "/", element: <Navigate to="/projects" replace /> },
+  { path: "/", element: <RedirectPreserveSearch to="/projects" /> },
   { path: "*", element: <NotFoundPage /> },
 ];

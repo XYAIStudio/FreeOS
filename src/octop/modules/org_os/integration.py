@@ -21,12 +21,15 @@ def integrated_organization() -> bool:
 
 async def organization_user(server: Any, token: str) -> Any:
     """Validate at the identity authority on every request (including revocation)."""
+    bearer = (token or "").strip()
+    if not bearer:
+        raise OctopError(ErrorCode.AUTH_FAILED, "organization session expired or revoked")
     service = org_module_from_paths(server.paths)
     try:
         async with httpx.AsyncClient(timeout=10, follow_redirects=False) as client:
             result = await client.get(
                 f"{service.sidecar_url()}/api/auth/me",
-                headers={"Authorization": f"Bearer {token}"},
+                headers={"Authorization": f"Bearer {bearer}"},
             )
     except httpx.HTTPError as exc:
         raise OctopError(

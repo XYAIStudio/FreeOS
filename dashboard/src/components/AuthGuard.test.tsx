@@ -42,6 +42,8 @@ function renderGuard() {
         />
         <Route path="/login" element={<div>login wall</div>} />
         <Route path="/setup" element={<div>setup wizard</div>} />
+        <Route path="/chat/:agentId" element={<div>first agent</div>} />
+        <Route path="/projects" element={<div>conversation list</div>} />
       </Routes>
     </MemoryRouter>,
   );
@@ -80,7 +82,7 @@ describe("AuthGuard local session", () => {
 
     renderGuard();
 
-    expect(await screen.findByText("usable app")).toBeInTheDocument();
+    expect(await screen.findByText("setup wizard")).toBeInTheDocument();
     expect(screen.queryByText("login wall")).toBeNull();
     expect(getAuthToken()).toBe("guest-token");
     await waitFor(() => expect(localSession).toHaveBeenCalledOnce());
@@ -205,25 +207,71 @@ describe("AuthGuard local session", () => {
     });
 
     render(
-      <MemoryRouter initialEntries={["/chat?desktop=1"]}>
+      <MemoryRouter initialEntries={["/projects?desktop=1"]}>
         <Routes>
           <Route
-            path="/chat"
+            path="/projects"
             element={
               <AuthGuard>
-                <div>usable app</div>
+                <div>conversation list</div>
               </AuthGuard>
             }
           />
           <Route path="/login" element={<div>login wall</div>} />
           <Route path="/setup" element={<div>model setup</div>} />
+          <Route path="/chat/:agentId" element={<div>first agent</div>} />
         </Routes>
       </MemoryRouter>,
     );
 
-    expect(await screen.findByText("usable app")).toBeInTheDocument();
+    expect(await screen.findByText("first agent")).toBeInTheDocument();
     expect(screen.queryByText("model setup")).toBeNull();
     expect(screen.queryByText("login wall")).toBeNull();
+    expect(screen.queryByText("conversation list")).toBeNull();
+  });
+
+  it("does not keep the /projects dump as home on first desktop launch", async () => {
+    getAuthStatus.mockResolvedValue({
+      setup_required: true,
+      has_providers: false,
+      desktop: true,
+    });
+    localSession.mockResolvedValue({
+      access_token: "guest-token",
+      token_type: "Bearer",
+      expires_in: 3600,
+      user: {
+        id: 1,
+        username: "local",
+        role: "admin",
+        display_name: "FreeOS",
+        locale: "zh",
+        is_local: true,
+      },
+      token: "guest-token",
+    });
+
+    render(
+      <MemoryRouter initialEntries={["/projects?desktop=1"]}>
+        <Routes>
+          <Route
+            path="/projects"
+            element={
+              <AuthGuard>
+                <div>conversation list</div>
+              </AuthGuard>
+            }
+          />
+          <Route path="/login" element={<div>login wall</div>} />
+          <Route path="/setup" element={<div>model setup</div>} />
+          <Route path="/chat/:agentId" element={<div>first agent</div>} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText("model setup")).toBeInTheDocument();
+    expect(screen.queryByText("login wall")).toBeNull();
+    expect(screen.queryByText("conversation list")).toBeNull();
   });
 
   it("opens the studio door even when the organization room is available", async () => {
@@ -251,7 +299,7 @@ describe("AuthGuard local session", () => {
 
     renderGuard();
 
-    expect(await screen.findByText("usable app")).toBeInTheDocument();
+    expect(await screen.findByText("setup wizard")).toBeInTheDocument();
     expect(screen.queryByText("login wall")).toBeNull();
     expect(getAuthToken()).toBe("guest-token");
   });
@@ -280,6 +328,33 @@ describe("AuthGuard local session", () => {
     await waitFor(() => expect(localSession).toHaveBeenCalled());
     expect(screen.queryByText("login wall")).toBeNull();
     expect(screen.queryByText("usable app")).toBeNull();
+    view.unmount();
+  });
+
+  it("keeps retrying after the router drops ?desktop=1", async () => {
+    sessionStorage.setItem("freeos:desktop-shell", "1");
+    getAuthStatus.mockResolvedValue({ setup_required: false, desktop: false });
+    localSession.mockRejectedValue(new Error("interactive login required"));
+
+    const view = render(
+      <MemoryRouter initialEntries={["/chat"]}>
+        <Routes>
+          <Route
+            path="/chat"
+            element={
+              <AuthGuard>
+                <div>usable app</div>
+              </AuthGuard>
+            }
+          />
+          <Route path="/login" element={<div>login wall</div>} />
+          <Route path="/setup" element={<div>setup wizard</div>} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => expect(localSession).toHaveBeenCalled());
+    expect(screen.queryByText("login wall")).toBeNull();
     view.unmount();
   });
 });

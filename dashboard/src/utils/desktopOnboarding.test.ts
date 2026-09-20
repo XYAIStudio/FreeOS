@@ -27,7 +27,8 @@ describe("desktopOnboarding", () => {
 
   it("treats an existing provider as already finished", () => {
     expect(needsDesktopModelOnboarding(true)).toBe(false);
-    expect(desktopPostSessionPath(true)).toBe(DESKTOP_RETURNING_HOME_PATH);
+    expect(desktopPostSessionPath(true)).toBe(DESKTOP_FIRST_CHAT_PATH);
+    expect(desktopPostSessionPath(true)).not.toBe("/projects");
     expect(isDesktopModelOnboardingDone()).toBe(true);
   });
 
