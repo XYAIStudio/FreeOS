@@ -31,18 +31,13 @@ ManifestDPIAware true
 
 !define MUI_ICON "..\icon.ico"
 !define MUI_UNICON "..\icon.ico"
-!define MUI_FINISHPAGE_NOAUTOCLOSE
 !define MUI_ABORTWARNING
-# Checkbox is shown only when MUI_FINISHPAGE_RUN is set. Leave the
-# "not checked" finish-page flag undefined so the box stays on.
-!define MUI_FINISHPAGE_RUN "$INSTDIR\${PRODUCT_EXECUTABLE}"
-!define MUI_FINISHPAGE_RUN_TEXT "$(FINISH_RUN)"
-!define MUI_FINISHPAGE_RUN_FUNCTION LaunchFreeOS
+# No finish / Next / Close click after files copy. INSTFILES auto-closes,
+# then .onInstSuccess launches FreeOS (skipped for silent /S installs).
 
 !insertmacro MUI_PAGE_WELCOME
 !insertmacro MUI_PAGE_DIRECTORY
 !insertmacro MUI_PAGE_INSTFILES
-!insertmacro MUI_PAGE_FINISH
 
 !insertmacro MUI_UNPAGE_INSTFILES
 
@@ -50,8 +45,6 @@ ManifestDPIAware true
 !insertmacro MUI_LANGUAGE "English"
 !insertmacro MUI_RESERVEFILE_LANGDLL
 
-LangString FINISH_RUN ${LANG_SIMPCHINESE} "运行 FreeOS"
-LangString FINISH_RUN ${LANG_ENGLISH} "Run FreeOS"
 LangString OPENXYOS_WORKDIR ${LANG_SIMPCHINESE} "正在复制过渡用组织运行时（受管 Node）。组织能力在 FreeOS 宿主内运行；此路径不是终态。"
 LangString OPENXYOS_WORKDIR ${LANG_ENGLISH} "Copying the transitional organization runtime (managed Node). Organization runs in-host; this is not the destination. Setup continues."
 LangString OPENXYOS_COPY_ZIP ${LANG_SIMPCHINESE} "正在复制过渡用 openXYOS 运行包"
@@ -104,6 +97,7 @@ Name "${INFO_PRODUCTNAME}"
     !define INSTALLER_OUTFILE "..\..\..\bin\${INFO_PROJECTNAME}-desktop-windows-${ARCH}-${INFO_PRODUCTVERSION}.exe"
 !endif
 OutFile "${INSTALLER_OUTFILE}"
+AutoCloseWindow true
 !if "${WAILS_INSTALL_SCOPE}" == "user"
     InstallDir "$LOCALAPPDATA\Programs\${INFO_PRODUCTNAME}"
 !else
@@ -144,7 +138,14 @@ Section
     !insertmacro wails.associateCustomProtocols
 
     !insertmacro wails.writeUninstaller
+    SetAutoClose true
 SectionEnd
+
+Function .onInstSuccess
+    IfSilent skipLaunch
+    Call LaunchFreeOS
+    skipLaunch:
+FunctionEnd
 
 Section "uninstall"
     !insertmacro wails.setShellContext

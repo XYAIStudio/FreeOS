@@ -140,17 +140,19 @@ def test_uninstall_removes_shortcuts_and_program_cache() -> None:
     assert "!insertmacro wails.deleteUninstaller" in uninstall
 
 
-def test_finish_page_run_defaults_checked() -> None:
+def test_install_autolaunches_and_closes_without_finish_page() -> None:
     nsi = NSI.read_text(encoding="utf-8-sig")
-    assert '!define MUI_FINISHPAGE_RUN "$INSTDIR\\${PRODUCT_EXECUTABLE}"' in nsi
-    assert "!define MUI_FINISHPAGE_RUN_FUNCTION LaunchFreeOS" in nsi
-    assert "!define MUI_FINISHPAGE_RUN_TEXT" in nsi
-    assert "LangString FINISH_RUN ${LANG_SIMPCHINESE}" in nsi
-    assert "运行 FreeOS" in nsi
-    assert "!define MUI_FINISHPAGE_RUN_NOTCHECKED" not in nsi
+    assert "!insertmacro MUI_PAGE_FINISH" not in nsi
+    assert "MUI_FINISHPAGE_RUN" not in nsi
+    assert "MUI_FINISHPAGE_NOAUTOCLOSE" not in nsi
+    assert "AutoCloseWindow true" in nsi
+    assert "SetAutoClose true" in nsi
+    success = nsi[nsi.index("Function .onInstSuccess") : nsi.index("Section \"uninstall\"")]
+    assert "IfSilent" in success
+    assert "Call LaunchFreeOS" in success
     launch = nsi[nsi.index("Function LaunchFreeOS") :]
     assert 'SetOutPath "$INSTDIR"' in launch
-    # Finish-page launch must drop the installer admin token.
+    # Auto-launch must drop the installer admin token.
     assert "CoCreateInstance" in launch
     assert "IShellDispatch2" in launch or "A4C6892C-3BA9-11d2-9DEA-00C04FB16162" in launch
     assert r'"$WINDIR\explorer.exe"' in launch
@@ -172,8 +174,8 @@ def test_nsis_chinese_source_is_utf8_with_bom() -> None:
     raw = NSI.read_bytes()
     assert raw.startswith(b"\xef\xbb\xbf"), "makensis treats BOM-less files as ACP (CP1252 on CI)"
     text = raw.decode("utf-8-sig")
-    assert "运行 FreeOS" in text
     assert "检测到 FreeOS 仍在运行" in text
+    assert "正在复制过渡用组织运行时" in text
     mojibake = "运行".encode().decode("cp1252", errors="replace")
     assert mojibake not in text
     task = (REPO / "desktop" / "src" / "build" / "windows" / "Taskfile.yml").read_text(
@@ -316,7 +318,10 @@ def test_desktop_readme_documents_uninstall_keep_vs_remove() -> None:
     assert "Cancel" in text
     assert "Confirm" in text
     assert "## Windows install finish" in text
-    assert "运行 FreeOS" in text
+    assert "starts FreeOS" in text
+    assert "closes itself" in text
+    assert "portable.previous" in text
+    assert "in place" in text
     assert "FREEOS_INSTALL_STAMP" in text
     assert "FREEOS_STAMP" in text
     assert "%USERPROFILE%\\.freeos\\portable" in text

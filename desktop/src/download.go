@@ -16,6 +16,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 )
 
@@ -95,8 +96,19 @@ func replacePortable(root string) error {
 	hadCurrent := false
 	if _, err := os.Stat(root); err == nil {
 		if err := renamePortable(root, previous); err != nil {
-			_ = os.RemoveAll(next)
-			return err
+			// Directory node is often locked on Windows while files inside
+			// can still be overwritten. Stop leftover host processes, retry
+			// the rename, then overlay in place so Setup does not need a reboot.
+			stopPortableHoldersFn(root)
+			if retry := renamePortable(root, previous); retry != nil {
+				log.Printf("portable: rename %s failed (%v); refreshing in place", root, retry)
+				if inplaceErr := overlayPortable(next, root); inplaceErr != nil {
+					_ = os.RemoveAll(next)
+					return inplaceErr
+				}
+				_ = os.RemoveAll(next)
+				return nil
+			}
 		}
 		hadCurrent = true
 	}
@@ -104,13 +116,33 @@ func replacePortable(root string) error {
 		if hadCurrent {
 			_ = renamePortable(previous, root)
 		}
+		if isBusyPathError(err) {
+			log.Printf("portable: swap %s into place failed (%v); overlaying in place", root, err)
+			if inplaceErr := overlayPortable(next, root); inplaceErr != nil {
+				_ = os.RemoveAll(next)
+				return inplaceErr
+			}
+			_ = os.RemoveAll(next)
+			_ = os.RemoveAll(previous)
+			return nil
+		}
+		_ = os.RemoveAll(next)
 		return err
 	}
 	_ = os.RemoveAll(previous)
 	return nil
 }
 
+var (
+	renamePortableImpl    = renamePortableWithRetry
+	stopPortableHoldersFn = stopPortableHolders
+)
+
 func renamePortable(source string, target string) error {
+	return renamePortableImpl(source, target)
+}
+
+func renamePortableWithRetry(source string, target string) error {
 	var last error
 	for attempt := 0; attempt < 25; attempt++ {
 		if err := os.Rename(source, target); err == nil {
@@ -121,6 +153,123 @@ func renamePortable(source string, target string) error {
 		time.Sleep(200 * time.Millisecond)
 	}
 	return last
+}
+
+func isBusyPathError(err error) bool {
+	if err == nil {
+		return false
+	}
+	var errno syscall.Errno
+	if errors.As(err, &errno) {
+		switch errno {
+		case 5, 32, 33: // ERROR_ACCESS_DENIED, ERROR_SHARING_VIOLATION, ERROR_LOCK_VIOLATION
+			return true
+		}
+	}
+	msg := strings.ToLower(err.Error())
+	return strings.Contains(msg, "being used by another process") ||
+		strings.Contains(msg, "used by another process")
+}
+
+func overlayPortable(src, dest string) error {
+	src = filepath.Clean(src)
+	dest = filepath.Clean(dest)
+	if err := os.MkdirAll(dest, 0o755); err != nil {
+		return err
+	}
+	err := filepath.WalkDir(src, func(path string, d os.DirEntry, walkErr error) error {
+		if walkErr != nil {
+			return walkErr
+		}
+		rel, relErr := filepath.Rel(src, path)
+		if relErr != nil {
+			return relErr
+		}
+		if rel == "." {
+			return nil
+		}
+		target := filepath.Join(dest, rel)
+		if d.IsDir() {
+			return os.MkdirAll(target, 0o755)
+		}
+		info, infoErr := d.Info()
+		if infoErr != nil {
+			return infoErr
+		}
+		if info.Mode()&os.ModeSymlink != 0 {
+			link, linkErr := os.Readlink(path)
+			if linkErr != nil {
+				return linkErr
+			}
+			_ = os.Remove(target)
+			if mkErr := os.MkdirAll(filepath.Dir(target), 0o755); mkErr != nil {
+				return mkErr
+			}
+			return os.Symlink(link, target)
+		}
+		return copyFileOver(path, target, info.Mode())
+	})
+	if err != nil {
+		return err
+	}
+	pruneOverlayExtras(src, dest)
+	if !launchReady(dest) {
+		return fmt.Errorf("portable extract missing launch.py or python under %s", dest)
+	}
+	return nil
+}
+
+func copyFileOver(src, dest string, mode os.FileMode) error {
+	if err := os.MkdirAll(filepath.Dir(dest), 0o755); err != nil {
+		return err
+	}
+	in, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer in.Close()
+	out, err := os.OpenFile(dest, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, mode)
+	if err != nil {
+		return err
+	}
+	_, copyErr := io.Copy(out, in)
+	closeErr := out.Close()
+	if copyErr != nil {
+		return copyErr
+	}
+	if closeErr != nil {
+		return closeErr
+	}
+	if chmodErr := os.Chmod(dest, mode); chmodErr != nil && runtime.GOOS != "windows" {
+		return chmodErr
+	}
+	return nil
+}
+
+func pruneOverlayExtras(src, dest string) {
+	var extras []string
+	_ = filepath.WalkDir(dest, func(path string, d os.DirEntry, walkErr error) error {
+		if walkErr != nil {
+			return nil
+		}
+		rel, relErr := filepath.Rel(dest, path)
+		if relErr != nil || rel == "." {
+			return nil
+		}
+		if _, err := os.Lstat(filepath.Join(src, rel)); err == nil {
+			return nil
+		}
+		extras = append(extras, path)
+		if d.IsDir() {
+			return filepath.SkipDir
+		}
+		return nil
+	})
+	for _, path := range extras {
+		if err := os.RemoveAll(path); err != nil {
+			log.Printf("portable: leave locked leftover %s: %v", path, err)
+		}
+	}
 }
 
 const portableStampName = "FREEOS_STAMP"

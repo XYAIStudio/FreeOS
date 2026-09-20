@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"syscall"
 	"testing"
 	"time"
 )
@@ -419,6 +420,83 @@ func TestEnsurePortableReplacesSameVersionWhenStampChanges(t *testing.T) {
 	}
 	if got := installedPortableStamp(root); got != "build-b" {
 		t.Fatalf("stamp = %q, want build-b", got)
+	}
+}
+
+func TestIsBusyPathError(t *testing.T) {
+	if isBusyPathError(nil) {
+		t.Fatal("nil must not look busy")
+	}
+	if !isBusyPathError(errors.New("The process cannot access the file because it is being used by another process")) {
+		t.Fatal("Windows sharing-violation text should look busy")
+	}
+	if !isBusyPathError(syscall.Errno(32)) {
+		t.Fatal("ERROR_SHARING_VIOLATION should look busy")
+	}
+	if isBusyPathError(errors.New("no such file or directory")) {
+		t.Fatal("missing path is not a busy lock")
+	}
+}
+
+func TestReplacePortableFallsBackToInPlaceWhenRenameBusy(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("OCTOP_HOME", home)
+	root := portableDir()
+
+	oldZip := filepath.Join(t.TempDir(), "old.zip")
+	writeTestGreenZip(t, oldZip, "0.0.1")
+	if err := unzipGreen(oldZip, root); err != nil {
+		t.Fatal(err)
+	}
+	stale := filepath.Join(root, "stale.txt")
+	if err := os.WriteFile(stale, []byte("old"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	newZip := filepath.Join(t.TempDir(), "new.zip")
+	writeTestGreenZip(t, newZip, "0.0.2")
+	t.Setenv("OCTOP_DESKTOP_PORTABLE_ZIP", newZip)
+
+	stopped := 0
+	prevStop := stopPortableHoldersFn
+	stopPortableHoldersFn = func(path string) {
+		stopped++
+		if path != root {
+			t.Fatalf("stopPortableHolders path = %q, want %q", path, root)
+		}
+	}
+	prevRename := renamePortableImpl
+	renamePortableImpl = func(source, target string) error {
+		if source == root && strings.HasSuffix(target, ".previous") {
+			return errors.New("The process cannot access the file because it is being used by another process")
+		}
+		return os.Rename(source, target)
+	}
+	t.Cleanup(func() {
+		stopPortableHoldersFn = prevStop
+		renamePortableImpl = prevRename
+	})
+
+	if err := ensurePortable(LocaleZH, func(string) {}); err != nil {
+		t.Fatal(err)
+	}
+	if stopped == 0 {
+		t.Fatal("expected leftover portable holders to be stopped before in-place refresh")
+	}
+	if got := portableVersion(root); got != "0.0.2" {
+		t.Fatalf("portable version = %q, want 0.0.2 after in-place refresh", got)
+	}
+	if _, err := os.Stat(stale); !os.IsNotExist(err) {
+		t.Fatalf("stale file should be pruned during in-place refresh: %v", err)
+	}
+	if _, err := os.Stat(root + ".new"); !os.IsNotExist(err) {
+		t.Fatalf("temporary .new tree should be removed: %v", err)
+	}
+	if _, err := os.Stat(root + ".previous"); !os.IsNotExist(err) {
+		t.Fatalf("failed rename should not leave portable.previous: %v", err)
+	}
+	if !launchReady(root) {
+		t.Fatal("in-place refresh should leave a launch-ready runtime")
 	}
 }
 
