@@ -3,8 +3,8 @@
 > **Русский** · [English](README.md) · [简体中文](README.zh-CN.md) · [繁體中文](README.zh-TW.md) · [日本語](README.ja.md) · [한국어](README.ko.md) · [Français](README.fr.md) · [Español](README.es.md)
 
 <p>
-  <a href="https://github.com/TencentCloud/Octop"><img alt="Upstream: Octop" src="https://img.shields.io/badge/upstream-Octop-MIT-1677ff" /></a>
-  <a href="https://github.com/XYAIStudio/openXYOS"><img alt="Organization module: openXYOS" src="https://img.shields.io/badge/organization-openXYOS-Apache--2.0-0f766e" /></a>
+  <a href="https://github.com/TencentCloud/Octop"><img alt="Upstream: Octop" src="https://img.shields.io/badge/Upstream-Octop-1677ff.svg?style=flat" /></a>
+  <a href="https://github.com/XYAIStudio/openXYOS"><img alt="Organization module: openXYOS" src="https://img.shields.io/badge/Organization-openXYOS-0f766e.svg?style=flat" /></a>
 </p>
 FreeOS объединяет Octop и openXYOS в одной самостоятельно размещаемой платформе. Модели и базы знаний — по возможности локально. Активы усиливают друг друга. Цель — экспорт нового исходного кода openXYOS. Курс: перенести openXYOS **в** хост, а не навсегда встраивать Node. Контракт: [product-contract.md](docs/product-contract.md).
 

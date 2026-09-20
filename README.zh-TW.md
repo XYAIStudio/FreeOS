@@ -3,8 +3,8 @@
 > **繁體中文** · [English](README.md) · [简体中文](README.zh-CN.md) · [日本語](README.ja.md) · [한국어](README.ko.md) · [Français](README.fr.md) · [Español](README.es.md) · [Русский](README.ru.md)
 
 <p>
-  <a href="https://github.com/TencentCloud/Octop"><img alt="Upstream: Octop" src="https://img.shields.io/badge/upstream-Octop-MIT-1677ff" /></a>
-  <a href="https://github.com/XYAIStudio/openXYOS"><img alt="Organization module: openXYOS" src="https://img.shields.io/badge/organization-openXYOS-Apache--2.0-0f766e" /></a>
+  <a href="https://github.com/TencentCloud/Octop"><img alt="Upstream: Octop" src="https://img.shields.io/badge/Upstream-Octop-1677ff.svg?style=flat" /></a>
+  <a href="https://github.com/XYAIStudio/openXYOS"><img alt="Organization module: openXYOS" src="https://img.shields.io/badge/Organization-openXYOS-0f766e.svg?style=flat" /></a>
 </p>
 FreeOS 是一個面向組織協作、知識沉澱與智慧代理編排的開源、本機優先平台。它把 Octop 與 openXYOS 合在同一套自託管安裝裡：模型與知識庫盡量本機；兩邊資產互通；最終可匯出新的 openXYOS 系統原始碼。方向是把 openXYOS **遷入** 宿主，而不是永久嵌入大型 Node。產品契約：[English](docs/product-contract.md) · [簡體中文](docs/product-contract.zh-CN.md)。
 

@@ -3,8 +3,8 @@
 > **한국어** · [English](README.md) · [简体中文](README.zh-CN.md) · [繁體中文](README.zh-TW.md) · [日本語](README.ja.md) · [Français](README.fr.md) · [Español](README.es.md) · [Русский](README.ru.md)
 
 <p>
-  <a href="https://github.com/TencentCloud/Octop"><img alt="Upstream: Octop" src="https://img.shields.io/badge/upstream-Octop-MIT-1677ff" /></a>
-  <a href="https://github.com/XYAIStudio/openXYOS"><img alt="Organization module: openXYOS" src="https://img.shields.io/badge/organization-openXYOS-Apache--2.0-0f766e" /></a>
+  <a href="https://github.com/TencentCloud/Octop"><img alt="Upstream: Octop" src="https://img.shields.io/badge/Upstream-Octop-1677ff.svg?style=flat" /></a>
+  <a href="https://github.com/XYAIStudio/openXYOS"><img alt="Organization module: openXYOS" src="https://img.shields.io/badge/Organization-openXYOS-0f766e.svg?style=flat" /></a>
 </p>
 FreeOS는 Octop과 openXYOS를 하나의 셀프호스트 플랫폼에 모읍니다. 모델과 지식 베이스는 가능한 한 로컬. 자산은 서로 강화하고, 최종적으로 새로운 openXYOS 소스를 내보낼 수 있습니다. 방향은 큰 Node 런타임을 영구 내장하는 것이 아니라 openXYOS를 호스트로 **네이티브 이전**하는 것입니다. 계약: [product-contract.md](docs/product-contract.md).
 
