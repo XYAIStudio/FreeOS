@@ -188,7 +188,10 @@ export interface OrgTalentClient {
   list(params?: TalentListParams): Promise<OrgTalent[]>;
   get(id: number): Promise<OrgTalent>;
   stats(): Promise<TalentStats>;
-  recruit(id: number, departmentId?: number | null): Promise<OrgTalentRecruitResult>;
+  recruit(
+    id: number,
+    departmentId?: number | null,
+  ): Promise<OrgTalentRecruitResult>;
 }
 
 export type GovernancePauseStatus =

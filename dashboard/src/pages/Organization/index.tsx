@@ -447,7 +447,10 @@ export default function OrganizationPage() {
           ) : null}
 
           {integrated ? (
-            <section className={styles.empty} data-testid="org-original-app-hint">
+            <section
+              className={styles.empty}
+              data-testid="org-original-app-hint"
+            >
               <p>{t("organization.originalAppHint")}</p>
               <Button
                 href="/organization-app/dashboard?freeos_embed=1"
