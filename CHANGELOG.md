@@ -13,6 +13,7 @@
 
 ### 新增
 
+- P0.2：openXYOS → FreeOS 能力迁移图（`docs/org-capability-migration-map.md` / `.zh-CN.md` + `docs/org-capability-migration-map.json`）。按域记录原生宿主 / org-ui 切片 / 托管 Node iframe / 可选边车 / 仅导出；波次为资产总线 → 导出 → 双身份 UX → 本地模型/知识库 → 拆除 Node。不改运行时。
 - Organization Phase 5（默认安装器瘦身）：Windows/macOS/Linux 默认包装与 Docker Compose 保持 **单进程 FreeOS + 宿主内 Organization**，不捆绑、不解压、不自动拉起 openXYOS Node。`FREEOS_ORG_SIDECAR=1` 与 `SHIP_OPENXYOS_RUNTIME=1` 仍是可选高级路径。文档对齐 #55 / ADR 001 / ADR 003 / `docs/org-export.md`。`modules/openxyos` 保留给导出与开发，不是默认运行时。
 - Organization Phase 4（独立站导出起步）：`freeos org export-standalone --out <dir>` 从 `dashboard/src/org-ui` 生成可运行的 Vite 包（OpenApp 风格路由、本地 JWT IdentityBridge `openxyos.standalone.jwt`、登录页、Docker / docker-compose、`server/proxy.mjs` 把 `/api` 反代到 FreeOS `FREEOS_UPSTREAM`）。Chat 不导出。默认安装器零 Node（Phase 5）。说明见 `docs/org-export.md`。
 - Organization Phase 3（工作台总览切片，Open-12 收口）：宿主内薄 Workspace / OpenDashboard。Dashboard `/organization/workspace` 使用共享 `dashboard/src/org-ui` 的 `WorkspacePage`。数据复用已有 `GET /api/org-module/overview`，链到已迁的公告 / 架构 / 员工 / 技能 / 智能体 / 任务 / 知识 / 反思 / 治理 / 设置。**不是**第二套控制面（assemble / pack / loop 仍在 `/organization`）。**Chat 永久不迁。** `freeos org export-standalone` 同时列出 Workspace。Phase 3 Open-12 宿主 UI 完成，下一步 Phase 4 导出。

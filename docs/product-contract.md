@@ -6,7 +6,7 @@
 
 This document **supersedes** earlier wording that treated organization identity as the authority over FreeOS host identity, or treated a bundled / managed Node runtime (or a permanent iframe of openXYOS) as the destination architecture.
 
-Related but subordinate: [architecture-integration.md](architecture-integration.md) (control/data-plane split and the running loop), [org-merge-plan.md](org-merge-plan.md) and [org-full-integration.md](org-full-integration.md) (engineering history — read their Historical vs Current banners first), [ADR 001](adr/001-single-process-model.md), [ADR 003](adr/003-org-ui-single-source-dual-delivery.md), [org-export.md](org-export.md).
+Related but subordinate: [architecture-integration.md](architecture-integration.md) (control/data-plane split and the running loop), [org-merge-plan.md](org-merge-plan.md) and [org-full-integration.md](org-full-integration.md) (engineering history — read their Historical vs Current banners first), [ADR 001](adr/001-single-process-model.md), [ADR 003](adr/003-org-ui-single-source-dual-delivery.md), [org-export.md](org-export.md), [org-capability-migration-map.md](org-capability-migration-map.md) (P0.2: native vs Node / iframe).
 
 ---
 

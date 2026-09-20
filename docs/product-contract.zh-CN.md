@@ -6,7 +6,7 @@
 
 本文 **取代** 此前把「组织身份」写成 FreeOS 宿主身份权威、或把捆绑 / 托管 Node 运行时（以及永久 iframe 嵌入 openXYOS）写成目标架构的表述。
 
-相关但从属的文档：[architecture-integration.md](architecture-integration.md)（控制面 / 数据面与自增长循环）、[org-merge-plan.md](org-merge-plan.md) 与 [org-full-integration.md](org-full-integration.md)（工程历史——先读文首 Historical vs Current）、[ADR 001](adr/001-single-process-model.md)、[ADR 003](adr/003-org-ui-single-source-dual-delivery.md)、[org-export.md](org-export.md)。
+相关但从属的文档：[architecture-integration.md](architecture-integration.md)（控制面 / 数据面与自增长循环）、[org-merge-plan.md](org-merge-plan.md) 与 [org-full-integration.md](org-full-integration.md)（工程历史——先读文首 Historical vs Current）、[ADR 001](adr/001-single-process-model.md)、[ADR 003](adr/003-org-ui-single-source-dual-delivery.md)、[org-export.md](org-export.md)、[org-capability-migration-map.zh-CN.md](org-capability-migration-map.zh-CN.md)（P0.2：原生 vs Node / iframe）。
 
 ---
 
