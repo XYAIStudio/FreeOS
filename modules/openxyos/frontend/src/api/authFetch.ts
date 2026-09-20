@@ -11,13 +11,12 @@ const freeosOrganization =
 
 function organizationUrl(url: string): string {
   if (!freeosOrganization || !url.startsWith("/api/")) return url;
-  const authPath = url.split("?", 1)[0];
-  if (authPath === "/api/auth/login") return "/api/org-module/identity/login";
-  if (authPath === "/api/auth/register")
-    return "/api/org-module/identity/register";
-  if (authPath === "/api/auth/refresh")
-    return "/api/org-module/identity/refresh";
-  return `/api/org-module/business${url}`;
+  // FreeOS owns paid services such as creation, governance, and code export.
+  // The bundled OpenXYOS instance remains the user's local, self-owned test
+  // environment, so its account, registration, and business APIs must never
+  // be gated by a FreeOS account. Keep them on the same origin through the
+  // private sidecar proxy rather than exposing its loopback port.
+  return `/organization-app${url}`;
 }
 
 export function authFetch(

@@ -45,9 +45,6 @@ export const useAuthStore = create<AuthState>((set) => ({
     if (!res.ok || !data.success) throw new Error(data.error || "登录失败");
     const token = data.data.tokens?.accessToken || data.data.token;
     localStorage.setItem("token", token);
-    if (import.meta.env.VITE_FREEOS_ORG_INTEGRATED === "true") {
-      localStorage.setItem("auth_token", token);
-    }
     localStorage.setItem("user", JSON.stringify(data.data.user));
     set({ user: data.data.user, token });
     // 记录登录事件
@@ -80,9 +77,6 @@ export const useAuthStore = create<AuthState>((set) => ({
     const token = data.data.tokens?.accessToken || data.data.token;
     if (!token) throw new Error("注册成功但未收到登录令牌");
     localStorage.setItem("token", token);
-    if (import.meta.env.VITE_FREEOS_ORG_INTEGRATED === "true") {
-      localStorage.setItem("auth_token", token);
-    }
     localStorage.setItem("user", JSON.stringify(data.data.user));
     set({ user: data.data.user, token });
     // 记录注册事件
@@ -99,9 +93,6 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   logout: () => {
     localStorage.removeItem("token");
-    if (import.meta.env.VITE_FREEOS_ORG_INTEGRATED === "true") {
-      localStorage.removeItem("auth_token");
-    }
     localStorage.removeItem("user");
     set({ user: null, token: null });
   },

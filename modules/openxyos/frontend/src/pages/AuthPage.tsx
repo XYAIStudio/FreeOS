@@ -1,11 +1,10 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuthStore } from "../stores/auth";
+import { authFetch } from "../api/authFetch";
 import { LanguageToggle, useLocale } from "../i18n";
 
 const R = "[border-radius:1.5px]";
-const freeosOrganization =
-  import.meta.env.VITE_FREEOS_ORG_INTEGRATED === "true";
 
 export default function AuthPage() {
   const navigate = useNavigate();
@@ -20,10 +19,32 @@ export default function AuthPage() {
   const [loading, setLoading] = useState(false);
   const [agreed, setAgreed] = useState(false);
 
-  const fillDemo = () => {
-    setTab("login");
-    setEmail("demo@demo.com");
-    setPassword("openxyos-demo-2026");
+  const enterAfterAuthentication = async () => {
+    try {
+      const response = await authFetch("/api/settings/ai");
+      const payload = await response.json();
+      const config = payload?.success ? payload.data || {} : {};
+      const modelReady =
+        config.llm_api_key_configured === "true" &&
+        Boolean(config.llm_api_base) &&
+        Boolean(config.llm_model);
+      navigate(modelReady ? "/app" : "/settings?setup=model");
+    } catch {
+      navigate("/app");
+    }
+  };
+
+  const enterTestAccount = async () => {
+    setLoading(true);
+    setError("");
+    try {
+      await login("demo@demo.com", "openxyos-demo-2026");
+      await enterAfterAuthentication();
+    } catch (err: any) {
+      setError(err.message || tx("测试账号暂时不可用", "The test account is unavailable."));
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -53,7 +74,7 @@ export default function AuthPage() {
         }
         await register(email, password, nickname);
       }
-      navigate("/app");
+      await enterAfterAuthentication();
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -146,14 +167,7 @@ export default function AuthPage() {
               🏢
             </div>
             <h2 className="text-xl font-bold text-text mb-2">
-              {tx(
-                freeosOrganization
-                  ? "欢迎使用 FreeOS 组织空间"
-                  : "欢迎使用 openXYOS",
-                freeosOrganization
-                  ? "Welcome to FreeOS Organization"
-                  : "Welcome to openXYOS",
-              )}
+              {tx("欢迎使用 openXYOS", "Welcome to openXYOS")}
             </h2>
             <p className="text-sm text-text-muted">
               {tx(
@@ -163,23 +177,26 @@ export default function AuthPage() {
             </p>
           </div>
 
-          {!freeosOrganization && (
-            <div
-              className={`flex items-center gap-3 bg-primary-bg border border-primary-light ${R} px-4 py-3 mb-5 text-[13px] text-text`}
-            >
-              <span className="text-lg shrink-0">🎮</span>
-              <span>
-                {tx("Demo account:", "Demo account:")}{" "}
-                <strong className="text-primary">demo@demo.com</strong>
+          <div
+            className={`flex items-center gap-3 bg-primary-bg border border-primary-light ${R} px-4 py-3 mb-5 text-[13px] text-text`}
+          >
+            <span className="text-lg shrink-0">🧪</span>
+            <span className="leading-relaxed">
+              <strong>{tx("本机测试环境", "Local test environment")}</strong>
+              <br />
+              <span className="text-text-muted">
+                {tx("直接进入可自定义的 openXYOS 本地工作台", "Enter the customizable local openXYOS workspace.")}
               </span>
-              <button
-                onClick={fillDemo}
-                className={`ml-auto px-3.5 py-2 bg-primary text-white text-xs font-semibold ${R} hover:opacity-90 whitespace-nowrap`}
-              >
-                {tx("一键填入", "Fill demo")}
-              </button>
-            </div>
-          )}
+            </span>
+            <button
+              type="button"
+              onClick={() => void enterTestAccount()}
+              disabled={loading}
+              className={`ml-auto px-3.5 py-2 bg-primary text-white text-xs font-semibold ${R} hover:opacity-90 disabled:opacity-60 whitespace-nowrap`}
+            >
+              {tx("一键登录", "One-click sign in")}
+            </button>
+          </div>
 
           <div className={`flex bg-bg-card border border-border ${R} p-1 mb-6`}>
             {(["login", "register"] as const).map((t) => (

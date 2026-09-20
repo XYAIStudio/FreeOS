@@ -71,7 +71,13 @@ function addMonths(dateStr: string | null | undefined, months: number): string |
 }
 
 export function seedDatabase() {
-  if (process.env.FREEOS_ORG_INTEGRATED === "1") return;
+  if (process.env.FREEOS_ORG_INTEGRATED === "1") {
+    // The bundled organization environment is local and exploratory.  Create
+    // only local bootstrap accounts when FreeOS explicitly launches it as a
+    // test environment; never use a FreeOS account as its identity provider.
+    if (process.env.FREEOS_ORG_LOCAL_TEST === "1") ensureLocalBootstrap();
+    return;
+  }
   if (process.env.SEED_DEMO_DATA !== "true") {
     console.log("[seed] Demo data is disabled. Seeding local first-login accounts only.");
     ensureLocalBootstrap();

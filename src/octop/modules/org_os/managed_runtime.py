@@ -51,7 +51,13 @@ class ManagedOrganizationRuntime:
         os.environ["FREEOS_ORG_SIDECAR_PORT"] = str(port)
         os.environ["OPENXYOS_BASE_URL"] = f"http://127.0.0.1:{port}"
         env = await asyncio.to_thread(sidecar_launch_env, self.home)
-        env.update({"FREEOS_ORG_INTEGRATED": "1", "HOST": "127.0.0.1"})
+        env.update(
+            {
+                "FREEOS_ORG_INTEGRATED": "1",
+                "FREEOS_ORG_LOCAL_TEST": "1",
+                "HOST": "127.0.0.1",
+            }
+        )
         log_path = self.home / "logs" / "organization-runtime.log"
         await asyncio.to_thread(log_path.parent.mkdir, parents=True, exist_ok=True)
 

@@ -11,8 +11,6 @@ import { XYAI_MASCOT_SRC } from "../brandAssets";
 import HeroWaterScene from "../components/HeroWaterScene";
 
 const GITHUB_URL = (import.meta.env.VITE_GITHUB_URL as string | undefined)?.trim() || "https://github.com/XYAIStudio/openXYOS";
-const freeosOrganization =
-  import.meta.env.VITE_FREEOS_ORG_INTEGRATED === "true";
 const CAPABILITIES = [
   { icon: Building2, title: ["集团多层级组织", "Multi-level organizations"], text: ["集团、公司、部门、岗位与人员关系统一建模，支持复杂组织的分层协作。", "Model groups, companies, departments, roles, and people in one hierarchy for complex collaboration."] },
   { icon: Layers3, title: ["多租户与多模块", "Multi-tenant, modular"], text: ["租户数据隔离，管理员可按租户启停模块并编辑模块显示名称。", "Isolate tenant data and let administrators enable modules and rename them per tenant."] },
@@ -391,12 +389,6 @@ export default function OpenHomePage() {
   const [demoOpen, setDemoOpen] = useState(false), [demoPhase, setDemoPhase] = useState<"model" | "account">("model"), [loginState, setLoginState] = useState<"idle" | "admin" | "user">("idle"), [loginError, setLoginError] = useState(""), [copied, setCopied] = useState(false), [navOpen, setNavOpen] = useState(false);
   const [providerId, setProviderId] = useState<ExperienceModelId>("deepseek"), [apiKey, setApiKey] = useState(""), [showKey, setShowKey] = useState(false);
   const openDemo = (phase: "model" | "account") => {
-    // The integrated runtime deliberately has no shared demo tenant. Sending
-    // visitors through the old demo-password path makes every attempt fail.
-    if (freeosOrganization) {
-      navigate("/auth");
-      return;
-    }
     setDemoPhase(phase); setLoginError(""); setLoginState("idle"); setDemoOpen(true);
   };
   const enterDemo = async (kind: "admin" | "user") => {
@@ -437,11 +429,11 @@ export default function OpenHomePage() {
     <nav className="ox-nav" aria-label={tx("主导航", "Primary navigation")}>
       <a className="ox-brand" href="#top" onClick={closeNav}><i><Network size={18}/></i><b>open<span>XYOS</span></b><em>community</em></a>
       <div className="ox-links ox-desktop-links"><a href="#capabilities">{tx("核心能力", "Capabilities")}</a><a href="#agent-flow">{tx("智能体流程", "Agent flow")}</a><a href="#architecture">{tx("架构", "Architecture")}</a><a href="#modules">{tx("模块", "Modules")}</a><a href="#contribute">{tx("共建", "Contribute")}</a></div>
-      <div className="ox-nav-actions ox-desktop-actions"><LanguageToggle/><button onClick={() => openDemo("account")}>{freeosOrganization ? tx("登录组织空间", "Sign in") : tx("测试账号", "Demo account")}</button><a href={GITHUB_URL || "#source"} target={GITHUB_URL ? "_blank" : undefined} rel="noreferrer"><Github size={16}/> {GITHUB_URL ? "GitHub" : "源码"}</a></div>
+      <div className="ox-nav-actions ox-desktop-actions"><LanguageToggle/><button onClick={() => navigate("/auth")}>{tx("登录 / 注册", "Sign in / Register")}</button><a href={GITHUB_URL || "#source"} target={GITHUB_URL ? "_blank" : undefined} rel="noreferrer"><Github size={16}/> {GITHUB_URL ? "GitHub" : "源码"}</a></div>
       <button className="ox-menu-toggle" type="button" onClick={() => setNavOpen(open => !open)} aria-expanded={navOpen} aria-controls="ox-mobile-nav" aria-label={navOpen ? tx("关闭导航", "Close navigation") : tx("打开导航", "Open navigation")}>{navOpen ? <X size={19}/> : <Menu size={20}/>}</button>
       <div id="ox-mobile-nav" className={"ox-mobile-menu" + (navOpen ? " is-open" : "")} aria-hidden={!navOpen}>
         <div className="ox-mobile-links"><a href="#capabilities" onClick={closeNav}>{tx("核心能力", "Capabilities")}</a><a href="#agent-flow" onClick={closeNav}>{tx("智能体流程", "Agent flow")}</a><a href="#architecture" onClick={closeNav}>{tx("架构", "Architecture")}</a><a href="#modules" onClick={closeNav}>{tx("模块", "Modules")}</a><a href="#contribute" onClick={closeNav}>{tx("共建", "Contribute")}</a></div>
-        <div className="ox-mobile-actions"><LanguageToggle/><button onClick={() => { closeNav(); openDemo("account"); }}>{freeosOrganization ? tx("登录组织空间", "Sign in") : tx("测试账号", "Demo account")}</button><a href={GITHUB_URL || "#source"} target={GITHUB_URL ? "_blank" : undefined} rel="noreferrer" onClick={closeNav}><Github size={16}/> {GITHUB_URL ? "GitHub" : "源码"}</a></div>
+        <div className="ox-mobile-actions"><LanguageToggle/><button onClick={() => { closeNav(); navigate("/auth"); }}>{tx("登录 / 注册", "Sign in / Register")}</button><a href={GITHUB_URL || "#source"} target={GITHUB_URL ? "_blank" : undefined} rel="noreferrer" onClick={closeNav}><Github size={16}/> {GITHUB_URL ? "GitHub" : "源码"}</a></div>
       </div>
     </nav>
     <main>

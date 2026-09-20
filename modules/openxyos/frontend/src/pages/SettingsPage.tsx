@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { useLocation } from "react-router-dom";
 import { Settings, Building2, Bot, Shield, Users, Save, Trash2, Plus, X, GitBranch, RotateCcw, History, Cpu, Download, Upload, HardDrive, AlertTriangle, RefreshCw, Clock, LayoutGrid } from "lucide-react";
 import { authFetch } from "../api/authFetch";
 import { EXPERIENCE_MODELS } from "../llm-providers";
@@ -15,6 +16,7 @@ interface ConfigVersion { id: number; config_type: string; config_key: string; c
 export default function SettingsPage() {
   const { user } = useAuthStore();
   const { t } = useLocale();
+  const location = useLocation();
   const isSuperAdmin = user?.role === "super_admin";
   const isAdmin = user?.role === "super_admin" || user?.role === "admin";
 
@@ -35,6 +37,12 @@ export default function SettingsPage() {
   const [airGapMode, setAirGapMode] = useState(false);
 
   useEffect(() => { fetchData(); }, []);
+
+  useEffect(() => {
+    if (new URLSearchParams(location.search).get("setup") === "model") {
+      setTab("ai");
+    }
+  }, [location.search]);
 
   const fetchData = async () => {
     setLoading(true);
@@ -522,11 +530,26 @@ function LLMSettingsTab() {
   }));
 
   const inputCls = "w-full px-2.5 py-1.5 text-xs bg-bg border border-border rounded focus:outline-none focus:border-primary";
+  const modelReady =
+    cfg.llm_api_key_configured === "true" &&
+    Boolean(cfg.llm_api_base) &&
+    Boolean(cfg.llm_model);
 
   if (loading) return <div className="text-text-muted text-xs py-8 text-center">{t("加载中...", "Loading...")}</div>;
 
   return (
     <div className="max-w-3xl space-y-6">
+      {!modelReady && (
+        <div role="alert" className="flex items-start gap-3 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-amber-900">
+          <AlertTriangle size={18} className="mt-0.5 shrink-0" />
+          <div>
+            <p className="text-sm font-semibold">{t("尚未配置 AI 大模型", "No AI model is configured")}</p>
+            <p className="mt-1 text-xs leading-relaxed text-amber-800">
+              {t("基础功能可以继续使用；配置模型和 API Key 后，智能体、群聊与行业知识加工才会启用。", "Core functions remain available. Configure a model and API key to enable agents, group chat, and industry knowledge processing.")}
+            </p>
+          </div>
+        </div>
+      )}
       <div>
         <h3 className="text-sm font-semibold text-text mb-3">{t("快速配置 · 主流大模型", "Quick setup · popular models")}</h3>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-2">

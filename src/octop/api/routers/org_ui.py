@@ -23,10 +23,15 @@ async def _organization_ui(request: Request, path: str) -> Response:
         raise OctopError(ErrorCode.NOT_FOUND, "organization integration is disabled", status=404)
     server = request.app.state.octop_server
     try:
+        # This route serves the user's local OpenXYOS environment.  Its token
+        # belongs to that sidecar, not to FreeOS, and must travel with local
+        # login, registration, model settings, and business requests.
+        authorization = request.headers.get("authorization", "")
         return await proxy_request(
             request,
             base_url=org_module_from_paths(server.paths).sidecar_url(),
             path=path,
+            extra_headers={"Authorization": authorization} if authorization else None,
             timeout=60,
         )
     except httpx.HTTPError as exc:
@@ -40,7 +45,11 @@ async def organization_root(request: Request) -> Response:
     return await _organization_ui(request, "")
 
 
-@router.get("/organization-app/{path:path}", include_in_schema=False)
+@router.api_route(
+    "/organization-app/{path:path}",
+    methods=["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"],
+    include_in_schema=False,
+)
 async def organization_page(path: str, request: Request) -> Response:
     return await _organization_ui(request, path)
 
