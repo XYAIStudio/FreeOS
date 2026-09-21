@@ -276,6 +276,8 @@ def test_sidecar_launch_env_writes_secrets(tmp_path: Path) -> None:
     assert "COOKIE_SECRET=" in secrets
     assert "FREEOS_INGEST_TOKEN=" in secrets
     assert env["FREEOS_INGEST_TOKEN"]
+    assert env["FREEOS_ORG_INTEGRATED"] == "1"
+    assert env["FREEOS_ORG_LOCAL_TEST"] == "1"
 
 
 def test_sidecar_launch_env_merges_existing_cors(

@@ -386,6 +386,11 @@ def sidecar_launch_env(home: Path, *, dashboard_port: int | None = None) -> dict
             "FREEOS_HOME": str(home),
             "OCTOP_HOME": str(home),
             "FREEOS_ORG_SIDECAR_PORT": port,
+            # Independent openXYOS test environment: keep its own login and
+            # bootstrap demo@demo.com / user@demo.com. Restart/recover must
+            # not inherit a host INTEGRATED=1 without LOCAL_TEST (that skips seed).
+            "FREEOS_ORG_INTEGRATED": "1",
+            "FREEOS_ORG_LOCAL_TEST": "1",
         }
     )
     return env

@@ -21,6 +21,8 @@ _HOP_BY_HOP = {
     "upgrade",
     "host",
 }
+# Studio cookies / JWT must not become the organization-room session.
+_STRIP_INCOMING = _HOP_BY_HOP | {"authorization", "cookie", "cookie2"}
 
 
 def sidecar_target(base_url: str, path: str, query: str = "") -> str:
@@ -65,8 +67,10 @@ def _filter_request_headers(
 ) -> dict[str, str]:
     out: dict[str, str] = {}
     for key, value in incoming.items():
-        if key.lower() in _HOP_BY_HOP or key.lower() == "authorization":
-            # Sidecar has its own session; do not forward the FreeOS JWT.
+        lowered = key.lower()
+        if lowered in _STRIP_INCOMING or lowered.startswith("x-freeos-"):
+            # Sidecar has its own login; do not forward FreeOS JWT, cookies,
+            # or host identity headers from the dashboard origin.
             continue
         out[key] = value
     out.update(extra)

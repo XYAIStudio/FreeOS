@@ -18,6 +18,7 @@
 
 ### 修复
 
+- 组织嵌入仍走 openXYOS 自己的登录（`localStorage token` / sidecar JWT），不把 FreeOS 桌面访客（`auth_token` / `POST /api/auth/local-session`）写进组织房间。重启/恢复 sidecar 始终带 `FREEOS_ORG_LOCAL_TEST=1`，保留 `demo@demo.com` / `user@demo.com`。本机会话跳过组织映射行，不删除、不占用 openXYOS 用户。代理剥离宿主 Cookie 与 `X-FreeOS-*`。 / Org embed keeps openXYOS login; FreeOS local-session must not replace org users. Sidecar restart still seeds test accounts. Proxy drops host cookies and identity headers.
 - Windows 升级刷新 `~/.freeos/portable` 时，若目录节点被占用（无法改名为 `portable.previous`，报 “being used by another process”），先尝试结束残留的 portable / `launch.py` 进程，再把新运行时**原地覆盖**进现有文件夹，避免留下空的锁定 `portable` 桩，也不要求重启。 / If renaming `portable` → `portable.previous` fails because the directory is in use, stop leftover host processes and overlay the new runtime in place.
 - 桌面 `POST /api/auth/local-session` 对已有 `~/.freeos`（多用户 / 组织映射行）或 WebView 非 `127.0.0.1` Host 返回 403，前端重试后掉进注册登录。本机会话在 loopback / `*.localhost` / Origin 为本机时签发 JWT 并选用已有工作室账号；SPA 在 `/` 跳到 `/projects` 丢掉 `?desktop=1` 之前记住桌面壳。403 修复后的路径是：可选模型配置（云 Key / 本机，可跳过）→ 第一个智能体 `/chat/main`，不经过登录墙，也不停在工作台列表。`/setup` 在 guest 已创建后不再打回登录页。
 - Windows 安装 / 覆盖安装 / 同版本重装会刷新 `~/.freeos/portable`：Setup 先结束仍在运行的 FreeOS，写入 `$INSTDIR\FREEOS_INSTALL_STAMP`，并清除已解压树里的 `FREEOS_STAMP`。下次启动按安装戳 + 包内戳重新解压 `packages/` 与内嵌 Dashboard，#88 及后续宿主/界面修复不必再手工热补。用户数据库与设置仍留在 `~/.freeos`。

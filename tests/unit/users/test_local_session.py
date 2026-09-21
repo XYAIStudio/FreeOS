@@ -15,6 +15,7 @@ from octop.infra.users.local_session import (
     hostname_from_host_header,
     is_desktop_process,
     is_loopback_host,
+    is_organization_mapped_user,
     is_unclaimed_local_user,
     preferred_existing_user,
     request_looks_local,
@@ -129,3 +130,31 @@ def test_preferred_existing_user_picks_unclaimed_local() -> None:
         services=SimpleNamespace(settings_repo=SimpleNamespace(get=settings.get)),
     )
     assert preferred_existing_user(server) is local
+
+
+def test_preferred_existing_user_skips_organization_mapped_rows() -> None:
+    mapped = User(
+        id=1,
+        username="org_" + ("a" * 40),
+        role=Role.USER,
+        display_name="Owner",
+        organization_user_id=9,
+        organization_role="admin",
+    )
+    alice = User(id=2, username="alice", role=Role.ADMIN, display_name="Alice")
+    server = SimpleNamespace(user_manager=SimpleNamespace(list=lambda: [mapped, alice]))
+    assert is_organization_mapped_user(mapped) is True
+    assert is_organization_mapped_user(alice) is False
+    assert preferred_existing_user(server) is alice
+
+
+def test_preferred_existing_user_does_not_adopt_only_org_mirrors() -> None:
+    mapped = User(
+        id=1,
+        username="org_" + ("b" * 40),
+        role=Role.USER,
+        display_name="Room admin",
+        organization_user_id=3,
+    )
+    server = SimpleNamespace(user_manager=SimpleNamespace(list=lambda: [mapped]))
+    assert preferred_existing_user(server) is None

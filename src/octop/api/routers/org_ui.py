@@ -23,9 +23,9 @@ async def _organization_ui(request: Request, path: str) -> Response:
         raise OctopError(ErrorCode.NOT_FOUND, "organization integration is disabled", status=404)
     server = request.app.state.octop_server
     try:
-        # This route serves the user's local OpenXYOS environment.  Its token
-        # belongs to that sidecar, not to FreeOS, and must travel with local
-        # login, registration, model settings, and business requests.
+        # Independent openXYOS session: forward only the iframe's sidecar
+        # Bearer (localStorage ``token``). Never attach FreeOS identity_headers
+        # or the desktop guest JWT (``auth_token``).
         authorization = request.headers.get("authorization", "")
         return await proxy_request(
             request,
