@@ -9,6 +9,7 @@ NSI = REPO / "desktop" / "src" / "build" / "windows" / "nsis" / "project.nsi"
 NSH = REPO / "desktop" / "src" / "build" / "windows" / "nsis" / "wails_tools.nsh"
 DESKTOP_README = REPO / "desktop" / "README.md"
 ORG_PAGE = REPO / "dashboard" / "src" / "pages" / "Organization" / "index.tsx"
+ORG_ENTRY = REPO / "dashboard" / "src" / "pages" / "Organization" / "OrganizationEntry.tsx"
 ORG_BROWSER = REPO / "dashboard" / "src" / "pages" / "Organization" / "OrgMiniBrowser.tsx"
 
 
@@ -405,8 +406,12 @@ def test_nsis_does_not_register_openxyos_logon_autostart() -> None:
 
 def test_organization_embeds_local_openxyos_url() -> None:
     page = ORG_PAGE.read_text(encoding="utf-8")
+    entry = ORG_ENTRY.read_text(encoding="utf-8")
     browser = ORG_BROWSER.read_text(encoding="utf-8")
     zh = (REPO / "dashboard" / "src" / "locales" / "zh.json").read_text(encoding="utf-8")
+    assert 'data-testid="org-openxyos-frame"' in entry
+    assert "/organization-app/dashboard?freeos_embed=1" in entry
+    assert 'data-testid="org-native-workbench"' not in entry
     assert 'data-testid="org-native-workbench"' in page
     assert 'data-testid="org-assemble"' in page
     assert 'data-testid="org-pack"' in page

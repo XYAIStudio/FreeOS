@@ -21,6 +21,7 @@ import { isAgentChatReady } from "../../../utils/agentError";
 import { sortSessions, toSession, type Session } from "../hooks/useSessions";
 import { formatThreadTitle } from "../utils/threadTitle";
 import { onSessionEvent, onStreamEvent } from "../hooks/chatStore";
+import SessionListToolbar from "./SessionListToolbar";
 import SharedExpertHint from "./SharedExpertHint";
 import styles from "../index.module.less";
 
@@ -276,6 +277,7 @@ export default function MinimalAgentSessionNav({
   const [byAgent, setByAgent] = useState<Record<string, Session[]>>({});
   const [workingIds, setWorkingIds] = useState<ReadonlySet<string>>(new Set());
   const [loading, setLoading] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const [collapsedFolders, setCollapsedFolders] = useState<Set<string>>(() =>
     loadCollapsedFolders(),
   );
@@ -494,6 +496,17 @@ export default function MinimalAgentSessionNav({
     [activeAgentId, onPinActive, patchLocal],
   );
 
+  const searchNeedle = searchQuery.trim().toLowerCase();
+  const visibleAgents = useMemo(() => {
+    if (!searchNeedle) return sortedAgents;
+    return sortedAgents.filter((agent) => {
+      if (agent.name.toLowerCase().includes(searchNeedle)) return true;
+      return (byAgent[agent.agent_id] ?? []).some((session) =>
+        session.name.toLowerCase().includes(searchNeedle),
+      );
+    });
+  }, [byAgent, searchNeedle, sortedAgents]);
+
   if (agents.length === 0) {
     return (
       <div className={styles.sessionEmptyAgents}>
@@ -513,8 +526,18 @@ export default function MinimalAgentSessionNav({
 
   return (
     <div className={`${styles.sessionList} ${styles.minimalAgentNav}`}>
-      {sortedAgents.map((agent) => {
-        const list = byAgent[agent.agent_id] ?? [];
+      <SessionListToolbar
+        searchQuery={searchQuery}
+        onSearchQueryChange={setSearchQuery}
+        agents={sortedAgents}
+      />
+      {visibleAgents.map((agent) => {
+        const list = (byAgent[agent.agent_id] ?? []).filter((session) =>
+          searchNeedle
+            ? session.name.toLowerCase().includes(searchNeedle) ||
+              agent.name.toLowerCase().includes(searchNeedle)
+            : true,
+        );
         const ready = isAgentChatReady(agent.state);
         const expanded = !collapsedFolders.has(agent.agent_id);
 

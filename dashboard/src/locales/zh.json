@@ -1534,6 +1534,7 @@
     "bootstrapKickoff": "你好，我们开始吧",
     "createSessionFailed": "创建会话失败，请重试",
     "searchSessions": "搜索会话",
+    "newGroupChat": "新建群聊",
     "noSearchResults": "没有匹配的会话",
     "expandMore": "展开更多",
     "pin": "置顶",
