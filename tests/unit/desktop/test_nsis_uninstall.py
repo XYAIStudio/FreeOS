@@ -142,12 +142,18 @@ def test_uninstall_removes_shortcuts_and_program_cache() -> None:
 
 def test_finish_page_run_defaults_checked() -> None:
     nsi = NSI.read_text(encoding="utf-8-sig")
+    assert "!insertmacro MUI_PAGE_FINISH" in nsi
     assert '!define MUI_FINISHPAGE_RUN "$INSTDIR\\${PRODUCT_EXECUTABLE}"' in nsi
     assert "!define MUI_FINISHPAGE_RUN_FUNCTION LaunchFreeOS" in nsi
     assert "!define MUI_FINISHPAGE_RUN_TEXT" in nsi
     assert "LangString FINISH_RUN ${LANG_SIMPCHINESE}" in nsi
     assert "运行 FreeOS" in nsi
     assert "!define MUI_FINISHPAGE_RUN_NOTCHECKED" not in nsi
+    # Progress page must advance to Finish without an extra Next.
+    assert "!define MUI_FINISHPAGE_NOAUTOCLOSE" not in nsi
+    assert "AutoCloseWindow true" not in nsi
+    assert "SetAutoClose true" not in nsi
+    assert "Function .onInstSuccess" not in nsi
     launch = nsi[nsi.index("Function LaunchFreeOS") :]
     assert 'SetOutPath "$INSTDIR"' in launch
     # Finish-page launch must drop the installer admin token.
@@ -317,6 +323,9 @@ def test_desktop_readme_documents_uninstall_keep_vs_remove() -> None:
     assert "Confirm" in text
     assert "## Windows install finish" in text
     assert "运行 FreeOS" in text
+    assert "does **not** auto-launch" in text or "does not auto-launch" in text
+    assert "portable.previous" in text
+    assert "in place" in text
     assert "FREEOS_INSTALL_STAMP" in text
     assert "FREEOS_STAMP" in text
     assert "%USERPROFILE%\\.freeos\\portable" in text

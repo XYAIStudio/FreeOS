@@ -31,10 +31,13 @@ ManifestDPIAware true
 
 !define MUI_ICON "..\icon.ico"
 !define MUI_UNICON "..\icon.ico"
-!define MUI_FINISHPAGE_NOAUTOCLOSE
 !define MUI_ABORTWARNING
-# Checkbox is shown only when MUI_FINISHPAGE_RUN is set. Leave the
-# "not checked" finish-page flag undefined so the box stays on.
+# Finish page keeps the launch-vs-close choice. After files copy,
+# INSTFILES advances to Finish without an extra Next. Do not dismiss
+# Setup or start FreeOS without the checkbox — the user picks
+# 运行 FreeOS or just closes. Checkbox is shown only when
+# MUI_FINISHPAGE_RUN is set. Leave the "not checked" finish-page
+# flag undefined so the box stays on.
 !define MUI_FINISHPAGE_RUN "$INSTDIR\${PRODUCT_EXECUTABLE}"
 !define MUI_FINISHPAGE_RUN_TEXT "$(FINISH_RUN)"
 !define MUI_FINISHPAGE_RUN_FUNCTION LaunchFreeOS

@@ -30,3 +30,5 @@ func killPid(pid int) {
 }
 
 func killWindowsImageAt(string) {}
+
+func stopPortableHolders(string) {}

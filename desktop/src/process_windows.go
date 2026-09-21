@@ -43,6 +43,35 @@ func killPid(pid int) {
 	_ = kill.Run()
 }
 
+func stopPortableHolders(root string) {
+	root = filepath.Clean(strings.TrimSpace(root))
+	if root == "" {
+		return
+	}
+	ps := filepath.Join(os.Getenv("SystemRoot"), `System32`, `WindowsPowerShell`, `v1.0`, `powershell.exe`)
+	if os.Getenv("SystemRoot") == "" {
+		ps = `C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe`
+	}
+	script := `
+param($Root, $SelfPid)
+$ErrorActionPreference = 'SilentlyContinue'
+$want = $Root
+try { $want = [IO.Path]::GetFullPath($Root) } catch {}
+Get-CimInstance Win32_Process | Where-Object {
+    $_.ProcessId -ne [int]$SelfPid -and (
+        ($_.CommandLine -like ('*' + $want + '*launch.py*')) -or
+        ($_.ExecutablePath -like ($want + '*'))
+    )
+} | ForEach-Object {
+    try { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue } catch {}
+}
+Start-Sleep -Milliseconds 400
+`
+	cmd := exec.Command(ps, "-NoProfile", "-Command", script, "-Root", root, "-SelfPid", strconv.Itoa(os.Getpid()))
+	hideConsole(cmd)
+	_ = cmd.Run()
+}
+
 func killWindowsImageAt(exe string) {
 	exe = strings.TrimSpace(exe)
 	if exe == "" {

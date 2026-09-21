@@ -42,12 +42,16 @@ First launch opens the model wizard with **Ollama first**. Skip is fine; **Model
 
 ## Windows install finish
 
-The NSIS finish page offers **运行 FreeOS** / **Run FreeOS**, checked by
-default. Leave it checked to start FreeOS from `$INSTDIR` when Setup
-closes (working directory is the install folder). The launch uses the
-unelevated explorer token so the first run does not stamp `%USERPROFILE%\.freeos`
-as High integrity. Uncheck to skip. Chinese installer strings are compiled
-with `makensis -INPUTCHARSET UTF8` from a UTF-8 BOM `project.nsi`.
+Pages are Welcome → directory → file copy → **finish**. After files copy,
+Setup goes to the finish page without an extra Next on the progress list.
+The finish page offers **运行 FreeOS** / **Run FreeOS**, checked by
+default: leave it checked and click Finish to start FreeOS from `$INSTDIR`,
+or uncheck it and click Finish to close Setup without launching. Setup
+does **not** auto-launch or auto-close. The launch uses the unelevated
+explorer token so the first run does not stamp `%USERPROFILE%\.freeos`
+as High integrity. Silent (`/S`) installs stay headless and do not launch.
+Chinese installer strings are compiled with `makensis -INPUTCHARSET UTF8`
+from a UTF-8 BOM `project.nsi`.
 
 Upgrade / reinstall (same version included) refreshes the extracted runtime:
 
@@ -63,7 +67,11 @@ Upgrade / reinstall (same version included) refreshes the extracted runtime:
    Either mismatch re-extracts `packages/` and the embedded dashboard from
    the new installer into `~/.freeos/portable`, then copies the install
    stamp into that tree. Later opens skip the extract until the next
-   Setup run.
+   Setup run. If renaming the live `portable` directory to
+   `portable.previous` fails because Windows still has the folder open
+   (common when a leftover Python host holds the directory node), the
+   shell stops leftover `launch.py` / portable processes and **overwrites
+   files in place** instead of requiring a reboot.
 
 A healthy default package is **FreeOS.exe + the Python host** — no
 `openxyos-runtime.zip` (~500MB Node payload). Pass
