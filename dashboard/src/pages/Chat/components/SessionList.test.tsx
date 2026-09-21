@@ -6,8 +6,9 @@ import type { Session } from "../hooks/useSessions";
 import SessionList from "./SessionList";
 
 vi.mock("../../../context/AgentContext", async (importOriginal) => {
-  const actual =
-    await importOriginal<typeof import("../../../context/AgentContext")>();
+  const actual = await importOriginal<
+    typeof import("../../../context/AgentContext")
+  >();
   return {
     ...actual,
     useAgent: () => ({ setActiveAgent: vi.fn() }),

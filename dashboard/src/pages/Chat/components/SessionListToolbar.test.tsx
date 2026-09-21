@@ -14,8 +14,9 @@ vi.mock("react-router-dom", async (importOriginal) => {
 });
 
 vi.mock("../../../context/AgentContext", async (importOriginal) => {
-  const actual =
-    await importOriginal<typeof import("../../../context/AgentContext")>();
+  const actual = await importOriginal<
+    typeof import("../../../context/AgentContext")
+  >();
   return {
     ...actual,
     useAgent: () => ({ setActiveAgent }),
@@ -117,7 +118,7 @@ describe("SessionListToolbar", () => {
     fireEvent.click(screen.getByTestId("chat-session-new-group"));
     fireEvent.click(screen.getByLabelText("分析师"));
     fireEvent.click(screen.getByLabelText("研究员"));
-    fireEvent.click(screen.getByRole("button", { name: "创建" }));
+    fireEvent.click(screen.getByRole("button", { name: /创\s*建/ }));
     await waitFor(() => {
       expect(openGroupChat).toHaveBeenCalledWith(
         expect.objectContaining({
