@@ -9,6 +9,7 @@ NSI = REPO / "desktop" / "src" / "build" / "windows" / "nsis" / "project.nsi"
 NSH = REPO / "desktop" / "src" / "build" / "windows" / "nsis" / "wails_tools.nsh"
 DESKTOP_README = REPO / "desktop" / "README.md"
 ORG_PAGE = REPO / "dashboard" / "src" / "pages" / "Organization" / "index.tsx"
+ORG_ENTRY = REPO / "dashboard" / "src" / "pages" / "Organization" / "OrganizationEntry.tsx"
 ORG_BROWSER = REPO / "dashboard" / "src" / "pages" / "Organization" / "OrgMiniBrowser.tsx"
 
 
@@ -404,31 +405,42 @@ def test_nsis_does_not_register_openxyos_logon_autostart() -> None:
 
 
 def test_organization_embeds_local_openxyos_url() -> None:
-    page = ORG_PAGE.read_text(encoding="utf-8")
+    assert not ORG_PAGE.exists()
+    entry = ORG_ENTRY.read_text(encoding="utf-8")
     browser = ORG_BROWSER.read_text(encoding="utf-8")
+    process = (REPO / "desktop" / "src" / "process.go").read_text(encoding="utf-8")
     zh = (REPO / "dashboard" / "src" / "locales" / "zh.json").read_text(encoding="utf-8")
-    assert 'data-testid="org-native-workbench"' in page
-    assert 'data-testid="org-assemble"' in page
-    assert 'data-testid="org-pack"' in page
-    assert 'data-testid="org-loop"' in page
-    assert 'data-testid="org-colleagues"' in page
-    assert "org-mini-browser" not in page
-    assert "org-sidecar-gate" not in page
-    assert "org-restart-sidecar" not in page
-    assert "restartSidecar" not in page
-    assert "startSidecar" in page
-    assert 'data-testid="org-advanced-console"' in page
-    assert "window.prompt" not in page
-    assert "pickDesktopFolder" in page
-    assert "resolveOpenxyosSourceDest" in page
-    assert 'data-testid="org-download-source"' in page
-    assert "ExternalLink" not in page
-    assert 'target="_blank"' not in page
+    assert 'data-testid="org-openxyos-frame"' in entry
+    assert "/organization-app/dashboard?freeos_embed=1" in entry
+    assert "isDesktopShell" in entry
+    assert "OrgRestartOverlay" in entry
+    assert 'Navigate to="/organization/workspace"' in entry
+    assert 'data-testid="org-native-workbench"' not in entry
+    assert 'data-testid="org-assemble"' not in entry
+    assert 'data-testid="org-pack"' not in entry
+    assert 'data-testid="org-loop"' not in entry
+    assert "打开原 App" not in entry
     assert "org-mini-browser" in browser
+    # Desktop always claims INTEGRATED; missing runtime is recover, not a gate.
+    assert '"FREEOS_ORG_INTEGRATED": "1"' in process
     org = zh[zh.index('"organization"') : zh.index('"systemSettings"')]
+    assert "打开原 App（过渡）" not in org
     assert "启动边车" not in org
     assert "重试启动" not in org
     assert "宿主内组织已就绪" in org
+
+
+def test_session_toolbar_is_on_conversation_list_not_experts() -> None:
+    chat = REPO / "dashboard" / "src" / "pages" / "Chat" / "components"
+    experts = (REPO / "dashboard" / "src" / "pages" / "Experts" / "index.tsx").read_text(
+        encoding="utf-8"
+    )
+    session = (chat / "SessionList.tsx").read_text(encoding="utf-8")
+    minimal = (chat / "MinimalAgentSessionNav.tsx").read_text(encoding="utf-8")
+    assert "SessionListToolbar" not in experts
+    assert "chat-session-new-group" not in experts
+    assert "SessionListToolbar" in session
+    assert "SessionListToolbar" in minimal
 
 
 def test_windows_folder_picker_emits_utf8_base64() -> None:

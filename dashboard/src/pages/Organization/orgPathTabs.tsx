@@ -1,7 +1,6 @@
 import {
   BookOpen,
   Brain,
-  Building2,
   LayoutDashboard,
   ListTodo,
   Megaphone,
@@ -18,7 +17,6 @@ import type { PathTabsConfig } from "../../layouts/PageShell";
 
 export function useOrgPathTabs(
   active:
-    | "workbench"
     | "workspace"
     | "announcements"
     | "org"
@@ -36,11 +34,6 @@ export function useOrgPathTabs(
   return {
     value: active,
     options: [
-      {
-        value: "workbench",
-        label: t("organization.navWorkbench"),
-        icon: <Building2 size={14} />,
-      },
       {
         value: "workspace",
         label: t("organization.navWorkspace"),
@@ -142,7 +135,7 @@ export function useOrgPathTabs(
         navigate("/organization/agents");
         return;
       }
-      navigate("/organization");
+      navigate("/organization/workspace");
     },
   };
 }

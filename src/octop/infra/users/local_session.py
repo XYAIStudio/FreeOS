@@ -22,6 +22,8 @@ logger = logging.getLogger(__name__)
 LOCAL_USERNAME = "local"
 LOCAL_SESSION_SETTING = "local_session.unclaimed"
 _USERNAME_ALLOWED = re.compile(r"^[a-zA-Z0-9_.-]{1,64}$")
+# resolve_organization_user mints ``org_`` + sha256(subject)[:40] host mirrors.
+_ORG_MAPPED_USERNAME = re.compile(r"^org_[0-9a-f]{40}$")
 _provision_lock = asyncio.Lock()
 
 
@@ -148,12 +150,23 @@ def _single_user(server: Any) -> User | None:
     return users[0] if users else None
 
 
+def is_organization_mapped_user(user: User) -> bool:
+    """True for host rows that only mirror an openXYOS organization principal."""
+    if user.has_organization_identity:
+        return True
+    return bool(_ORG_MAPPED_USERNAME.match(user.username or ""))
+
+
 def preferred_existing_user(server: Any) -> User | None:
-    """Pick a safe desktop session user without wiping existing homes."""
+    """Pick a studio desktop user without wiping homes or adopting org mirrors."""
     um = server.user_manager
     if um is None:
         return None
-    users = [user for user in um.list() if isinstance(user, User)]
+    users = [
+        user
+        for user in um.list()
+        if isinstance(user, User) and not is_organization_mapped_user(user)
+    ]
     if not users:
         return None
     for user in users:
@@ -186,11 +199,12 @@ async def ensure_local_user(server: Any, *, locale: str) -> User:
             return await _provision_local_user(server, locale=loc)
 
         user = _single_user(server)
-        if user is not None:
+        if user is not None and not is_organization_mapped_user(user):
             return user
         # Already gated by the HTTP handler as this device (desktop / loopback).
-        # Returning installs often have extra org-mapped rows, so never demand
-        # interactive login here — pick a studio principal or mint a guest.
+        # Returning installs often have extra org-mapped rows. Those rows are
+        # host mirrors of openXYOS users — never adopt them as the desktop
+        # guest, and never delete them. Pick a studio principal or mint a guest.
         picked = preferred_existing_user(server)
         if picked is not None:
             logger.info(

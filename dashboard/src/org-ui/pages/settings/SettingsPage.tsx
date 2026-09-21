@@ -18,7 +18,6 @@ export interface SettingsPageProps {
   locale: OrgLocale;
   /** Present so export App.tsx can pass SHARED_ORG_UI_MODULES without unused props. */
   modules?: readonly string[];
-  workbenchHref?: string;
 }
 
 const EMPTY_PREFS: OrgPrefs = { name: "", description: "" };
@@ -28,12 +27,7 @@ const EMPTY_LINKS: OrgSystemSettingsLinks = {
   users: "/system-settings/users",
 };
 
-export function SettingsPage({
-  client,
-  session,
-  locale,
-  workbenchHref = "/organization",
-}: SettingsPageProps) {
+export function SettingsPage({ client, session, locale }: SettingsPageProps) {
   const labels = settingsLabels(locale);
   const [catalog, setCatalog] = useState<OrgCapability[]>([]);
   const [toggles, setToggles] = useState<Record<string, boolean>>({});
@@ -132,11 +126,6 @@ export function SettingsPage({
           </div>
           <p className={styles.subtitle}>{labels.subtitle}</p>
         </div>
-        {workbenchHref ? (
-          <Button href={workbenchHref} data-testid="org-settings-workbench">
-            {labels.openWorkbench}
-          </Button>
-        ) : null}
       </div>
 
       <section className={styles.callout} data-testid="org-settings-boundary">

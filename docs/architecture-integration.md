@@ -390,7 +390,7 @@ without `includes_org` leave those live directories untouched on restore.
 | Colleague spawn / routing / memory | `src/octop/modules/org_os/runtime/` |
 | Host governance middleware | `src/octop/infra/agents/middleware/org_governance.py` |
 | Bundled plugin | `src/octop/infra/agents/plugins/bundled/org-os/` |
-| Dashboard page | `dashboard/src/pages/Organization/index.tsx` |
+| Dashboard page | `dashboard/src/pages/Organization/OrganizationEntry.tsx` (openXYOS embed; org-ui fallback) |
 | CLI | `src/octop/cli/commands/org.py` |
 | Sidecar launcher | `scripts/run-org-sidecar.sh` |
 | Vendored org OS | `modules/openxyos/` |

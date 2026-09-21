@@ -12,11 +12,13 @@
 
 ### 变更
 
+- 「对话」会话列表标题栏右侧补上微信式搜索与「+」新建群聊（接入已有 `openGroupChat`）。FreeOS 桌面组织导航始终嵌入 openXYOS 模块（`FREEOS_ORG_INTEGRATED=1` + `FREEOS_ORG_ENABLE=1`），并拉起 bundled Node 运行时；缺失运行时是打包/启动失败，组织页提供重启，而不是静默落到宿主 org-ui。非桌面未集成工作室仍可落到 `/organization/workspace`。已从 Dashboard 包删除宿主旧工作台 UI。装配 / 打包 / 循环仍走 `freeos org` CLI 与 `/api/org-module/*`。桌面首启仍落 `/chat/main`。 / Chat session list header now has WeChat-style search and a + new-group action. FreeOS desktop Org always claims integrated openXYOS and starts the bundled module runtime; a missing runtime is an error/recover overlay, not a host org-ui fallback. Non-desktop studio without integration still uses `/organization/workspace`. Old workbench UI deleted. Assemble/pack/loop remain CLI/API. Desktop first-run still lands on `/chat/main`.
 - Windows NSIS 文件复制结束后不再多点一次「下一步」才到结束页；结束页仍让用户勾选「运行 FreeOS」或直接关闭，不会自动启动、也不会自动关窗。静默安装（`/S`）仍不拉起界面。 / After Windows NSIS file copy, Setup advances to the finish page without an extra Next. The user still chooses Run FreeOS or close. No auto-launch / auto-close. Silent `/S` stays headless.
 - 桌面首次启动不再要求注册/登录。首屏是可选模型配置（云密钥或本机 Ollama，可跳过）；跳过或保存后进入默认智能体对话，而不是停在工作台列表。已有提供商或会话的用户不会被再次拦住。账号仍可稍后在头像菜单里领取，供保存/导出/组织房间使用。首次运行与安全条目一致：不预填云密钥，本机 Ollama 优先。
 
 ### 修复
 
+- 组织嵌入仍走 openXYOS 自己的登录（`localStorage token` / sidecar JWT），不把 FreeOS 桌面访客（`auth_token` / `POST /api/auth/local-session`）写进组织房间。重启/恢复 sidecar 始终带 `FREEOS_ORG_LOCAL_TEST=1`，保留 `demo@demo.com` / `user@demo.com`。本机会话跳过组织映射行，不删除、不占用 openXYOS 用户。代理剥离宿主 Cookie 与 `X-FreeOS-*`。 / Org embed keeps openXYOS login; FreeOS local-session must not replace org users. Sidecar restart still seeds test accounts. Proxy drops host cookies and identity headers.
 - Windows 升级刷新 `~/.freeos/portable` 时，若目录节点被占用（无法改名为 `portable.previous`，报 “being used by another process”），先尝试结束残留的 portable / `launch.py` 进程，再把新运行时**原地覆盖**进现有文件夹，避免留下空的锁定 `portable` 桩，也不要求重启。 / If renaming `portable` → `portable.previous` fails because the directory is in use, stop leftover host processes and overlay the new runtime in place.
 - 桌面 `POST /api/auth/local-session` 对已有 `~/.freeos`（多用户 / 组织映射行）或 WebView 非 `127.0.0.1` Host 返回 403，前端重试后掉进注册登录。本机会话在 loopback / `*.localhost` / Origin 为本机时签发 JWT 并选用已有工作室账号；SPA 在 `/` 跳到 `/projects` 丢掉 `?desktop=1` 之前记住桌面壳。403 修复后的路径是：可选模型配置（云 Key / 本机，可跳过）→ 第一个智能体 `/chat/main`，不经过登录墙，也不停在工作台列表。`/setup` 在 guest 已创建后不再打回登录页。
 - Windows 安装 / 覆盖安装 / 同版本重装会刷新 `~/.freeos/portable`：Setup 先结束仍在运行的 FreeOS，写入 `$INSTDIR\FREEOS_INSTALL_STAMP`，并清除已解压树里的 `FREEOS_STAMP`。下次启动按安装戳 + 包内戳重新解压 `packages/` 与内嵌 Dashboard，#88 及后续宿主/界面修复不必再手工热补。用户数据库与设置仍留在 `~/.freeos`。

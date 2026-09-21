@@ -5,12 +5,11 @@ const EN = {
   subtitle:
     "Organization landing overview. Status and links into already-migrated pages — not a second control plane.",
   hostHint:
-    "Assemble, pack, and the growth loop stay on the Organization workbench. This page only summarizes host status.",
+    "Assemble, pack, and the growth loop stay on `freeos org` / `/api/org-module/*`. This page only summarizes host status.",
   notHereTitle: "Chat is not here",
   notHereBody:
     "openXYOS Chat is not migrated. Conversations stay on FreeOS / Octop. This overview does not open a sidecar inbox.",
   openChat: "FreeOS conversations",
-  openWorkbench: "Organization workbench",
   statusTitle: "Organization status",
   enabled: "On",
   disabled: "Off",
@@ -66,12 +65,12 @@ const EN = {
 const ZH: typeof EN = {
   title: "工作台总览",
   subtitle: "组织落地页：状态摘要，并链到已迁入宿主的子页。不是第二套控制面。",
-  hostHint: "装配、打包和自增长循环仍在组织工作台。本页只汇总宿主状态。",
+  hostHint:
+    "装配、打包和自增长循环仍走 `freeos org` / `/api/org-module/*`。本页只汇总宿主状态。",
   notHereTitle: "对话不在这里",
   notHereBody:
     "openXYOS Chat 不迁入。对话留在 FreeOS / Octop。本页不会打开边车收件箱。",
   openChat: "FreeOS 对话",
-  openWorkbench: "组织工作台",
   statusTitle: "组织状态",
   enabled: "已启用",
   disabled: "未启用",

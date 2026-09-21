@@ -12,7 +12,6 @@ const EN = {
   openSystem: "FreeOS system settings",
   openModels: "Models & keys",
   openUsers: "Users",
-  openWorkbench: "Organization workbench",
   profileTitle: "Organization profile",
   profileHint:
     "Shown on this Organization module. Not the FreeOS instance name.",
@@ -49,7 +48,6 @@ const ZH: typeof EN = {
   openSystem: "FreeOS 系统设置",
   openModels: "模型与密钥",
   openUsers: "用户",
-  openWorkbench: "组织工作台",
   profileTitle: "组织资料",
   profileHint: "只用于本组织模块，不是 FreeOS 实例名。",
   name: "组织名称",

@@ -31,6 +31,8 @@ func hostLaunchEnv(root string, port int) map[string]string {
 		"PYTHONIOENCODING":      "utf-8",
 		"PYTHONPATH":            "",
 		"FREEOS_ORG_ENABLE":     "1",
+		// Desktop always claims the openXYOS module. Missing Node is a
+		// packaging/startup failure, not a reason to unset this flag.
 		"FREEOS_ORG_INTEGRATED": "1",
 		"OCTOP_PORT":            strconv.Itoa(port),
 		"OCTOP_DESKTOP":         "1",
@@ -38,8 +40,11 @@ func hostLaunchEnv(root string, port int) map[string]string {
 	}
 	if bundle := resolveSidecarDir(root); bundle != "" {
 		env["FREEOS_OPENXYOS_HOME"] = bundle
+	} else {
+		env["FREEOS_OPENXYOS_HOME"] = openxyosUserWorkDir()
 	}
 	if orgSidecarWanted() {
+		env["FREEOS_ORG_INTEGRATED"] = "1"
 		env["FREEOS_ORG_SIDECAR"] = "1"
 		env["FREEOS_ORG_SIDECAR_URL"] = sidecarURL()
 		env["FREEOS_ORG_SIDECAR_PORT"] = strconv.Itoa(defaultSidecarPort)

@@ -9,7 +9,6 @@ import {
   Trash2,
   Pin,
   PinOff,
-  Search,
   GitFork,
 } from "lucide-react";
 import type { Session } from "../hooks/useSessions";
@@ -18,6 +17,7 @@ import { isAgentChatReady } from "../../../utils/agentError";
 import { showConfirmModal } from "../../../utils/confirmModal";
 import { ExpertIcon } from "../../Experts/components/iconForName";
 import SessionChannelIcon from "./SessionChannelIcon";
+import SessionListToolbar from "./SessionListToolbar";
 import SharedExpertHint from "./SharedExpertHint";
 import styles from "../index.module.less";
 
@@ -442,31 +442,13 @@ export default function SessionList({
     () => activeAgentId ?? sortedAgents[0]?.agent_id ?? null,
     [activeAgentId, sortedAgents],
   );
-  const activeAgent = useMemo(
-    () => sortedAgents.find((a) => a.agent_id === expandedAgentId) ?? null,
-    [sortedAgents, expandedAgentId],
-  );
-  const showSessions = isAgentChatReady(activeAgent?.state);
-
   return (
     <div className={styles.sessionList}>
-      {showSessions ? (
-        <div className={styles.sessionSearchWrap}>
-          <Search
-            size={14}
-            className={styles.sessionSearchIcon}
-            strokeWidth={2}
-          />
-          <input
-            type="search"
-            className={styles.sessionSearchInput}
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder={t("chat.searchSessions", "搜索会话")}
-            aria-label={t("chat.searchSessions", "搜索会话")}
-          />
-        </div>
-      ) : null}
+      <SessionListToolbar
+        searchQuery={searchQuery}
+        onSearchQueryChange={setSearchQuery}
+        agents={sortedAgents}
+      />
 
       {agents.length === 0 ? (
         <div className={styles.sessionEmptyAgents}>
