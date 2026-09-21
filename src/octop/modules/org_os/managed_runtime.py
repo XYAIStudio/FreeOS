@@ -119,11 +119,26 @@ def clear_runtime_record(home: Path) -> None:
         path.unlink()
 
 
+def desktop_organization_required() -> bool:
+    """True when this process is the FreeOS desktop host.
+
+    Desktop Organization is the openXYOS module (Node tree proxied at
+    ``/organization-app``). ``uv run`` / Docker without these flags stay
+    zero-Node.
+    """
+    for key in ("OCTOP_DESKTOP", "FREEOS_DESKTOP"):
+        raw = (os.environ.get(key) or "").strip().lower()
+        if raw in {"1", "true", "yes", "on"}:
+            return True
+    return False
+
+
 def resolve_organization_command() -> tuple[list[str], Path] | None:
     """Return ``(argv, cwd)`` for the transitional Node process, or ``None``.
 
     ``uv run`` / Docker / source checkouts stay zero-Node: missing runtime is
-    skip, not host abort. Desktop with a bundled sidecar still resolves.
+    skip, not host abort. FreeOS desktop always claims
+    ``FREEOS_ORG_INTEGRATED`` and must resolve a bundled runtime.
     """
     source = Path(__file__).resolve().parents[4] / "modules" / "openxyos"
     source_ready = (source / "node_modules" / "tsx").is_dir()
@@ -150,11 +165,20 @@ class ManagedOrganizationRuntime:
     async def start(self) -> None:
         resolved = await asyncio.to_thread(resolve_organization_command)
         if resolved is None:
-            logger.warning(
-                "managed Organization Node skipped (transitional bridge; host stays "
-                "zero-Node). Bundle a sidecar or set SHIP_OPENXYOS_RUNTIME=1 for "
-                "the desktop iframe flavor."
-            )
+            if desktop_organization_required():
+                logger.error(
+                    "desktop organization module runtime missing "
+                    "(FREEOS_ORG_INTEGRATED=1). openXYOS is an Octop module and "
+                    "must be bundled/started; this is a packaging/startup "
+                    "failure, not a silent host skip."
+                )
+                await asyncio.to_thread(self._recover_desktop_runtime)
+            else:
+                logger.warning(
+                    "managed Organization Node skipped (transitional bridge; "
+                    "host stays zero-Node). Bundle a sidecar or set "
+                    "SHIP_OPENXYOS_RUNTIME=1 for the desktop iframe flavor."
+                )
             return
         command, cwd = resolved
         with socket.socket() as sock:
@@ -202,6 +226,22 @@ class ManagedOrganizationRuntime:
                 delay = min(delay * 2, 30)
 
         self.task = asyncio.create_task(supervise(), name="organization-runtime")
+
+    def _recover_desktop_runtime(self) -> bool:
+        """Best-effort start of the bundled openXYOS tree on the default port."""
+        from octop.modules.org_os.service import OrgModuleService  # noqa: PLC0415
+        from octop.modules.org_os.sidecar_launch import ensure_sidecar  # noqa: PLC0415
+
+        service = OrgModuleService(config_path=self.home / "config.json", home=self.home)
+        result = ensure_sidecar(service, wait=2.0)
+        if result.reachable:
+            logger.info("desktop organization module recovered via sidecar at %s", result.url)
+            return True
+        logger.error(
+            "desktop organization module recover failed: %s",
+            result.detail or "runtime still unreachable",
+        )
+        return False
 
     async def stop(self) -> None:
         if self.task:

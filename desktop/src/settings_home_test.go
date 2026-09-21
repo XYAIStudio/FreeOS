@@ -50,8 +50,11 @@ func TestHostLaunchEnvSetsFreeosHomeAndOrgEnable(t *testing.T) {
 	if env["FREEOS_ORG_ENABLE"] != "1" {
 		t.Fatalf("org enable: %+v", env)
 	}
-	if _, ok := env["FREEOS_ORG_INTEGRATED"]; ok {
-		t.Fatalf("zero-Node desktop must not claim integrated embed: %+v", env)
+	if env["FREEOS_ORG_INTEGRATED"] != "1" {
+		t.Fatalf("desktop must claim INTEGRATED even without a sidecar tree: %+v", env)
+	}
+	if env["FREEOS_OPENXYOS_HOME"] == "" {
+		t.Fatalf("expected openXYOS home even when the tree is not ready: %+v", env)
 	}
 	if _, ok := env["FREEOS_ORG_SIDECAR_URL"]; ok {
 		t.Fatalf("sidecar url must stay unset by default: %+v", env)

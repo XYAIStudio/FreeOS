@@ -85,7 +85,7 @@
 
 这些出货形态仍需原生迁入。它们是桥。
 
-1. **桌面集成 iframe** 嵌入完整 App — `FREEOS_ORG_INTEGRATED=1`（`desktop/src/process.go`）仍把 `/organization-app` 代理到托管 Node。`/organization` 在 `identityStatus.integrated` 时嵌入该 App（`OrganizationEntry.tsx`）；否则落到宿主 org-ui 总览。FastAPI `org_ui.py` 把 `/organization-app` 代理到私有端口上的 Node。
+1. **桌面集成 iframe** 嵌入完整 App — `FREEOS_ORG_INTEGRATED=1`（`desktop/src/process.go`）始终宣称 openXYOS 模块，并把 `/organization-app` 代理到托管 Node。桌面组织落地页嵌入该 App（`OrganizationEntry.tsx`）；缺失运行时是重启提示，而不是 Navigate 到宿主 org-ui。非桌面未集成工作室仍可落到 `/organization/workspace`。FastAPI `org_ui.py` 把 `/organization-app` 代理到私有端口上的 Node。
 2. **`ManagedOrganizationRuntime`** — `src/octop/modules/org_os/managed_runtime.py`（重启循环、本机 `OPENXYOS_BASE_URL`）。
 3. **`/api/org-module/identity/*` 与 `/business/*`** — `org_identity.py` 把登录/注册和业务 CRUD 转发到 Node `/api/auth` 与 `/api/*`。
 4. **可选 `:3780` 边车** — `FREEOS_ORG_SIDECAR` / `SHIP_OPENXYOS_RUNTIME`。Phase 5 默认安装器已经零 Node；不要倒退。开关表与拆除计划：[node-runtime.zh-CN.md](node-runtime.zh-CN.md)。

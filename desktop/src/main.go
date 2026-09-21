@@ -204,7 +204,7 @@ func (a *App) boot() {
 	openxyosReady := sidecarBundleReady(openxyosUserWorkDir())
 	if orgRuntimeWanted() {
 		if _, perr := provisionOpenXYOS(root, locale, a.setStatus); perr != nil {
-			log.Printf("openXYOS provision: %v", perr)
+			log.Printf("ERROR organization module runtime missing: %v (packaging/startup failure; Org page offers restart, host still boots)", perr)
 		}
 	} else {
 		log.Printf("organization runtime disabled by FREEOS_ORG_ENABLE")

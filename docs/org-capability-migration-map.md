@@ -85,7 +85,7 @@ Aligned with product order: **assets bus → export → dual identity UX → loc
 
 These shipping shapes still need a native port. They are bridges.
 
-1. **Desktop integrated iframe** of the full App — `FREEOS_ORG_INTEGRATED=1` (`desktop/src/process.go`) still proxies `/organization-app` to managed Node. `/organization` embeds that app when `identityStatus.integrated` (`OrganizationEntry.tsx`); otherwise it falls through to the host org-ui workspace. `org_ui` FastAPI (`org_ui.py`) proxies `/organization-app` to the private-port Node process.
+1. **Desktop integrated iframe** of the full App — `FREEOS_ORG_INTEGRATED=1` (`desktop/src/process.go`) always claims the openXYOS module and proxies `/organization-app` to managed Node. Desktop Org landing embeds that app (`OrganizationEntry.tsx`); a missing runtime is a restart overlay, not a Navigate to host org-ui. Non-desktop studio without integration still uses `/organization/workspace`. `org_ui` FastAPI (`org_ui.py`) proxies `/organization-app` to the private-port Node process.
 2. **`ManagedOrganizationRuntime`** — `src/octop/modules/org_os/managed_runtime.py` (restart loop, `OPENXYOS_BASE_URL` on localhost).
 3. **`/api/org-module/identity/*` and `/business/*`** — `org_identity.py` forwards login/register and business CRUD to Node `/api/auth` and `/api/*`.
 4. **Optional sidecar on `:3780`** — `FREEOS_ORG_SIDECAR` / `SHIP_OPENXYOS_RUNTIME`. Phase 5 default installer is already zero-Node; do not reverse that. Flag table and cut plan: [node-runtime.md](node-runtime.md).

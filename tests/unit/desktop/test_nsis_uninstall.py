@@ -412,15 +412,17 @@ def test_organization_embeds_local_openxyos_url() -> None:
     zh = (REPO / "dashboard" / "src" / "locales" / "zh.json").read_text(encoding="utf-8")
     assert 'data-testid="org-openxyos-frame"' in entry
     assert "/organization-app/dashboard?freeos_embed=1" in entry
+    assert "isDesktopShell" in entry
+    assert "OrgRestartOverlay" in entry
+    assert 'Navigate to="/organization/workspace"' in entry
     assert 'data-testid="org-native-workbench"' not in entry
     assert 'data-testid="org-assemble"' not in entry
     assert 'data-testid="org-pack"' not in entry
     assert 'data-testid="org-loop"' not in entry
     assert "打开原 App" not in entry
     assert "org-mini-browser" in browser
-    # Zero-Node desktop must not hard-code INTEGRATED; embed is bundle/sidecar gated.
-    assert '"FREEOS_ORG_INTEGRATED": "1"' not in process
-    assert 'env["FREEOS_ORG_INTEGRATED"] = "1"' in process
+    # Desktop always claims INTEGRATED; missing runtime is recover, not a gate.
+    assert '"FREEOS_ORG_INTEGRATED": "1"' in process
     org = zh[zh.index('"organization"') : zh.index('"systemSettings"')]
     assert "打开原 App（过渡）" not in org
     assert "启动边车" not in org
