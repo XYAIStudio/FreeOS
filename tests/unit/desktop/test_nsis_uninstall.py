@@ -408,6 +408,7 @@ def test_organization_embeds_local_openxyos_url() -> None:
     assert not ORG_PAGE.exists()
     entry = ORG_ENTRY.read_text(encoding="utf-8")
     browser = ORG_BROWSER.read_text(encoding="utf-8")
+    process = (REPO / "desktop" / "src" / "process.go").read_text(encoding="utf-8")
     zh = (REPO / "dashboard" / "src" / "locales" / "zh.json").read_text(encoding="utf-8")
     assert 'data-testid="org-openxyos-frame"' in entry
     assert "/organization-app/dashboard?freeos_embed=1" in entry
@@ -417,11 +418,27 @@ def test_organization_embeds_local_openxyos_url() -> None:
     assert 'data-testid="org-loop"' not in entry
     assert "打开原 App" not in entry
     assert "org-mini-browser" in browser
+    # Zero-Node desktop must not hard-code INTEGRATED; embed is bundle/sidecar gated.
+    assert '"FREEOS_ORG_INTEGRATED": "1"' not in process
+    assert 'env["FREEOS_ORG_INTEGRATED"] = "1"' in process
     org = zh[zh.index('"organization"') : zh.index('"systemSettings"')]
     assert "打开原 App（过渡）" not in org
     assert "启动边车" not in org
     assert "重试启动" not in org
     assert "宿主内组织已就绪" in org
+
+
+def test_session_toolbar_is_on_conversation_list_not_experts() -> None:
+    chat = REPO / "dashboard" / "src" / "pages" / "Chat" / "components"
+    experts = (REPO / "dashboard" / "src" / "pages" / "Experts" / "index.tsx").read_text(
+        encoding="utf-8"
+    )
+    session = (chat / "SessionList.tsx").read_text(encoding="utf-8")
+    minimal = (chat / "MinimalAgentSessionNav.tsx").read_text(encoding="utf-8")
+    assert "SessionListToolbar" not in experts
+    assert "chat-session-new-group" not in experts
+    assert "SessionListToolbar" in session
+    assert "SessionListToolbar" in minimal
 
 
 def test_windows_folder_picker_emits_utf8_base64() -> None:

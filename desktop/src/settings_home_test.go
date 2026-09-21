@@ -50,8 +50,8 @@ func TestHostLaunchEnvSetsFreeosHomeAndOrgEnable(t *testing.T) {
 	if env["FREEOS_ORG_ENABLE"] != "1" {
 		t.Fatalf("org enable: %+v", env)
 	}
-	if env["FREEOS_ORG_INTEGRATED"] != "1" {
-		t.Fatalf("integrated identity: %+v", env)
+	if _, ok := env["FREEOS_ORG_INTEGRATED"]; ok {
+		t.Fatalf("zero-Node desktop must not claim integrated embed: %+v", env)
 	}
 	if _, ok := env["FREEOS_ORG_SIDECAR_URL"]; ok {
 		t.Fatalf("sidecar url must stay unset by default: %+v", env)
@@ -87,6 +87,9 @@ func TestHostLaunchEnvPassesIntegratedRuntimeWithoutLegacySidecar(t *testing.T) 
 	env := hostLaunchEnv(filepath.Join(home, "portable"), 8088)
 	if env["FREEOS_OPENXYOS_HOME"] != work {
 		t.Fatalf("integrated runtime path: %+v", env)
+	}
+	if env["FREEOS_ORG_INTEGRATED"] != "1" {
+		t.Fatalf("bundled runtime must enable openXYOS embed: %+v", env)
 	}
 	if _, ok := env["OPENXYOS_BASE_URL"]; ok {
 		t.Fatalf("Python must own the integrated Node port: %+v", env)
@@ -130,6 +133,9 @@ func TestHostLaunchEnvSidecarOptIn(t *testing.T) {
 	}
 	if env["OPENXYOS_BASE_URL"] != "http://127.0.0.1:3780" {
 		t.Fatalf("openxyos url: %+v", env)
+	}
+	if env["FREEOS_ORG_INTEGRATED"] != "1" {
+		t.Fatalf("legacy sidecar opt-in must still embed: %+v", env)
 	}
 }
 

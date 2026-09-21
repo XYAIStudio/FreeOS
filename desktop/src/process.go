@@ -30,16 +30,19 @@ func hostLaunchEnv(root string, port int) map[string]string {
 		"PYTHONUTF8":            "1",
 		"PYTHONIOENCODING":      "utf-8",
 		"PYTHONPATH":            "",
-		"FREEOS_ORG_ENABLE":     "1",
-		"FREEOS_ORG_INTEGRATED": "1",
-		"OCTOP_PORT":            strconv.Itoa(port),
-		"OCTOP_DESKTOP":         "1",
-		"FREEOS_DESKTOP":        "1",
+		"FREEOS_ORG_ENABLE": "1",
+		"OCTOP_PORT":        strconv.Itoa(port),
+		"OCTOP_DESKTOP":     "1",
+		"FREEOS_DESKTOP":    "1",
 	}
 	if bundle := resolveSidecarDir(root); bundle != "" {
 		env["FREEOS_OPENXYOS_HOME"] = bundle
+		// Embed openXYOS only when a real runtime tree is present.
+		// Zero-Node packs stay on the host org-ui workspace fallback.
+		env["FREEOS_ORG_INTEGRATED"] = "1"
 	}
 	if orgSidecarWanted() {
+		env["FREEOS_ORG_INTEGRATED"] = "1"
 		env["FREEOS_ORG_SIDECAR"] = "1"
 		env["FREEOS_ORG_SIDECAR_URL"] = sidecarURL()
 		env["FREEOS_ORG_SIDECAR_PORT"] = strconv.Itoa(defaultSidecarPort)

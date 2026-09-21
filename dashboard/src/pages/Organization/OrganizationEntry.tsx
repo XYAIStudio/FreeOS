@@ -6,7 +6,9 @@ import { orgModuleApi } from "../../api/modules/orgModule";
 const OPENXYOS_EMBED = "/organization-app/dashboard?freeos_embed=1";
 
 /**
- * Organization nav opens the integrated openXYOS app (same-origin embed).
+ * Organization nav opens the integrated openXYOS app (same-origin embed)
+ * when the desktop actually shipped/started that runtime.
+ * Zero-Node / unintegrated hosts fall back to /organization/workspace.
  * Host-native slices stay at /organization/workspace and siblings.
  * The old assemble/pack workbench UI is deleted from the dashboard bundle.
  * First-run still lands on /chat/main — only this nav entry changed.

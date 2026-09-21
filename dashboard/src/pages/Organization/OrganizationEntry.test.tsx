@@ -54,4 +54,13 @@ describe("OrganizationEntry", () => {
     expect(document.querySelector("iframe")).toBeNull();
     expect(screen.queryByTestId("org-native-workbench")).toBeNull();
   });
+
+  it("falls back to the host org-ui workspace when identity status fails", async () => {
+    vi.mocked(orgModuleApi.identityStatus).mockRejectedValue(
+      new Error("organization identity unavailable"),
+    );
+    renderEntry();
+    expect(await screen.findByTestId("org-ui-workspace")).toBeInTheDocument();
+    expect(document.querySelector("iframe")).toBeNull();
+  });
 });
