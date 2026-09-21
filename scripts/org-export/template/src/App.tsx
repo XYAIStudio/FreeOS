@@ -31,7 +31,6 @@ import { StandaloneNav } from "./shell/Nav";
 const API_BASE = (import.meta.env.VITE_API_BASE || "/api").replace(/\/$/, "");
 
 const STANDALONE_LINKS = {
-  workbench: "/app",
   announcements: "/announcements",
   organization: "/org",
   employees: "/employees",
@@ -170,7 +169,6 @@ export default function App() {
               session={session}
               locale={locale}
               modules={SHARED_ORG_UI_MODULES}
-              workbenchHref="/app"
               links={STANDALONE_LINKS}
             />
           }
@@ -238,7 +236,6 @@ export default function App() {
               session={session}
               locale={locale}
               modules={SHARED_ORG_UI_MODULES}
-              workbenchHref="/app"
             />
           }
         />
@@ -301,7 +298,6 @@ export default function App() {
               session={session}
               locale={locale}
               modules={SHARED_ORG_UI_MODULES}
-              workbenchHref="/app"
             />
           }
         />

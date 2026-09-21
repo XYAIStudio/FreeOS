@@ -17,7 +17,6 @@ export interface AgentsPageProps {
   locale: OrgLocale;
   /** Present so export App.tsx can pass SHARED_ORG_UI_MODULES without unused props. */
   modules?: readonly string[];
-  workbenchHref?: string;
 }
 
 const EMPTY_STATS: OrgColleagueStats = {
@@ -52,12 +51,7 @@ const EMPTY_FORM: CompileForm = {
   capabilities: [],
 };
 
-export function AgentsPage({
-  client,
-  session,
-  locale,
-  workbenchHref = "/organization",
-}: AgentsPageProps) {
+export function AgentsPage({ client, session, locale }: AgentsPageProps) {
   const labels = agentsLabels(locale);
   const [colleagues, setColleagues] = useState<OrgColleague[]>([]);
   const [stats, setStats] = useState<OrgColleagueStats>(EMPTY_STATS);
@@ -182,11 +176,6 @@ export function AgentsPage({
           </div>
           <p className={styles.subtitle}>{labels.subtitle}</p>
         </div>
-        {workbenchHref ? (
-          <Button href={workbenchHref} data-testid="org-agents-workbench">
-            {labels.openWorkbench}
-          </Button>
-        ) : null}
       </div>
 
       <section className={styles.callout} data-testid="org-agents-boundary">

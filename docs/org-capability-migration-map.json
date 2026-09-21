@@ -113,10 +113,10 @@
       "item": "Desktop integrated iframe of the full openXYOS App",
       "evidence": [
         "desktop/src/process.go sets FREEOS_ORG_INTEGRATED=1",
-        "dashboard/src/pages/Organization/OrganizationEntry.tsx keeps native workbench as /organization home; original App is a transition link when integrated",
+        "dashboard/src/pages/Organization/OrganizationEntry.tsx embeds openXYOS when integrated; otherwise falls back to org-ui workspace",
         "src/octop/api/routers/org_ui.py proxies /organization-app to the managed Node origin"
       ],
-      "native_port_needed": "Unmigrated App.tsx verticals (workflows, contracts, chat, …) still served through /organization-app. Organization home is already native."
+      "native_port_needed": "Unmigrated App.tsx verticals (workflows, contracts, chat, …) still served through /organization-app. Organization nav embeds that app when integrated."
     },
     {
       "item": "ManagedOrganizationRuntime (private-port Node, restart loop)",
@@ -177,7 +177,7 @@
         "src/octop/modules/org_os/assets/importer.py",
         "src/octop/modules/org_os/apply/apply.py → POST /api/freeos/ingest when sidecar healthy; always {FREEOS_HOME}/openxyos-mirror/",
         "src/octop/cli/commands/org.py assets publish|import|apply",
-        "dashboard/src/pages/Organization/index.tsx assemble/pack/loop",
+        "src/octop/cli/commands/org.py assemble|pack|loop",
         "modules/openxyos/backend/routes/freeos-bridge.ts"
       ],
       "status": "native_host",
@@ -350,14 +350,14 @@
       "lives_today": [
         "src/octop/modules/org_os/managed_runtime.py",
         "src/octop/api/routers/org_ui.py /organization-app",
-        "dashboard/src/pages/Organization/OrganizationEntry.tsx (native workbench home; original App is a transition link)",
+        "dashboard/src/pages/Organization/OrganizationEntry.tsx (openXYOS embed when integrated; org-ui workspace fallback)",
         "modules/openxyos Vite base /organization-app/ when VITE_FREEOS_ORG_INTEGRATED"
       ],
       "status": "managed_node_iframe",
       "depends_on_node": "yes",
       "needed_for_commercial_export": "no",
       "priority": "P1",
-      "next_step": "Organization home is the native workbench; iframe is an optional original-App link when integrated. Shrink then remove ManagedOrganizationRuntime after remaining App verticals native-port. uv run / Docker stay zero-Node; desktop CI may set SHIP_OPENXYOS_RUNTIME=1 (transitional). Do not expand that flag as permanent.",
+      "next_step": "Organization nav embeds openXYOS when integrated. Shrink then remove ManagedOrganizationRuntime after remaining App verticals native-port. uv run / Docker stay zero-Node; desktop CI may set SHIP_OPENXYOS_RUNTIME=1 (transitional). Do not expand that flag as permanent.",
       "wave": "E-cut-node",
       "evidence": [
         "tests/integration/test_dashboard_serve.py redirects / to /organization-app/dashboard when integrated",
@@ -485,7 +485,7 @@
       "name": "Organization workbench (assemble / pack / loop)",
       "name_zh": "组织工作台（装配 / 打包 / 循环）",
       "lives_today": [
-        "dashboard/src/pages/Organization/index.tsx /organization",
+        "src/octop/cli/commands/org.py assemble|pack|loop",
         "/api/org-module/overview|assemble|pack|loop|produce",
         "src/octop/modules/org_os/loop/"
       ],
@@ -493,14 +493,13 @@
       "depends_on_node": "no",
       "needed_for_commercial_export": "partial",
       "priority": "P1",
-      "next_step": "Native workbench is Organization home even when desktop is integrated. Original App remains a transition link, not the home.",
+      "next_step": "Operator assemble/pack/loop stay on CLI and API. Org nav embeds openXYOS when integrated; otherwise the host org-ui workspace. Host workbench UI deleted.",
       "wave": "E-cut-node",
       "evidence": [
-        "dashboard/src/pages/Organization/index.test.tsx paints workbench without 3780 iframe",
-        "OrganizationEntry always mounts the native workbench; original App is opt-in when integrated"
+        "dashboard/src/pages/Organization/OrganizationEntry.tsx embeds /organization-app/dashboard when integrated",
+        "Organization/index.tsx host workbench UI removed from the dashboard bundle"
       ],
       "tests": [
-        "dashboard/src/pages/Organization/index.test.tsx",
         "dashboard/src/pages/Organization/OrganizationEntry.test.tsx",
         "tests/unit/test_org_loop.py"
       ],

@@ -93,7 +93,7 @@ dashboard/src/org-ui/                 # 壳无关：页面、hooks、API client 
   shell.ts                            # ShellAdapter / IdentityBridge 类型
 
 dashboard/src/pages/Organization/     # 薄适配器：路由、FreeOS session、Ant Design、i18n
-  index.tsx                           # 已有 #55 工作台
+  OrganizationEntry.tsx               # 集成时嵌入 openXYOS；否则落到 org-ui 总览
   announcements/                      # 挂 org-ui 页面
 
 src/octop/modules/org_os/contract.py  # org-contract：module keys、blueprint、JSON schema

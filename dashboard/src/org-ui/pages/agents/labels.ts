@@ -12,7 +12,6 @@ const EN = {
   openExperts: "FreeOS Experts",
   openPersonalization: "Agent personalization",
   openEmployees: "Employees directory",
-  openWorkbench: "Organization workbench",
   compileTitle: "Compile a blueprint",
   compileHint:
     "Writes a tenant workspace (SOUL.md, skills, MEMORY) and registers a draft colleague. No talent-market sidecar, no file-upload studio.",
@@ -84,7 +83,6 @@ const ZH: typeof EN = {
   openExperts: "FreeOS 专家",
   openPersonalization: "智能体个性化",
   openEmployees: "员工目录",
-  openWorkbench: "组织工作台",
   compileTitle: "编译蓝图",
   compileHint:
     "写入租户工作区（SOUL.md、技能、MEMORY）并登记为 draft 同事。没有边车人才市场，也没有资料上传工作室。",

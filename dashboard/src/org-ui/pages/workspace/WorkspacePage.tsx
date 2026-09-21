@@ -12,7 +12,6 @@ import { workspaceLabels } from "./labels";
 import styles from "./WorkspacePage.module.css";
 
 export interface OrgWorkspaceLinks {
-  workbench: string;
   announcements: string;
   organization: string;
   employees: string;
@@ -32,12 +31,10 @@ export interface WorkspacePageProps {
   locale: OrgLocale;
   /** Present so export App.tsx can pass SHARED_ORG_UI_MODULES without unused props. */
   modules?: readonly string[];
-  workbenchHref?: string;
   links?: Partial<OrgWorkspaceLinks>;
 }
 
 const DEFAULT_LINKS: OrgWorkspaceLinks = {
-  workbench: "/organization",
   announcements: "/organization/announcements",
   organization: "/organization/org",
   employees: "/organization/employees",
@@ -79,14 +76,12 @@ export function WorkspacePage({
   client,
   session,
   locale,
-  workbenchHref,
   links,
 }: WorkspacePageProps) {
   const labels = workspaceLabels(locale);
   const hrefs: OrgWorkspaceLinks = {
     ...DEFAULT_LINKS,
     ...links,
-    workbench: workbenchHref || links?.workbench || DEFAULT_LINKS.workbench,
   };
   const [overview, setOverview] = useState<OrgWorkspaceOverview | null>(null);
   const [loading, setLoading] = useState(true);
@@ -236,9 +231,6 @@ export function WorkspacePage({
           <p className={styles.hint}>{labels.hostHint}</p>
           <p className={styles.hint}>{labels.roomHint}</p>
         </div>
-        <Button href={hrefs.workbench} data-testid="org-workspace-workbench">
-          {labels.openWorkbench}
-        </Button>
       </div>
 
       <section

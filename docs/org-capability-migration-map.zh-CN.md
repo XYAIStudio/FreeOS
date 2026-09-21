@@ -41,11 +41,11 @@
 | [宿主知识库](#5-宿主知识库) | native_host | 否 | 部分 | P0 | 默认本地 RAG；云连接器可选。 |
 | [组织知识](#6-组织知识笔记文件) | org_ui_slice | 部分 | 是 | P0 | 上传/文件夹/再解析走宿主 KB；不克隆边车 notes 库。 |
 | [蓝图与编译器](#10-蓝图与编译器) | native_host | 否 | 是 | P0 | 编译结果进入资产总线，便于导出蓝图源。 |
-| [托管 Node + iframe 壳](#7-托管-node--iframe-壳) | managed_node_iframe | 是 | 否 | P1 | 首页已是原生工作台；iframe 仅作原 App 过渡入口。收缩运行时。 |
+| [托管 Node + iframe 壳](#7-托管-node--iframe-壳) | managed_node_iframe | 是 | 否 | P1 | 集成时组织导航嵌入 openXYOS。收缩运行时。 |
 | [模块目录](#9-模块目录) | native_host | 否 | 是 | P1 | 设置/工作台展示 `delivery`/`host_path`；App.tsx 垂类原生迁入时扩展 key。 |
 | [同事生命周期](#11-同事生命周期) | native_host | 否 | 是 | P1 | 与员工目录 / 人才市场 UI 打通。 |
 | [治理](#12-治理引擎--ui) | native_host | 部分 | 是 | P1 | 工作台/总览可内联批准宿主暂停；仍迁权限矩阵/通信规则。 |
-| [组织工作台](#13-组织工作台装配--打包--循环) | native_host | 否 | 部分 | P1 | 即便桌面集成，首页仍是原生工厂；原 App 只是过渡链接。 |
+| [组织工作台](#13-组织工作台装配--打包--循环) | native_host | 否 | 部分 | P1 | 仅 CLI / API；宿主工作台 UI 已删。组织导航嵌入 openXYOS。 |
 | [工作台总览](#14-工作台总览) | org_ui_slice | 部分 | 是 | P1 | 内联批准暂停；OpenDashboard 仍在 Node。 |
 | [通知公告](#15-通知公告) | org_ui_slice | 否 | 是 | P1 | 宿主已读名单；其余原页字段仍可补。 |
 | [组织架构](#16-组织架构) | org_ui_slice | 部分 | 是 | P1 | 汇报线、部门类型、JSON 导入已在宿主 sqlite；版本/头像仍在原 App。 |
@@ -85,7 +85,7 @@
 
 这些出货形态仍需原生迁入。它们是桥。
 
-1. **桌面集成 iframe** 嵌入完整 App — `FREEOS_ORG_INTEGRATED=1`（`desktop/src/process.go`）仍把 `/organization-app` 代理到托管 Node。`/organization` 已是 **原生工作台**；原 App 只是可选过渡链接（`OrganizationEntry.tsx`）。FastAPI `org_ui.py` 把 `/organization-app` 代理到私有端口上的 Node。
+1. **桌面集成 iframe** 嵌入完整 App — `FREEOS_ORG_INTEGRATED=1`（`desktop/src/process.go`）仍把 `/organization-app` 代理到托管 Node。`/organization` 在 `identityStatus.integrated` 时嵌入该 App（`OrganizationEntry.tsx`）；否则落到宿主 org-ui 总览。FastAPI `org_ui.py` 把 `/organization-app` 代理到私有端口上的 Node。
 2. **`ManagedOrganizationRuntime`** — `src/octop/modules/org_os/managed_runtime.py`（重启循环、本机 `OPENXYOS_BASE_URL`）。
 3. **`/api/org-module/identity/*` 与 `/business/*`** — `org_identity.py` 把登录/注册和业务 CRUD 转发到 Node `/api/auth` 与 `/api/*`。
 4. **可选 `:3780` 边车** — `FREEOS_ORG_SIDECAR` / `SHIP_OPENXYOS_RUNTIME`。Phase 5 默认安装器已经零 Node；不要倒退。开关表与拆除计划：[node-runtime.zh-CN.md](node-runtime.zh-CN.md)。
@@ -98,7 +98,7 @@
 - 清单自身的限制：静态扫描；有路由 ≠ 功能对等。
 - 各域的 **未知项** 单独标出，不编造字段对照。
 - 当前 `main` 上实际有两套运行形态：
-  - **源码 `freeos run`**（未设 `FREEOS_ORG_INTEGRATED`）：原生工作台 + org-ui 切片；Node 边车可选。
+  - **源码 `freeos run`**（未设 `FREEOS_ORG_INTEGRATED`）：OrganizationEntry 落到 org-ui 切片；Node 边车可选。
   - **桌面 0.0.3–0.0.4**：集成 Node + iframe 完整 App.tsx。这是桥，不是目的地。
 
 ## 各域
@@ -184,12 +184,12 @@
 
 | | |
 |---|---|
-| **今日位置** | `managed_runtime.py`、`/organization-app`、`OrganizationEntry.tsx`（原生首页；原 App 是过渡链接）、openXYOS Vite `base: /organization-app/` |
+| **今日位置** | `managed_runtime.py`、`/organization-app`、`OrganizationEntry.tsx`（集成时嵌入 openXYOS；未集成时落到 org-ui 总览）、openXYOS Vite `base: /organization-app/` |
 | **状态** | `managed_node_iframe` |
 | **依赖 Node？** | 是 |
 | **商业导出？** | 否（桥，不是可售产物） |
 | **优先级** | P1 · 波次 E |
-| **下一步** | Organization 首页已经是原生工作台。其余 App 垂类原生迁入后再收缩并去掉托管进程。开关见 [node-runtime.zh-CN.md](node-runtime.zh-CN.md)。`uv run` / Docker 保持零 Node。桌面 CI 可设 `SHIP_OPENXYOS_RUNTIME=1`（过渡）。不要把该开关扩成永久产品。 |
+| **下一步** | 组织导航在集成时已嵌入 openXYOS。其余 App 垂类原生迁入后再收缩并去掉托管进程。开关见 [node-runtime.zh-CN.md](node-runtime.zh-CN.md)。`uv run` / Docker 保持零 Node。桌面 CI 可设 `SHIP_OPENXYOS_RUNTIME=1`（过渡）。不要把该开关扩成永久产品。 |
 | **测试** | `tests/unit/api/test_org_ui.py`、`tests/integration/test_dashboard_serve.py`、`OrganizationEntry.test.tsx` |
 
 ### 8. 可选 Node 边车（:3780）
@@ -256,13 +256,13 @@
 
 | | |
 |---|---|
-| **今日位置** | `/organization` 原生 Ant Design 工厂（`index.tsx`）。桌面 `integrated=true` 时仍以本页为首页；原 App 只是可选过渡链接。 |
+| **今日位置** | CLI `freeos org assemble/pack/loop` 与 `/api/org-module` assemble/pack/loop。宿主 Ant Design 工厂（`Organization/index.tsx`）已删除。 |
 | **状态** | `native_host` |
 | **依赖 Node？** | 否 |
 | **商业导出？** | 部分 |
 | **优先级** | P1 |
-| **下一步** | 工作室工厂与组织房间都可到达；iframe 不得吞掉 `/organization`。 |
-| **测试** | `dashboard/src/pages/Organization/index.test.tsx`、`OrganizationEntry.test.tsx` |
+| **下一步** | 操作路径留在 CLI / API。组织导航嵌入 openXYOS（未集成时落到 org-ui 总览）。 |
+| **测试** | `dashboard/src/pages/Organization/OrganizationEntry.test.tsx`、`tests/unit/test_org_loop.py` |
 
 ### 14. 工作台总览
 

@@ -41,11 +41,11 @@ Priority: **P0 = 7** (waves A–D) · **P1 = 17** · **P2 = 10**.
 | [Host knowledge bases](#5-host-knowledge-bases) | native_host | no | partial | P0 | Keep local RAG default; cloud connectors optional. |
 | [Organization knowledge](#6-organization-knowledge-notesfiles) | org_ui_slice | partial | yes | P0 | Upload/folders/reparse on host KB; do not clone sidecar notes DB. |
 | [Blueprints / compiler](#10-blueprints--compiler) | native_host | no | yes | P0 | Feed compile output into the assets bus for exportable blueprints. |
-| [Managed Node + iframe shell](#7-managed-node--iframe-shell) | managed_node_iframe | yes | no | P1 | Home is native workbench; iframe is an optional original-App link. Shrink runtime. |
+| [Managed Node + iframe shell](#7-managed-node--iframe-shell) | managed_node_iframe | yes | no | P1 | Org nav embeds openXYOS when integrated. Shrink runtime. |
 | [Module catalog](#9-module-catalog) | native_host | no | yes | P1 | Settings/workbench show `delivery`/`host_path`; extend keys when App.tsx verticals native-port. |
 | [Colleague lifecycle](#11-colleague-lifecycle) | native_host | no | yes | P1 | Join registry with people/talent UI. |
 | [Governance](#12-governance-engine--ui) | native_host | partial | yes | P1 | Workbench/workspace approve host pauses inline; still port matrix/comm-rules. |
-| [Organization workbench](#13-organization-workbench-assemble--pack--loop) | native_host | no | partial | P1 | Native home even when integrated; original App is a transition link. |
+| [Organization workbench](#13-organization-workbench-assemble--pack--loop) | native_host | no | partial | P1 | CLI / API only; host workbench UI deleted. Org nav embeds openXYOS. |
 | [Workspace overview](#14-workspace-overview) | org_ui_slice | partial | yes | P1 | Inline pause approve; OpenDashboard still Node. |
 | [Announcements](#15-announcements) | org_ui_slice | no | yes | P1 | Reader log on host; remaining original-page extras. |
 | [Org chart](#16-org-chart) | org_ui_slice | partial | yes | P1 | Reporting lines, department type, JSON import on host sqlite; versions/avatars still original. |
@@ -85,7 +85,7 @@ Aligned with product order: **assets bus → export → dual identity UX → loc
 
 These shipping shapes still need a native port. They are bridges.
 
-1. **Desktop integrated iframe** of the full App — `FREEOS_ORG_INTEGRATED=1` (`desktop/src/process.go`) still proxies `/organization-app` to managed Node. `/organization` is the **native workbench**; original App is an optional transition link (`OrganizationEntry.tsx`). `org_ui` FastAPI (`org_ui.py`) proxies `/organization-app` to the private-port Node process.
+1. **Desktop integrated iframe** of the full App — `FREEOS_ORG_INTEGRATED=1` (`desktop/src/process.go`) still proxies `/organization-app` to managed Node. `/organization` embeds that app when `identityStatus.integrated` (`OrganizationEntry.tsx`); otherwise it falls through to the host org-ui workspace. `org_ui` FastAPI (`org_ui.py`) proxies `/organization-app` to the private-port Node process.
 2. **`ManagedOrganizationRuntime`** — `src/octop/modules/org_os/managed_runtime.py` (restart loop, `OPENXYOS_BASE_URL` on localhost).
 3. **`/api/org-module/identity/*` and `/business/*`** — `org_identity.py` forwards login/register and business CRUD to Node `/api/auth` and `/api/*`.
 4. **Optional sidecar on `:3780`** — `FREEOS_ORG_SIDECAR` / `SHIP_OPENXYOS_RUNTIME`. Phase 5 default installer is already zero-Node; do not reverse that. Flag table and cut plan: [node-runtime.md](node-runtime.md).
@@ -98,7 +98,7 @@ These shipping shapes still need a native port. They are bridges.
 - Inventory limitation (quoted): static scan only; route existence is not parity.
 - **Unknowns** are marked per domain. Do not invent API field maps.
 - Two runtimes on current `main`:
-  - **Source `freeos run`** (no `FREEOS_ORG_INTEGRATED`): native workbench + org-ui slices; Node sidecar opt-in.
+  - **Source `freeos run`** (no `FREEOS_ORG_INTEGRATED`): OrganizationEntry falls back to org-ui slices; Node sidecar opt-in.
   - **Desktop 0.0.3–0.0.4**: integrated Node + iframe of App.tsx. That is the bridge, not the destination.
 
 ## Domains
@@ -184,12 +184,12 @@ These shipping shapes still need a native port. They are bridges.
 
 | | |
 |---|---|
-| **Lives today** | `managed_runtime.py`, `/organization-app`, `OrganizationEntry.tsx` (native home; original App is a transition link), openXYOS Vite `base: /organization-app/` |
+| **Lives today** | `managed_runtime.py`, `/organization-app`, `OrganizationEntry.tsx` (openXYOS embed when integrated; org-ui workspace fallback), openXYOS Vite `base: /organization-app/` |
 | **Status** | `managed_node_iframe` |
 | **Depends on Node?** | yes |
 | **Commercial export?** | no (bridge, not the sellable artifact) |
 | **Priority** | P1 · Wave E |
-| **Next step** | Organization home is already native. Shrink then remove `ManagedOrganizationRuntime` after remaining App verticals native-port. Flags: [node-runtime.md](node-runtime.md). `uv run` / Docker stay zero-Node. Desktop CI may set `SHIP_OPENXYOS_RUNTIME=1` (transitional). Do not expand that flag as permanent. |
+| **Next step** | Organization nav already embeds openXYOS when integrated. Shrink then remove `ManagedOrganizationRuntime` after remaining App verticals native-port. Flags: [node-runtime.md](node-runtime.md). `uv run` / Docker stay zero-Node. Desktop CI may set `SHIP_OPENXYOS_RUNTIME=1` (transitional). Do not expand that flag as permanent. |
 | **Tests** | `tests/unit/api/test_org_ui.py`, `tests/integration/test_dashboard_serve.py`, `OrganizationEntry.test.tsx` |
 
 ### 8. Optional Node sidecar (:3780)
@@ -256,13 +256,13 @@ These shipping shapes still need a native port. They are bridges.
 
 | | |
 |---|---|
-| **Lives today** | `/organization` native Ant Design factory (`index.tsx`). Desktop `integrated=true` keeps this as home; original App is an optional transition link. |
+| **Lives today** | CLI `freeos org assemble/pack/loop` and `/api/org-module` assemble/pack/loop. Host Ant Design factory (`Organization/index.tsx`) deleted. |
 | **Status** | `native_host` |
 | **Depends on Node?** | no |
 | **Commercial export?** | partial |
 | **Priority** | P1 |
-| **Next step** | Studio factory and org room both reachable; iframe must not swallow `/organization`. |
-| **Tests** | `dashboard/src/pages/Organization/index.test.tsx`, `OrganizationEntry.test.tsx` |
+| **Next step** | Keep operator paths on CLI / API. Org nav is openXYOS embed (or org-ui workspace when not integrated). |
+| **Tests** | `dashboard/src/pages/Organization/OrganizationEntry.test.tsx`, `tests/unit/test_org_loop.py` |
 
 ### 14. Workspace overview
 

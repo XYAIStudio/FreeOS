@@ -1,6 +1,6 @@
 /**
  * Leftover iframe chrome for the optional Node sidecar (`FREEOS_ORG_SIDECAR=1`).
- * The default Organization workbench (`index.tsx`) does not mount this.
+ * Organization nav mounts `OrganizationEntry` (openXYOS embed); this is unused by routes.
  * Core org pages live in `dashboard/src/org-ui` and talk to `/api/org-module/*`.
  */
 import { useMemo, type MutableRefObject } from "react";

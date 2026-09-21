@@ -12,7 +12,7 @@
 
 ### 变更
 
-- 「对话」会话列表标题栏右侧补上微信式搜索与「+」新建群聊（接入已有 `openGroupChat`）。组织导航不再落到宿主旧工作台（功能卡片 +「打开原 App」壳），集成桌面嵌入 openXYOS；未集成时进入宿主 org-ui 总览。桌面首启仍落 `/chat/main`，不进组织页。 / Chat session list header now has WeChat-style search and a + new-group action (existing `openGroupChat`). Org nav embeds openXYOS when integrated, otherwise the host org-ui workspace — not the old workbench grid. Desktop first-run still lands on `/chat/main`.
+- 「对话」会话列表标题栏右侧补上微信式搜索与「+」新建群聊（接入已有 `openGroupChat`）。组织导航嵌入 openXYOS（未集成时落到宿主 org-ui 总览）。已从 Dashboard 包删除宿主旧工作台 UI（蓝条 / 功能卡片 /「打开原 App（过渡）」）：`Organization/index.tsx`、`pickSourceDest.ts` 及对应测试。装配 / 打包 / 循环仍走 `freeos org` CLI 与 `/api/org-module/*`。桌面首启仍落 `/chat/main`，不进组织页。 / Chat session list header now has WeChat-style search and a + new-group action (existing `openGroupChat`). Org nav embeds openXYOS when integrated, otherwise the host org-ui workspace. The old host workbench UI is deleted from the dashboard bundle (`Organization/index.tsx`, `pickSourceDest.ts`, and their tests). Assemble / pack / loop remain CLI and API. Desktop first-run still lands on `/chat/main`.
 - Windows NSIS 文件复制结束后不再多点一次「下一步」才到结束页；结束页仍让用户勾选「运行 FreeOS」或直接关闭，不会自动启动、也不会自动关窗。静默安装（`/S`）仍不拉起界面。 / After Windows NSIS file copy, Setup advances to the finish page without an extra Next. The user still chooses Run FreeOS or close. No auto-launch / auto-close. Silent `/S` stays headless.
 - 桌面首次启动不再要求注册/登录。首屏是可选模型配置（云密钥或本机 Ollama，可跳过）；跳过或保存后进入默认智能体对话，而不是停在工作台列表。已有提供商或会话的用户不会被再次拦住。账号仍可稍后在头像菜单里领取，供保存/导出/组织房间使用。首次运行与安全条目一致：不预填云密钥，本机 Ollama 优先。
 

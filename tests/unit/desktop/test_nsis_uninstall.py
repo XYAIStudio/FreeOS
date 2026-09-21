@@ -405,32 +405,20 @@ def test_nsis_does_not_register_openxyos_logon_autostart() -> None:
 
 
 def test_organization_embeds_local_openxyos_url() -> None:
-    page = ORG_PAGE.read_text(encoding="utf-8")
+    assert not ORG_PAGE.exists()
     entry = ORG_ENTRY.read_text(encoding="utf-8")
     browser = ORG_BROWSER.read_text(encoding="utf-8")
     zh = (REPO / "dashboard" / "src" / "locales" / "zh.json").read_text(encoding="utf-8")
     assert 'data-testid="org-openxyos-frame"' in entry
     assert "/organization-app/dashboard?freeos_embed=1" in entry
     assert 'data-testid="org-native-workbench"' not in entry
-    assert 'data-testid="org-native-workbench"' in page
-    assert 'data-testid="org-assemble"' in page
-    assert 'data-testid="org-pack"' in page
-    assert 'data-testid="org-loop"' in page
-    assert 'data-testid="org-colleagues"' in page
-    assert "org-mini-browser" not in page
-    assert "org-sidecar-gate" not in page
-    assert "org-restart-sidecar" not in page
-    assert "restartSidecar" not in page
-    assert "startSidecar" in page
-    assert 'data-testid="org-advanced-console"' in page
-    assert "window.prompt" not in page
-    assert "pickDesktopFolder" in page
-    assert "resolveOpenxyosSourceDest" in page
-    assert 'data-testid="org-download-source"' in page
-    assert "ExternalLink" not in page
-    assert 'target="_blank"' not in page
+    assert 'data-testid="org-assemble"' not in entry
+    assert 'data-testid="org-pack"' not in entry
+    assert 'data-testid="org-loop"' not in entry
+    assert "打开原 App" not in entry
     assert "org-mini-browser" in browser
     org = zh[zh.index('"organization"') : zh.index('"systemSettings"')]
+    assert "打开原 App（过渡）" not in org
     assert "启动边车" not in org
     assert "重试启动" not in org
     assert "宿主内组织已就绪" in org
