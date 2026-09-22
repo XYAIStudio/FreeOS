@@ -3,6 +3,7 @@ package main
 import (
 	"os"
 	"path/filepath"
+	"reflect"
 	"testing"
 )
 
@@ -112,17 +113,24 @@ func TestOrgRuntimeProvisionDefaultsOnAndCanBeDisabled(t *testing.T) {
 
 func TestWebviewAcceptanceArgsRequiresValidExplicitPort(t *testing.T) {
 	t.Setenv("FREEOS_WEBVIEW_DEBUG_PORT", "")
-	if got := webviewAcceptanceArgs(); got != nil {
-		t.Fatalf("debugging must be off by default: %v", got)
+	t.Setenv("FREEOS_WEBVIEW_GPU", "")
+	wantSafe := []string{"--disable-gpu", "--disable-gpu-compositing"}
+	if got := webviewAcceptanceArgs(); !reflect.DeepEqual(got, wantSafe) {
+		t.Fatalf("safe default args = %v, want %v", got, wantSafe)
 	}
 	t.Setenv("FREEOS_WEBVIEW_DEBUG_PORT", "9223")
 	got := webviewAcceptanceArgs()
-	if len(got) != 1 || got[0] != "--remote-debugging-port=9223" {
+	wantDebug := append(wantSafe, "--remote-debugging-port=9223")
+	if !reflect.DeepEqual(got, wantDebug) {
 		t.Fatalf("unexpected args: %v", got)
 	}
 	t.Setenv("FREEOS_WEBVIEW_DEBUG_PORT", "80")
+	if got := webviewAcceptanceArgs(); !reflect.DeepEqual(got, wantSafe) {
+		t.Fatalf("privileged or invalid port must be rejected without losing safe defaults: %v", got)
+	}
+	t.Setenv("FREEOS_WEBVIEW_GPU", "1")
 	if got := webviewAcceptanceArgs(); got != nil {
-		t.Fatalf("privileged or invalid port must be rejected: %v", got)
+		t.Fatalf("explicit GPU opt-in should remove software-rendering args: %v", got)
 	}
 }
 

@@ -569,17 +569,60 @@ func pendingPortableZip() string {
 	if err != nil {
 		return ""
 	}
-	defer reader.Close()
-	if stampFromZip(reader.File) == "" {
+	stamp := stampFromZip(reader.File)
+	archiveVersion, versionErr := versionFromZip(reader.File)
+	_ = reader.Close()
+	if stamp == "" || versionErr != nil || archiveVersion == "" {
+		rejectPendingPortable(path, "archive is missing a valid FreeOS stamp or version")
+		return ""
+	}
+	metaPath := filepath.Join(productHome(), "updates", "pending.json")
+	if data, readErr := os.ReadFile(metaPath); readErr == nil {
+		var meta struct {
+			Version string `json:"version"`
+		}
+		if json.Unmarshal(data, &meta) != nil || strings.TrimSpace(meta.Version) == "" {
+			rejectPendingPortable(path, "pending metadata is invalid")
+			return ""
+		}
+		if compareVersions(meta.Version, archiveVersion) != 0 {
+			rejectPendingPortable(path, fmt.Sprintf(
+				"release version %s does not match archive version %s",
+				meta.Version,
+				archiveVersion,
+			))
+			return ""
+		}
+	}
+	currentVersion := portableVersion(portableDir())
+	if currentVersion != "" && compareVersions(archiveVersion, currentVersion) <= 0 {
+		rejectPendingPortable(path, fmt.Sprintf(
+			"archive version %s is not newer than installed version %s",
+			archiveVersion,
+			currentVersion,
+		))
 		return ""
 	}
 	return path
+}
+
+func rejectPendingPortable(path, reason string) {
+	dir := filepath.Dir(path)
+	log.Printf("portable: rejecting pending update: %s", reason)
+	_ = os.Remove(path)
+	_ = os.Remove(filepath.Join(dir, "pending.json"))
+	_ = os.WriteFile(
+		filepath.Join(dir, "pending-rejected.txt"),
+		[]byte(time.Now().Format(time.RFC3339)+" "+reason+"\n"),
+		0o644,
+	)
 }
 
 func clearPendingPortable() {
 	dir := filepath.Join(productHome(), "updates")
 	_ = os.Remove(filepath.Join(dir, "pending-portable.zip"))
 	_ = os.Remove(filepath.Join(dir, "pending.json"))
+	_ = os.Remove(filepath.Join(dir, "pending-rejected.txt"))
 }
 
 func extractPortable(root string) error {
