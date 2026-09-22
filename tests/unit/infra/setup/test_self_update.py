@@ -82,6 +82,7 @@ def test_run_upgrade_stages_freeos_portable(
     )
     monkeypatch.setattr("octop.infra.setup.self_update.fetch_release_info", lambda: info)
     monkeypatch.setattr("octop.infra.setup.self_update.desktop_plat", lambda: "linux-amd64")
+    monkeypatch.setattr("octop.infra.setup.self_update.get_local_version", lambda: "0.0.1")
     monkeypatch.setenv("FREEOS_HOME", str(tmp_path))
     monkeypatch.setenv("OCTOP_HOME", str(tmp_path))
     monkeypatch.setenv("OCTOP_DESKTOP", "1")
@@ -104,6 +105,7 @@ def test_run_upgrade_does_not_pip_install_octop(
     info = GitHubReleaseInfo(version="0.0.1", latest_stable="0.0.1", assets=[])
     monkeypatch.setattr("octop.infra.setup.self_update.fetch_release_info", lambda: info)
     monkeypatch.setattr("octop.infra.setup.self_update.desktop_plat", lambda: "linux-amd64")
+    monkeypatch.setattr("octop.infra.setup.self_update.get_local_version", lambda: "0.0.0")
     monkeypatch.setenv("FREEOS_HOME", str(tmp_path))
     monkeypatch.delenv("OCTOP_DESKTOP", raising=False)
     monkeypatch.delenv("FREEOS_DESKTOP", raising=False)
@@ -114,3 +116,31 @@ def test_run_upgrade_does_not_pip_install_octop(
     assert result.error is not None
     assert "PyPI" in result.error or "GitHub" in result.error
     assert "octop==" not in result.error
+
+
+def test_run_upgrade_rejects_same_version_before_download(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    info = GitHubReleaseInfo(
+        version="0.0.6",
+        latest_stable="0.0.6",
+        assets=[
+            ReleaseAsset(
+                name="FreeOS-portable-windows-amd64-0.0.6.zip",
+                url=(
+                    "https://github.com/XYAIStudio/FreeOS/releases/download/"
+                    "v0.0.6/FreeOS-portable-windows-amd64-0.0.6.zip"
+                ),
+            )
+        ],
+    )
+    monkeypatch.setattr("octop.infra.setup.self_update.fetch_release_info", lambda: info)
+    monkeypatch.setattr("octop.infra.setup.self_update.get_local_version", lambda: "0.0.6")
+    monkeypatch.setenv("FREEOS_HOME", str(tmp_path))
+
+    result = run_upgrade(version="0.0.6")
+
+    assert result.success is False
+    assert result.installed_version == "0.0.6"
+    assert "not newer" in (result.error or "")
+    assert not pending_portable_zip(tmp_path).exists()

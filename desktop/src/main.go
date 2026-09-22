@@ -24,12 +24,17 @@ var assets embed.FS
 const trayDoubleClick = 400 * time.Millisecond
 
 func webviewAcceptanceArgs() []string {
+	args := []string{"--disable-gpu", "--disable-gpu-compositing"}
+	if strings.EqualFold(strings.TrimSpace(os.Getenv("FREEOS_WEBVIEW_GPU")), "1") ||
+		strings.EqualFold(strings.TrimSpace(os.Getenv("FREEOS_WEBVIEW_GPU")), "true") {
+		args = nil
+	}
 	raw := strings.TrimSpace(os.Getenv("FREEOS_WEBVIEW_DEBUG_PORT"))
 	port, err := strconv.Atoi(raw)
 	if err != nil || port < 1024 || port > 65535 {
-		return nil
+		return args
 	}
-	return []string{fmt.Sprintf("--remote-debugging-port=%d", port)}
+	return append(args, fmt.Sprintf("--remote-debugging-port=%d", port))
 }
 
 // App is the Wails service bound to the shell UI.

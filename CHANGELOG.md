@@ -6,6 +6,8 @@
 
 ## [Unreleased]
 
+## [0.0.6] - 2026-09-22
+
 ### 安全
 
 - 桌面安装包与配置模板不再允许嵌入云厂商 API Key（含 DeepSeek）。首次运行不会预填真实密钥：优先本机 Ollama，云调用在密钥为空时直接拒绝并提示用户自行填写（即使环境里有 `DEEPSEEK_API_KEY` / `OPENAI_API_KEY` / `LLM_API_KEY` 也不写入 `providers`）。打包排除 `.env`、`octop.db`、`.freeos`，打 zip 前扫描 staging。生产/air-gap sidecar 不再回退 `LLM_API_KEY`。已发布的 **0.0.1–0.0.4** 安装包须下架（已从 Release 删除），并轮换可能泄露的 DeepSeek 密钥。
@@ -18,6 +20,7 @@
 
 ### 修复
 
+- 撤回错误标记为 0.0.5、内部实际仍为 0.0.4 的 Windows 构建。桌面更新现在拒绝版本元数据与 portable 包内部版本不一致的下载，也拒绝重复安装当前或更旧版本，防止同一包循环下载、启动时反复解压约 1.15 GB / 6.8 万文件并拖垮系统。Windows WebView2 默认使用软件渲染，降低显卡驱动黑屏风险；发布工作流在标签与 `pyproject.toml` 版本不一致时直接失败。
 - 组织嵌入仍走 openXYOS 自己的登录（`localStorage token` / sidecar JWT），不把 FreeOS 桌面访客（`auth_token` / `POST /api/auth/local-session`）写进组织房间。重启/恢复 sidecar 始终带 `FREEOS_ORG_LOCAL_TEST=1`，保留 `demo@demo.com` / `user@demo.com`。本机会话跳过组织映射行，不删除、不占用 openXYOS 用户。代理剥离宿主 Cookie 与 `X-FreeOS-*`。 / Org embed keeps openXYOS login; FreeOS local-session must not replace org users. Sidecar restart still seeds test accounts. Proxy drops host cookies and identity headers.
 - Windows 升级刷新 `~/.freeos/portable` 时，若目录节点被占用（无法改名为 `portable.previous`，报 “being used by another process”），先尝试结束残留的 portable / `launch.py` 进程，再把新运行时**原地覆盖**进现有文件夹，避免留下空的锁定 `portable` 桩，也不要求重启。 / If renaming `portable` → `portable.previous` fails because the directory is in use, stop leftover host processes and overlay the new runtime in place.
 - 桌面 `POST /api/auth/local-session` 对已有 `~/.freeos`（多用户 / 组织映射行）或 WebView 非 `127.0.0.1` Host 返回 403，前端重试后掉进注册登录。本机会话在 loopback / `*.localhost` / Origin 为本机时签发 JWT 并选用已有工作室账号；SPA 在 `/` 跳到 `/projects` 丢掉 `?desktop=1` 之前记住桌面壳。403 修复后的路径是：可选模型配置（云 Key / 本机，可跳过）→ 第一个智能体 `/chat/main`，不经过登录墙，也不停在工作台列表。`/setup` 在 guest 已创建后不再打回登录页。

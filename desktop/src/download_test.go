@@ -251,6 +251,47 @@ func TestEnsurePortableAppliesPendingFreeOSZip(t *testing.T) {
 	}
 }
 
+func TestEnsurePortableRejectsMislabeledPendingZip(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("OCTOP_HOME", home)
+	t.Setenv("OCTOP_DESKTOP_INSTALL_STAMP_FILE", "")
+	root := portableDir()
+
+	currentZip := filepath.Join(t.TempDir(), "current.zip")
+	writeTestGreenZipWithStamp(t, currentZip, "0.0.4", "current-build")
+	if err := unzipGreen(currentZip, root); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("OCTOP_DESKTOP_PORTABLE_ZIP", currentZip)
+	sentinel := filepath.Join(root, "keep.txt")
+	if err := os.WriteFile(sentinel, []byte("keep"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	pendingDir := filepath.Join(home, "updates")
+	if err := os.MkdirAll(pendingDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	pending := filepath.Join(pendingDir, "pending-portable.zip")
+	writeTestGreenZipWithStamp(t, pending, "0.0.4", "mislabeled-build")
+	if err := os.WriteFile(filepath.Join(pendingDir, "pending.json"), []byte(`{"version":"0.0.5"}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := ensurePortable(LocaleZH, func(string) {}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(sentinel); err != nil {
+		t.Fatalf("rejected update must preserve the current runtime: %v", err)
+	}
+	if _, err := os.Stat(pending); !os.IsNotExist(err) {
+		t.Fatalf("rejected update zip must be removed: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(pendingDir, "pending-rejected.txt")); err != nil {
+		t.Fatalf("rejection reason must be recorded: %v", err)
+	}
+}
+
 func TestEnsurePortableReplacesOctopLineageWithFreeOS(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("OCTOP_HOME", home)

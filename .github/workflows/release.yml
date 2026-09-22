@@ -33,6 +33,16 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Verify release tag matches package version
+        run: |
+          set -euo pipefail
+          package_version=$(sed -nE 's/^version[[:space:]]*=[[:space:]]*"([^"]+)".*/\1/p' pyproject.toml | head -1)
+          tag_version="${GITHUB_REF_NAME#v}"
+          if [[ -z "$package_version" || "$package_version" != "$tag_version" ]]; then
+            echo "Refusing release: tag $GITHUB_REF_NAME does not match pyproject.toml $package_version" >&2
+            exit 1
+          fi
+
       - uses: astral-sh/setup-uv@v4
         with:
           enable-cache: true
