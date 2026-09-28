@@ -3483,7 +3483,13 @@
     "onnxQuickDownload": "Quick download from catalog…",
     "useInChat": "Switch in chat",
     "localInstallRegistered": "Installed {{name}} and registered it. Open Conversations to switch.",
-    "localInstallNeedProvider": "Downloaded. Enable the Ollama provider on this page, then switch in chat."
+    "localInstallNeedProvider": "Downloaded. Enable the Ollama provider on this page, then switch in chat.",
+    "localBuiltinRuntime": "FreeOS built-in runtime",
+    "localBuiltinMissing": "The built-in local-model runtime is missing",
+    "localBuiltinMissingHelp": "Repair or update FreeOS to restore the bundled llama.cpp runtime.",
+    "localRunBuiltin": "Run with FreeOS",
+    "localBuiltinStarted": "Started {{name}} with the FreeOS local runtime",
+    "localBuiltinStartFailed": "Failed to start the FreeOS local runtime"
   },
   "advancedSettings": {
     "description": "Manage runtime configuration and environment variables.",

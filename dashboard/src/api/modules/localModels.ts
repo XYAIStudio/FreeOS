@@ -10,6 +10,9 @@ export interface LocalHardware {
   ollama_installed?: boolean;
   ollama_reachable: boolean;
   ollama_path?: string;
+  llamacpp_binary?: boolean;
+  llamacpp_reachable?: boolean;
+  llamacpp_path?: string;
 }
 
 export interface LocalDep {
@@ -28,6 +31,11 @@ export interface LocalInstalledModel {
   source: string;
   registerable?: boolean;
   registered?: boolean;
+  runtime?: string;
+  managed_by_freeos?: boolean;
+  base_url?: string;
+  model_path?: string;
+  alias?: string;
   provider_name?: string;
   is_default?: boolean;
 }
@@ -114,6 +122,23 @@ export const localModelsApi = {
     request<LocalRuntimeResult>("/local-models/start-ollama", {
       method: "POST",
     }),
+  llamaCppStatus: () =>
+    request<LocalRuntimeResult>("/local-models/llamacpp/status"),
+  startLlamaCpp: (body: {
+    model_path: string;
+    alias?: string;
+    context_size?: number;
+    gpu_layers?: number;
+  }) =>
+    request<LocalRuntimeResult>("/local-models/llamacpp/start", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    }),
+  stopLlamaCpp: () =>
+    request<LocalRuntimeResult>("/local-models/llamacpp", {
+      method: "DELETE",
+    }),
   ensureDeps: (install: boolean) =>
     request<LocalRuntimeResult>("/local-models/ensure-deps", {
       method: "POST",
@@ -144,18 +169,18 @@ export const localModelsApi = {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     }),
-  speedTest: (name: string, init?: RequestInit) =>
+  speedTest: (name: string, providerName?: string, init?: RequestInit) =>
     request<LocalSpeedTestResult>("/local-models/speed-test", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name }),
+      body: JSON.stringify({ name, provider_name: providerName }),
       ...init,
     }),
-  setDefault: (name: string) =>
+  setDefault: (name: string, providerName?: string) =>
     request<LocalDefaultResult>("/local-models/default", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name }),
+      body: JSON.stringify({ name, provider_name: providerName }),
     }),
   clearDefault: (name?: string) =>
     request<LocalDefaultResult>(

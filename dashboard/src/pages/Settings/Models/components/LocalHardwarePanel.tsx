@@ -84,6 +84,7 @@ export function LocalHardwarePanel({
   const [starting, setStarting] = useState(false);
   const [ensuring, setEnsuring] = useState(false);
   const [registering, setRegistering] = useState<string | null>(null);
+  const [startingLocal, setStartingLocal] = useState<string | null>(null);
   const [testingKey, setTestingKey] = useState<string | null>(null);
   const [settingDefault, setSettingDefault] = useState<string | null>(null);
   const [speedResults, setSpeedResults] = useState<
@@ -175,7 +176,9 @@ export function LocalHardwarePanel({
 
   const install = async (name: string) => {
     const hw = probe?.hardware;
-    const missing = (probe?.deps ?? []).length > 0 || !hw?.ollama_reachable;
+    const missing =
+      (probe?.deps ?? []).some((dep) => dep.id === "ollama") ||
+      !hw?.ollama_reachable;
     if (missing) {
       Modal.confirm({
         title: t("models.localDepsNeededTitle"),
@@ -353,6 +356,31 @@ export function LocalHardwarePanel({
     }
   };
 
+  const startWithFreeOS = async (item: LocalInstalledModel) => {
+    setStartingLocal(item.path || item.name);
+    try {
+      const result = await localModelsApi.startLlamaCpp({
+        model_path: item.path,
+        alias: item.name,
+        gpu_layers: -1,
+      });
+      if (!result.ok) {
+        showRuntimeError(result, t("models.localBuiltinStartFailed"));
+        return;
+      }
+      notifyModelsChanged();
+      await onSaved?.();
+      message.success(t("models.localBuiltinStarted", { name: item.name }));
+      await refresh();
+    } catch (err) {
+      message.error(
+        apiErrorMessage(err, t("models.localBuiltinStartFailed"), t),
+      );
+    } finally {
+      setStartingLocal(null);
+    }
+  };
+
   const itemKey = (item: LocalInstalledModel) =>
     speedResultKey(item.source, item.name);
 
@@ -368,9 +396,11 @@ export function LocalHardwarePanel({
     }, SPEED_TEST_TIMEOUT_MS);
     setTestingKey(key);
     try {
-      const result = await localModelsApi.speedTest(item.name, {
-        signal: controller.signal,
-      });
+      const result = await localModelsApi.speedTest(
+        item.name,
+        item.provider_name,
+        { signal: controller.signal },
+      );
       const stored = saveSpeedResult(item.source, item.name, result);
       setSpeedResults((prev) => ({ ...prev, [key]: stored }));
       if (result.ok) {
@@ -424,7 +454,10 @@ export function LocalHardwarePanel({
   const setAsDefault = async (item: LocalInstalledModel) => {
     setSettingDefault(item.name);
     try {
-      const result = await localModelsApi.setDefault(item.name);
+      const result = await localModelsApi.setDefault(
+        item.name,
+        item.provider_name,
+      );
       if (!result.ok) {
         message.error(
           result.action === "not_registered"
@@ -495,6 +528,8 @@ export function LocalHardwarePanel({
   const hw = probe?.hardware;
   const ollamaInstalled = Boolean(hw?.ollama_installed || hw?.ollama_binary);
   const ollamaUp = Boolean(hw?.ollama_reachable);
+  const llamaCppInstalled = Boolean(hw?.llamacpp_binary);
+  const llamaCppUp = Boolean(hw?.llamacpp_reachable);
   const deps = probe?.deps ?? [];
   const models = useMemo(
     () => mergeModels(probe?.installed, scan?.found),
@@ -537,6 +572,12 @@ export function LocalHardwarePanel({
               : ollamaInstalled
               ? t("models.localOllamaInstalledStopped")
               : t("organization.off")}
+          </Tag>
+          <Tag
+            color={llamaCppUp ? "green" : llamaCppInstalled ? "blue" : "red"}
+          >
+            {t("models.localBuiltinRuntime")}{" "}
+            {llamaCppUp ? t("organization.on") : t("organization.off")}
           </Tag>
         </Space>
       )}
@@ -583,6 +624,15 @@ export function LocalHardwarePanel({
               {t("models.localOneClickInstall")}
             </Button>
           }
+        />
+      )}
+      {deps.some((dep) => dep.id === "llamacpp") && (
+        <Alert
+          type="error"
+          showIcon
+          style={{ marginBottom: 12 }}
+          message={t("models.localBuiltinMissing")}
+          description={t("models.localBuiltinMissingHelp")}
         />
       )}
 
@@ -659,7 +709,33 @@ export function LocalHardwarePanel({
           const testing = testingKey === key;
           const lastSpeed = speedResults[key];
           const actions: ReactNode[] = [];
+          if ((item.source === "gguf" || item.source === "ggml") && item.path) {
+            actions.push(
+              <Button
+                key="run-freeos"
+                size="small"
+                type={
+                  item.provider_name?.includes("llama.cpp")
+                    ? "default"
+                    : "primary"
+                }
+                disabled={!llamaCppInstalled}
+                loading={startingLocal === (item.path || item.name)}
+                title={
+                  llamaCppInstalled
+                    ? undefined
+                    : t("models.localBuiltinMissingHelp")
+                }
+                onClick={() => void startWithFreeOS(item)}
+              >
+                {t("models.localRunBuiltin")}
+              </Button>,
+            );
+          }
           if (canSpeedTest(item)) {
+            const runtimeUp = item.provider_name?.includes("llama.cpp")
+              ? llamaCppUp
+              : ollamaUp;
             actions.push(
               testing ? (
                 <Button
@@ -673,9 +749,9 @@ export function LocalHardwarePanel({
                 <Button
                   key="speed"
                   size="small"
-                  disabled={!ollamaUp}
+                  disabled={!runtimeUp}
                   title={
-                    ollamaUp ? undefined : t("models.localSpeedNeedRuntime")
+                    runtimeUp ? undefined : t("models.localSpeedNeedRuntime")
                   }
                   onClick={() => void runSpeedTest(item)}
                 >

@@ -3480,7 +3480,13 @@
     "onnxQuickDownload": "从目录快速下载…",
     "useInChat": "去对话切换",
     "localInstallRegistered": "已安装 {{name}} 并登记到模型列表。打开「对话」即可切换。",
-    "localInstallNeedProvider": "模型已下载。请先在本页启用 Ollama 提供商，再到对话里切换。"
+    "localInstallNeedProvider": "模型已下载。请先在本页启用 Ollama 提供商，再到对话里切换。",
+    "localBuiltinRuntime": "FreeOS 内置运行时",
+    "localBuiltinMissing": "缺少内置本地模型运行时",
+    "localBuiltinMissingHelp": "请修复或更新 FreeOS，以恢复随软件提供的 llama.cpp 运行时。",
+    "localRunBuiltin": "使用 FreeOS 运行",
+    "localBuiltinStarted": "已使用 FreeOS 本地运行时启动 {{name}}",
+    "localBuiltinStartFailed": "FreeOS 本地运行时启动失败"
   },
   "advancedSettings": {
     "description": "管理运行配置和环境变量等高级选项。",

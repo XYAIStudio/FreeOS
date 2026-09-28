@@ -5,6 +5,7 @@ import { MemoryRouter } from "react-router-dom";
 
 const probe = vi.fn();
 const startOllama = vi.fn();
+const startLlamaCpp = vi.fn();
 const ensureDeps = vi.fn();
 const startScan = vi.fn();
 const register = vi.fn();
@@ -16,6 +17,7 @@ vi.mock("../../../../api/modules/localModels", () => ({
   localModelsApi: {
     probe: (...args: unknown[]) => probe(...args),
     startOllama: (...args: unknown[]) => startOllama(...args),
+    startLlamaCpp: (...args: unknown[]) => startLlamaCpp(...args),
     ensureDeps: (...args: unknown[]) => ensureDeps(...args),
     install: vi.fn(),
     startScan: (...args: unknown[]) => startScan(...args),
@@ -51,6 +53,9 @@ const installedStopped = {
     ollama_installed: true,
     ollama_reachable: false,
     ollama_path: "C:\\\\Ollama\\\\ollama.exe",
+    llamacpp_binary: true,
+    llamacpp_reachable: false,
+    llamacpp_path: "C:\\\\FreeOS\\\\llama.cpp\\\\llama-server.exe",
   },
   deps: [
     {
@@ -76,6 +81,12 @@ beforeEach(() => {
   vi.clearAllMocks();
   probe.mockResolvedValue(installedStopped);
   startOllama.mockResolvedValue({ ok: true, installed: true, running: true });
+  startLlamaCpp.mockResolvedValue({
+    ok: true,
+    installed: true,
+    running: true,
+    registered: true,
+  });
   startScan.mockResolvedValue({
     job_id: "job-1",
     status: "completed",
@@ -105,6 +116,20 @@ describe("<LocalHardwarePanel />", () => {
     await waitFor(() => expect(screen.getByText("tiny")).toBeInTheDocument());
     expect(screen.getByText("D:\\\\models\\\\tiny.gguf")).toBeInTheDocument();
     expect(screen.getByText("models.localRegister")).toBeInTheDocument();
+    expect(screen.getByText("models.localRunBuiltin")).toBeInTheDocument();
+  });
+
+  it("starts a discovered GGUF with the built-in runtime", async () => {
+    renderPanel();
+    await waitFor(() => expect(screen.getByText("tiny")).toBeInTheDocument());
+    await userEvent.click(screen.getByText("models.localRunBuiltin"));
+    await waitFor(() =>
+      expect(startLlamaCpp).toHaveBeenCalledWith({
+        model_path: "D:\\\\models\\\\tiny.gguf",
+        alias: "tiny",
+        gpu_layers: -1,
+      }),
+    );
   });
 
   it("starts a local weight search", async () => {
@@ -142,10 +167,16 @@ describe("<LocalHardwarePanel />", () => {
     expect(screen.getByText("models.localSetDefault")).toBeInTheDocument();
     await userEvent.click(screen.getByText("models.localSpeedTest"));
     await waitFor(() =>
-      expect(speedTest).toHaveBeenCalledWith("tiny", expect.anything()),
+      expect(speedTest).toHaveBeenCalledWith(
+        "tiny",
+        undefined,
+        expect.anything(),
+      ),
     );
     await userEvent.click(screen.getByText("models.localSetDefault"));
-    await waitFor(() => expect(setDefault).toHaveBeenCalledWith("tiny"));
+    await waitFor(() =>
+      expect(setDefault).toHaveBeenCalledWith("tiny", undefined),
+    );
   });
 
   it("shows a default badge and can clear it", async () => {

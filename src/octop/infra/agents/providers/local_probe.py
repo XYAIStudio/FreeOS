@@ -9,6 +9,10 @@ import subprocess
 from pathlib import Path
 from typing import Any
 
+from octop.infra.agents.providers.llamacpp_runtime import (
+    find_llama_server,
+    is_llamacpp_reachable,
+)
 from octop.infra.agents.providers.local_weights import common_model_roots, scan_weight_roots
 from octop.infra.agents.providers.ollama_install import install_plan
 from octop.infra.utils.ollama_manager import OllamaModelManager, is_ollama_reachable
@@ -115,7 +119,12 @@ def recommend_models(ram_gb: float, has_gpu: bool) -> list[dict[str, str]]:
     return [{"id": mid, "reason": reason, "install": "ollama"} for mid, reason in picks]
 
 
-def _deps(*, ollama_installed: bool, ollama_up: bool) -> list[dict[str, Any]]:
+def _deps(
+    *,
+    ollama_installed: bool,
+    ollama_up: bool,
+    llamacpp_installed: bool,
+) -> list[dict[str, Any]]:
     deps: list[dict[str, Any]] = []
     plan = install_plan()
     if not ollama_installed:
@@ -141,6 +150,16 @@ def _deps(*, ollama_installed: bool, ollama_up: bool) -> list[dict[str, Any]]:
                 "next_step": "Ollama is installed. Start the local service to pull or chat with models.",
             }
         )
+    if not llamacpp_installed:
+        deps.append(
+            {
+                "id": "llamacpp",
+                "kind": "bundled_runtime",
+                "automatable": False,
+                "method": "repair_freeos",
+                "next_step": "Repair or update FreeOS to install the bundled llama.cpp runtime.",
+            }
+        )
     return deps
 
 
@@ -149,6 +168,8 @@ def probe_local_models() -> dict[str, Any]:
     gpu = _gpu_name()
     ollama_up, ollama_models = _ollama_models()
     ollama_installed = ollama_is_installed()
+    llamacpp_binary = find_llama_server()
+    llamacpp_up = is_llamacpp_reachable()
     discovered = list(ollama_models)
     discovered.extend(
         scan_weight_roots(
@@ -169,8 +190,15 @@ def probe_local_models() -> dict[str, Any]:
             "ollama_installed": ollama_installed,
             "ollama_reachable": ollama_up,
             "ollama_path": find_ollama_binary() or "",
+            "llamacpp_binary": bool(llamacpp_binary),
+            "llamacpp_reachable": llamacpp_up,
+            "llamacpp_path": str(llamacpp_binary) if llamacpp_binary else "",
         },
-        "deps": _deps(ollama_installed=ollama_installed, ollama_up=ollama_up),
+        "deps": _deps(
+            ollama_installed=ollama_installed,
+            ollama_up=ollama_up,
+            llamacpp_installed=llamacpp_binary is not None,
+        ),
         "installed": discovered,
         "recommended": recommend_models(ram, bool(gpu)),
     }
