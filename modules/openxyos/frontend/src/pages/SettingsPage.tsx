@@ -5,7 +5,8 @@ import { authFetch } from "../api/authFetch";
 import { EXPERIENCE_MODELS } from "../llm-providers";
 import { useAuthStore } from "../stores/auth";
 import Avatar from "../components/Avatar";
-import ModuleManagementTab from "../components/OpenModuleManagementTab";
+import OpenModuleManagementTab from "../components/OpenModuleManagementTab";
+import ModuleManagementTab from "../components/ModuleManagementTab";
 import { useLocale } from "../i18n";
 
 interface CompanySettings { name: string; settings: Record<string, string>; }
@@ -241,7 +242,9 @@ export default function SettingsPage() {
             </div>
           )}
 
-          {tab === "modules" && isAdmin && user && <ModuleManagementTab currentTenantId={user.tenant_id} isSuperAdmin={isSuperAdmin} />}
+          {tab === "modules" && isAdmin && user && (import.meta.env.VITE_FREEOS_ORG_INTEGRATED === "true"
+            ? <ModuleManagementTab currentTenantId={user.tenant_id} isSuperAdmin={isSuperAdmin} />
+            : <OpenModuleManagementTab currentTenantId={user.tenant_id} isSuperAdmin={isSuperAdmin} />)}
 
           {tab === "ai" && <LLMSettingsTab />}
 

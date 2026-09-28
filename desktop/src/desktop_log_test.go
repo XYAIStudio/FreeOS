@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -25,7 +26,15 @@ func TestInitDesktopLogWritesFile(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("FREEOS_HOME", home)
 	t.Setenv("OCTOP_HOME", "")
-	initDesktopLog()
+	writer, flags := log.Writer(), log.Flags()
+	logFile := initDesktopLog()
+	t.Cleanup(func() {
+		log.SetOutput(writer)
+		log.SetFlags(flags)
+		if logFile != nil {
+			logFile.Close()
+		}
+	})
 	data, err := os.ReadFile(desktopLogPath())
 	if err != nil {
 		t.Fatal(err)

@@ -1,3 +1,4 @@
+import { StrictMode } from "react";
 import { render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -18,8 +19,8 @@ vi.mock("../../utils/desktopShell", () => ({
   isDesktopShell: vi.fn(),
 }));
 
-function renderEntry() {
-  return render(
+function renderEntry(strict = false) {
+  const tree = (
     <MemoryRouter initialEntries={["/organization"]}>
       <Routes>
         <Route path="/organization" element={<OrganizationEntry />} />
@@ -28,8 +29,9 @@ function renderEntry() {
           element={<div data-testid="org-ui-workspace">workspace</div>}
         />
       </Routes>
-    </MemoryRouter>,
+    </MemoryRouter>
   );
+  return render(strict ? <StrictMode>{tree}</StrictMode> : tree);
 }
 
 describe("OrganizationEntry", () => {
@@ -109,6 +111,57 @@ describe("OrganizationEntry", () => {
     });
     expect(screen.queryByTestId("org-ui-workspace")).toBeNull();
     expect(screen.queryByTestId("org-openxyos-frame")).toBeNull();
+  });
+
+  it("opens the organization after its automatic start becomes healthy", async () => {
+    vi.mocked(isDesktopShell).mockReturnValue(true);
+    vi.mocked(orgModuleApi.identityStatus).mockResolvedValue({
+      integrated: true,
+      authority: "dual",
+    });
+    vi.mocked(orgModuleApi.probeLivez)
+      .mockResolvedValueOnce({
+        reachable: false,
+        url: "http://127.0.0.1:3780",
+        detail: "sidecar unreachable",
+      })
+      .mockResolvedValueOnce({
+        reachable: false,
+        url: "http://127.0.0.1:3780",
+        detail: "sidecar unreachable",
+      })
+      .mockResolvedValue({
+        reachable: true,
+        url: "http://127.0.0.1:3780",
+        detail: "ok",
+      });
+    renderEntry(true);
+    expect(await screen.findByTestId("org-openxyos-frame")).toBeInTheDocument();
+    expect(orgModuleApi.startSidecar).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows the startup failure instead of leaving the user at the port wait step", async () => {
+    vi.mocked(isDesktopShell).mockReturnValue(true);
+    vi.mocked(orgModuleApi.identityStatus).mockResolvedValue({
+      integrated: true,
+      authority: "dual",
+    });
+    vi.mocked(orgModuleApi.probeLivez).mockResolvedValue({
+      reachable: false,
+      url: "http://127.0.0.1:3780",
+      detail: "sidecar unreachable",
+    });
+    vi.mocked(orgModuleApi.startSidecar).mockResolvedValue({
+      started: true,
+      already: false,
+      reachable: false,
+      detail: "database could not be opened",
+    });
+    renderEntry();
+    expect(
+      await screen.findByText(/database could not be opened/),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId("org-sidecar-gate")).toBeInTheDocument();
   });
 
   it("falls back to the host org-ui workspace when identity status fails", async () => {

@@ -14,12 +14,14 @@ import styles from "./Organization.module.less";
 type OrgRestartOverlayProps = {
   mode: "restarting" | "needsRestart";
   finished?: boolean;
+  error?: string;
   onRestart: () => void;
 };
 
 export default function OrgRestartOverlay({
   mode,
   finished = false,
+  error = "",
   onRestart,
 }: OrgRestartOverlayProps) {
   const { t } = useTranslation();
@@ -112,7 +114,14 @@ export default function OrgRestartOverlay({
               {t("organization.previewNeedsRestartTitle")}
             </h2>
             <p className={styles.restartGateBody}>
-              {t("organization.previewNeedsRestart")}
+              {error ? (
+                <>
+                  {t("organization.restartSidecarFailed", { detail: "" })}{" "}
+                  {error}
+                </>
+              ) : (
+                t("organization.previewNeedsRestart")
+              )}
             </p>
             <Button
               type="primary"

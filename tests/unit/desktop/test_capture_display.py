@@ -5,7 +5,8 @@ from __future__ import annotations
 from octop.infra.desktop.capture import display_str, is_linux_virtual_display
 
 
-def test_display_str_defaults() -> None:
+def test_display_str_defaults(monkeypatch) -> None:
+    monkeypatch.delenv("DISPLAY", raising=False)
     assert display_str(None).startswith(":")
 
 

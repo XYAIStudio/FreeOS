@@ -20,6 +20,9 @@
 
 ### 修复
 
+- Windows 最小化到托盘后，从托盘菜单「显示 FreeOS」或再次启动应用可稳定恢复主窗口；宿主会消费隐藏窗口产生的延迟关闭事件，避免窗口显示后立刻再次隐藏。
+- 组织页自动启动不再因 React effect 清理而取消；桌面宿主与 Python 组织启动器不再争抢同一 openXYOS 进程。组织数据库改为原子落盘，模块开关可即时更新导航并在重启后保持。
+- Ollama 模型明确返回“不支持 tools”时，同一轮请求会自动去掉工具定义后重试。`qwen2.5vl:3b` 等视觉/对话模型不再因工具能力缺失连续触发 `stream_error`。
 - 撤回错误标记为 0.0.5、内部实际仍为 0.0.4 的 Windows 构建。桌面更新现在拒绝版本元数据与 portable 包内部版本不一致的下载，也拒绝重复安装当前或更旧版本，防止同一包循环下载、启动时反复解压约 1.15 GB / 6.8 万文件并拖垮系统。Windows WebView2 默认使用软件渲染，降低显卡驱动黑屏风险；发布工作流在标签与 `pyproject.toml` 版本不一致时直接失败。
 - 组织嵌入仍走 openXYOS 自己的登录（`localStorage token` / sidecar JWT），不把 FreeOS 桌面访客（`auth_token` / `POST /api/auth/local-session`）写进组织房间。重启/恢复 sidecar 始终带 `FREEOS_ORG_LOCAL_TEST=1`，保留 `demo@demo.com` / `user@demo.com`。本机会话跳过组织映射行，不删除、不占用 openXYOS 用户。代理剥离宿主 Cookie 与 `X-FreeOS-*`。 / Org embed keeps openXYOS login; FreeOS local-session must not replace org users. Sidecar restart still seeds test accounts. Proxy drops host cookies and identity headers.
 - Windows 升级刷新 `~/.freeos/portable` 时，若目录节点被占用（无法改名为 `portable.previous`，报 “being used by another process”），先尝试结束残留的 portable / `launch.py` 进程，再把新运行时**原地覆盖**进现有文件夹，避免留下空的锁定 `portable` 桩，也不要求重启。 / If renaming `portable` → `portable.previous` fails because the directory is in use, stop leftover host processes and overlay the new runtime in place.

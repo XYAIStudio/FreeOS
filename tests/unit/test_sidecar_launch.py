@@ -96,6 +96,33 @@ def test_start_sidecar_already_reachable(tmp_path: Path, monkeypatch: pytest.Mon
     assert result.started is False
 
 
+def test_desktop_start_does_not_spawn_second_managed_node(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from octop.modules.org_os import sidecar_launch
+    from octop.modules.org_os.service import SidecarHealth
+
+    service = OrgModuleService(config_path=tmp_path / "config.json", home=tmp_path)
+    monkeypatch.setenv("FREEOS_DESKTOP", "1")
+    monkeypatch.setenv("OPENXYOS_BASE_URL", "http://127.0.0.1:3780")
+    monkeypatch.setattr(
+        service,
+        "probe_sidecar",
+        lambda timeout=2.0: SidecarHealth(reachable=False, url="http://127.0.0.1:3780"),
+    )
+    monkeypatch.setattr(
+        sidecar_launch, "_wait_reachable", lambda service, wait: service.probe_sidecar()
+    )
+    monkeypatch.setattr(sidecar_launch, "_spawn", lambda service: pytest.fail("duplicate spawn"))
+    monkeypatch.setattr(
+        sidecar_launch, "stop_stale_openxyos", lambda root: pytest.fail("managed Node stopped")
+    )
+
+    result = sidecar_launch.restart_sidecar(service, wait=0.1)
+    assert result.reachable is False
+    assert "managed runtime is restarting" in result.detail
+
+
 def test_start_sidecar_restarts_when_embed_blocked(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

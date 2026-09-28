@@ -32,21 +32,22 @@ func processLogPath(name string) string {
 	return filepath.Join(desktopLogDir(), name+".log")
 }
 
-func initDesktopLog() {
+func initDesktopLog() *os.File {
 	if err := os.MkdirAll(desktopLogDir(), 0o755); err != nil {
 		log.SetOutput(os.Stderr)
 		log.Printf("desktop log dir: %v", err)
-		return
+		return nil
 	}
 	f, err := os.OpenFile(desktopLogPath(), os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o644)
 	if err != nil {
 		log.SetOutput(os.Stderr)
 		log.Printf("desktop log file: %v", err)
-		return
+		return nil
 	}
 	log.SetOutput(io.MultiWriter(f, os.Stderr))
 	log.SetFlags(log.LstdFlags | log.Lmicroseconds)
 	log.Printf("desktop log %s", desktopLogPath())
+	return f
 }
 
 func attachProcessLogFile(name string) (*os.File, error) {
