@@ -147,7 +147,7 @@ opt into `SHIP_OPENXYOS_RUNTIME=1`):
 make -f desktop/portable/Makefile green
 ```
 
-The managed Node sidecar is included in the 0.0.4 desktop release so the
+The managed Node sidecar is included in the 0.0.6 desktop release so the
 integrated Organization workspace works in an offline installation. Set
 `SKIP_ORG_SIDECAR=1` only for an explicitly slim, host-only development build.
 

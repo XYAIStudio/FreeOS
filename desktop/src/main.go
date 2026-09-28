@@ -24,25 +24,32 @@ var assets embed.FS
 const trayDoubleClick = 400 * time.Millisecond
 
 func webviewAcceptanceArgs() []string {
+	args := []string{"--disable-gpu", "--disable-gpu-compositing"}
+	if strings.EqualFold(strings.TrimSpace(os.Getenv("FREEOS_WEBVIEW_GPU")), "1") ||
+		strings.EqualFold(strings.TrimSpace(os.Getenv("FREEOS_WEBVIEW_GPU")), "true") {
+		args = nil
+	}
 	raw := strings.TrimSpace(os.Getenv("FREEOS_WEBVIEW_DEBUG_PORT"))
 	port, err := strconv.Atoi(raw)
 	if err != nil || port < 1024 || port > 65535 {
-		return nil
+		return args
 	}
-	return []string{fmt.Sprintf("--remote-debugging-port=%d", port)}
+	return append(args, fmt.Sprintf("--remote-debugging-port=%d", port))
 }
 
 // App is the Wails service bound to the shell UI.
 type App struct {
-	app            *application.App
-	window         *application.WebviewWindow
-	settingsWindow *application.WebviewWindow
-	store          *settingsStore
-	sleep          *sleepGuard
-	cmd            *exec.Cmd
-	sidecar        *exec.Cmd
-	mu             sync.Mutex
-	quitting       bool
+	app                *application.App
+	window             *application.WebviewWindow
+	settingsWindow     *application.WebviewWindow
+	store              *settingsStore
+	sleep              *sleepGuard
+	cmd                *exec.Cmd
+	sidecar            *exec.Cmd
+	mu                 sync.Mutex
+	quitting           bool
+	trayHidePending    bool
+	trayHideGeneration uint64
 
 	trayClickMu    sync.Mutex
 	lastTrayClick  time.Time
@@ -117,6 +124,10 @@ func (a *App) SaveSettings(next Settings) (Settings, error) {
 }
 
 func (a *App) ShowMain() {
+	log.Printf("ShowMain requested")
+	if a.settingsWindow != nil {
+		a.settingsWindow.Hide()
+	}
 	a.showWindow()
 }
 
@@ -289,10 +300,33 @@ func (a *App) showDashboard(base string) {
 }
 
 func (a *App) hideToTray() {
-	if a.window == nil {
+	if a.window == nil || !a.window.IsVisible() {
 		return
 	}
+	log.Printf("hideToTray: minimised=%v", a.window.IsMinimised())
+	a.mu.Lock()
+	a.trayHidePending = true
+	a.trayHideGeneration++
+	generation := a.trayHideGeneration
+	a.mu.Unlock()
 	a.window.Hide()
+	time.AfterFunc(2*time.Second, func() {
+		a.mu.Lock()
+		if a.trayHideGeneration == generation {
+			a.trayHidePending = false
+		}
+		a.mu.Unlock()
+	})
+}
+
+func (a *App) consumeTrayHideClosing() bool {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	if !a.trayHidePending {
+		return false
+	}
+	a.trayHidePending = false
+	return true
 }
 
 func (a *App) showWindow() {
@@ -304,17 +338,7 @@ func (a *App) showWindow() {
 	}
 	a.window.Show()
 	a.window.Focus()
-}
-
-func (a *App) toggleMainWindow() {
-	if a.window == nil {
-		return
-	}
-	if a.window.IsVisible() && !a.window.IsMinimised() {
-		a.hideToTray()
-		return
-	}
-	a.showWindow()
+	log.Printf("showWindow: visible=%v minimised=%v", a.window.IsVisible(), a.window.IsMinimised())
 }
 
 func (a *App) onTrayLeftClick() {
@@ -327,7 +351,7 @@ func (a *App) onTrayLeftClick() {
 	now := time.Now()
 	if !a.lastTrayClick.IsZero() && now.Sub(a.lastTrayClick) < trayDoubleClick {
 		a.lastTrayClick = time.Time{}
-		go a.toggleMainWindow()
+		go a.ShowMain()
 		return
 	}
 	a.lastTrayClick = now
@@ -335,7 +359,7 @@ func (a *App) onTrayLeftClick() {
 		a.trayClickMu.Lock()
 		a.trayClickTimer = nil
 		a.trayClickMu.Unlock()
-		a.showWindow()
+		a.ShowMain()
 	})
 }
 
@@ -377,7 +401,9 @@ func main() {
 		showFatalError("FreeOS", err.Error())
 		return
 	}
-	initDesktopLog()
+	if logFile := initDesktopLog(); logFile != nil {
+		defer logFile.Close()
+	}
 	if exe, err := os.Executable(); err == nil {
 		cwd, _ := os.Getwd()
 		log.Printf("launch exe=%s cwd=%s home=%s", exe, cwd, productHome())
@@ -459,6 +485,7 @@ func main() {
 		win.Minimise()
 	})
 	app.Event.On("desktop:close", func(_ *application.CustomEvent) {
+		log.Printf("desktop:close event")
 		api.hideToTray()
 	})
 	app.Event.On("desktop:select-folder", func(_ *application.CustomEvent) {
@@ -489,6 +516,11 @@ func main() {
 	})
 
 	win.RegisterHook(events.Common.WindowClosing, func(e *application.WindowEvent) {
+		log.Printf("WindowClosing event")
+		if api.consumeTrayHideClosing() {
+			e.Cancel()
+			return
+		}
 		api.mu.Lock()
 		quit := api.quitting
 		api.mu.Unlock()
@@ -499,7 +531,8 @@ func main() {
 		api.hideToTray()
 	})
 	win.OnWindowEvent(events.Common.WindowMinimise, func(_ *application.WindowEvent) {
-		if api.store.get().MinimizeToTray {
+		log.Printf("WindowMinimise: minimised=%v", api.window.IsMinimised())
+		if api.store.get().MinimizeToTray && api.window.IsMinimised() {
 			api.hideToTray()
 		}
 	})

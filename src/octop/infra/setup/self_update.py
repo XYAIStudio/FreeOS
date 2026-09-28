@@ -568,6 +568,14 @@ def run_upgrade(
             success=False,
             error=f"{target} is a pre-release; pass --allow-prerelease to install it",
         )
+
+    local = get_local_version()
+    if local != "0.0.0" and not is_newer(target, local):
+        return UpgradeResult(
+            success=False,
+            error=f"FreeOS {target} is not newer than the installed {local}",
+            installed_version=local,
+        )
     plat = desktop_plat()
     asset = pick_portable_asset(info.assets, plat=plat, version=target)
     if asset is None:

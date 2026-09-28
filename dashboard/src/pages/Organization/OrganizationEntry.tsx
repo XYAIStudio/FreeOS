@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Navigate } from "react-router-dom";
 import { Spin } from "antd";
 import { orgModuleApi } from "../../api/modules/orgModule";
@@ -28,7 +28,8 @@ export default function OrganizationEntry() {
   const [livezOk, setLivezOk] = useState(false);
   const [probed, setProbed] = useState(false);
   const [restarting, setRestarting] = useState(false);
-  const [autoTried, setAutoTried] = useState(false);
+  const autoTried = useRef(false);
+  const [startError, setStartError] = useState("");
 
   useEffect(() => {
     let active = true;
@@ -68,34 +69,40 @@ export default function OrganizationEntry() {
   }, [embed]);
 
   useEffect(() => {
-    if (!embed || !probed || livezOk || autoTried) return;
-    setAutoTried(true);
+    if (!embed || !probed || livezOk || autoTried.current) return;
+    autoTried.current = true;
     setRestarting(true);
-    let active = true;
+    setStartError("");
     void orgModuleApi
       .startSidecar()
-      .then(() => orgModuleApi.probeLivez())
-      .then((result) => {
-        if (active) setLivezOk(Boolean(result.reachable));
+      .then(async (start) => {
+        const result = await orgModuleApi.probeLivez();
+        setLivezOk(Boolean(result.reachable));
+        if (!result.reachable)
+          setStartError(start.detail || result.detail || "");
       })
-      .catch(() => {
-        if (active) setLivezOk(false);
+      .catch((error: unknown) => {
+        setLivezOk(false);
+        setStartError(error instanceof Error ? error.message : String(error));
       })
-      .finally(() => {
-        if (active) setRestarting(false);
-      });
-    return () => {
-      active = false;
-    };
-  }, [embed, probed, livezOk, autoTried]);
+      .finally(() => setRestarting(false));
+  }, [embed, probed, livezOk]);
 
   const onRestart = () => {
     setRestarting(true);
+    setStartError("");
     void orgModuleApi
       .restartSidecar()
-      .then(() => orgModuleApi.probeLivez())
-      .then((result) => setLivezOk(Boolean(result.reachable)))
-      .catch(() => setLivezOk(false))
+      .then(async (restart) => {
+        const result = await orgModuleApi.probeLivez();
+        setLivezOk(Boolean(result.reachable));
+        if (!result.reachable)
+          setStartError(restart.detail || result.detail || "");
+      })
+      .catch((error: unknown) => {
+        setLivezOk(false);
+        setStartError(error instanceof Error ? error.message : String(error));
+      })
       .finally(() => setRestarting(false));
   };
 
@@ -118,6 +125,7 @@ export default function OrganizationEntry() {
     return (
       <OrgRestartOverlay
         mode={gate === "restarting" ? "restarting" : "needsRestart"}
+        error={startError}
         onRestart={onRestart}
       />
     );

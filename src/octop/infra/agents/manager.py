@@ -2782,6 +2782,9 @@ class AgentManager:
         from octop.infra.agents.middleware.binary_read_guard import BinaryReadGuardMiddleware
         from octop.infra.agents.middleware.browser_profile import BrowserProfileMiddleware
         from octop.infra.agents.middleware.group_mentions import GroupMentionMiddleware
+        from octop.infra.agents.middleware.ollama_tool_fallback import (
+            OllamaToolFallbackMiddleware,
+        )
         from octop.infra.agents.middleware.org_governance import OrgGovernanceMiddleware
         from octop.infra.agents.middleware.reasoning import ReasoningRequestMiddleware
         from octop.infra.agents.middleware.thread_artifacts import ThreadArtifactsMiddleware
@@ -2803,6 +2806,7 @@ class AgentManager:
                 usage_repo=self._repos.usage_repo,
             ),
             ReasoningRequestMiddleware(),
+            OllamaToolFallbackMiddleware(),
             GroupMentionMiddleware(lambda: self._harness_manager),
             KnowledgeSearchHintMiddleware(),
             BrowserProfileMiddleware(),

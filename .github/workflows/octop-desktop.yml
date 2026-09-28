@@ -153,6 +153,15 @@ jobs:
         run: |
           set -euo pipefail
           VER=$(sed -nE 's/^version[[:space:]]*=[[:space:]]*"([^"]+)".*/\1/p' pyproject.toml | head -1)
+          requested_tag="${{ github.event.inputs.release_tag }}"
+          if [[ "${GITHUB_REF}" == refs/tags/v* && "${GITHUB_REF_NAME#v}" != "$VER" ]]; then
+            echo "Refusing desktop release: tag ${GITHUB_REF_NAME} does not match pyproject.toml $VER" >&2
+            exit 1
+          fi
+          if [[ -n "$requested_tag" && "${requested_tag#v}" != "$VER" ]]; then
+            echo "Refusing desktop release: requested tag $requested_tag does not match pyproject.toml $VER" >&2
+            exit 1
+          fi
           echo "OCTOP_VERSION=${VER}" >> "$GITHUB_ENV"
           echo "version=${VER}"
 

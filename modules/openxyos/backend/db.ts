@@ -14,8 +14,15 @@ export async function initDatabase(): Promise<void> {
 
   if (fs.existsSync(dbPath)) {
     const buf = fs.readFileSync(dbPath);
-    db = new SQL.Database(buf);
-    console.log("[数据库] 加载已有数据库文件");
+    if (buf.every((byte) => byte === 0)) {
+      const quarantined = `${dbPath}.zeroed-${Date.now()}.bak`;
+      fs.renameSync(dbPath, quarantined);
+      console.error(`[数据库] 全零文件已保存在 ${quarantined}，创建新数据库`);
+      db = new SQL.Database();
+    } else {
+      db = new SQL.Database(buf);
+      console.log("[数据库] 加载已有数据库文件");
+    }
   } else {
     db = new SQL.Database();
     console.log("[数据库] 创建新数据库");
@@ -521,7 +528,13 @@ export function saveDb(): void {
   if (!db) return;
   const data = db.export();
   const buffer = Buffer.from(data);
-  fs.writeFileSync(dbPath, buffer);
+  const tempPath = `${dbPath}.${process.pid}.tmp`;
+  try {
+    fs.writeFileSync(tempPath, buffer);
+    fs.renameSync(tempPath, dbPath);
+  } finally {
+    if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath);
+  }
 }
 
 // Helper: query all rows
@@ -533,7 +546,6 @@ export function dbAll(sql: string, params: any[] = []): any[] {
     rows.push(stmt.getAsObject());
   }
   stmt.free();
-  saveDb();
   return rows;
 }
 

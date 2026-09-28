@@ -34,9 +34,11 @@ var (
 	procShowWindow    = user32.NewProc("ShowWindow")
 	procSetForeground = user32.NewProc("SetForegroundWindow")
 	procIsIconic      = user32.NewProc("IsIconic")
+	procIsVisible     = user32.NewProc("IsWindowVisible")
 )
 
 const swRestore = 9
+const swShow = 5
 
 func activateExistingInstance() bool {
 	title, err := syscall.UTF16PtrFromString("FreeOS")
@@ -52,7 +54,12 @@ func activateExistingInstance() bool {
 	if iconic != 0 {
 		_, _, _ = procShowWindow.Call(hwnd, swRestore)
 	} else {
-		_, _, _ = procShowWindow.Call(hwnd, 1) // SW_SHOWNORMAL
+		_, _, _ = procShowWindow.Call(hwnd, swShow)
+	}
+	visible, _, _ := procIsVisible.Call(hwnd)
+	if visible == 0 {
+		log.Printf("FreeOS window could not be restored")
+		return false
 	}
 	_, _, _ = procSetForeground.Call(hwnd)
 	log.Printf("activated existing FreeOS window")
@@ -65,6 +72,10 @@ func otherDesktopInstanceHeld() bool {
 		return false
 	}
 	h, err := windows.CreateMutex(nil, false, name)
+	if err == windows.ERROR_ACCESS_DENIED {
+		// An elevated instance can own the mutex without granting access here.
+		return true
+	}
 	if err == windows.ERROR_ALREADY_EXISTS {
 		if desktopMutex != 0 {
 			if h != 0 && h != desktopMutex {

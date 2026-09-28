@@ -14,6 +14,7 @@ async function main() {
 
   const { initDatabase, dbRun } = await import("../backend/db");
   const { openModuleSettingsRoutes: moduleSettingsRoutes } = await import("../backend/routes/open-module-settings");
+  const { moduleSettingsRoutes: integratedModuleSettingsRoutes } = await import("../backend/routes/module-settings");
   const { signToken } = await import("../backend/middleware");
   await initDatabase();
 
@@ -32,6 +33,7 @@ async function main() {
   const app = express();
   app.use(express.json());
   app.use("/api/module-settings", moduleSettingsRoutes);
+  app.use("/api/integrated-module-settings", integratedModuleSettingsRoutes);
   const server = app.listen(0, "127.0.0.1");
   let baseUrl = "";
 
@@ -60,6 +62,16 @@ async function main() {
     assert.equal(savedBody.data.modules.find((module: any) => module.key === "tasks").enabled, false);
     assert.equal(savedBody.data.modules.find((module: any) => module.key === "employees").label, "协同成员");
     assert.equal(savedBody.data.modules.length, 12);
+
+    const integratedSaved = await request(tokens.admin, "/api/integrated-module-settings", {
+      method: "PUT",
+      body: JSON.stringify({ updates: { chat: false } }),
+    });
+    assert.equal(integratedSaved.status, 200);
+    const integratedRead = await request(tokens.user, "/api/integrated-module-settings");
+    assert.equal(integratedRead.status, 200);
+    const integratedBody = await integratedRead.json() as any;
+    assert.equal(integratedBody.data.modules.find((module: any) => module.key === "chat").enabled, false);
 
     const userWrite = await request(tokens.user, "/api/module-settings", {
       method: "PUT",

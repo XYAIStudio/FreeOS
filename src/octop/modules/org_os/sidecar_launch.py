@@ -551,6 +551,23 @@ def start_sidecar(
             detail="sidecar already reachable",
             launcher=launcher_label,
         )
+    if os.environ.get("FREEOS_DESKTOP") == "1" and os.environ.get("OPENXYOS_BASE_URL"):
+        # The desktop host already supervises this Node process. Starting a
+        # second sidecar here would stop/race the managed process and DB writer.
+        latest = _wait_reachable(service, min(wait, 5.0))
+        return SidecarStartResult(
+            started=False,
+            already=latest.reachable,
+            reachable=latest.reachable,
+            url=latest.url,
+            command=command,
+            detail=(
+                "managed runtime reachable"
+                if latest.reachable
+                else "managed runtime is restarting; check logs/organization-runtime.log"
+            ),
+            launcher=launcher_label,
+        )
     if not sidecar_can_start():
         return SidecarStartResult(
             started=False,
@@ -629,7 +646,9 @@ def _wait_until_down(service: OrgModuleService, wait: float = 8.0) -> None:
 
 
 def restart_sidecar(service: OrgModuleService, *, wait: float = 45.0) -> SidecarStartResult:
-    """Stop the live openXYOS Node, then start FE+BE again and wait for livez."""
+    """Restart standalone sidecar; defer to the desktop supervisor when managed."""
+    if os.environ.get("FREEOS_DESKTOP") == "1" and os.environ.get("OPENXYOS_BASE_URL"):
+        return start_sidecar(service, wait=wait)
     root = sidecar_runtime_root()
     if root is not None:
         heal_openxyos_layout(root)

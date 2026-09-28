@@ -248,7 +248,7 @@ export default function Sidebar({
         {showText && (
           <div className="flex-1 min-w-0">
             <h1 className="text-sm font-bold text-text truncate">
-              雄元智脑XYOS
+              openXYOS
             </h1>
           </div>
         )}
