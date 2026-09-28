@@ -13,6 +13,7 @@ from octop.infra.agents.providers.llamacpp_runtime import (
     find_llama_server,
     is_llamacpp_reachable,
 )
+from octop.infra.agents.providers.local_catalog import recommended_catalog
 from octop.infra.agents.providers.local_weights import common_model_roots, scan_weight_roots
 from octop.infra.agents.providers.ollama_install import install_plan
 from octop.infra.utils.ollama_manager import OllamaModelManager, is_ollama_reachable
@@ -93,30 +94,6 @@ def _ollama_models() -> tuple[bool, list[dict[str, Any]]]:
             }
         )
     return True, models
-
-
-def recommend_models(ram_gb: float, has_gpu: bool) -> list[dict[str, str]]:
-    picks: list[tuple[str, str]]
-    if ram_gb and ram_gb < 8:
-        picks = [("llama3.2:1b", "1B chat model for 8 GB or less")]
-    elif ram_gb < 16:
-        picks = [
-            ("llama3.2:3b", "3B chat model for 8–16 GB RAM"),
-            ("qwen2.5:3b", "Compact Qwen for everyday tasks"),
-        ]
-    elif ram_gb < 32:
-        picks = [
-            ("llama3.1:8b", "8B general chat"),
-            ("qwen2.5:7b", "7B Qwen for Chinese + English"),
-        ]
-    else:
-        picks = [
-            ("qwen2.5:14b", "14B when you have 32 GB+ RAM"),
-            ("llama3.1:8b", "8B fallback if the larger pull is too heavy"),
-        ]
-    if has_gpu and ram_gb >= 16:
-        picks = [("qwen2.5:14b", "GPU present — 14B is usable"), *picks]
-    return [{"id": mid, "reason": reason, "install": "ollama"} for mid, reason in picks]
 
 
 def _deps(
@@ -200,5 +177,5 @@ def probe_local_models() -> dict[str, Any]:
             llamacpp_installed=llamacpp_binary is not None,
         ),
         "installed": discovered,
-        "recommended": recommend_models(ram, bool(gpu)),
+        "recommended": recommended_catalog(ram),
     }

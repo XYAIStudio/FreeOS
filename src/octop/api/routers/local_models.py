@@ -26,11 +26,17 @@ from octop.infra.agents.providers.llamacpp_runtime import (
 from octop.infra.agents.providers.llamacpp_runtime import (
     upsert_provider as upsert_llamacpp_provider,
 )
+from octop.infra.agents.providers.local_catalog import catalog
 from octop.infra.agents.providers.local_default import (
     annotate_local_models,
     provider_base_url,
     resolve_local_model_ref,
     resolve_registered_or_usable,
+)
+from octop.infra.agents.providers.local_download import (
+    cancel_download_job,
+    get_download_job,
+    start_download_job,
 )
 from octop.infra.agents.providers.local_probe import probe_local_models
 from octop.infra.agents.providers.local_register import (
@@ -72,6 +78,10 @@ router = APIRouter()
 
 class LocalInstallBody(BaseModel):
     name: str = Field(min_length=1, max_length=120, description="Ollama model tag to pull")
+
+
+class LocalCatalogDownloadBody(BaseModel):
+    catalog_id: str = Field(min_length=1, max_length=120, description="Trusted catalog model id")
 
 
 class LocalScanBody(BaseModel):
@@ -328,6 +338,46 @@ async def local_models_install(
         "registered": True,
         "provider_name": provider_name,
     }
+
+
+@router.get("/catalog", summary="List pinned GGUF models available for one-click setup")
+async def local_models_catalog(
+    _: Any = Depends(require_permission("ollama_models")),
+) -> list[dict[str, Any]]:
+    return catalog()
+
+
+@router.post("/downloads", summary="Download a GGUF from the trusted model catalog")
+async def local_models_download_start(
+    body: LocalCatalogDownloadBody,
+    _: Any = Depends(require_permission("ollama_models")),
+) -> dict[str, Any]:
+    try:
+        return start_download_job(body.catalog_id).snapshot()
+    except ValueError as exc:
+        raise OctopError(ErrorCode.NOT_FOUND, str(exc)) from exc
+
+
+@router.get("/downloads/{job_id}", summary="Poll a catalog model download")
+async def local_models_download_status(
+    job_id: str,
+    _: Any = Depends(require_permission("ollama_models")),
+) -> dict[str, Any]:
+    job = get_download_job(job_id)
+    if job is None:
+        raise OctopError(ErrorCode.NOT_FOUND, "download job not found")
+    return job.snapshot()
+
+
+@router.delete("/downloads/{job_id}", summary="Cancel a catalog model download")
+async def local_models_download_cancel(
+    job_id: str,
+    _: Any = Depends(require_permission("ollama_models")),
+) -> dict[str, Any]:
+    if not cancel_download_job(job_id):
+        raise OctopError(ErrorCode.NOT_FOUND, "download job not found")
+    job = get_download_job(job_id)
+    return job.snapshot() if job is not None else {"job_id": job_id, "status": "cancelled"}
 
 
 @router.post("/scan", summary="Start a background scan for local GGUF / GGML weights")

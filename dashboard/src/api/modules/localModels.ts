@@ -42,8 +42,23 @@ export interface LocalInstalledModel {
 
 export interface LocalRecommendedModel {
   id: string;
+  name?: string;
+  display_name?: string;
+  size?: number;
   reason: string;
   install: string;
+}
+
+export interface LocalDownloadJob {
+  job_id: string;
+  catalog_id: string;
+  name?: string;
+  status: string;
+  downloaded_bytes: number;
+  total_bytes: number;
+  percent: number;
+  path: string;
+  error?: string | null;
 }
 
 export interface LocalProbe {
@@ -118,6 +133,21 @@ export const localModelsApi = {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name }),
     }),
+  startDownload: (catalogId: string) =>
+    request<LocalDownloadJob>("/local-models/downloads", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ catalog_id: catalogId }),
+    }),
+  getDownload: (jobId: string) =>
+    request<LocalDownloadJob>(
+      `/local-models/downloads/${encodeURIComponent(jobId)}`,
+    ),
+  cancelDownload: (jobId: string) =>
+    request<LocalDownloadJob>(
+      `/local-models/downloads/${encodeURIComponent(jobId)}`,
+      { method: "DELETE" },
+    ),
   startOllama: () =>
     request<LocalRuntimeResult>("/local-models/start-ollama", {
       method: "POST",

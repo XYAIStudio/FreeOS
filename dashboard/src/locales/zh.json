@@ -3486,7 +3486,15 @@
     "localBuiltinMissingHelp": "请修复或更新 FreeOS，以恢复随软件提供的 llama.cpp 运行时。",
     "localRunBuiltin": "使用 FreeOS 运行",
     "localBuiltinStarted": "已使用 FreeOS 本地运行时启动 {{name}}",
-    "localBuiltinStartFailed": "FreeOS 本地运行时启动失败"
+    "localBuiltinStartFailed": "FreeOS 本地运行时启动失败",
+    "localRecommendedHint": "无需安装 Ollama。下载完成后，FreeOS 会自动启动内置运行时、测速，并将通过测试的模型设为本地对话推荐。",
+    "localInstallAndRecommend": "一键下载并推荐",
+    "localDownloadProgress": "已下载 {{current}} / {{total}}",
+    "localAutoSetupDone": "{{name}} 已下载、测速并设为本地推荐模型",
+    "localCatalogReason": {
+      "recommended_for_hardware": "根据本机内存推荐",
+      "lighter_or_stronger_alternative": "备选模型"
+    }
   },
   "advancedSettings": {
     "description": "管理运行配置和环境变量等高级选项。",
