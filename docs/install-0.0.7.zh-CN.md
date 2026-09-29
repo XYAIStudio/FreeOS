@@ -1,6 +1,6 @@
 # FreeOS 0.0.7 安装与本机模型指南
 
-0.0.7 仍应只从 FreeOS 的 [GitHub Releases](https://github.com/XYAIStudio/FreeOS/releases) 下载。发布完成前，不要把开发分支构建当作正式安装包。
+0.0.7 应只从 FreeOS 的 [GitHub Release v0.0.7](https://github.com/XYAIStudio/FreeOS/releases/tag/v0.0.7) 下载，不要把开发分支构建当作正式安装包。
 
 ## Windows
 
