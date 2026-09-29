@@ -3205,7 +3205,7 @@
     "localNoModels": "No downloaded models yet",
     "ollamaUnavailable": "Ollama is not installed or not running. Please install Ollama and start the daemon.",
     "localDownloadSuccess": "Model downloaded successfully",
-    "localDownloadFailed": "Failed to download model",
+    "localDownloadFailed": "Model download failed",
     "localDeleteModel": "Delete Model",
     "localDeleteConfirm": "Delete model \"{{name}}\"? The model will be removed.",
     "localModelDeleted": "Model \"{{name}}\" deleted",
@@ -3483,7 +3483,23 @@
     "onnxQuickDownload": "Quick download from catalog…",
     "useInChat": "Switch in chat",
     "localInstallRegistered": "Installed {{name}} and registered it. Open Conversations to switch.",
-    "localInstallNeedProvider": "Downloaded. Enable the Ollama provider on this page, then switch in chat."
+    "localInstallNeedProvider": "Downloaded. Enable the Ollama provider on this page, then switch in chat.",
+    "localBuiltinRuntime": "FreeOS built-in runtime",
+    "localBuiltinMissing": "The built-in local-model runtime is missing",
+    "localBuiltinMissingHelp": "Repair or update FreeOS to restore the bundled llama.cpp runtime.",
+    "localRunBuiltin": "Run with FreeOS",
+    "localBuiltinStarted": "Started {{name}} with the FreeOS local runtime",
+    "localBuiltinStartFailed": "Failed to start the FreeOS local runtime",
+    "localRecommendedHint": "No Ollama required. FreeOS downloads the model, starts its bundled runtime, benchmarks it, and selects it for local chat after a successful test.",
+    "localInstallAndRecommend": "Download and recommend",
+    "localDownloadProgress": "Downloaded {{current}} / {{total}}",
+    "localDownloadInterrupted": "The previous model download did not finish. You can continue from the saved progress.",
+    "localDownloadResume": "Resume download",
+    "localAutoSetupDone": "{{name}} was downloaded, benchmarked, and selected for local chat",
+    "localCatalogReason": {
+      "recommended_for_hardware": "Recommended for this computer",
+      "lighter_or_stronger_alternative": "Alternative model"
+    }
   },
   "advancedSettings": {
     "description": "Manage runtime configuration and environment variables.",

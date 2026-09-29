@@ -7,10 +7,11 @@ import {
 
 afterEach(() => {
   sessionStorage.clear();
+  if (typeof localStorage.clear === "function") localStorage.clear();
 });
 
 describe("localSpeedResults", () => {
-  it("round-trips the last speed result in sessionStorage", () => {
+  it("round-trips the last speed result in persistent localStorage", () => {
     const stored = saveSpeedResult("ollama", "tiny", {
       ok: true,
       latency_ms: 120,

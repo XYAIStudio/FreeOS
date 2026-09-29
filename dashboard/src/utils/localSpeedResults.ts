@@ -16,7 +16,10 @@ export interface StoredLocalSpeedResult {
 function storage(): Storage | null {
   if (typeof window === "undefined") return null;
   try {
-    return window.sessionStorage;
+    const persistent = window.localStorage;
+    if (typeof persistent?.getItem === "function") return persistent;
+    const session = window.sessionStorage;
+    return typeof session?.getItem === "function" ? session : null;
   } catch {
     return null;
   }

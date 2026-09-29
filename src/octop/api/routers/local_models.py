@@ -11,11 +11,33 @@ from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel, Field
 
 from octop.api.deps import current_user, get_server, require_permission
+from octop.infra.agents.providers.llamacpp_runtime import (
+    LLAMACPP_PROVIDER_NAME,
+)
+from octop.infra.agents.providers.llamacpp_runtime import (
+    start as start_llamacpp,
+)
+from octop.infra.agents.providers.llamacpp_runtime import (
+    status as llamacpp_status,
+)
+from octop.infra.agents.providers.llamacpp_runtime import (
+    stop as stop_llamacpp,
+)
+from octop.infra.agents.providers.llamacpp_runtime import (
+    upsert_provider as upsert_llamacpp_provider,
+)
+from octop.infra.agents.providers.local_catalog import catalog
 from octop.infra.agents.providers.local_default import (
     annotate_local_models,
     provider_base_url,
     resolve_local_model_ref,
     resolve_registered_or_usable,
+)
+from octop.infra.agents.providers.local_download import (
+    cancel_download_job,
+    get_download_job,
+    list_download_jobs,
+    start_download_job,
 )
 from octop.infra.agents.providers.local_probe import probe_local_models
 from octop.infra.agents.providers.local_register import (
@@ -23,6 +45,7 @@ from octop.infra.agents.providers.local_register import (
     find_ollama_row,
     load_registered,
     register_local_weight,
+    remember_weight,
     upsert_ollama_model,
 )
 from octop.infra.agents.providers.local_scan import (
@@ -58,6 +81,10 @@ class LocalInstallBody(BaseModel):
     name: str = Field(min_length=1, max_length=120, description="Ollama model tag to pull")
 
 
+class LocalCatalogDownloadBody(BaseModel):
+    catalog_id: str = Field(min_length=1, max_length=120, description="Trusted catalog model id")
+
+
 class LocalScanBody(BaseModel):
     root: str | None = Field(default=None, max_length=1024, description="Optional folder to scan")
     full_disk: bool = Field(
@@ -90,6 +117,23 @@ class LocalEnsureBody(BaseModel):
 
 class LocalSpeedTestBody(BaseModel):
     name: str = Field(min_length=1, max_length=120, description="Local model tag to ping")
+    provider_name: str | None = Field(default=None, max_length=160)
+
+
+class LlamaCppStartBody(BaseModel):
+    model_path: str = Field(
+        min_length=1,
+        max_length=1024,
+        description="Absolute path to an existing GGUF model",
+    )
+    alias: str = Field(default="", max_length=80, description="Display/model id")
+    context_size: int = Field(default=8192, ge=512, le=262_144)
+    gpu_layers: int = Field(
+        default=-1,
+        ge=-1,
+        le=999,
+        description="-1 lets llama.cpp choose the maximum supported GPU offload",
+    )
 
 
 class LocalDefaultBody(BaseModel):
@@ -98,6 +142,7 @@ class LocalDefaultBody(BaseModel):
         max_length=120,
         description="Registered local model to use as the chat default",
     )
+    provider_name: str | None = Field(default=None, max_length=160)
 
 
 def register_failure(exc: BaseException) -> OctopError:
@@ -155,6 +200,80 @@ async def local_models_start_ollama(
 ) -> dict[str, Any]:
     """Launch Ollama only when it is already installed. Does not download it."""
     return await asyncio.to_thread(start_ollama_service_result)
+
+
+@router.get("/llamacpp/status", summary="Inspect the bundled llama.cpp sidecar")
+async def local_models_llamacpp_status(
+    _: Any = Depends(require_permission("ollama_models")),
+) -> dict[str, Any]:
+    return await asyncio.to_thread(llamacpp_status)
+
+
+@router.post("/llamacpp/start", summary="Start the bundled llama.cpp sidecar with a GGUF")
+async def local_models_llamacpp_start(
+    body: LlamaCppStartBody,
+    server: OctopServer = Depends(get_server),
+    _: Any = Depends(require_permission("ollama_models")),
+) -> dict[str, Any]:
+    services = server.services
+    if services is None:
+        raise register_failure(OSError("provider store is not available"))
+    try:
+        result = await asyncio.to_thread(
+            start_llamacpp,
+            model_path=body.model_path,
+            alias=body.alias,
+            context_size=body.context_size,
+            gpu_layers=body.gpu_layers,
+        )
+    except (OSError, ValueError, subprocess.SubprocessError) as exc:
+        raise register_failure(exc) from exc
+    if not result.get("ok"):
+        return result
+    alias = str(result.get("alias") or body.alias).strip()
+    try:
+        provider_name = await asyncio.to_thread(
+            upsert_llamacpp_provider,
+            services.provider_repo,
+            alias=alias,
+            model_path=body.model_path,
+        )
+    except (OSError, ValueError, TypeError, AttributeError) as exc:
+        await asyncio.to_thread(stop_llamacpp)
+        raise register_failure(exc) from exc
+    await asyncio.to_thread(
+        remember_weight,
+        services.settings_repo,
+        {
+            "name": alias,
+            "path": body.model_path,
+            "source": "gguf",
+            "registered": True,
+            "registerable": False,
+            "provider_name": provider_name,
+        },
+    )
+    await _reload_after_register(server, provider_name, alias)
+    return {**result, "provider_name": provider_name, "name": alias, "registered": True}
+
+
+@router.delete("/llamacpp", summary="Stop the FreeOS-managed llama.cpp sidecar")
+async def local_models_llamacpp_stop(
+    server: OctopServer = Depends(get_server),
+    _: Any = Depends(require_permission("ollama_models")),
+) -> dict[str, Any]:
+    result = await asyncio.to_thread(stop_llamacpp)
+    services = server.services
+    if services is None:
+        return result
+    row = services.provider_repo.get_by_name(LLAMACPP_PROVIDER_NAME)
+    if row is not None:
+        services.provider_repo.update(row.id, enabled=False)
+        if server.app_runtime is not None:
+            await server.app_runtime.agent_registry.on_provider_changed(
+                provider_name=LLAMACPP_PROVIDER_NAME
+            )
+    return result
 
 
 @router.post(
@@ -220,6 +339,53 @@ async def local_models_install(
         "registered": True,
         "provider_name": provider_name,
     }
+
+
+@router.get("/catalog", summary="List pinned GGUF models available for one-click setup")
+async def local_models_catalog(
+    _: Any = Depends(require_permission("ollama_models")),
+) -> list[dict[str, Any]]:
+    return catalog()
+
+
+@router.post("/downloads", summary="Download a GGUF from the trusted model catalog")
+async def local_models_download_start(
+    body: LocalCatalogDownloadBody,
+    _: Any = Depends(require_permission("ollama_models")),
+) -> dict[str, Any]:
+    try:
+        return start_download_job(body.catalog_id).snapshot()
+    except ValueError as exc:
+        raise OctopError(ErrorCode.NOT_FOUND, str(exc)) from exc
+
+
+@router.get("/downloads", summary="List recent GGUF download tasks")
+async def local_models_download_list(
+    _: Any = Depends(require_permission("ollama_models")),
+) -> list[dict[str, Any]]:
+    return [job.snapshot() for job in list_download_jobs()]
+
+
+@router.get("/downloads/{job_id}", summary="Poll a catalog model download")
+async def local_models_download_status(
+    job_id: str,
+    _: Any = Depends(require_permission("ollama_models")),
+) -> dict[str, Any]:
+    job = get_download_job(job_id)
+    if job is None:
+        raise OctopError(ErrorCode.NOT_FOUND, "download job not found")
+    return job.snapshot()
+
+
+@router.delete("/downloads/{job_id}", summary="Cancel a catalog model download")
+async def local_models_download_cancel(
+    job_id: str,
+    _: Any = Depends(require_permission("ollama_models")),
+) -> dict[str, Any]:
+    if not cancel_download_job(job_id):
+        raise OctopError(ErrorCode.NOT_FOUND, "download job not found")
+    job = get_download_job(job_id)
+    return job.snapshot() if job is not None else {"job_id": job_id, "status": "cancelled"}
 
 
 @router.post("/scan", summary="Start a background scan for local GGUF / GGML weights")
@@ -290,8 +456,10 @@ async def local_models_register(
     return result
 
 
-def _local_runtime_url(server: Any) -> str | None:
-    return provider_base_url(find_ollama_row(server.services.provider_repo))
+def _local_runtime_url(server: Any, provider_name: str | None = None) -> str | None:
+    repo = server.services.provider_repo
+    row = repo.get_by_name(provider_name) if provider_name else find_ollama_row(repo)
+    return provider_base_url(row)
 
 
 async def _apply_local_default(
@@ -315,9 +483,12 @@ async def local_models_speed_test(
     _: Any = Depends(require_permission("ollama_models")),
 ) -> dict[str, Any]:
     """Ping Ollama ``/api/generate`` (or chat completions) with a tiny fixed prompt."""
-    resolved = resolve_local_model_ref(server.services.provider_repo, body.name)
+    resolved = resolve_local_model_ref(server.services.provider_repo, body.name, body.provider_name)
     model_id = resolved[1] if resolved is not None else body.name.strip()
-    result = await speed_test_local_model(name=model_id, base_url=_local_runtime_url(server))
+    resolved_provider = resolved[0] if resolved is not None else body.provider_name
+    result = await speed_test_local_model(
+        name=model_id, base_url=_local_runtime_url(server, resolved_provider)
+    )
     result["name"] = model_id
     if resolved is not None:
         result["provider_name"] = resolved[0]
@@ -339,6 +510,7 @@ async def local_models_set_default(
         provider_repo=server.services.provider_repo,
         settings_repo=server.services.settings_repo,
         name=body.name,
+        provider_name=body.provider_name,
     )
     if resolved is None:
         return {
