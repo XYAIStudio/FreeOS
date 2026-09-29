@@ -5,19 +5,27 @@ import { MemoryRouter } from "react-router-dom";
 
 const probe = vi.fn();
 const startOllama = vi.fn();
+const startLlamaCpp = vi.fn();
 const ensureDeps = vi.fn();
 const startScan = vi.fn();
 const register = vi.fn();
 const speedTest = vi.fn();
 const setDefault = vi.fn();
 const clearDefault = vi.fn();
+const startDownload = vi.fn();
+const listDownloads = vi.fn();
 
 vi.mock("../../../../api/modules/localModels", () => ({
   localModelsApi: {
     probe: (...args: unknown[]) => probe(...args),
     startOllama: (...args: unknown[]) => startOllama(...args),
+    startLlamaCpp: (...args: unknown[]) => startLlamaCpp(...args),
     ensureDeps: (...args: unknown[]) => ensureDeps(...args),
     install: vi.fn(),
+    startDownload: (...args: unknown[]) => startDownload(...args),
+    listDownloads: (...args: unknown[]) => listDownloads(...args),
+    getDownload: vi.fn(),
+    cancelDownload: vi.fn(),
     startScan: (...args: unknown[]) => startScan(...args),
     getScan: vi.fn(),
     getLatestScan: vi.fn(),
@@ -51,6 +59,9 @@ const installedStopped = {
     ollama_installed: true,
     ollama_reachable: false,
     ollama_path: "C:\\\\Ollama\\\\ollama.exe",
+    llamacpp_binary: true,
+    llamacpp_reachable: false,
+    llamacpp_path: "C:\\\\FreeOS\\\\llama.cpp\\\\llama-server.exe",
   },
   deps: [
     {
@@ -76,11 +87,18 @@ beforeEach(() => {
   vi.clearAllMocks();
   probe.mockResolvedValue(installedStopped);
   startOllama.mockResolvedValue({ ok: true, installed: true, running: true });
+  startLlamaCpp.mockResolvedValue({
+    ok: true,
+    installed: true,
+    running: true,
+    registered: true,
+  });
   startScan.mockResolvedValue({
     job_id: "job-1",
     status: "completed",
     found: installedStopped.installed,
   });
+  listDownloads.mockResolvedValue([]);
 });
 
 function renderPanel(props: { onSaved?: () => void | Promise<void> } = {}) {
@@ -105,6 +123,20 @@ describe("<LocalHardwarePanel />", () => {
     await waitFor(() => expect(screen.getByText("tiny")).toBeInTheDocument());
     expect(screen.getByText("D:\\\\models\\\\tiny.gguf")).toBeInTheDocument();
     expect(screen.getByText("models.localRegister")).toBeInTheDocument();
+    expect(screen.getByText("models.localRunBuiltin")).toBeInTheDocument();
+  });
+
+  it("starts a discovered GGUF with the built-in runtime", async () => {
+    renderPanel();
+    await waitFor(() => expect(screen.getByText("tiny")).toBeInTheDocument());
+    await userEvent.click(screen.getByText("models.localRunBuiltin"));
+    await waitFor(() =>
+      expect(startLlamaCpp).toHaveBeenCalledWith({
+        model_path: "D:\\\\models\\\\tiny.gguf",
+        alias: "tiny",
+        gpu_layers: -1,
+      }),
+    );
   });
 
   it("starts a local weight search", async () => {
@@ -142,10 +174,16 @@ describe("<LocalHardwarePanel />", () => {
     expect(screen.getByText("models.localSetDefault")).toBeInTheDocument();
     await userEvent.click(screen.getByText("models.localSpeedTest"));
     await waitFor(() =>
-      expect(speedTest).toHaveBeenCalledWith("tiny", expect.anything()),
+      expect(speedTest).toHaveBeenCalledWith(
+        "tiny",
+        undefined,
+        expect.anything(),
+      ),
     );
     await userEvent.click(screen.getByText("models.localSetDefault"));
-    await waitFor(() => expect(setDefault).toHaveBeenCalledWith("tiny"));
+    await waitFor(() =>
+      expect(setDefault).toHaveBeenCalledWith("tiny", undefined),
+    );
   });
 
   it("shows a default badge and can clear it", async () => {
@@ -183,5 +221,89 @@ describe("<LocalHardwarePanel />", () => {
     expect(heard).toHaveBeenCalled();
     expect(onSaved).toHaveBeenCalled();
     window.removeEventListener("octop:models-changed", heard);
+  });
+
+  it("offers to resume an interrupted catalog download", async () => {
+    listDownloads.mockResolvedValue([
+      {
+        job_id: "download-old",
+        catalog_id: "starter",
+        name: "starter-model",
+        status: "interrupted",
+        downloaded_bytes: 512,
+        total_bytes: 1024,
+        percent: 50,
+        path: "D:\\models\\starter.gguf",
+        resumable: true,
+      },
+    ]);
+    startDownload.mockResolvedValue({
+      job_id: "download-new",
+      catalog_id: "starter",
+      name: "starter-model",
+      status: "running",
+      downloaded_bytes: 512,
+      total_bytes: 1024,
+      percent: 50,
+      path: "D:\\models\\starter.gguf",
+      resumable: true,
+    });
+
+    renderPanel();
+    await screen.findByText("models.localDownloadResume");
+    await userEvent.click(screen.getByText("models.localDownloadResume"));
+
+    await waitFor(() => expect(startDownload).toHaveBeenCalledWith("starter"));
+  });
+
+  it("downloads, benchmarks, and selects a catalog model", async () => {
+    probe.mockResolvedValue({
+      ...installedStopped,
+      recommended: [
+        {
+          id: "starter",
+          name: "starter-model",
+          display_name: "Starter model",
+          reason: "recommended_for_hardware",
+          install: "freeos",
+          size: 1024,
+        },
+      ],
+    });
+    startDownload.mockResolvedValue({
+      job_id: "download-1",
+      catalog_id: "starter",
+      name: "starter-model",
+      status: "completed",
+      downloaded_bytes: 1024,
+      total_bytes: 1024,
+      percent: 100,
+      path: "D:\\models\\starter.gguf",
+    });
+    startLlamaCpp.mockResolvedValue({
+      ok: true,
+      installed: true,
+      running: true,
+      name: "starter-model",
+      provider_name: "FreeOS llama.cpp",
+    });
+    speedTest.mockResolvedValue({ ok: true, latency_ms: 50 });
+    setDefault.mockResolvedValue({ ok: true });
+
+    renderPanel();
+    await screen.findByText("Starter model");
+    await userEvent.click(screen.getByText("models.localInstallAndRecommend"));
+
+    await waitFor(() => expect(startDownload).toHaveBeenCalledWith("starter"));
+    expect(startLlamaCpp).toHaveBeenCalledWith({
+      model_path: "D:\\models\\starter.gguf",
+      alias: "starter-model",
+      gpu_layers: -1,
+    });
+    expect(speedTest).toHaveBeenCalledWith("starter-model", "FreeOS llama.cpp");
+    expect(setDefault).toHaveBeenCalledWith(
+      "starter-model",
+      "FreeOS llama.cpp",
+    );
   });
 });

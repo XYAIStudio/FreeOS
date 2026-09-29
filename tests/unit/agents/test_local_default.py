@@ -47,6 +47,22 @@ class _Providers:
         return self.rows
 
 
+def test_resolve_bundled_llamacpp_model() -> None:
+    repo = _Providers()
+    repo.rows.append(
+        SimpleNamespace(
+            name="FreeOS Local (llama.cpp)",
+            enabled=1,
+            base_url="http://127.0.0.1:11435/v1",
+            get_models=lambda: [{"id": "qwen-local", "enabled": True}],
+        )
+    )
+    assert resolve_local_model_ref(repo, "qwen-local", "FreeOS Local (llama.cpp)") == (
+        "FreeOS Local (llama.cpp)",
+        "qwen-local",
+    )
+
+
 def test_resolve_local_model_ref() -> None:
     repo = _Providers()
     assert resolve_local_model_ref(repo, "tiny") == ("Ollama (Local)", "tiny")

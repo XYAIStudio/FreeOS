@@ -241,6 +241,16 @@ assemble_one() {
   cp "${TEMPLATES}/README.txt" "${staging}/README.txt"
   chmod +x "${staging}/start.sh"
 
+  # FreeOS owns this lightweight local inference fallback. The archive URL and
+  # digest are pinned in llamacpp-runtime.json; unsupported platforms skip.
+  if [[ "${SHIP_LLAMA_CPP_RUNTIME:-1}" == "1" ]]; then
+    if command -v python3 >/dev/null 2>&1; then
+      python3 "${REPO_ROOT}/desktop/portable/stage-llamacpp-runtime.py" "$plat" "$staging"
+    else
+      python "${REPO_ROOT}/desktop/portable/stage-llamacpp-runtime.py" "$plat" "$staging"
+    fi
+  fi
+
   # Default is **zero-Node** (uv run / Docker / source / Phase-5 installer).
   # Desktop CI sets SHIP_OPENXYOS_RUNTIME=1 for the transitional iframe bridge.
   # Explicit SKIP_ORG_SIDECAR=0 still ships the sidecar even if the ship flag

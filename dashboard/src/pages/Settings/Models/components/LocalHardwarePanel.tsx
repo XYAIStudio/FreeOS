@@ -16,6 +16,7 @@ import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import {
   localModelsApi,
+  type LocalDownloadJob,
   type LocalInstalledModel,
   type LocalProbe,
   type LocalRuntimeResult,
@@ -81,9 +82,11 @@ export function LocalHardwarePanel({
   const [probe, setProbe] = useState<LocalProbe | null>(null);
   const [loading, setLoading] = useState(false);
   const [installing, setInstalling] = useState<string | null>(null);
+  const [download, setDownload] = useState<LocalDownloadJob | null>(null);
   const [starting, setStarting] = useState(false);
   const [ensuring, setEnsuring] = useState(false);
   const [registering, setRegistering] = useState<string | null>(null);
+  const [startingLocal, setStartingLocal] = useState<string | null>(null);
   const [testingKey, setTestingKey] = useState<string | null>(null);
   const [settingDefault, setSettingDefault] = useState<string | null>(null);
   const [speedResults, setSpeedResults] = useState<
@@ -94,6 +97,7 @@ export function LocalHardwarePanel({
   const [scan, setScan] = useState<LocalScanJob | null>(null);
   const [scanning, setScanning] = useState(false);
   const pollRef = useRef<number | null>(null);
+  const downloadPollRef = useRef<number | null>(null);
   const speedAbortRef = useRef<AbortController | null>(null);
   const speedAbortReasonRef = useRef<"user" | "timeout" | null>(null);
 
@@ -101,6 +105,13 @@ export function LocalHardwarePanel({
     if (pollRef.current != null) {
       window.clearInterval(pollRef.current);
       pollRef.current = null;
+    }
+  };
+
+  const stopDownloadPoll = () => {
+    if (downloadPollRef.current != null) {
+      window.clearInterval(downloadPollRef.current);
+      downloadPollRef.current = null;
     }
   };
 
@@ -119,10 +130,31 @@ export function LocalHardwarePanel({
 
   useEffect(() => {
     void refresh();
+    void localModelsApi
+      .listDownloads()
+      .then((jobs) => {
+        const recent = jobs.find((job) =>
+          ["pending", "running", "interrupted", "cancelled", "failed"].includes(
+            job.status,
+          ),
+        );
+        if (!recent) return;
+        setDownload(recent);
+        if (["pending", "running"].includes(recent.status)) {
+          setInstalling(recent.catalog_id);
+          pollDownload(recent.job_id);
+        }
+      })
+      .catch(() => {
+        /* download history is best-effort; hardware discovery still works */
+      });
     return () => {
       stopPoll();
+      stopDownloadPoll();
       speedAbortRef.current?.abort();
     };
+    // The initial probe owns these timers for the panel lifetime.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const showRuntimeError = (result: LocalRuntimeResult, fallback: string) => {
@@ -175,7 +207,9 @@ export function LocalHardwarePanel({
 
   const install = async (name: string) => {
     const hw = probe?.hardware;
-    const missing = (probe?.deps ?? []).length > 0 || !hw?.ollama_reachable;
+    const missing =
+      (probe?.deps ?? []).some((dep) => dep.id === "ollama") ||
+      !hw?.ollama_reachable;
     if (missing) {
       Modal.confirm({
         title: t("models.localDepsNeededTitle"),
@@ -225,6 +259,100 @@ export function LocalHardwarePanel({
     } finally {
       setInstalling(null);
     }
+  };
+
+  const finishCatalogSetup = async (job: LocalDownloadJob) => {
+    const runtime = await localModelsApi.startLlamaCpp({
+      model_path: job.path,
+      alias: job.name || job.catalog_id,
+      gpu_layers: -1,
+    });
+    if (!runtime.ok || !runtime.provider_name) {
+      showRuntimeError(runtime, t("models.localBuiltinStartFailed"));
+      return;
+    }
+    const name = runtime.name || job.name || job.catalog_id;
+    const speed = await localModelsApi.speedTest(name, runtime.provider_name);
+    saveSpeedResult("gguf", name, speed);
+    if (!speed.ok) {
+      message.warning(
+        speed.next_step || speed.error || t("models.localSpeedFailed"),
+      );
+      await refresh();
+      return;
+    }
+    const preferred = await localModelsApi.setDefault(
+      name,
+      runtime.provider_name,
+    );
+    if (!preferred.ok) {
+      message.warning(
+        preferred.next_step ||
+          preferred.error ||
+          t("models.localDefaultFailed"),
+      );
+      await refresh();
+      return;
+    }
+    notifyModelsChanged();
+    await onSaved?.();
+    message.success(t("models.localAutoSetupDone", { name }));
+    await refresh();
+  };
+
+  const pollDownload = (jobId: string) => {
+    stopDownloadPoll();
+    downloadPollRef.current = window.setInterval(() => {
+      void (async () => {
+        try {
+          const next = await localModelsApi.getDownload(jobId);
+          setDownload(next);
+          if (["completed", "failed", "cancelled"].includes(next.status)) {
+            stopDownloadPoll();
+            setInstalling(null);
+            if (next.status === "completed") {
+              await finishCatalogSetup(next);
+            } else if (next.status === "failed") {
+              message.error(next.error || t("models.localDownloadFailed"));
+            }
+          }
+        } catch (err) {
+          stopDownloadPoll();
+          setInstalling(null);
+          message.error(
+            err instanceof Error
+              ? err.message
+              : t("models.localDownloadFailed"),
+          );
+        }
+      })();
+    }, 800);
+  };
+
+  const installCatalogModel = async (catalogId: string) => {
+    setInstalling(catalogId);
+    try {
+      const job = await localModelsApi.startDownload(catalogId);
+      setDownload(job);
+      if (job.status === "completed") {
+        await finishCatalogSetup(job);
+        setInstalling(null);
+      } else {
+        pollDownload(job.job_id);
+      }
+    } catch (err) {
+      setInstalling(null);
+      message.error(
+        err instanceof Error ? err.message : t("models.localDownloadFailed"),
+      );
+    }
+  };
+
+  const cancelDownload = async () => {
+    if (!download?.job_id) return;
+    setDownload(await localModelsApi.cancelDownload(download.job_id));
+    stopDownloadPoll();
+    setInstalling(null);
   };
 
   const pollScan = (jobId: string) => {
@@ -353,6 +481,31 @@ export function LocalHardwarePanel({
     }
   };
 
+  const startWithFreeOS = async (item: LocalInstalledModel) => {
+    setStartingLocal(item.path || item.name);
+    try {
+      const result = await localModelsApi.startLlamaCpp({
+        model_path: item.path,
+        alias: item.name,
+        gpu_layers: -1,
+      });
+      if (!result.ok) {
+        showRuntimeError(result, t("models.localBuiltinStartFailed"));
+        return;
+      }
+      notifyModelsChanged();
+      await onSaved?.();
+      message.success(t("models.localBuiltinStarted", { name: item.name }));
+      await refresh();
+    } catch (err) {
+      message.error(
+        apiErrorMessage(err, t("models.localBuiltinStartFailed"), t),
+      );
+    } finally {
+      setStartingLocal(null);
+    }
+  };
+
   const itemKey = (item: LocalInstalledModel) =>
     speedResultKey(item.source, item.name);
 
@@ -368,9 +521,11 @@ export function LocalHardwarePanel({
     }, SPEED_TEST_TIMEOUT_MS);
     setTestingKey(key);
     try {
-      const result = await localModelsApi.speedTest(item.name, {
-        signal: controller.signal,
-      });
+      const result = await localModelsApi.speedTest(
+        item.name,
+        item.provider_name,
+        { signal: controller.signal },
+      );
       const stored = saveSpeedResult(item.source, item.name, result);
       setSpeedResults((prev) => ({ ...prev, [key]: stored }));
       if (result.ok) {
@@ -424,7 +579,10 @@ export function LocalHardwarePanel({
   const setAsDefault = async (item: LocalInstalledModel) => {
     setSettingDefault(item.name);
     try {
-      const result = await localModelsApi.setDefault(item.name);
+      const result = await localModelsApi.setDefault(
+        item.name,
+        item.provider_name,
+      );
       if (!result.ok) {
         message.error(
           result.action === "not_registered"
@@ -495,6 +653,8 @@ export function LocalHardwarePanel({
   const hw = probe?.hardware;
   const ollamaInstalled = Boolean(hw?.ollama_installed || hw?.ollama_binary);
   const ollamaUp = Boolean(hw?.ollama_reachable);
+  const llamaCppInstalled = Boolean(hw?.llamacpp_binary);
+  const llamaCppUp = Boolean(hw?.llamacpp_reachable);
   const deps = probe?.deps ?? [];
   const models = useMemo(
     () => mergeModels(probe?.installed, scan?.found),
@@ -537,6 +697,12 @@ export function LocalHardwarePanel({
               : ollamaInstalled
               ? t("models.localOllamaInstalledStopped")
               : t("organization.off")}
+          </Tag>
+          <Tag
+            color={llamaCppUp ? "green" : llamaCppInstalled ? "blue" : "red"}
+          >
+            {t("models.localBuiltinRuntime")}{" "}
+            {llamaCppUp ? t("organization.on") : t("organization.off")}
           </Tag>
         </Space>
       )}
@@ -583,6 +749,15 @@ export function LocalHardwarePanel({
               {t("models.localOneClickInstall")}
             </Button>
           }
+        />
+      )}
+      {deps.some((dep) => dep.id === "llamacpp") && (
+        <Alert
+          type="error"
+          showIcon
+          style={{ marginBottom: 12 }}
+          message={t("models.localBuiltinMissing")}
+          description={t("models.localBuiltinMissingHelp")}
         />
       )}
 
@@ -659,7 +834,33 @@ export function LocalHardwarePanel({
           const testing = testingKey === key;
           const lastSpeed = speedResults[key];
           const actions: ReactNode[] = [];
+          if ((item.source === "gguf" || item.source === "ggml") && item.path) {
+            actions.push(
+              <Button
+                key="run-freeos"
+                size="small"
+                type={
+                  item.provider_name?.includes("llama.cpp")
+                    ? "default"
+                    : "primary"
+                }
+                disabled={!llamaCppInstalled}
+                loading={startingLocal === (item.path || item.name)}
+                title={
+                  llamaCppInstalled
+                    ? undefined
+                    : t("models.localBuiltinMissingHelp")
+                }
+                onClick={() => void startWithFreeOS(item)}
+              >
+                {t("models.localRunBuiltin")}
+              </Button>,
+            );
+          }
           if (canSpeedTest(item)) {
+            const runtimeUp = item.provider_name?.includes("llama.cpp")
+              ? llamaCppUp
+              : ollamaUp;
             actions.push(
               testing ? (
                 <Button
@@ -673,9 +874,9 @@ export function LocalHardwarePanel({
                 <Button
                   key="speed"
                   size="small"
-                  disabled={!ollamaUp}
+                  disabled={!runtimeUp}
                   title={
-                    ollamaUp ? undefined : t("models.localSpeedNeedRuntime")
+                    runtimeUp ? undefined : t("models.localSpeedNeedRuntime")
                   }
                   onClick={() => void runSpeedTest(item)}
                 >
@@ -752,6 +953,51 @@ export function LocalHardwarePanel({
       <Typography.Title level={5} style={{ marginTop: 16 }}>
         {t("models.localRecommended")}
       </Typography.Title>
+      <Typography.Paragraph type="secondary">
+        {t("models.localRecommendedHint")}
+      </Typography.Paragraph>
+      {download && ["pending", "running"].includes(download.status) && (
+        <div style={{ marginBottom: 12 }}>
+          <Progress percent={download.percent} status="active" />
+          <Space wrap>
+            <Typography.Text type="secondary">
+              {t("models.localDownloadProgress", {
+                current: formatBytes(download.downloaded_bytes),
+                total: formatBytes(download.total_bytes),
+              })}
+            </Typography.Text>
+            <Button size="small" onClick={() => void cancelDownload()}>
+              {t("common.cancel")}
+            </Button>
+          </Space>
+        </div>
+      )}
+      {download?.resumable &&
+        ["interrupted", "cancelled", "failed"].includes(download.status) && (
+          <Alert
+            type="warning"
+            showIcon
+            style={{ marginBottom: 12 }}
+            message={t("models.localDownloadInterrupted")}
+            description={
+              <Space direction="vertical" size={8}>
+                <span>
+                  {t("models.localDownloadProgress", {
+                    current: formatBytes(download.downloaded_bytes),
+                    total: formatBytes(download.total_bytes),
+                  })}
+                </span>
+                <Button
+                  size="small"
+                  type="primary"
+                  onClick={() => void installCatalogModel(download.catalog_id)}
+                >
+                  {t("models.localDownloadResume")}
+                </Button>
+              </Space>
+            }
+          />
+        )}
       <List
         size="small"
         dataSource={probe?.recommended ?? []}
@@ -763,13 +1009,30 @@ export function LocalHardwarePanel({
                 size="small"
                 type="primary"
                 loading={installing === item.id}
-                onClick={() => void install(item.id)}
+                disabled={installing != null && installing !== item.id}
+                onClick={() =>
+                  void (item.install === "freeos"
+                    ? installCatalogModel(item.id)
+                    : install(item.id))
+                }
               >
-                {t("models.localInstall")}
+                {t(
+                  item.install === "freeos"
+                    ? "models.localInstallAndRecommend"
+                    : "models.localInstall",
+                )}
               </Button>,
             ]}
           >
-            <List.Item.Meta title={item.id} description={item.reason} />
+            <List.Item.Meta
+              title={item.display_name || item.id}
+              description={
+                <Space wrap>
+                  <span>{t(`models.localCatalogReason.${item.reason}`)}</span>
+                  {item.size ? <Tag>{formatBytes(item.size)}</Tag> : null}
+                </Space>
+              }
+            />
           </List.Item>
         )}
       />

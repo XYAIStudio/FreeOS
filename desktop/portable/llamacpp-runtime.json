@@ -1,0 +1,12 @@
+{
+  "version": "b11225",
+  "license": "MIT",
+  "source": "https://github.com/ggml-org/llama.cpp",
+  "platforms": {
+    "windows-amd64": {
+      "archive": "llama-b11225-bin-win-vulkan-x64.zip",
+      "url": "https://github.com/ggml-org/llama.cpp/releases/download/b11225/llama-b11225-bin-win-vulkan-x64.zip",
+      "sha256": "2f59fd248b4d2756b36f664c693b7706b336323598df90d4e8b724eb1171c505"
+    }
+  }
+}
