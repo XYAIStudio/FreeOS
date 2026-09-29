@@ -157,6 +157,7 @@ export default function ModelStep({
   >([]);
   const [selectedModelIds, setSelectedModelIds] = useState<string[]>([]);
   const [testing, setTesting] = useState(false);
+  const [startingOllama, setStartingOllama] = useState(false);
   const [testPassed, setTestPassed] = useState(false);
   const [variantGroup, setVariantGroup] = useState<PresetGroup | null>(null);
   const apiKeySectionRef = useRef<HTMLDivElement>(null);
@@ -274,6 +275,36 @@ export default function ModelStep({
     return t("wizard.model.ollamaMissing");
   })();
 
+  const canStartDetectedOllama = Boolean(
+    detectLocal &&
+      localProbe &&
+      !localProbe.hardware.ollama_reachable &&
+      (localProbe.hardware.ollama_installed ||
+        localProbe.hardware.ollama_binary),
+  );
+
+  const handleStartOllama = async () => {
+    setStartingOllama(true);
+    try {
+      const result = await localModelsApi.startOllama();
+      const nextProbe = await localModelsApi.probe();
+      setLocalProbe(nextProbe);
+      if (result.ok && nextProbe.hardware.ollama_reachable) {
+        message.success(t("models.localOllamaStarted"));
+        return;
+      }
+      message.error(
+        result.next_step || result.error || t("models.localOllamaStartFailed"),
+      );
+    } catch (err) {
+      message.error(
+        err instanceof Error ? err.message : t("models.localOllamaStartFailed"),
+      );
+    } finally {
+      setStartingOllama(false);
+    }
+  };
+
   const renderStepIntro = (fallback: string) => (
     <>
       <Text type="secondary" style={{ fontSize: 13 }}>
@@ -283,6 +314,18 @@ export default function ModelStep({
         <Text type="secondary" className={setupStyles.localDetectHint}>
           {localDetectHint}
         </Text>
+      ) : null}
+      {canStartDetectedOllama ? (
+        <div style={{ marginTop: 8 }}>
+          <Button
+            type="primary"
+            size="small"
+            loading={startingOllama}
+            onClick={() => void handleStartOllama()}
+          >
+            {t("models.localStartOllama")}
+          </Button>
+        </div>
       ) : null}
       {detectLocal ? (
         <Text type="secondary" className={setupStyles.nextHint}>
