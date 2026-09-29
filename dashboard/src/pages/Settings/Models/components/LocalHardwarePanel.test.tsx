@@ -13,6 +13,7 @@ const speedTest = vi.fn();
 const setDefault = vi.fn();
 const clearDefault = vi.fn();
 const startDownload = vi.fn();
+const listDownloads = vi.fn();
 
 vi.mock("../../../../api/modules/localModels", () => ({
   localModelsApi: {
@@ -22,6 +23,7 @@ vi.mock("../../../../api/modules/localModels", () => ({
     ensureDeps: (...args: unknown[]) => ensureDeps(...args),
     install: vi.fn(),
     startDownload: (...args: unknown[]) => startDownload(...args),
+    listDownloads: (...args: unknown[]) => listDownloads(...args),
     getDownload: vi.fn(),
     cancelDownload: vi.fn(),
     startScan: (...args: unknown[]) => startScan(...args),
@@ -96,6 +98,7 @@ beforeEach(() => {
     status: "completed",
     found: installedStopped.installed,
   });
+  listDownloads.mockResolvedValue([]);
 });
 
 function renderPanel(props: { onSaved?: () => void | Promise<void> } = {}) {
@@ -218,6 +221,39 @@ describe("<LocalHardwarePanel />", () => {
     expect(heard).toHaveBeenCalled();
     expect(onSaved).toHaveBeenCalled();
     window.removeEventListener("octop:models-changed", heard);
+  });
+
+  it("offers to resume an interrupted catalog download", async () => {
+    listDownloads.mockResolvedValue([
+      {
+        job_id: "download-old",
+        catalog_id: "starter",
+        name: "starter-model",
+        status: "interrupted",
+        downloaded_bytes: 512,
+        total_bytes: 1024,
+        percent: 50,
+        path: "D:\\models\\starter.gguf",
+        resumable: true,
+      },
+    ]);
+    startDownload.mockResolvedValue({
+      job_id: "download-new",
+      catalog_id: "starter",
+      name: "starter-model",
+      status: "running",
+      downloaded_bytes: 512,
+      total_bytes: 1024,
+      percent: 50,
+      path: "D:\\models\\starter.gguf",
+      resumable: true,
+    });
+
+    renderPanel();
+    await screen.findByText("models.localDownloadResume");
+    await userEvent.click(screen.getByText("models.localDownloadResume"));
+
+    await waitFor(() => expect(startDownload).toHaveBeenCalledWith("starter"));
   });
 
   it("downloads, benchmarks, and selects a catalog model", async () => {

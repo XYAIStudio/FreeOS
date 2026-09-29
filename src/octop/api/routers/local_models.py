@@ -36,6 +36,7 @@ from octop.infra.agents.providers.local_default import (
 from octop.infra.agents.providers.local_download import (
     cancel_download_job,
     get_download_job,
+    list_download_jobs,
     start_download_job,
 )
 from octop.infra.agents.providers.local_probe import probe_local_models
@@ -356,6 +357,13 @@ async def local_models_download_start(
         return start_download_job(body.catalog_id).snapshot()
     except ValueError as exc:
         raise OctopError(ErrorCode.NOT_FOUND, str(exc)) from exc
+
+
+@router.get("/downloads", summary="List recent GGUF download tasks")
+async def local_models_download_list(
+    _: Any = Depends(require_permission("ollama_models")),
+) -> list[dict[str, Any]]:
+    return [job.snapshot() for job in list_download_jobs()]
 
 
 @router.get("/downloads/{job_id}", summary="Poll a catalog model download")

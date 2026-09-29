@@ -80,6 +80,64 @@ def test_start_uses_argument_vector_and_loopback(
     assert calls
     assert calls[0][calls[0].index("--host") + 1] == "127.0.0.1"
     assert calls[0][calls[0].index("--model") + 1] == str(model.resolve())
+    state = json.loads(
+        (tmp_path / "home" / "models" / "llamacpp-state.json").read_text(encoding="utf-8")
+    )
+    assert state["alias"] == "tiny"
+    assert state["model_path"] == str(model.resolve())
+
+
+def test_restore_restarts_saved_model(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    model = tmp_path / "tiny.gguf"
+    model.write_bytes(b"model")
+    home = tmp_path / "home"
+    state = home / "models" / "llamacpp-state.json"
+    state.parent.mkdir(parents=True)
+    state.write_text(
+        json.dumps(
+            {
+                "model_path": str(model),
+                "alias": "tiny",
+                "context_size": 4096,
+                "gpu_layers": 12,
+            }
+        ),
+        encoding="utf-8",
+    )
+    calls: list[dict[str, object]] = []
+
+    monkeypatch.setenv("OCTOP_HOME", str(home))
+    monkeypatch.setattr(llamacpp_runtime, "is_llamacpp_reachable", lambda: False)
+    monkeypatch.setattr(
+        llamacpp_runtime,
+        "start",
+        lambda **kwargs: calls.append(kwargs) or {"ok": True},
+    )
+
+    assert llamacpp_runtime.restore() == {"ok": True}
+    assert calls == [
+        {
+            "model_path": str(model),
+            "alias": "tiny",
+            "context_size": 4096,
+            "gpu_layers": 12,
+        }
+    ]
+
+
+def test_stop_disables_restart(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    home = tmp_path / "home"
+    state = home / "models" / "llamacpp-state.json"
+    state.parent.mkdir(parents=True)
+    state.write_text("{}", encoding="utf-8")
+    monkeypatch.setenv("OCTOP_HOME", str(home))
+    monkeypatch.setattr(llamacpp_runtime, "_PROCESS", None)
+    monkeypatch.setattr(llamacpp_runtime, "_PROCESS_MODEL", None)
+    monkeypatch.setattr(llamacpp_runtime, "is_llamacpp_reachable", lambda: False)
+
+    llamacpp_runtime.stop()
+
+    assert not state.exists()
 
 
 def test_start_rejects_non_gguf(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

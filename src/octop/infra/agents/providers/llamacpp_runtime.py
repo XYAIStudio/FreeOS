@@ -14,6 +14,8 @@ import urllib.request
 from pathlib import Path
 from typing import Any
 
+from octop.infra.utils.paths import PathLayout
+
 LLAMACPP_PROVIDER_NAME = "FreeOS Local (llama.cpp)"
 LLAMACPP_HOST = "127.0.0.1"
 LLAMACPP_PORT = 11435
@@ -113,6 +115,31 @@ def _log_path() -> Path:
     return path
 
 
+def _restore_state_path() -> Path:
+    return PathLayout.from_env().root / "models" / "llamacpp-state.json"
+
+
+def _save_restore_state(
+    *, model_path: Path, alias: str, context_size: int, gpu_layers: int
+) -> None:
+    target = _restore_state_path()
+    target.parent.mkdir(parents=True, exist_ok=True)
+    temporary = target.with_suffix(".json.tmp")
+    temporary.write_text(
+        json.dumps(
+            {
+                "model_path": str(model_path),
+                "alias": alias,
+                "context_size": context_size,
+                "gpu_layers": gpu_layers,
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+    temporary.replace(target)
+
+
 def status() -> dict[str, Any]:
     binary = find_llama_server()
     with _LOCK:
@@ -159,7 +186,7 @@ def start(
         if _PROCESS is not None and _PROCESS.poll() is None:
             if str(model) == _PROCESS_MODEL and is_llamacpp_reachable():
                 return {**status(), "alias": model_alias}
-            stop()
+            stop(clear_restore=False)
         if is_llamacpp_reachable():
             return {
                 **status(),
@@ -197,13 +224,19 @@ def start(
 
     for _ in range(40):
         if is_llamacpp_reachable():
+            _save_restore_state(
+                model_path=model,
+                alias=model_alias,
+                context_size=context_size,
+                gpu_layers=gpu_layers,
+            )
             return {**status(), "alias": model_alias}
         with _LOCK:
             if _PROCESS is None or _PROCESS.poll() is not None:
                 break
         threading.Event().wait(0.25)
     failed = status()
-    stop()
+    stop(clear_restore=False)
     return {
         **failed,
         "ok": False,
@@ -213,7 +246,7 @@ def start(
     }
 
 
-def stop() -> dict[str, Any]:
+def stop(*, clear_restore: bool = True) -> dict[str, Any]:
     global _PROCESS, _PROCESS_MODEL
     with _LOCK:
         proc = _PROCESS
@@ -226,7 +259,26 @@ def stop() -> dict[str, Any]:
         except subprocess.TimeoutExpired:
             proc.kill()
             proc.wait(timeout=3)
+    if clear_restore:
+        _restore_state_path().unlink(missing_ok=True)
     return status()
+
+
+def restore() -> dict[str, Any] | None:
+    """Restart the last explicitly started sidecar after a FreeOS restart."""
+    path = _restore_state_path()
+    if not path.is_file() or is_llamacpp_reachable():
+        return None
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+        return start(
+            model_path=str(data["model_path"]),
+            alias=str(data.get("alias") or ""),
+            context_size=int(data.get("context_size") or 8192),
+            gpu_layers=int(data.get("gpu_layers", -1)),
+        )
+    except (OSError, ValueError, KeyError, TypeError, json.JSONDecodeError):
+        return None
 
 
 def _shutdown() -> None:

@@ -3490,6 +3490,8 @@
     "localRecommendedHint": "无需安装 Ollama。下载完成后，FreeOS 会自动启动内置运行时、测速，并将通过测试的模型设为本地对话推荐。",
     "localInstallAndRecommend": "一键下载并推荐",
     "localDownloadProgress": "已下载 {{current}} / {{total}}",
+    "localDownloadInterrupted": "上次模型下载尚未完成，可以从已有进度继续。",
+    "localDownloadResume": "继续下载",
     "localAutoSetupDone": "{{name}} 已下载、测速并设为本地推荐模型",
     "localCatalogReason": {
       "recommended_for_hardware": "根据本机内存推荐",

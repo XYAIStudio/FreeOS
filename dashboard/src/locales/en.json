@@ -3493,6 +3493,8 @@
     "localRecommendedHint": "No Ollama required. FreeOS downloads the model, starts its bundled runtime, benchmarks it, and selects it for local chat after a successful test.",
     "localInstallAndRecommend": "Download and recommend",
     "localDownloadProgress": "Downloaded {{current}} / {{total}}",
+    "localDownloadInterrupted": "The previous model download did not finish. You can continue from the saved progress.",
+    "localDownloadResume": "Resume download",
     "localAutoSetupDone": "{{name}} was downloaded, benchmarked, and selected for local chat",
     "localCatalogReason": {
       "recommended_for_hardware": "Recommended for this computer",

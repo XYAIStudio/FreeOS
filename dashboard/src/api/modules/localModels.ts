@@ -59,6 +59,7 @@ export interface LocalDownloadJob {
   percent: number;
   path: string;
   error?: string | null;
+  resumable?: boolean;
 }
 
 export interface LocalProbe {
@@ -139,6 +140,7 @@ export const localModelsApi = {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ catalog_id: catalogId }),
     }),
+  listDownloads: () => request<LocalDownloadJob[]>("/local-models/downloads"),
   getDownload: (jobId: string) =>
     request<LocalDownloadJob>(
       `/local-models/downloads/${encodeURIComponent(jobId)}`,

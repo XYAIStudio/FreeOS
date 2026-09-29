@@ -130,11 +130,31 @@ export function LocalHardwarePanel({
 
   useEffect(() => {
     void refresh();
+    void localModelsApi
+      .listDownloads()
+      .then((jobs) => {
+        const recent = jobs.find((job) =>
+          ["pending", "running", "interrupted", "cancelled", "failed"].includes(
+            job.status,
+          ),
+        );
+        if (!recent) return;
+        setDownload(recent);
+        if (["pending", "running"].includes(recent.status)) {
+          setInstalling(recent.catalog_id);
+          pollDownload(recent.job_id);
+        }
+      })
+      .catch(() => {
+        /* download history is best-effort; hardware discovery still works */
+      });
     return () => {
       stopPoll();
       stopDownloadPoll();
       speedAbortRef.current?.abort();
     };
+    // The initial probe owns these timers for the panel lifetime.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const showRuntimeError = (result: LocalRuntimeResult, fallback: string) => {
@@ -952,6 +972,32 @@ export function LocalHardwarePanel({
           </Space>
         </div>
       )}
+      {download?.resumable &&
+        ["interrupted", "cancelled", "failed"].includes(download.status) && (
+          <Alert
+            type="warning"
+            showIcon
+            style={{ marginBottom: 12 }}
+            message={t("models.localDownloadInterrupted")}
+            description={
+              <Space direction="vertical" size={8}>
+                <span>
+                  {t("models.localDownloadProgress", {
+                    current: formatBytes(download.downloaded_bytes),
+                    total: formatBytes(download.total_bytes),
+                  })}
+                </span>
+                <Button
+                  size="small"
+                  type="primary"
+                  onClick={() => void installCatalogModel(download.catalog_id)}
+                >
+                  {t("models.localDownloadResume")}
+                </Button>
+              </Space>
+            }
+          />
+        )}
       <List
         size="small"
         dataSource={probe?.recommended ?? []}

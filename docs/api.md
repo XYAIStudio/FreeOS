@@ -217,8 +217,16 @@ require the `ollama_models` permission.
 |--------|------|------|-------|
 | `GET` | `/local-models/probe` | user | Hardware, Ollama install/reachability, known-dir GGUF/GGML hits, recommended pulls |
 | `POST` | `/local-models/start-ollama` | ollama_models | Start an already-installed Ollama app/daemon. Does not download Ollama |
+| `GET` | `/local-models/llamacpp/status` | ollama_models | Inspect the bundled llama.cpp runtime and its loopback service |
+| `POST` | `/local-models/llamacpp/start` | ollama_models | body `{model_path, alias?, context_size?, gpu_layers?}` — start a GGUF model and remember it for restart recovery |
+| `DELETE` | `/local-models/llamacpp` | ollama_models | Stop the managed llama.cpp process and disable automatic restart recovery |
 | `POST` | `/local-models/ensure-deps` | ollama_models | body `{install?}` — start Ollama, or one-click install only when winget/brew/official script can run |
 | `POST` | `/local-models/install` | ollama_models | body `{name}` — pull a recommended Ollama tag after the daemon is up |
+| `GET` | `/local-models/catalog` | ollama_models | List pinned, checksum-verified GGUF models recommended for this device |
+| `POST` | `/local-models/downloads` | ollama_models | body `{catalog_id}` — create or resume a trusted GGUF download |
+| `GET` | `/local-models/downloads` | ollama_models | List recent downloads, including interrupted resumable jobs |
+| `GET` | `/local-models/downloads/{job_id}` | ollama_models | Poll durable download state and progress |
+| `DELETE` | `/local-models/downloads/{job_id}` | ollama_models | Cancel a download while retaining its partial file for later resume |
 | `POST` | `/local-models/scan` | ollama_models | body `{root?, full_disk?}` — background weight search (progress + cancel) |
 | `GET` | `/local-models/scan` | ollama_models | latest scan job |
 | `GET` | `/local-models/scan/{job_id}` | ollama_models | poll scan progress |

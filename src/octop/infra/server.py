@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import gzip
 import logging
 import os
@@ -509,6 +510,11 @@ class OctopServer:
             trajectory_service=trajectory_service,
             history_archive=history_archive,
         )
+        from octop.infra.agents.providers.llamacpp_runtime import restore  # noqa: PLC0415
+
+        restored = await asyncio.to_thread(restore)
+        if restored is not None and not restored.get("ok"):
+            logger.warning("llama.cpp sidecar restore failed: %s", restored.get("error", ""))
         from octop.infra.knowledge.jobs import resume_pending_index_jobs  # noqa: PLC0415
 
         resume_pending_index_jobs(self.services)
