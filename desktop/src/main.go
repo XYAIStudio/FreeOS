@@ -21,7 +21,10 @@ import (
 //go:embed assets/*
 var assets embed.FS
 
-const trayDoubleClick = 400 * time.Millisecond
+const (
+	trayDoubleClick    = 400 * time.Millisecond
+	windowRestoreGrace = 1500 * time.Millisecond
+)
 
 func webviewAcceptanceArgs() []string {
 	args := []string{"--disable-gpu", "--disable-gpu-compositing"}
@@ -50,6 +53,8 @@ type App struct {
 	quitting           bool
 	trayHidePending    bool
 	trayHideGeneration uint64
+	restoreGeneration  uint64
+	restoreUntil       time.Time
 
 	trayClickMu    sync.Mutex
 	lastTrayClick  time.Time
@@ -333,6 +338,42 @@ func (a *App) showWindow() {
 	if a.window == nil {
 		return
 	}
+	generation := a.beginWindowRestore(time.Now())
+	a.restoreWindowOnce()
+	for _, delay := range []time.Duration{75 * time.Millisecond, 250 * time.Millisecond, 750 * time.Millisecond, 1250 * time.Millisecond} {
+		delay := delay
+		time.AfterFunc(delay, func() {
+			if !a.windowRestoreCurrent(generation, time.Now()) {
+				return
+			}
+			a.restoreWindowOnce()
+		})
+	}
+}
+
+func (a *App) beginWindowRestore(now time.Time) uint64 {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	a.trayHidePending = false
+	a.trayHideGeneration++
+	a.restoreGeneration++
+	a.restoreUntil = now.Add(windowRestoreGrace)
+	return a.restoreGeneration
+}
+
+func (a *App) windowRestoreCurrent(generation uint64, now time.Time) bool {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	return a.restoreGeneration == generation && now.Before(a.restoreUntil)
+}
+
+func (a *App) windowRestoreInProgress(now time.Time) bool {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	return now.Before(a.restoreUntil)
+}
+
+func (a *App) restoreWindowOnce() {
 	if a.window.IsMinimised() {
 		a.window.UnMinimise()
 	}
@@ -532,6 +573,10 @@ func main() {
 	})
 	win.OnWindowEvent(events.Common.WindowMinimise, func(_ *application.WindowEvent) {
 		log.Printf("WindowMinimise: minimised=%v", api.window.IsMinimised())
+		if api.windowRestoreInProgress(time.Now()) {
+			log.Printf("WindowMinimise ignored while restoring the main window")
+			return
+		}
 		if api.store.get().MinimizeToTray && api.window.IsMinimised() {
 			api.hideToTray()
 		}

@@ -1,6 +1,9 @@
 package main
 
-import "testing"
+import (
+	"testing"
+	"time"
+)
 
 func TestDarwinTrayLeftClickShowsSettings(t *testing.T) {
 	if !trayLeftClickShowsSettings("darwin") {
@@ -23,5 +26,30 @@ func TestTrayHideClosingIsConsumedOnce(t *testing.T) {
 	}
 	if app.consumeTrayHideClosing() {
 		t.Fatal("a later user close must not be mistaken for the tray-hide event")
+	}
+}
+
+func TestWindowRestoreIgnoresDelayedMinimiseEvent(t *testing.T) {
+	now := time.Now()
+	app := &App{trayHidePending: true, trayHideGeneration: 4}
+	generation := app.beginWindowRestore(now)
+
+	if app.trayHidePending {
+		t.Fatal("restoring must cancel a pending hide-to-tray close event")
+	}
+	if app.trayHideGeneration != 5 {
+		t.Fatal("restoring must invalidate the pending hide-to-tray timeout")
+	}
+	if !app.windowRestoreInProgress(now.Add(windowRestoreGrace - time.Millisecond)) {
+		t.Fatal("a delayed minimise event must be ignored during restore")
+	}
+	if app.windowRestoreInProgress(now.Add(windowRestoreGrace)) {
+		t.Fatal("a later user minimise must not be ignored")
+	}
+	if !app.windowRestoreCurrent(generation, now.Add(time.Second)) {
+		t.Fatal("scheduled restore attempts must remain active during the grace period")
+	}
+	if app.windowRestoreCurrent(generation+1, now.Add(time.Second)) {
+		t.Fatal("stale restore attempts must not affect a newer restore")
 	}
 }
