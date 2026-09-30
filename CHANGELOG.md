@@ -6,6 +6,12 @@
 
 ## [Unreleased]
 
+## [0.0.8] - 2026-09-30
+
+### Fixed
+
+- Keep the Windows desktop window visible when restored from the tray by ignoring delayed minimise events during a bounded restore transaction and reasserting the visible, focused state while Windows settles.
+
 ## [0.0.7] - 2026-09-29
 
 ### 新增
