@@ -40,6 +40,7 @@ func pythonExe(root string) string {
 
 func ensurePortable(locale Locale, status func(string)) error {
 	root := portableDir()
+	pendingUpdate := pendingPortableZip() != ""
 	if launchReady(root) {
 		if !shouldReplacePortable(root) {
 			status(desktopText(locale, copyStatusUsingRuntime))
@@ -74,6 +75,9 @@ func ensurePortable(locale Locale, status func(string)) error {
 	}
 	if !launchReady(root) {
 		return fmt.Errorf("portable extract missing launch.py or python under %s", root)
+	}
+	if pendingUpdate {
+		clearPendingPortable()
 	}
 	recordAppliedInstallStamp(root)
 	return nil
@@ -630,7 +634,6 @@ func extractPortable(root string) error {
 		if err := unzipGreen(pending, root); err != nil {
 			return err
 		}
-		clearPendingPortable()
 		return nil
 	}
 	if os.Getenv("OCTOP_DESKTOP_PORTABLE_ZIP") != "" {

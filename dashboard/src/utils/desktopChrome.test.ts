@@ -6,6 +6,7 @@ import {
   CHROME_END_PAD_ATTR,
   chromeEndPadValue,
   emitDesktopWindowAction,
+  restartDesktopForUpdate,
   installDesktopWindowDrag,
   isDesktopShell,
   resolveDesktopChromeStyle,
@@ -128,6 +129,17 @@ describe("desktopChrome", () => {
     } as Window);
     expect(emitted).toBe(true);
     expect(invoke).toHaveBeenCalledWith("wails:event:emit:desktop:minimise");
+  });
+
+  it("asks the native shell to relaunch for a staged update", () => {
+    const invoke = vi.fn();
+    expect(restartDesktopForUpdate({ _wails: { invoke } } as Window)).toBe(
+      true,
+    );
+    expect(invoke).toHaveBeenCalledWith(
+      "wails:event:emit:desktop:restart-for-update",
+    );
+    expect(restartDesktopForUpdate({} as Window)).toBe(false);
   });
 
   it("arms drag on --wails-draggable regions and the top chrome strip", () => {
