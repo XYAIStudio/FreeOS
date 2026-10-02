@@ -5,6 +5,9 @@ type DesktopWindow = Window & {
 export type DesktopChromeStyle = "mac" | "windows";
 export type DesktopWindowAction = "minimise" | "toggle-maximise" | "close";
 
+const DESKTOP_UPDATE_RESTART_EVENT =
+  "wails:event:emit:desktop:restart-for-update";
+
 export const WINDOW_CONTROLS_INSET: Record<DesktopChromeStyle, number> = {
   // 3×12px lights + 2×8px gaps + 8px/12px padding, plus a little slack.
   mac: 80,
@@ -85,6 +88,16 @@ export function emitDesktopWindowAction(
   const invoke = win._wails?.invoke;
   if (typeof invoke !== "function") return false;
   invoke(`wails:event:emit:desktop:${action}`);
+  return true;
+}
+
+/** Ask the native shell to fully relaunch so it can apply a staged runtime update. */
+export function restartDesktopForUpdate(
+  win: Pick<DesktopWindow, "_wails"> = window as DesktopWindow,
+): boolean {
+  const invoke = win._wails?.invoke;
+  if (typeof invoke !== "function") return false;
+  invoke(DESKTOP_UPDATE_RESTART_EVENT);
   return true;
 }
 

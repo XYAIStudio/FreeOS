@@ -6,6 +6,14 @@
 
 ## [Unreleased]
 
+## [0.0.9] - 2026-10-02
+
+### Fixed
+
+- After an in-app desktop download completes, restart the native FreeOS shell instead of restarting only the Python service, so the staged portable runtime is actually applied before the new version starts.
+- Wait for the previous Windows shell process to exit before the replacement instance claims the single-instance lock, preventing the relaunch from being mistaken for a duplicate process.
+- Keep the staged portable archive and metadata until extraction, validation, and runtime replacement all succeed, so a failed swap rolls back to the working runtime and retries on the next launch instead of silently losing the update.
+
 ## [0.0.8] - 2026-09-30
 
 ### Fixed

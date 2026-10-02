@@ -251,6 +251,52 @@ func TestEnsurePortableAppliesPendingFreeOSZip(t *testing.T) {
 	}
 }
 
+func TestEnsurePortableKeepsPendingZipWhenSwapFails(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("OCTOP_HOME", home)
+	root := portableDir()
+
+	oldZip := filepath.Join(t.TempDir(), "old.zip")
+	writeTestGreenZip(t, oldZip, "0.0.1")
+	if err := unzipGreen(oldZip, root); err != nil {
+		t.Fatal(err)
+	}
+
+	pendingDir := filepath.Join(home, "updates")
+	if err := os.MkdirAll(pendingDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	pending := filepath.Join(pendingDir, "pending-portable.zip")
+	writeTestGreenZipWithStamp(t, pending, "0.0.2", "github-pending")
+	if err := os.WriteFile(filepath.Join(pendingDir, "pending.json"), []byte(`{"version":"0.0.2"}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	prevRename := renamePortableImpl
+	prevStop := stopPortableHoldersFn
+	stopPortableHoldersFn = func(string) {}
+	renamePortableImpl = func(source, target string) error {
+		if strings.HasSuffix(source, ".new") && target == root {
+			return errors.New("forced swap failure")
+		}
+		return os.Rename(source, target)
+	}
+	t.Cleanup(func() {
+		renamePortableImpl = prevRename
+		stopPortableHoldersFn = prevStop
+	})
+
+	if err := ensurePortable(LocaleZH, func(string) {}); err != nil {
+		t.Fatalf("existing runtime should remain available: %v", err)
+	}
+	if _, err := os.Stat(pending); err != nil {
+		t.Fatalf("pending zip must remain available for retry: %v", err)
+	}
+	if got := portableVersion(root); got != "0.0.1" {
+		t.Fatalf("portable version = %q, want preserved 0.0.1", got)
+	}
+}
+
 func TestEnsurePortableRejectsMislabeledPendingZip(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("OCTOP_HOME", home)
