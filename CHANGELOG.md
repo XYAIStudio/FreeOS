@@ -6,6 +6,10 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- Detect models from an already-running Ollama daemon even when FreeOS-managed Ollama startup is disabled; model discovery never starts Ollama unless the user enabled it.
+
 ## [0.0.10] - 2026-10-03
 
 ### Fixed
