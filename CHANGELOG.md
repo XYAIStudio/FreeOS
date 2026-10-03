@@ -6,6 +6,12 @@
 
 ## [Unreleased]
 
+## [0.0.10] - 2026-10-03
+
+### Fixed
+
+- Wait for the Wails UI thread to make a tray-hidden window visible during single-instance handoff, preventing a desktop shortcut launch from showing an error while the existing FreeOS window is still being restored.
+
 ## [0.0.9] - 2026-10-02
 
 ### Fixed

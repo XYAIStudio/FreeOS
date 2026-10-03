@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 	"syscall"
+	"time"
 	"unsafe"
 
 	"golang.org/x/sys/windows"
@@ -56,8 +57,20 @@ func activateExistingInstance() bool {
 	} else {
 		_, _, _ = procShowWindow.Call(hwnd, swShow)
 	}
-	visible, _, _ := procIsVisible.Call(hwnd)
-	if visible == 0 {
+	visible := false
+	for range 20 {
+		current, _, _ := procIsVisible.Call(hwnd)
+		if current != 0 {
+			visible = true
+			break
+		}
+		// Wails applies Hide/Show on its UI thread. Reissue the request while
+		// waiting so a delayed hide event cannot win the single-instance handoff.
+		_, _, _ = procShowWindow.Call(hwnd, swRestore)
+		_, _, _ = procShowWindow.Call(hwnd, swShow)
+		time.Sleep(50 * time.Millisecond)
+	}
+	if !visible {
 		log.Printf("FreeOS window could not be restored")
 		return false
 	}
