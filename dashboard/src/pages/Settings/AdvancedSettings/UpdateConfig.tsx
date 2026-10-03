@@ -22,6 +22,7 @@ import {
   clearStoredUpdateStatus,
   storeUpdateStatus,
 } from "../../../utils/updateStatusCache";
+import { restartDesktopForUpdate } from "../../../utils/desktopChrome";
 import { TabPanelHeader } from "./TabPanelHeader";
 import styles from "./UpdateConfig.module.less";
 
@@ -145,6 +146,7 @@ export default function UpdateConfig() {
     if (progress?.status !== "complete" || !status?.desktop) return;
     if (restartPhase !== "idle" || autoRestartedRef.current) return;
     autoRestartedRef.current = true;
+    if (restartDesktopForUpdate()) return;
     void executeRestart();
   }, [progress?.status, status?.desktop, restartPhase, executeRestart]);
 

@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"runtime"
 	"strconv"
 	"strings"
@@ -430,6 +431,48 @@ func (a *App) requestQuit() {
 	}
 }
 
+const restartAfterPIDPrefix = "--freeos-restart-after-pid="
+
+func restartParentPID(args []string) int {
+	for _, arg := range args {
+		if !strings.HasPrefix(arg, restartAfterPIDPrefix) {
+			continue
+		}
+		pid, err := strconv.Atoi(strings.TrimPrefix(arg, restartAfterPIDPrefix))
+		if err == nil && pid > 0 {
+			return pid
+		}
+	}
+	return 0
+}
+
+func waitForRestartParent(args []string) {
+	pid := restartParentPID(args)
+	if pid <= 0 {
+		return
+	}
+	deadline := time.Now().Add(20 * time.Second)
+	for pidAlive(pid) && time.Now().Before(deadline) {
+		time.Sleep(100 * time.Millisecond)
+	}
+}
+
+func (a *App) restartForUpdate() {
+	exe, err := os.Executable()
+	if err != nil {
+		log.Printf("restart for update: resolve executable: %v", err)
+		return
+	}
+	cmd := exec.Command(exe, fmt.Sprintf("%s%d", restartAfterPIDPrefix, os.Getpid()))
+	cmd.Dir = filepath.Dir(exe)
+	if err := cmd.Start(); err != nil {
+		log.Printf("restart for update: launch replacement: %v", err)
+		return
+	}
+	log.Printf("restart for update: replacement pid=%d", cmd.Process.Pid)
+	a.requestQuit()
+}
+
 func main() {
 	defer func() {
 		if rec := recover(); rec != nil {
@@ -437,6 +480,7 @@ func main() {
 			showFatalError("FreeOS", desktopText(LocaleEN, copyNavigateFailed))
 		}
 	}()
+	waitForRestartParent(os.Args[1:])
 	pinWorkingDirectory()
 	if err := ensureProductHomeWritable(); err != nil {
 		showFatalError("FreeOS", err.Error())
@@ -528,6 +572,9 @@ func main() {
 	app.Event.On("desktop:close", func(_ *application.CustomEvent) {
 		log.Printf("desktop:close event")
 		api.hideToTray()
+	})
+	app.Event.On("desktop:restart-for-update", func(_ *application.CustomEvent) {
+		go api.restartForUpdate()
 	})
 	app.Event.On("desktop:select-folder", func(_ *application.CustomEvent) {
 		go api.emitPickedFolder()
