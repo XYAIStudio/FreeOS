@@ -65,15 +65,15 @@ expanding `SHIP_OPENXYOS_RUNTIME=1` to new flavors.
 | GHCR image | `ghcr.io/xyaistudio/freeos:{version\|latest}` |
 | Local Compose tag | `octop:latest` (compatibility alias; one Python process) |
 | Security advisories | [XYAIStudio/FreeOS](https://github.com/XYAIStudio/FreeOS/security/advisories/new) |
-| PyPI package name | `octop` (intentional remaining identifier; CLI is `freeos`) |
+| Python distribution identifier | `octop` (internal compatibility name; distributed through GitHub Releases only) |
 
-### Release / PyPI / Docker gates
+### Release / Docker gates
 
 - **Docker Publish** pushes GHCR always. Docker Hub login is **optional**
   (`DOCKERHUB_USERNAME` / `DOCKERHUB_TOKEN`). Missing Hub secrets must not
   fail the workflow.
-- **PyPI** still publishes the `octop` distribution (`PYPI_API_TOKEN` on the
-  `pypi` environment). That name is the Python package, not a pointer at
-  Tencent Cloud advisories.
+- **Python distributions** are attached to GitHub Releases. Do not publish the
+  `octop` distribution to PyPI: that name is already used by the upstream
+  Octop project and would create an installation identity collision.
 - **FnOS Docker `.fpk`** compose must pull `ghcr.io/xyaistudio/freeos`, not
   `ghcr.io/tencentcloud/octop`.

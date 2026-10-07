@@ -2,16 +2,16 @@
 setlocal EnableDelayedExpansion
 
 REM Octop Installer for Windows (cmd.exe)
-REM Usage: install.bat [-Version X.Y.Z] [-FromSource] [-SourceDir DIR] [-Extras browser] [-Help]
+REM Usage: install.bat [-Version X.Y.Z] [-FromSource | -FromPyPI] [-SourceDir DIR] [-Extras browser] [-Help]
 
 if defined OCTOP_HOME (set "OCTOP_HOME=%OCTOP_HOME%") else (set "OCTOP_HOME=%USERPROFILE%\.octop")
 set "OCTOP_VENV=%OCTOP_HOME%\venv"
 set "OCTOP_BIN=%OCTOP_HOME%\bin"
 set "PYTHON_VERSION=3.12"
-if defined OCTOP_REPO (set "OCTOP_REPO=%OCTOP_REPO%") else (set "OCTOP_REPO=https://github.com/TencentCloud/Octop.git")
+if defined OCTOP_REPO (set "OCTOP_REPO=%OCTOP_REPO%") else (set "OCTOP_REPO=https://github.com/XYAIStudio/FreeOS.git")
 
 set "ARG_VERSION="
-set "ARG_FROM_SOURCE=0"
+set "ARG_FROM_SOURCE=1"
 set "ARG_SOURCE_DIR="
 set "ARG_EXTRAS="
 set "ARG_UV_PATH="
@@ -21,6 +21,7 @@ set "CONSOLE_AVAILABLE=0"
 if "%~1"=="" goto :done_args
 if /i "%~1"=="-Version"    (set "ARG_VERSION=%~2" & shift & shift & goto :parse_args)
 if /i "%~1"=="-FromSource" (set "ARG_FROM_SOURCE=1" & shift & goto :parse_args)
+if /i "%~1"=="-FromPyPI" (set "ARG_FROM_SOURCE=0" & shift & goto :parse_args)
 if /i "%~1"=="-SourceDir"  (set "ARG_SOURCE_DIR=%~2" & shift & shift & goto :parse_args)
 if /i "%~1"=="-Extras"     (set "ARG_EXTRAS=%~2" & shift & shift & goto :parse_args)
 if /i "%~1"=="-UvPath"     (set "ARG_UV_PATH=%~2" & shift & shift & goto :parse_args)
@@ -34,6 +35,7 @@ echo.
 echo Usage: install.bat [OPTIONS]
 echo   -Version ^<VER^>     Install specific version
 echo   -FromSource        Install from source
+echo   -FromPyPI          Install upstream Octop from PyPI (does not include FreeOS changes)
 echo   -SourceDir ^<DIR^>   Local source directory
 echo   -Extras ^<EXTRAS^>  Extra components (e.g. desktop, browser)
 echo   -UvPath ^<PATH^>     Pre-installed uv.exe
@@ -86,7 +88,11 @@ goto :install_verify
 where git >nul 2>&1
 if errorlevel 1 (echo [octop] ERROR: git required & exit /b 1)
 set "CLONE_DIR=%TEMP%\octop-install-%RANDOM%"
-git clone --depth 1 %OCTOP_REPO% "%CLONE_DIR%"
+if defined ARG_VERSION (
+  git clone --depth 1 --branch "v%ARG_VERSION%" %OCTOP_REPO% "%CLONE_DIR%"
+) else (
+  git clone --depth 1 %OCTOP_REPO% "%CLONE_DIR%"
+)
 if errorlevel 1 exit /b 1
 call :prepare_console "%CLONE_DIR%"
 uv pip install "%CLONE_DIR%%EXTRAS_SUFFIX%" --python "%VENV_PYTHON%"

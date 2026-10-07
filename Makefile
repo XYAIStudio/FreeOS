@@ -29,7 +29,7 @@ RUN  := $(if $(UV),uv run,)
 PYTHON := $(if $(UV),uv run python,python3)
 PIP  := $(if $(UV),uv pip,python3 -m pip)
 # Parallel workers for make test / make test-fast (override: make test PYTEST_JOBS=4)
-PYTEST_JOBS ?= auto
+PYTEST_JOBS ?= 4
 
 # ─── Help ────────────────────────────────────────────────────────────────────
 

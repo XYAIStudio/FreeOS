@@ -8,6 +8,7 @@
 param(
     [string]$Version   = "",
     [switch]$FromSource,
+    [switch]$FromPyPI,
     [string]$SourceDir = "",
     [string]$Extras    = "",
     [string]$UvPath    = "",
@@ -20,11 +21,14 @@ $OctopHome     = if ($env:OCTOP_HOME) { $env:OCTOP_HOME } else { Join-Path $HOME
 $OctopVenv     = Join-Path $OctopHome "venv"
 $OctopBin      = Join-Path $OctopHome "bin"
 $PythonVersion = "3.12"
-$OctopRepo     = if ($env:OCTOP_REPO) { $env:OCTOP_REPO } else { "https://github.com/TencentCloud/Octop.git" }
+$OctopRepo     = if ($env:OCTOP_REPO) { $env:OCTOP_REPO } else { "https://github.com/XYAIStudio/FreeOS.git" }
 
 function Write-Info { param([string]$Message) Write-Host "[octop] " -ForegroundColor Green  -NoNewline; Write-Host $Message }
 function Write-Warn { param([string]$Message) Write-Host "[octop] " -ForegroundColor Yellow -NoNewline; Write-Host $Message }
 function Stop-WithError { param([string]$Message) Write-Host "[octop] ERROR: $Message" -ForegroundColor Red; exit 1 }
+
+if ($FromSource -and $FromPyPI) { Stop-WithError "Choose only one of -FromSource or -FromPyPI." }
+if (-not $FromPyPI) { $FromSource = $true }
 
 if ($Help) {
     @"
@@ -35,6 +39,7 @@ Usage: .\install.ps1 [OPTIONS]
 Options:
   -Version <VER>        Install a specific version (e.g. 0.1.0)
   -FromSource           Install from source (requires git, or use -SourceDir)
+  -FromPyPI             Install upstream Octop from PyPI (does not include FreeOS changes)
   -SourceDir <DIR>      Local source directory (used with -FromSource)
   -Extras <EXTRAS>      Extra optional components (e.g. desktop, browser)
   -UvPath <PATH>        Path to a pre-installed uv.exe
@@ -226,7 +231,11 @@ if ($FromSource) {
         }
         $cloneDir = Join-Path $env:TEMP "octop-install-$(Get-Random)"
         try {
+        if ($Version) {
+            git clone --depth 1 --branch "v$Version" $OctopRepo $cloneDir
+        } else {
             git clone --depth 1 $OctopRepo $cloneDir
+        }
             Prepare-Console $cloneDir
             uv pip install "${cloneDir}${ExtrasSuffix}" --python $VenvPython
         } finally {

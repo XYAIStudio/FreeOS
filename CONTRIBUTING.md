@@ -73,7 +73,7 @@ See [AGENTS.md](AGENTS.md) for module boundaries and coding conventions.
 
 1. Cut `release/x.y.z` from latest `develop` (version bump + CHANGELOG on that branch)
 2. Open PR: `release/x.y.z` → `main` and merge when green
-3. Tag `v<version>` on **main tip** and push — GitHub Actions builds, publishes to PyPI, and creates the GitHub Release
+3. Tag `v<version>` on **main tip** and push — GitHub Actions builds Python distributions and creates a GitHub Release with the artifacts; FreeOS does not publish the `octop` distribution to PyPI
 4. Delete `release/x.y.z`; Actions syncs `main` → `develop` (or opens `chore/sync-develop-after-*` if merge conflicts / branch protection)
 
 Agent-assisted publish: `.cursor/skills/publish` (`/publish <version>`).

@@ -28,13 +28,13 @@ def test_completion_install_appends_eval_line_idempotent(
     runner = CliRunner()
     r1 = runner.invoke(cli, ["completion", "install", "--shell", "bash", "--rc-file", str(rc)])
     assert r1.exit_code == 0, r1.output
-    contents = rc.read_text()
+    contents = rc.read_text(encoding="utf-8")
     assert "_OCTOP_COMPLETE" in contents
     line_count_first = contents.count("_OCTOP_COMPLETE")
 
     r2 = runner.invoke(cli, ["completion", "install", "--shell", "bash", "--rc-file", str(rc)])
     assert r2.exit_code == 0
-    assert rc.read_text().count("_OCTOP_COMPLETE") == line_count_first
+    assert rc.read_text(encoding="utf-8").count("_OCTOP_COMPLETE") == line_count_first
 
 
 def test_completion_in_help() -> None:

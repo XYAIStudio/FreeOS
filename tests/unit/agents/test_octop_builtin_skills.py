@@ -175,11 +175,15 @@ def test_manager_refuses_overwrite_without_force(tmp_path: Path) -> None:
     refused = _run_manager(tmp_path, "install", str(source))
     assert refused.returncode == 1
     assert "ask before using --force" in refused.stdout
-    assert "First version" in (tmp_path / "skills" / "stable" / "SKILL.md").read_text()
+    assert "First version" in (tmp_path / "skills" / "stable" / "SKILL.md").read_text(
+        encoding="utf-8"
+    )
 
     replaced = _run_manager(tmp_path, "install", str(source), "--force")
     assert replaced.returncode == 0, replaced.stderr or replaced.stdout
-    assert "Second version" in (tmp_path / "skills" / "stable" / "SKILL.md").read_text()
+    assert "Second version" in (tmp_path / "skills" / "stable" / "SKILL.md").read_text(
+        encoding="utf-8"
+    )
 
 
 def test_manager_refuses_to_replace_itself(tmp_path: Path) -> None:

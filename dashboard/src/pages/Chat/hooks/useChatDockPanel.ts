@@ -327,7 +327,12 @@ export function useChatDockPanel(isMobile: boolean, agentId?: string | null) {
 
   /** Toggle dock open/closed around a dedicated tab (browser / terminal). */
   const toggleDockTab = useCallback(
-    (tab: Extract<DockTab, { kind: "browser" | "terminal" | "review" | "tasks" }>) => {
+    (
+      tab: Extract<
+        DockTab,
+        { kind: "browser" | "terminal" | "review" | "tasks" }
+      >,
+    ) => {
       setDockOpen((prevOpen) => {
         if (prevOpen && activeTabId === tab.id) {
           persistRailOpen(false);
@@ -376,7 +381,13 @@ export function useChatDockPanel(isMobile: boolean, agentId?: string | null) {
       }
       openTerminalTab();
     },
-    [openBrowserTab, openFileList, openReviewTab, openTasksTab, openTerminalTab],
+    [
+      openBrowserTab,
+      openFileList,
+      openReviewTab,
+      openTasksTab,
+      openTerminalTab,
+    ],
   );
 
   const closeTab = useCallback((id: DockTabId) => {

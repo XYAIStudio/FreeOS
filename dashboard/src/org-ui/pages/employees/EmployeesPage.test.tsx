@@ -68,6 +68,9 @@ describe("EmployeesPage", () => {
         onOpenEmployee={onOpenEmployee}
       />,
     );
+    await waitFor(() => expect(client.listDepartments).toHaveBeenCalledOnce());
+    await client.listDepartments.mock.results[0]?.value;
+    await screen.findByTestId("org-employees-empty");
     fireEvent.click(await screen.findByTestId("org-employees-create"));
     fireEvent.change(screen.getByTestId("org-employees-name"), {
       target: { value: "Ada" },
