@@ -5,11 +5,15 @@ export async function extractText(filePath: string, fileType: string): Promise<s
   const ext = fileType.startsWith(".") ? fileType : `.${fileType}`;
 
   if (ext === ".pdf") {
-    const pdf = await import("pdf-parse");
+    const { PDFParse } = await import("pdf-parse");
     const buffer = fs.readFileSync(filePath);
-    const parseFn = (pdf as any).default || pdf;
-    const data = await parseFn(buffer);
-    return cleanText(data.text).slice(0, 15000);
+    const parser = new PDFParse({ data: buffer });
+    try {
+      const data = await parser.getText();
+      return cleanText(data.text).slice(0, 15000);
+    } finally {
+      await parser.destroy();
+    }
   }
 
   if (ext === ".docx") {
