@@ -14,6 +14,7 @@
 import "@testing-library/jest-dom/vitest";
 import { afterEach, vi } from "vitest";
 import { cleanup } from "@testing-library/react";
+import { message } from "@/utils/antdMessage";
 
 // Auto-mock react-i18next so components' ``t(key, fallback)`` calls
 // resolve synchronously to ``fallback`` without needing the real
@@ -56,6 +57,7 @@ vi.mock("react-i18next", async (importOriginal) => {
 
 afterEach(() => {
   cleanup();
+  message.destroy();
 });
 
 if (typeof window !== "undefined") {

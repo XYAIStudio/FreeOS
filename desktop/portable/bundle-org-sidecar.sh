@@ -17,7 +17,7 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 # shellcheck source=desktop/portable/_common.sh
 source "${REPO_ROOT}/desktop/portable/_common.sh"
 
-NODE_VERSION="${NODE_VERSION:-20.19.5}"
+NODE_VERSION="${NODE_VERSION:-24.21.0}"
 NODE_BASE_URL="${NODE_BASE_URL:-https://nodejs.org/dist/v${NODE_VERSION}}"
 
 node_archive_name() {

@@ -18,6 +18,7 @@ REPO_ROOT     := $(shell pwd)
 DASHBOARD_DIR := $(REPO_ROOT)/dashboard
 DASHBOARD_DEST := $(REPO_ROOT)/src/octop/dashboard
 DIST_DIR      := $(REPO_ROOT)/dist
+FRONTEND_NODE_OPTIONS ?= --max-old-space-size=4096
 
 # PyPI repository (override: make publish PYPI_REPO=testpypi)
 PYPI_REPO  ?= pypi
@@ -29,7 +30,7 @@ RUN  := $(if $(UV),uv run,)
 PYTHON := $(if $(UV),uv run python,python3)
 PIP  := $(if $(UV),uv pip,python3 -m pip)
 # Parallel workers for make test / make test-fast (override: make test PYTEST_JOBS=4)
-PYTEST_JOBS ?= auto
+PYTEST_JOBS ?= 4
 
 # ─── Help ────────────────────────────────────────────────────────────────────
 
@@ -98,7 +99,7 @@ build-frontend:
 	@echo "[build-frontend] Installing npm dependencies..."
 	cd $(DASHBOARD_DIR) && npm ci
 	@echo "[build-frontend] Building dashboard (output: $(DASHBOARD_DEST))..."
-	cd $(DASHBOARD_DIR) && NODE_ENV=production NODE_OPTIONS="--max-old-space-size=2048" npm run build
+	cd $(DASHBOARD_DIR) && NODE_ENV=production NODE_OPTIONS="$(FRONTEND_NODE_OPTIONS)" npm run build
 	@echo "[build-frontend] Done."
 
 .PHONY: build-wheel

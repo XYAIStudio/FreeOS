@@ -63,9 +63,7 @@ export default function ChatDockReviewContent({
         <Empty
           description={
             <div>
-              <div>
-                {t("chat.rightRail.reviewEmpty", "还没有可审查的操作")}
-              </div>
+              <div>{t("chat.rightRail.reviewEmpty", "还没有可审查的操作")}</div>
               <p className={styles.rightRailPanelEmptyHint}>
                 {t(
                   "chat.rightRail.reviewEmptyHint",

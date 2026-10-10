@@ -6,6 +6,27 @@
 
 ## [Unreleased]
 
+### Changed
+
+- Publish Python distributions as GitHub Release assets only; the FreeOS release workflow no longer publishes the colliding `octop` package name to PyPI, and install scripts default to the FreeOS GitHub source.
+
+### Fixed
+
+- Remove checkpoint-resident system messages before model calls while preserving the active compiled prompt, preventing strict Qwen chat templates from failing when an older conversation contains a stale bootstrap message.
+- Detect models from an already-running Ollama daemon even when FreeOS-managed Ollama startup is disabled; model discovery never starts Ollama unless the user enabled it.
+- Preserve `config.json` when it is malformed: startup and all configuration writers now report the file and parser position, avoid leaking stored credentials, and use atomic replacement instead of silently rebuilding an empty configuration.
+
+## [0.1.0] - 2026-10-07
+
+### Changed
+
+- Publish the successor to 0.0.10 as 0.1.0, with Python distributions attached to GitHub Releases only.
+
+### Fixed
+
+- Remove stale checkpoint system messages before model calls, detect models from an already-running Ollama daemon without starting it, and preserve malformed `config.json` files instead of silently replacing them.
+- Improve desktop update safety by checkpointing SQLite WAL before restart.
+
 ## [0.0.10] - 2026-10-03
 
 ### Fixed

@@ -10,10 +10,7 @@ import type { WorkspacePanelKind } from "../utils/workspacePanels";
 import { WORKSPACE_PANEL_KINDS } from "../utils/workspacePanels";
 import styles from "../index.module.less";
 
-const ICONS: Record<
-  WorkspacePanelKind,
-  typeof FileText
-> = {
+const ICONS: Record<WorkspacePanelKind, typeof FileText> = {
   files: FileText,
   review: ScanSearch,
   tasks: ListChecks,

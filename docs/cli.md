@@ -1,6 +1,6 @@
 # CLI Reference
 
-`octop` is a single Click app installed as `octop` on `pip install octop`.
+`octop` and `freeos` are compatibility command names for the FreeOS CLI. The supported installer obtains FreeOS from the XYAIStudio GitHub repository; Python release artifacts are attached to GitHub Releases.
 It is registered in `src/octop/cli/main.py`; commands are loaded
 lazily from `src/octop/cli/registry.py`.
 
@@ -363,8 +363,7 @@ retention only deletes those files and never touches manual
 
 ## `octop update`
 
-Check for and install a newer Octop release from the configured
-channel (PyPI by default).
+Check for and install a newer FreeOS desktop release from GitHub Releases.
 
 ```
 Usage: octop update [OPTIONS]
@@ -373,7 +372,9 @@ Usage: octop update [OPTIONS]
 
 Options:
   --check / --no-check     Only check; do not install.
-  --channel TEXT           Release channel (pypi, testpypi, custom index).
+  --allow-prerelease       Include alpha / beta / rc / dev releases.
+  --yes, -y                Skip upgrade confirmation.
+  --verbose, -v            Show installer output.
   -h, --help               Show this message and exit.
 ```
 

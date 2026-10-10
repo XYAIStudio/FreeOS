@@ -100,7 +100,7 @@ source ~/.bashrc  # Bash
 
 安装脚本会把 `octop` 命令放入 `~/.octop/bin` 并加入 PATH，并在 `~/.octop/venv` 创建隔离环境；**不会改动系统 Python**。
 
-> **可选附加组件**：安装脚本支持通过 `--extras` 追加能力，例如浏览器自动化 `--extras browser`、飞书通道 `--extras channels-feishu`；也可用 `--version` 指定版本、`--mirror <url>` 使用国内 PyPI 镜像。更多选项见 [scripts/README.md](scripts/README.md)。
+> **可选附加组件**：安装脚本默认从 FreeOS GitHub 仓库安装，支持通过 `--extras` 追加能力，例如浏览器自动化 `--extras browser`、飞书通道 `--extras channels-feishu`；也可用 `--version` 指定 GitHub 版本标签、`--mirror <url>` 使用国内 PyPI 镜像下载 Python 依赖。更多选项见 [scripts/README.md](../scripts/README.md)。
 
 ### 2.3 验证安装
 
@@ -466,7 +466,7 @@ Octop 支持两个方向的 ACP 集成：
 ```
 
 **Q：如何升级？**
-- `octop update`（若通过一键安装）；或从 PyPI / 源码重新安装后重启服务。
+- `octop update`（若通过一键安装）；或下载 GitHub Release 中的 Python 制品 / 从 FreeOS 源码重新安装后重启服务。
 
 **Q：如何加入客户企业微信服务群？**
 - 请扫描下方二维码加入：

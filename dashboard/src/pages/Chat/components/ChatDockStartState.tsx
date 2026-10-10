@@ -23,7 +23,9 @@ interface ChatDockStartStateProps {
   onOpen: (kind: WorkspacePanelKind) => void;
 }
 
-export default function ChatDockStartState({ onOpen }: ChatDockStartStateProps) {
+export default function ChatDockStartState({
+  onOpen,
+}: ChatDockStartStateProps) {
   const { t } = useTranslation();
 
   const title = (kind: WorkspacePanelKind) => {
@@ -89,7 +91,9 @@ export default function ChatDockStartState({ onOpen }: ChatDockStartStateProps) 
                 <span className={styles.rightRailStartItemTitle}>
                   {title(kind)}
                 </span>
-                <span className={styles.rightRailStartItemHint}>{hint(kind)}</span>
+                <span className={styles.rightRailStartItemHint}>
+                  {hint(kind)}
+                </span>
               </span>
               <ChevronRight
                 className={styles.rightRailStartItemChevron}

@@ -25,11 +25,14 @@
 ### 常用选项
 
 ```bash
-# 从 PyPI 安装最新版（默认）
+# 从 FreeOS GitHub 源码安装最新版（默认）
 bash scripts/install.sh
 
-# 指定版本
+# 从 FreeOS GitHub v0.1.0 标签安装
 bash scripts/install.sh --version 0.1.0
+
+# 显式安装 PyPI 上游 Octop（不包含 FreeOS 下游修改）
+bash scripts/install.sh --from-pypi
 
 # 安装可选附加组件
 bash scripts/install.sh --extras browser
@@ -39,11 +42,11 @@ bash scripts/install.sh --extras browser,channels-feishu
 bash scripts/install.sh --from-source
 bash scripts/install.sh --from-source /path/to/orca
 
-# 使用国内 PyPI 镜像加速依赖
+# 使用国内 PyPI 镜像加速 Python 依赖下载
 bash scripts/install.sh --mirror https://mirrors.cloud.tencent.com/pypi/simple
 ```
 
-Windows PowerShell 等价参数：`-Version`、`-FromSource`、`-SourceDir`、`-Extras`。
+Windows PowerShell 等价参数：`-Version`、`-FromSource`、`-FromPyPI`、`-SourceDir`、`-Extras`。
 
 ### 环境变量
 
@@ -65,7 +68,7 @@ octop run     # 启动服务 → http://127.0.0.1:8088
 
 ---
 
-## 构建 PyPI wheel
+## 构建 Python wheel（随 GitHub Release 分发）
 
 先构建前端（产物写入 `src/octop/dashboard/`，与 `dashboard/vite.config.ts` 的 `outDir` 一致），再打包 wheel。
 
@@ -81,7 +84,7 @@ powershell -File scripts/wheel_build.ps1
 
 输出：`dist/*.whl`、`dist/*.tar.gz`
 
-发布前请确认 `pyproject.toml` 中的 `orcakit-harness-agent`、`harness-gateway` 等依赖已发布到 PyPI（`[tool.uv.sources]` 仅对 uv 本地开发生效，pip/PyPI 不读取）。
+Release workflow 将构建出的 wheel 和源码包附加到 GitHub Release。`octop` 是内部兼容用的发行包名，不要把 FreeOS 制品发布到 PyPI；安装脚本默认从 FreeOS GitHub 仓库安装。
 
 ---
 

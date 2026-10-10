@@ -118,7 +118,7 @@ describe("WorkspacePage", () => {
   it("hides governance and settings from non-admins", async () => {
     const client = mockClient();
     render(<WorkspacePage client={client} session={member} locale="en" />);
-    await screen.findByTestId("org-ui-workspace");
+    await screen.findByTestId("org-workspace-module-employees");
     expect(screen.queryByTestId("org-workspace-module-governance")).toBeNull();
     expect(screen.queryByTestId("org-workspace-module-settings")).toBeNull();
     expect(

@@ -23,7 +23,7 @@ COMMANDS: dict[str, tuple[str, str, str]] = {
     "admin": (".commands.admin", "admin", "Admin commands."),
     "version": (".commands.version", "version", "Show the installed octop version."),
     "completion": (".commands.completion", "completion", "Shell completion utilities."),
-    "update": (".commands.update", "update", "Check for and install a newer Octop release."),
+    "update": (".commands.update", "update", "Check for and install a newer FreeOS release."),
     "clean": (".commands.clean", "clean", "Remove CLI state or wipe all of ~/.octop."),
     "backup": (".commands.backup", "backup", "Export and restore Octop backups."),
     "acp": (".commands.acp", "acp_cmd", "Run Octop agent as ACP server (stdio)."),
@@ -31,6 +31,6 @@ COMMANDS: dict[str, tuple[str, str, str]] = {
     "org": (
         ".commands.org",
         "org",
-        "Organization self-growth loop, governance, and module↔skill bridge.",
+        "Organization self-growth loop, governance, and module/skill bridge.",
     ),
 }
