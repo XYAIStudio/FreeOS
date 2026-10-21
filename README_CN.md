@@ -243,7 +243,7 @@ curl -fsSL https://finnie-1258344699.cos.ap-guangzhou.myqcloud.com/octop/install
 | Windows | `FreeOS-desktop-windows-amd64-<version>.exe`（64 位）/ `FreeOS-desktop-windows-arm64-<version>.exe`（ARM64）— NSIS 安装程序，单进程 FreeOS + 宿主内 Organization；不捆绑也不自动拉起 openXYOS Node |
 | macOS | `FreeOS-desktop-darwin-arm64-<version>.dmg`（Apple 芯片）/ `FreeOS-desktop-darwin-amd64-<version>.dmg`（Intel） |
 | Linux | `FreeOS-desktop-linux-amd64-<version>.tar.gz` / `FreeOS-desktop-linux-arm64-<version>.tar.gz` |
-| 飞牛 NAS（FnOS） | `Octop-fnos-docker-<version>.fpk`（依赖 Docker）/ `Octop-fnos-native-<version>.fpk`（无需 Docker）— 通过应用中心安装 |
+| 飞牛 NAS（FnOS） | `FreeOS-fnos-docker-<version>.fpk`（依赖 Docker）/ `FreeOS-fnos-native-<version>.fpk`（无需 Docker）— 通过应用中心安装。更早的 Release 资产可能仍叫 `Octop-fnos-*` |
 
 桌面客户端说明见 [desktop/README.md](desktop/README.md)，飞牛打包指南见 [fnos/README.md](fnos/README.md)。独立商业组织站见 [docs/org-export.md](docs/org-export.md)（`freeos org export-standalone`，默认导出完整 openXYOS 源码树），不是默认安装器里的第二套 Node。
 
@@ -545,13 +545,7 @@ cd dashboard && npx tsc --noEmit
 
 ### 💬 客户企业微信群
 
-如需加入客户企业微信服务群，请扫码：
-
-<p align="center">
-  <img src="docs/assets/qrcode.png" alt="客户企业微信服务群二维码" width="220" />
-</p>
-
-> 请扫码进入工作群，如有任何疑问或需求，请直接联系群管理员对接处理。
+客户企业微信群二维码已失效（有效期至 2026-08-03），本文不再提供该图。请到 [GitHub Discussions](https://github.com/XYAIStudio/FreeOS/discussions) 讨论，或使用页首 [Discord](https://discord.gg/jPas5J8Ua) 徽章加入社区。
 
 ### 📄 许可证
 

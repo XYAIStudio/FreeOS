@@ -25,7 +25,7 @@ permissions:
   packages: read
 
 concurrency:
-  group: build-octop-fnos
+  group: build-freeos-fnos
   cancel-in-progress: false
 
 jobs:
@@ -99,14 +99,14 @@ jobs:
 
       - name: Build Docker FPK
         env:
-          FPK_NAME_PREFIX: Octop-fnos
+          FPK_NAME_PREFIX: FreeOS-fnos
         run: bash scripts/build-fpk.sh docker
 
       - name: Upload docker fpk artifact
         uses: actions/upload-artifact@v4
         with:
           name: docker-fpk
-          path: dist/Octop-fnos-docker-*.fpk
+          path: dist/FreeOS-fnos-docker-*.fpk
           if-no-files-found: error
 
   native:
@@ -203,18 +203,18 @@ jobs:
       - name: Build native FPK
         id: build_native
         env:
-          FPK_NAME_PREFIX: Octop-fnos
+          FPK_NAME_PREFIX: FreeOS-fnos
         run: bash scripts/build-fpk.sh native
 
       - name: Show native fpk size
-        run: ls -lh dist/Octop-fnos-native-*.fpk
+        run: ls -lh dist/FreeOS-fnos-native-*.fpk
 
       - name: Upload native fpk artifact
         id: upload_native
         uses: actions/upload-artifact@v4
         with:
           name: native-fpk
-          path: dist/Octop-fnos-native-*.fpk
+          path: dist/FreeOS-fnos-native-*.fpk
           if-no-files-found: error
 
       - name: Upload native install log (for debugging)

@@ -469,11 +469,8 @@ Octop 支持两个方向的 ACP 集成：
 - `octop update`（若通过一键安装）；或下载 GitHub Release 中的 Python 制品 / 从 FreeOS 源码重新安装后重启服务。
 
 **Q：如何加入客户企业微信服务群？**
-- 请扫描下方二维码加入：
-
-![客户企业微信服务群二维码](assets/qrcode.png)
-
-> 二维码有效期至 **2026-08-03**，过期后请联系管理员更新。
+- 客户企业微信群二维码已于 **2026-08-03** 失效，指南不再附带该图。
+- 请改用 [GitHub Discussions](https://github.com/XYAIStudio/FreeOS/discussions)，或加入 [Discord](https://discord.gg/jPas5J8Ua)。
 
 ---
 
@@ -497,4 +494,4 @@ Octop 支持两个方向的 ACP 集成：
 | 图 5.6 | 5.8 设置 | `use-06-settings.png` | ✅ 已就位 | 应用设置页面 |
 | 图 5.7 | 5.9 远程桌面 | `use-07-remote-desktop.png` | ✅ 已就位 | 远程桌面连接页 |
 | 图 5.8 | 5.9 浏览器 AI | `use-08-browser-ai.png` | ✅ 已就位 | 浏览器 AI+ 会话页 |
-| 图 7.1 | 七、常见问题 | `qrcode.png` | ✅ 已就位 | 客户企业微信服务群二维码（有效期至 2026-08-03） |
+| 图 7.1 | 七、常见问题 | `qrcode.png` | 已撤下 | 客户企业微信群码已于 2026-08-03 失效，不再随文档分发；请用 GitHub Discussions 或 Discord |

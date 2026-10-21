@@ -55,8 +55,8 @@ def render_download_section(raw_version: str) -> str:
     linux_arm = md_link("ARM64", tag, desktop_name("linux", "arm64", version, "tar.gz"))
     linux64_zip = md_link("64-bit", tag, portable_name("linux", "amd64", version))
     linux_arm_zip = md_link("ARM64", tag, portable_name("linux", "arm64", version))
-    fnos_docker = md_link("Docker", tag, f"Octop-fnos-docker-{version}.fpk")
-    fnos_native = md_link("Native", tag, f"Octop-fnos-native-{version}.fpk")
+    fnos_docker = md_link("Docker", tag, f"FreeOS-fnos-docker-{version}.fpk")
+    fnos_native = md_link("Native", tag, f"FreeOS-fnos-native-{version}.fpk")
     return "\n".join(
         [
             "",

@@ -38,7 +38,7 @@ def test_render_download_section_matches_github_asset_names() -> None:
     assert f"{base}/FreeOS-desktop-linux-arm64-0.9.31.tar.gz" in body
     assert f"{base}/FreeOS-portable-linux-amd64-0.9.31.zip" in body
     assert f"{base}/FreeOS-portable-linux-arm64-0.9.31.zip" in body
-    assert f"{base}/Octop-fnos-docker-0.9.31.fpk" in body
-    assert f"{base}/Octop-fnos-native-0.9.31.fpk" in body
+    assert f"{base}/FreeOS-fnos-docker-0.9.31.fpk" in body
+    assert f"{base}/FreeOS-fnos-native-0.9.31.fpk" in body
     assert "pip install" not in body
     assert "## Downloads" in body
