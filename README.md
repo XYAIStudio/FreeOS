@@ -138,7 +138,9 @@ Operator detail: [docs/asset-loop.md](docs/asset-loop.md).
 3. 打开 **FreeOS**。第一次启动会解压内置运行环境（可能要一两分钟），然后直接进入可用会话，无需先登录。
 4. 保存、导出或发布到账号时再在本机完成注册或登录（更广的服务或授权不挡起步）。侧栏 **Organization** 当前默认走宿主内组织能力；桌面安装包附带的托管 Node + iframe（延续 0.0.3 过渡桥）、以及可选的完整 openXYOS Node 栈（`127.0.0.1:3780`，导出/同步/高级部署）都是 **过渡桥**，终态是把 openXYOS 迁入宿主。组织能力像工作室里另一间可独立布置的房间，与日常对话、助手协作同在一个 FreeOS，两种进入方式不捏成一种。
 
-数据目录默认是 `%USERPROFILE%\.freeos`（可用环境变量 `FREEOS_HOME` 改）。旧版 Octop 的 `~/.octop` 仍会被识别。卸载安装包会清空安装目录（默认为 `Program Files\FreeOS`）并删除快捷方式，但**不会**删除该用户数据目录；详见 [desktop/README.md](desktop/README.md#windows-uninstall)。
+**不要**执行 `pip install octop`。PyPI 上的 `octop` 是上游 Octop，不是 FreeOS。本仓库的 Python 制品在 GitHub Releases 上，文件名是 `freeos-<version>-py3-none-any.whl` 和 `freeos-<version>.tar.gz`（导入包仍是 `octop`）。桌面安装包仍是 `FreeOS-desktop-*`。
+
+数据目录是 `%USERPROFILE%\.octop`（也可用 `OCTOP_HOME` 指定）。已经设置的 `FREEOS_HOME` 会被沿用；这一版不会把 `~/.octop` 迁到 `~/.freeos`。卸载安装包会清空安装目录（默认为 `Program Files\FreeOS`）并删除快捷方式，但**不会**删除该用户数据目录；详见 [desktop/README.md](desktop/README.md#windows-uninstall)。
 
 安装包由 CI 工作流 **FreeOS Desktop Package**（文件名仍是 `.github/workflows/octop-desktop.yml`，给现有发版脚本用）在 Windows runner 上打出来。本仓库的云环境打不出 `.exe`；合并后由该 job 产出。
 
@@ -168,13 +170,7 @@ FreeOS prefers runtimes and files on this computer. Cloud vendors are optional.
 | Knowledge | Sidebar **Knowledge Bases**: mount a local folder first. Local ONNX embeddings are the default vector path. ima / WeKnora remain optional connectors. |
 | Detail | [User guide](docs/user-guide.md#四配置模型llm-供应商) · [Configuration](docs/configuration.md#local-models-and-knowledge-bases) · [Product contract](docs/product-contract.md#local-models-and-knowledge-bases) |
 
-Data directory precedence:
-
-1. `FREEOS_HOME`
-2. `OCTOP_HOME` (legacy)
-3. existing `~/.freeos`
-4. existing `~/.octop`
-5. new installs → `~/.freeos`
+Data directory: `~/.octop` (`OCTOP_HOME`). If `FREEOS_HOME` is already set, that path is used. This release does not migrate `~/.octop` to `~/.freeos`.
 
 ### Rebuild the dashboard (optional)
 
@@ -239,7 +235,7 @@ Inbound import compiles the blueprint **and** registers a FreeOS agent (`org-pol
 
 ## Host platform features (from Octop)
 
-Unchanged in this fork: multi-user JWT, multi-agent chat, expert library, connectors, ACP, knowledge bases, bundled plugins, cron, terminal/browser/desktop surfaces. The **Windows desktop installer** is branded **FreeOS** and defaults to `~/.freeos` / `FREEOS_HOME`. The Python package, `octop` CLI alias, `OCTOP_*` env vars, and `octop.db` stay for compatibility.
+Unchanged in this fork: multi-user JWT, multi-agent chat, expert library, connectors, ACP, knowledge bases, bundled plugins, cron, terminal/browser/desktop surfaces. The **Windows desktop installer** is branded **FreeOS**. User data stays in `~/.octop` (`OCTOP_HOME`); `FREEOS_HOME` is honored only when it is already set. The import package, `octop` CLI alias, `OCTOP_*` env vars, and `octop.db` stay for compatibility. GitHub Release wheels are named `freeos-<version>*`.
 
 Longer host docs: [docs/user-guide.md](docs/user-guide.md), [docs/configuration.md](docs/configuration.md), [docs/architecture.md](docs/architecture.md), [README_CN.md](README_CN.md).
 

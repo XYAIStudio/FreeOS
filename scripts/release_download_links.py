@@ -89,6 +89,15 @@ def render_download_section(raw_version: str) -> str:
             "### fnOS NAS",
             f"- {fnos_docker} | {fnos_native}",
             "",
+            "### Python wheel and sdist",
+            "",
+            "**Do not** `pip install octop`. PyPI `octop` is upstream Octop, not FreeOS.",
+            "These GitHub Release files are the FreeOS distribution"
+            " (import package remains `octop`):",
+            "",
+            f"- {md_link('Wheel', tag, f'freeos-{version}-py3-none-any.whl')}",
+            f"- {md_link('sdist', tag, f'freeos-{version}.tar.gz')}",
+            "",
         ]
     )
 

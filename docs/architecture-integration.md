@@ -100,7 +100,7 @@ and applies asset packs onto openXYOS-shaped **in-host** surfaces
                  │  in-host org storage + xyos-governance-mcp   │
                  └───────┬───────────────────┬─────────────────┘
                          │ optional HTTP     │ durable pause
-                         │ if opted in       │ ~/.freeos/governance/
+                         │ if opted in       │ ~/.octop/governance/
                  ┌───────▼─────────┐   ┌─────▼─────────────────┐
   Optional       │ openXYOS :3780  │   │ Pause + audit JSONL   │
   Node sidecar   │ export / sync   │   │ Human must approve    │
@@ -128,7 +128,7 @@ Agent → tool (outbound / delete / pay / prod)
      → optional POST {sidecar}/api/governance/validate
      → no matching allow rule → DEFAULT DENY
      → write audit.jsonl (and sidecar log when reachable)
-     → create durable pause  ~/.freeos/governance/pauses/<id>.json
+     → create durable pause  ~/.octop/governance/pauses/<id>.json
      → return execute=false  (caller MUST stop)
 Human → FreeOS/Octop IM /approve  or  `freeos org governance approve <id>`
      → pause status=approved
@@ -287,9 +287,8 @@ The Phase A work sits on the existing FreeOS bootstrap:
 - Octop history as the host (`src/octop/`, `dashboard/`)
 - openXYOS vendored at `modules/openxyos/` (subtree `@ 1bdba35f`)
 - Bundled plugin `org-os`, BFF `/api/org-module`, CLI `freeos org`
-- PathLayout: `FREEOS_HOME` > `OCTOP_HOME` > existing `~/.freeos` >
-  existing `~/.octop` > new `~/.freeos`
-- Package name stays `octop`; CLI alias `freeos`
+- Data directory today: `~/.octop` (`OCTOP_HOME`). `FREEOS_HOME` is honored when already set. This release does not migrate `~/.octop` to `~/.freeos`.
+- Distribution name is `freeos` (GitHub Release wheels). Imports stay `octop.*`. CLI aliases: `freeos` and `octop`.
 
 ### Capability map (host + sidecar)
 
@@ -348,7 +347,7 @@ without `includes_org` leave those live directories untouched on restore.
 
 ## Remaining `octop` identifiers (intentional)
 
-- Python package / imports: `octop.*` (`pyproject.toml` `name = "octop"`)
+- Python imports stay `octop.*`. The distribution name in `pyproject.toml` is `freeos` (GitHub Release wheels `freeos-<version>*`, not PyPI)
 - CLI: `octop` still works; `freeos` is the same entry point
 - Env: `OCTOP_*` still honored; prefer `FREEOS_*`
 - SQLite filename: `octop.db`

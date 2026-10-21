@@ -247,7 +247,7 @@ curl -fsSL https://finnie-1258344699.cos.ap-guangzhou.myqcloud.com/octop/install
 
 桌面客户端说明见 [desktop/README.md](desktop/README.md)，飞牛打包指南见 [fnos/README.md](fnos/README.md)。独立商业组织站见 [docs/org-export.md](docs/org-export.md)（`freeos org export-standalone`，默认导出完整 openXYOS 源码树），不是默认安装器里的第二套 Node。
 
-**不要**从 PyPI 安装 `octop`。PyPI 上的 `octop` 是上游 Octop，不是 FreeOS 0.1.0。桌面安装包从 [GitHub Releases](https://github.com/XYAIStudio/FreeOS/releases) 下载；终端安装用上面的安装脚本（默认拉取 FreeOS GitHub 源码）。只有在你明确要上游 Octop 时才加 `--from-pypi`。可选组件仍通过安装脚本传递，例如 `--extras browser`。
+**不要** `pip install octop`。PyPI 上的 `octop` 是上游 Octop，不是 FreeOS 0.1.0。本仓库发到 GitHub Releases 的 Python 制品是 `freeos-<version>-py3-none-any.whl` 和 `freeos-<version>.tar.gz`（导入包仍叫 `octop`）。更早的 Release 里可能还有 `octop-0.0.10*` 文件名，那是旧制品名，不是 PyPI 安装命令。桌面安装包从 [GitHub Releases](https://github.com/XYAIStudio/FreeOS/releases) 下载；终端安装用上面的安装脚本（默认拉取 FreeOS GitHub 源码）。只有在你明确要上游 Octop 时才加 `--from-pypi`。可选组件仍通过安装脚本传递，例如 `--extras browser`。
 
 从源码用 uv 开发时：
 
@@ -335,7 +335,7 @@ docker run -d \
 | 远程一键安装 | Windows | `irm …/octop/install.ps1 \| iex` 或 `install.bat` |
 | 本地脚本 | macOS / Linux | `bash scripts/install.sh` |
 | 本地脚本 | Windows | `scripts\install.bat` 或 `install.ps1` |
-| GitHub Releases | 全平台 | 桌面安装包与 wheel。不要安装 PyPI 上的上游 `octop` |
+| GitHub Releases | 全平台 | 桌面安装包，以及 `freeos-<version>-py3-none-any.whl` / `freeos-<version>.tar.gz`。**不要** `pip install octop`（那是上游 PyPI 包） |
 | Docker | 全平台 | `docker/docker-compose.yml` |
 
 所有安装脚本均在 `~/.octop/venv` 创建隔离环境，并通过 `~/.octop/bin/octop` 包装 CLI，不会影响系统 Python。

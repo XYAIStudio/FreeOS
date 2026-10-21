@@ -115,9 +115,10 @@ jobs:
               echo ""
               echo "## Install"
               echo ""
-              echo "Download the Python wheel from this GitHub Release and install it with:"
+              echo "**Do not** \`pip install octop\`. PyPI \`octop\` is upstream Octop, not this FreeOS release."
+              echo "Install the wheel attached to this GitHub Release:"
               echo '```bash'
-              echo "uv pip install ./octop-$version-py3-none-any.whl"
+              echo "uv pip install ./freeos-$version-py3-none-any.whl"
               echo '```'
             } > .release-notes.md
           fi

@@ -6,12 +6,12 @@
 
 ## [0.1.0] - TBD
 
-FreeOS **0.1.0** is an independent semver baseline. It does not track or align with Octop 1.0.x. Python wheels stay on GitHub Releases; this release does not publish the colliding `octop` name to PyPI.
+FreeOS **0.1.0** is an independent semver baseline. It does not track or align with Octop 1.0.x. GitHub Release Python artifacts are `freeos-0.1.0*` (sdist and wheel). The import package stays `octop`. This release does not publish to PyPI, and `pip install octop` installs upstream Octop, not FreeOS. Older Release files may still be named `octop-0.0.10*`.
 
 ### Upgrade from 0.0.10
 
-- In-app update and a manual reinstall both keep `~/.freeos` (legacy `~/.octop` is still recognized): sessions, local models, knowledge bases, organization data, and `config.json`.
-- Desktop portable upgrades copy a SQLite backup under `$FREEOS_HOME/backups` before replacing the runtime, and checkpoint the WAL before the process restarts.
+- In-app update and a manual reinstall keep the data directory the process already uses. Today that directory is `~/.octop` (`OCTOP_HOME`): sessions, local models, knowledge bases, organization data, and `config.json`. `FREEOS_HOME` is honored only when it is already set. This release does not migrate `~/.octop` to `~/.freeos`.
+- Desktop portable upgrades copy a SQLite backup under the data directory's `backups/` before replacing the runtime, and checkpoint the WAL before the process restarts.
 - A `config.json` that cannot be parsed is left in place and reported. It is not rewritten as an empty file.
 - Roll back by installing the **v0.0.10** desktop package again, or restore a backup with `octop backup restore`. Do not point install scripts at PyPI `octop`; that package is upstream Octop, not this release. Use [GitHub Releases](https://github.com/XYAIStudio/FreeOS/releases) or `scripts/install.sh` (add `--from-pypi` only when you explicitly want upstream Octop).
 

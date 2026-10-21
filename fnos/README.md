@@ -88,7 +88,7 @@ fnos/
 
 1. **发版链路**：`v*` tag → `release.yml`（PyPI + GitHub Release）与 `docker-publish.yml`（GHCR / Hub）并行；Release 成功后自动 `workflow_dispatch` 本工作流。
 2. **镜像复用**：不再重新 build 镜像；`ensure-image` 轮询等待 `ghcr.io/xyaistudio/freeos:{version}`（由 docker-publish 推送）。Docker 版 `.fpk` 仅打包 compose，运行时拉取该镜像。
-3. **Wheel 复用**：Native 版优先从同版本 GitHub Release（`v*`）下载 `octop-*.whl`；若缺失再回退源码构建前端 + wheel。
+3. **Wheel 复用**：Native 版优先从同版本 GitHub Release（`v*`）下载 `freeos-*.whl`；若缺失再回退源码构建前端 + wheel。更早的 Release 上可能仍是 `octop-*.whl`，那不是 PyPI 上的上游包。
 4. **安装包构建**：`fpk` / `native` job 用 `scripts/build-fpk.sh` 打包，产物 `FreeOS-fnos-docker-<ver>.fpk` / `FreeOS-fnos-native-<ver>.fpk` 挂到同一个 `v*` GitHub Release（与 wheel、桌面包并列）。
 
 ## 本地构建 .fpk（无需 Docker）

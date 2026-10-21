@@ -2502,7 +2502,7 @@ wheels = [
 ]
 
 [[package]]
-name = "octop"
+name = "freeos"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
