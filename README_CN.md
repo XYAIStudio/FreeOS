@@ -11,10 +11,9 @@
 <p align="center">
   <a href="https://www.python.org/downloads/"><img alt="Python 3.12+" src="https://img.shields.io/badge/python-3.12%2B-blue?logo=python&logoColor=white" /></a>
   <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-green" /></a>
-  <a href="https://github.com/XYAIStudio/FreeOS/releases"><img alt="Version" src="https://img.shields.io/badge/version-0.0.6-orange" /></a>
+  <a href="https://github.com/XYAIStudio/FreeOS/releases"><img alt="Version" src="https://img.shields.io/badge/version-0.1.0-orange" /></a>
   <a href="https://github.com/TencentCloud/Octop"><img alt="上游：Octop" src="https://img.shields.io/badge/上游-Octop-1677ff.svg?style=flat" /></a>
   <a href="https://github.com/XYAIStudio/openXYOS"><img alt="组织模块：openXYOS" src="https://img.shields.io/badge/组织模块-openXYOS-0f766e.svg?style=flat" /></a>
-  <a href="https://pypi.org/project/octop/"><img src="https://img.shields.io/pypi/v/octop" alt="PyPI" /></a>
   <a href="https://github.com/astral-sh/ruff"><img alt="Code Style: Ruff" src="https://img.shields.io/badge/code%20style-ruff-000000?logo=ruff&logoColor=white" /></a>
   <a href="https://github.com/XYAIStudio/FreeOS"><img alt="GitHub stars" src="https://img.shields.io/github/stars/XYAIStudio/FreeOS?style=social" /></a>
   <a href="https://github.com/XYAIStudio/FreeOS/fork"><img alt="GitHub forks" src="https://img.shields.io/github/forks/XYAIStudio/FreeOS?style=social" /></a>
@@ -248,14 +247,7 @@ curl -fsSL https://finnie-1258344699.cos.ap-guangzhou.myqcloud.com/octop/install
 
 桌面客户端说明见 [desktop/README.md](desktop/README.md)，飞牛打包指南见 [fnos/README.md](fnos/README.md)。独立商业组织站见 [docs/org-export.md](docs/org-export.md)（`freeos org export-standalone`，默认导出完整 openXYOS 源码树），不是默认安装器里的第二套 Node。
 
-**备选 — PyPI**（若你已自行管理 Python 环境）：
-
-```bash
-pip install octop
-# 可选：pip install "octop[browser]"
-# 可选本地 ONNX Embedding 模型缓存（设置 → 模型 → 本地）：pip install "octop[local-embedding]"
-# 仅下载目录模型到 ~/.octop/embedding_models；不用于对话，也不接入 Memory。
-```
+**不要**从 PyPI 安装 `octop`。PyPI 上的 `octop` 是上游 Octop，不是 FreeOS 0.1.0。桌面安装包从 [GitHub Releases](https://github.com/XYAIStudio/FreeOS/releases) 下载；终端安装用上面的安装脚本（默认拉取 FreeOS GitHub 源码）。只有在你明确要上游 Octop 时才加 `--from-pypi`。可选组件仍通过安装脚本传递，例如 `--extras browser`。
 
 从源码用 uv 开发时：
 
@@ -343,7 +335,7 @@ docker run -d \
 | 远程一键安装 | Windows | `irm …/octop/install.ps1 \| iex` 或 `install.bat` |
 | 本地脚本 | macOS / Linux | `bash scripts/install.sh` |
 | 本地脚本 | Windows | `scripts\install.bat` 或 `install.ps1` |
-| PyPI | 全平台 | `pip install octop` 或 `pip install "octop[browser]"` |
+| GitHub Releases | 全平台 | 桌面安装包与 wheel。不要安装 PyPI 上的上游 `octop` |
 | Docker | 全平台 | `docker/docker-compose.yml` |
 
 所有安装脚本均在 `~/.octop/venv` 创建隔离环境，并通过 `~/.octop/bin/octop` 包装 CLI，不会影响系统 Python。

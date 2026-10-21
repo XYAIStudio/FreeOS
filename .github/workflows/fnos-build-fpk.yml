@@ -273,6 +273,10 @@ jobs:
             exit 1
           fi
 
+      - name: Classify pre-release
+        id: channel
+        run: python3 scripts/release_prerelease.py "${{ needs.version.outputs.tag }}" >> "$GITHUB_OUTPUT"
+
       - name: Attach fpk to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
@@ -280,5 +284,7 @@ jobs:
           files: dist/*.fpk
           fail_on_unmatched_files: true
           generate_release_notes: false
+          prerelease: ${{ steps.channel.outputs.prerelease }}
+          make_latest: ${{ steps.channel.outputs.prerelease == 'true' && 'false' || 'true' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -12,10 +12,18 @@ import (
 )
 
 func mustEnv(cmd *exec.Cmd, extra map[string]string) {
-	cmd.Env = os.Environ()
-	for key, value := range extra {
-		cmd.Env = append(cmd.Env, key+"="+value)
+	filtered := make([]string, 0, len(os.Environ())+len(extra))
+	for _, item := range os.Environ() {
+		key, _, _ := strings.Cut(item, "=")
+		if _, override := extra[key]; override {
+			continue
+		}
+		filtered = append(filtered, item)
 	}
+	for key, value := range extra {
+		filtered = append(filtered, key+"="+value)
+	}
+	cmd.Env = filtered
 }
 
 const defaultSidecarPort = 3780
@@ -23,14 +31,14 @@ const defaultSidecarPort = 3780
 func hostLaunchEnv(root string, port int) map[string]string {
 	home := productHome()
 	env := map[string]string{
-		"FREEOS_HOME":           home,
-		"OCTOP_HOME":            home,
-		"OCTOP_GREEN_PACKAGES":  filepath.Join(root, "packages"),
-		"PYTHONNOUSERSITE":      "1",
-		"PYTHONUTF8":            "1",
-		"PYTHONIOENCODING":      "utf-8",
-		"PYTHONPATH":            "",
-		"FREEOS_ORG_ENABLE":     "1",
+		"FREEOS_HOME":          home,
+		"OCTOP_HOME":           home,
+		"OCTOP_GREEN_PACKAGES": filepath.Join(root, "packages"),
+		"PYTHONNOUSERSITE":     "1",
+		"PYTHONUTF8":           "1",
+		"PYTHONIOENCODING":     "utf-8",
+		"PYTHONPATH":           "",
+		"FREEOS_ORG_ENABLE":    "1",
 		// Desktop always claims the openXYOS module. Missing Node is a
 		// packaging/startup failure, not a reason to unset this flag.
 		"FREEOS_ORG_INTEGRATED": "1",

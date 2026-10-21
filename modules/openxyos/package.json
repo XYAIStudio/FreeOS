@@ -106,7 +106,7 @@
   },
   "description": "Open-source operating system for governed human-agent organizations",
   "engines": {
-    "node": ">=20.19"
+    "node": ">=22.12"
   },
   "overrides": {
     "qs": "6.16.0",

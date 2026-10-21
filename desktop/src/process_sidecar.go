@@ -304,6 +304,7 @@ func sidecarLaunchEnv(home string, dashboardPort int) (map[string]string, error)
 	return map[string]string{
 		"NODE_ENV":                  "production",
 		"PORT":                      strconv.Itoa(defaultSidecarPort),
+		"HOST":                      "127.0.0.1",
 		"DB_DIALECT":                "sqlite",
 		"DATABASE_PATH":             filepath.Join(sidecarDataDir(home), "xiongyuan.db"),
 		"AIR_GAP_MODE":              "true",
@@ -316,6 +317,8 @@ func sidecarLaunchEnv(home string, dashboardPort int) (map[string]string, error)
 		"FREEOS_HOME":               home,
 		"OCTOP_HOME":                home,
 		"FREEOS_ORG_SIDECAR_PORT":   strconv.Itoa(defaultSidecarPort),
+		"FREEOS_ORG_INTEGRATED":     "1",
+		"FREEOS_ORG_LOCAL_TEST":     "1",
 	}, nil
 }
 

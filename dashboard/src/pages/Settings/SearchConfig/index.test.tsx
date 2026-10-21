@@ -35,17 +35,21 @@ describe("<SearchConfigPage />", () => {
     api.listEnvs.mockResolvedValue(envResp([]));
 
     render(<SearchConfigPage />);
-    await waitFor(() => expect(api.listEnvs).toHaveBeenCalled());
 
-    expect(screen.getByText("当前搜索源：内置搜索")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText("当前搜索源：内置搜索")).toBeInTheDocument();
+    });
+    expect(api.listEnvs).toHaveBeenCalled();
   });
 
   it("shows the configured provider as the current search source", async () => {
     api.listEnvs.mockResolvedValue(envResp(["TAVILY_API_KEY"]));
 
     render(<SearchConfigPage />);
-    await waitFor(() => expect(api.listEnvs).toHaveBeenCalled());
 
-    expect(screen.getByText("当前搜索源：Tavily")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText("当前搜索源：Tavily")).toBeInTheDocument();
+    });
+    expect(api.listEnvs).toHaveBeenCalled();
   });
 });

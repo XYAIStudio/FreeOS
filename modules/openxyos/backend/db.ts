@@ -49,6 +49,7 @@ export async function initDatabase(): Promise<void> {
       role TEXT DEFAULT 'user',
       tenant_id INTEGER DEFAULT 1,
       token_version INTEGER NOT NULL DEFAULT 0,
+      must_change_password INTEGER NOT NULL DEFAULT 0,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
     CREATE TABLE IF NOT EXISTS companies (
@@ -324,6 +325,11 @@ export async function initDatabase(): Promise<void> {
   db.run(moduleSettingsMigration);
   try {
     db.run("ALTER TABLE evidence_bundles ADD COLUMN content TEXT NOT NULL DEFAULT '{}'");
+  } catch (error: any) {
+    if (!error.message?.includes("duplicate column")) throw error;
+  }
+  try {
+    db.run("ALTER TABLE users ADD COLUMN must_change_password INTEGER NOT NULL DEFAULT 0");
   } catch (error: any) {
     if (!error.message?.includes("duplicate column")) throw error;
   }

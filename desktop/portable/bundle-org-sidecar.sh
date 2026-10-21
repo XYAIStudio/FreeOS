@@ -213,11 +213,14 @@ ENV
 fi
 export NODE_ENV=production
 export PORT
+export HOST=127.0.0.1
 export DB_DIALECT=sqlite
 export DATABASE_PATH="${DATA_DIR}/xiongyuan.db"
 export AIR_GAP_MODE=true
 export ALLOW_PUBLIC_REGISTRATION="${ALLOW_PUBLIC_REGISTRATION:-false}"
 export SEED_DEMO_DATA="${SEED_DEMO_DATA:-false}"
+export FREEOS_ORG_INTEGRATED="${FREEOS_ORG_INTEGRATED:-1}"
+export FREEOS_ORG_LOCAL_TEST="${FREEOS_ORG_LOCAL_TEST:-1}"
 export JWT_SECRET COOKIE_SECRET
 export CORS_ORIGIN="${CORS_ORIGIN:-http://127.0.0.1:8088,http://localhost:8088,http://127.0.0.1:18900,http://localhost:18900}"
 cd "${APP}"
@@ -252,11 +255,14 @@ if not defined COOKIE_SECRET (
 >> "%FREEOS_ORG_DATA%\sidecar.env" echo COOKIE_SECRET=%COOKIE_SECRET%
 set "NODE_ENV=production"
 set "PORT=%FREEOS_ORG_SIDECAR_PORT%"
+set "HOST=127.0.0.1"
 set "DB_DIALECT=sqlite"
 set "DATABASE_PATH=%FREEOS_ORG_DATA%\xiongyuan.db"
 set "AIR_GAP_MODE=true"
 if not defined ALLOW_PUBLIC_REGISTRATION set "ALLOW_PUBLIC_REGISTRATION=false"
 if not defined SEED_DEMO_DATA set "SEED_DEMO_DATA=false"
+if not defined FREEOS_ORG_INTEGRATED set "FREEOS_ORG_INTEGRATED=1"
+if not defined FREEOS_ORG_LOCAL_TEST set "FREEOS_ORG_LOCAL_TEST=1"
 if not defined CORS_ORIGIN set "CORS_ORIGIN=http://127.0.0.1:8088,http://localhost:8088,http://127.0.0.1:18900,http://localhost:18900"
 cd /d "%APP%"
 "%NODE%" --import tsx backend/server.ts

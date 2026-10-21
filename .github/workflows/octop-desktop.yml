@@ -360,6 +360,8 @@ jobs:
       contents: write
       actions: read
     steps:
+      - uses: actions/checkout@v4
+
       - name: Resolve release tag
         id: rel
         run: |
@@ -373,6 +375,10 @@ jobs:
             exit 1
           fi
           echo "tag=${tag}" >> "$GITHUB_OUTPUT"
+
+      - name: Classify pre-release
+        id: channel
+        run: python3 scripts/release_prerelease.py "${{ steps.rel.outputs.tag }}" >> "$GITHUB_OUTPUT"
 
       # v8 required for archive:false artifacts. skip-decompress keeps the
       # uploaded .zip / .tar.gz / .dmg / .exe intact — default unzip turns portable
@@ -404,4 +410,7 @@ jobs:
           files: release-assets/*
           fail_on_unmatched_files: true
           # Upsert: works whether Release workflow already created the release.
+          # Keep rc/a/b/dev tags as prereleases so attaching assets cannot mark them latest.
           generate_release_notes: false
+          prerelease: ${{ steps.channel.outputs.prerelease }}
+          make_latest: ${{ steps.channel.outputs.prerelease == 'true' && 'false' || 'true' }}

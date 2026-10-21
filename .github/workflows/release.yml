@@ -125,12 +125,18 @@ jobs:
             python3 scripts/release_download_links.py "$version" >> .release-notes.md
           fi
 
+      - name: Classify pre-release
+        id: channel
+        run: python3 scripts/release_prerelease.py "${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+
       - name: Create release
         uses: softprops/action-gh-release@v2
         with:
           body_path: .release-notes.md
           files: dist/*
           generate_release_notes: true
+          prerelease: ${{ steps.channel.outputs.prerelease }}
+          make_latest: ${{ steps.channel.outputs.prerelease == 'true' && 'false' || 'true' }}
 
   # workflow_run / release:published are unreliable when Release itself was
   # started via GITHUB_TOKEN workflow_dispatch (Auto Tag). Explicitly cascade.

@@ -374,6 +374,7 @@ def sidecar_launch_env(home: Path, *, dashboard_port: int | None = None) -> dict
         {
             "NODE_ENV": "production",
             "PORT": port,
+            "HOST": "127.0.0.1",
             "DB_DIALECT": "sqlite",
             "DATABASE_PATH": str(sidecar_data_dir(home) / "xiongyuan.db"),
             "AIR_GAP_MODE": "true",
