@@ -14,13 +14,7 @@ Windows end-user product: **download the NSIS `.exe` → install → open FreeOS
 
 ## Data directory
 
-Same precedence as the FreeOS CLI/server:
-
-1. `FREEOS_HOME`
-2. `OCTOP_HOME` (legacy)
-3. existing `~/.freeos`
-4. existing `~/.octop`
-5. new installs → `~/.freeos`
+New desktop installs use `~/.freeos`. Order: `FREEOS_HOME`, then `OCTOP_HOME`, then `~/.freeos`. A leftover `~/.octop` is not the desktop home. CLI installs still keep that legacy tree when `~/.freeos` does not exist yet. This release does not copy one tree into the other.
 
 - Green runtime extract → `{home}/portable/`
 - Organization data (in-host) → `{home}/tenants/`, `{home}/openxyos-mirror/`, `{home}/org-skills/`
@@ -61,8 +55,9 @@ Upgrade / reinstall (same version included) refreshes the extracted runtime:
 2. Setup writes `$INSTDIR\FREEOS_INSTALL_STAMP` (product version + tick
    count, unique per Setup run) and deletes
    `%USERPROFILE%\.freeos\portable\FREEOS_STAMP` (also `FREEOS_HOME` /
-   `OCTOP_HOME` / leftover `~/.octop/portable` when those env vars are
-   set). User data (`octop.db`, settings, chats) is not deleted.
+   `OCTOP_HOME` when those variables are set). A leftover `~/.octop`
+   is not the desktop home. User data (`octop.db`, settings, chats) is
+   not deleted.
 3. The next launch compares the install stamp and the zip `FREEOS_STAMP`.
    Either mismatch re-extracts `packages/` and the embedded dashboard from
    the new installer into `~/.freeos/portable`, then copies the install
@@ -114,7 +109,7 @@ the sidecar-era `v0.0.1` Windows builds.
 
 **Keeps**
 
-- `%USERPROFILE%\.freeos` (or `FREEOS_HOME` / `OCTOP_HOME` / legacy `~/.octop`):
+- `%USERPROFILE%\.freeos` (or `FREEOS_HOME` / `OCTOP_HOME`; not a leftover `~/.octop`):
   workspaces, `octop.db`, memories, settings, logs, and the extracted portable
   runtime under `{home}/portable/`
 - Documented exceptions **inside** the install directory, if you created them:
@@ -226,7 +221,7 @@ GitHub Release names follow `FreeOS-<kind>-<os>-<arch>-<version>.<ext>`:
   into `Program Files\FreeOS` and creates Start Menu + desktop shortcuts),
   `.tar.gz` (Linux)
 - Green runtime zip: `FreeOS-portable-<plat>-<version>.zip`
-- PyPI wheels stay `octop-<version>-py3-none-any.whl` (PEP 427)
+- Python wheels on GitHub Releases are `freeos-<version>-py3-none-any.whl` (import package remains `octop`). Do not `pip install octop`; PyPI `octop` is upstream Octop. This repo does not publish that name.
 
 Older `Octop-portable-*` / `Octop-<plat>.zip` files beside the binary are still
 accepted when extracting a local/dev build. They are **not** published anymore.

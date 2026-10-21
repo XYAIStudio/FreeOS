@@ -3,9 +3,9 @@ requires = ["hatchling>=1.18"]
 build-backend = "hatchling.build"
 
 [project]
-name = "octop"
-version = "0.0.10"
-description = "FreeOS — self-hosted multi-user multi-agent assistant with an optional organization OS module (Octop-compatible package name)"
+name = "freeos"
+version = "0.1.0"
+description = "FreeOS — self-hosted multi-user multi-agent assistant. GitHub Release artifacts are named freeos-*; the import package stays octop. Not published to PyPI."
 readme = "README.md"
 license = { text = "MIT" }
 requires-python = ">=3.12"

@@ -1,4 +1,7 @@
 import bcrypt from "bcryptjs";
+import { randomBytes } from "crypto";
+import fs from "fs";
+import path from "path";
 import { dbAll, dbGet, dbRun, getDb, saveDb } from "./db";
 
 function requiredSeedSecret(name: "SEED_ADMIN_PASSWORD" | "SEED_DEMO_PASSWORD"): string {
@@ -13,12 +16,79 @@ function seedAdminEmail(): string {
   return process.env.SEED_ADMIN_EMAIL?.trim() || "admin@example.com";
 }
 
-const LOCAL_BOOTSTRAP_PASSWORD = "openxyos-demo-2026";
-
-function localBootstrapPassword(name: "SEED_ADMIN_PASSWORD" | "SEED_DEMO_PASSWORD"): string {
+function explicitSeedPassword(name: "SEED_ADMIN_PASSWORD" | "SEED_DEMO_PASSWORD"): string | null {
   const value = process.env[name]?.trim();
-  if (value && value.length >= 12) return value;
-  return LOCAL_BOOTSTRAP_PASSWORD;
+  if (!value) return null;
+  if (value.length < 12) {
+    throw new Error(`${name} must be at least 12 characters`);
+  }
+  return value;
+}
+
+function bootstrapCredentialsPath(): string {
+  const dbPath = process.env.DATABASE_PATH || path.join(__dirname, "data/xiongyuan.db");
+  return path.join(path.dirname(dbPath), "bootstrap-credentials.txt");
+}
+
+function readBootstrapPassword(file: string): string | null {
+  if (!fs.existsSync(file)) return null;
+  const match = /^password=(.+)$/m.exec(fs.readFileSync(file, "utf8"));
+  const value = match?.[1]?.trim() ?? "";
+  return value.length >= 12 ? value : null;
+}
+
+/** Random local password, stored once beside the database. Never logged. */
+function generatedBootstrapPassword(): { password: string; created: boolean } {
+  const file = bootstrapCredentialsPath();
+  const existing = readBootstrapPassword(file);
+  if (existing) return { password: existing, created: false };
+  const password = randomBytes(24).toString("base64url");
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  fs.writeFileSync(
+    file,
+    [
+      "# Local bootstrap credentials for this machine only.",
+      "# Sign in once, then change the password. Do not commit this file.",
+      `password=${password}`,
+      "",
+    ].join("\n"),
+    { encoding: "utf8", mode: 0o600 },
+  );
+  try {
+    fs.chmodSync(file, 0o600);
+  } catch {
+    // Windows ACLs are not POSIX modes; the file still stays under the user profile.
+  }
+  console.log(`[seed] local bootstrap credentials written to ${file}`);
+  return { password, created: true };
+}
+
+function upsertBootstrapUser(opts: {
+  email: string;
+  password: string;
+  nickname: string;
+  role: string;
+  tenantId: number;
+  mustChange: boolean;
+  rotate: boolean;
+}): void {
+  const hash = bcrypt.hashSync(opts.password, 10);
+  const existing = dbGet("SELECT id FROM users WHERE email = ?", [opts.email]);
+  if (!existing) {
+    dbRun(
+      "INSERT INTO users (email, password_hash, nickname, role, tenant_id, must_change_password) VALUES (?, ?, ?, ?, ?, ?)",
+      [opts.email, hash, opts.nickname, opts.role, opts.tenantId, opts.mustChange ? 1 : 0],
+    );
+    console.log(`[seed] local bootstrap account ${opts.email}`);
+    return;
+  }
+  if (opts.rotate) {
+    dbRun(
+      "UPDATE users SET password_hash = ?, must_change_password = 1 WHERE email = ?",
+      [hash, opts.email],
+    );
+    console.log(`[seed] rotated bootstrap password for ${opts.email}; change it on next sign-in`);
+  }
 }
 
 /** First-run local accounts when demo seed is off (FreeOS desktop sidecar). */
@@ -35,30 +105,42 @@ export function ensureLocalBootstrap(): void {
     "UPDATE tenants SET status = 'active' WHERE id IN (1, 2) AND status NOT IN ('active', 'trial')",
   );
 
-  const demoHash = bcrypt.hashSync(localBootstrapPassword("SEED_DEMO_PASSWORD"), 10);
-  const adminHash = bcrypt.hashSync(localBootstrapPassword("SEED_ADMIN_PASSWORD"), 10);
+  const demoExplicit = explicitSeedPassword("SEED_DEMO_PASSWORD");
+  const adminExplicit = explicitSeedPassword("SEED_ADMIN_PASSWORD");
+  const generated = demoExplicit && adminExplicit ? null : generatedBootstrapPassword();
+  const demoPassword = demoExplicit ?? generated!.password;
+  const adminPassword = adminExplicit ?? generated!.password;
+  const rotateGenerated = Boolean(generated?.created);
   const adminEmail = seedAdminEmail();
 
-  if (!dbGet("SELECT id FROM users WHERE email = ?", ["demo@demo.com"])) {
-    dbRun(
-      "INSERT INTO users (email, password_hash, nickname, role, tenant_id) VALUES (?, ?, ?, 'admin', 2)",
-      ["demo@demo.com", demoHash, "管理员"],
-    );
-    console.log("[seed] local bootstrap admin demo@demo.com");
-  }
-  if (!dbGet("SELECT id FROM users WHERE email = ?", ["user@demo.com"])) {
-    dbRun(
-      "INSERT INTO users (email, password_hash, nickname, role, tenant_id) VALUES (?, ?, ?, 'user', 2)",
-      ["user@demo.com", demoHash, "同事"],
-    );
-    console.log("[seed] local bootstrap user user@demo.com");
-  }
-  if (adminEmail !== "demo@demo.com" && !dbGet("SELECT id FROM users WHERE email = ?", [adminEmail])) {
-    dbRun(
-      "INSERT INTO users (email, password_hash, nickname, role, tenant_id) VALUES (?, ?, ?, 'super_admin', 1)",
-      [adminEmail, adminHash, "超级管理员"],
-    );
-    console.log(`[seed] local bootstrap super admin ${adminEmail}`);
+  upsertBootstrapUser({
+    email: "demo@demo.com",
+    password: demoPassword,
+    nickname: "管理员",
+    role: "admin",
+    tenantId: 2,
+    mustChange: demoExplicit === null,
+    rotate: demoExplicit === null && rotateGenerated,
+  });
+  upsertBootstrapUser({
+    email: "user@demo.com",
+    password: demoPassword,
+    nickname: "同事",
+    role: "user",
+    tenantId: 2,
+    mustChange: demoExplicit === null,
+    rotate: demoExplicit === null && rotateGenerated,
+  });
+  if (adminEmail !== "demo@demo.com") {
+    upsertBootstrapUser({
+      email: adminEmail,
+      password: adminPassword,
+      nickname: "超级管理员",
+      role: "super_admin",
+      tenantId: 1,
+      mustChange: adminExplicit === null,
+      rotate: adminExplicit === null && rotateGenerated,
+    });
   }
 }
 
@@ -79,8 +161,7 @@ export function seedDatabase() {
     return;
   }
   if (process.env.SEED_DEMO_DATA !== "true") {
-    console.log("[seed] Demo data is disabled. Seeding local first-login accounts only.");
-    ensureLocalBootstrap();
+    console.log("[seed] Demo data is disabled. Local accounts are seeded only when FREEOS_ORG_LOCAL_TEST=1.");
     return;
   }
 

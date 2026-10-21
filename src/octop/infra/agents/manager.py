@@ -2787,6 +2787,9 @@ class AgentManager:
         )
         from octop.infra.agents.middleware.org_governance import OrgGovernanceMiddleware
         from octop.infra.agents.middleware.reasoning import ReasoningRequestMiddleware
+        from octop.infra.agents.middleware.system_message_cleanup import (
+            SystemMessageCleanupMiddleware,
+        )
         from octop.infra.agents.middleware.thread_artifacts import ThreadArtifactsMiddleware
         from octop.infra.agents.middleware.token_quota import TokenQuotaMiddleware
         from octop.infra.agents.middleware.workspace_image import (
@@ -2807,6 +2810,7 @@ class AgentManager:
             ),
             ReasoningRequestMiddleware(),
             OllamaToolFallbackMiddleware(),
+            SystemMessageCleanupMiddleware(),
             GroupMentionMiddleware(lambda: self._harness_manager),
             KnowledgeSearchHintMiddleware(),
             BrowserProfileMiddleware(),

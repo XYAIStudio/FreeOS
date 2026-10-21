@@ -288,7 +288,7 @@ def print_welcome(*, agent_id: str, model: str, session_key: str, thread_id: str
 
     console = Console()
     try:
-        ver = pkg_version("octop")
+        ver = pkg_version("freeos")
     except Exception:
         ver = "unknown"
     console.print(f"  [bold green]Octop[/] [dim]v{ver}[/] — interactive chat")

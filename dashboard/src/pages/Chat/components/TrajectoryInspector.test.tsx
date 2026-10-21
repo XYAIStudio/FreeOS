@@ -181,17 +181,16 @@ describe("TrajectoryInspector", () => {
 
     fireEvent.click(screen.getByRole("tab", { name: "Preview" }));
 
-    await waitFor(() => {
-      expect(eventMock).toHaveBeenCalledWith("A1", "T1", "ctx-1");
-      const preview = screen.getByTestId("trajectory-preview");
-      expect(preview).toHaveTextContent("Prefer BackendWorkspace paths");
-      // Rendered markdown — not the raw ## / ** markers.
-      expect(preview.querySelector("h2")).toHaveTextContent("Rules");
-      expect(preview.querySelector("strong")).toHaveTextContent(
-        "BackendWorkspace",
-      );
-      expect(preview).not.toHaveTextContent("summary: meta");
-    });
+    await screen.findByRole("heading", { name: "Rules" }, { timeout: 5000 });
+    expect(eventMock).toHaveBeenCalledWith("A1", "T1", "ctx-1");
+    const preview = screen.getByTestId("trajectory-preview");
+    expect(preview).toHaveTextContent("Prefer BackendWorkspace paths");
+    // Rendered markdown — not the raw ## / ** markers.
+    expect(preview.querySelector("h2")).toHaveTextContent("Rules");
+    expect(preview.querySelector("strong")).toHaveTextContent(
+      "BackendWorkspace",
+    );
+    expect(preview).not.toHaveTextContent("summary: meta");
   });
 
   it("labels the middle tab Result for tool events", () => {

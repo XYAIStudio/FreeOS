@@ -94,11 +94,16 @@ authRoutes.post("/login", async (req, res) => {
       return res.status(status).json({ success: false, error: authError(req, result.error || "") });
     }
 
+    const gate = dbGet(
+      "SELECT must_change_password AS flag FROM users WHERE email = ?",
+      [email],
+    ) as { flag?: number } | undefined;
     res.json({
       success: true,
       data: {
         user: result.user,
         tokens: result.tokens,
+        must_change_password: Number(gate?.flag) === 1,
       },
     });
   } catch (err: unknown) {
@@ -133,6 +138,41 @@ authRoutes.post("/refresh", async (req, res) => {
     res.json({ success: true, data: { tokens: result.tokens } });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message || String(err) });
+  }
+});
+
+// POST /change-password — required before other APIs when the bootstrap flag is set
+authRoutes.post("/change-password", authenticate, (req: AuthRequest, res) => {
+  try {
+    const current = String(req.body?.current_password || "");
+    const next = String(req.body?.new_password || "");
+    if (next.length < 12) {
+      return res.status(400).json({
+        success: false,
+        error: localizedError(req, "新密码至少 12 位", "New password must be at least 12 characters"),
+      });
+    }
+    const row = dbGet("SELECT password_hash FROM users WHERE id = ?", [req.user!.id]) as
+      | { password_hash: string }
+      | undefined;
+    if (!row || !bcrypt.compareSync(current, row.password_hash)) {
+      return res.status(401).json({
+        success: false,
+        error: localizedError(req, "当前密码不正确", "Current password is incorrect"),
+      });
+    }
+    dbRun(
+      "UPDATE users SET password_hash = ?, must_change_password = 0 WHERE id = ?",
+      [bcrypt.hashSync(next, 10), req.user!.id],
+    );
+    res.json({ success: true });
+  } catch (err: unknown) {
+    const tid = logError("POST /change-password", err);
+    res.status(500).json({
+      success: false,
+      error: localizedError(req, "暂时无法修改密码", "Unable to change the password right now"),
+      traceId: tid,
+    });
   }
 });
 

@@ -287,9 +287,8 @@ The Phase A work sits on the existing FreeOS bootstrap:
 - Octop history as the host (`src/octop/`, `dashboard/`)
 - openXYOS vendored at `modules/openxyos/` (subtree `@ 1bdba35f`)
 - Bundled plugin `org-os`, BFF `/api/org-module`, CLI `freeos org`
-- PathLayout: `FREEOS_HOME` > `OCTOP_HOME` > existing `~/.freeos` >
-  existing `~/.octop` > new `~/.freeos`
-- Package name stays `octop`; CLI alias `freeos`
+- Data directory for a new install: `~/.freeos`. Order matches `PathLayout.from_env`: `FREEOS_HOME`, `OCTOP_HOME`, existing `~/.freeos`, existing `~/.octop` (not for the desktop app), else `~/.freeos`. This release does not copy one tree into the other.
+- Distribution name is `freeos` (GitHub Release wheels). Imports stay `octop.*`. CLI aliases: `freeos` and `octop`.
 
 ### Capability map (host + sidecar)
 
@@ -348,7 +347,7 @@ without `includes_org` leave those live directories untouched on restore.
 
 ## Remaining `octop` identifiers (intentional)
 
-- Python package / imports: `octop.*` (`pyproject.toml` `name = "octop"`)
+- Python imports stay `octop.*`. The distribution name in `pyproject.toml` is `freeos` (GitHub Release wheels `freeos-<version>*`, not PyPI)
 - CLI: `octop` still works; `freeos` is the same entry point
 - Env: `OCTOP_*` still honored; prefer `FREEOS_*`
 - SQLite filename: `octop.db`

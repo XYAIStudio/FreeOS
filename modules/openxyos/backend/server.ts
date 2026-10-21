@@ -282,7 +282,7 @@ app.get("/admin/database", (req, res) => {
 
   setupWebSocket(server);
 
-  server.listen(PORT, process.env.HOST || '0.0.0.0', () => {
+  server.listen(PORT, process.env.HOST || '127.0.0.1', () => {
     console.log(`\n  🌐 openXYOS Community — Human + Agent OS`);
     console.log(`  ─────────────────────────────────────`);
     console.log(`  Server:     http://localhost:${PORT}`);

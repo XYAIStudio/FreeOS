@@ -81,15 +81,19 @@ async def list_ollama_models(
     _: Any = Depends(require_permission("ollama_models")),
 ) -> list[OllamaModelResponse]:
     """Return the current Ollama model list via the SDK."""
-    if not _ollama_service_enabled(server):
+    from octop.infra.utils.ollama_manager import (
+        OllamaModelManager,
+        is_ollama_reachable,
+    )
+
+    service_enabled = _ollama_service_enabled(server)
+    if not service_enabled and not is_ollama_reachable():
         raise HTTPException(
             status_code=503,
             detail="Ollama service is disabled. Enable it from the provider card.",
         )
     try:
-        from octop.infra.utils.ollama_manager import OllamaModelManager
-
-        models = OllamaModelManager.list_models()
+        models = OllamaModelManager.list_models(start_if_needed=service_enabled)
     except (OSError, ImportError) as exc:
         logger.warning("Ollama bootstrap failed: %s", exc)
         raise HTTPException(

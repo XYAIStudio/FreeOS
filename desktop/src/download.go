@@ -546,7 +546,88 @@ func compareVersions(left, right string) int {
 			return 1
 		}
 	}
-	return 0
+	return compareVersionSuffix(versionSuffix(left), versionSuffix(right))
+}
+
+// versionSuffix is the non-numeric tail of a PEP 440-ish version (rc1, a1, dev1).
+func versionSuffix(version string) string {
+	var suffix strings.Builder
+	for _, segment := range strings.Split(version, ".") {
+		index := 0
+		for index < len(segment) && segment[index] >= '0' && segment[index] <= '9' {
+			index++
+		}
+		if index < len(segment) {
+			suffix.WriteString(segment[index:])
+		}
+	}
+	return suffix.String()
+}
+
+func compareVersionSuffix(left, right string) int {
+	if left == right {
+		return 0
+	}
+	// 0.1.0rc1 < 0.1.0. The Python update client does full PEP 440 ordering;
+	// this tie-break only keeps a downloaded pre-release behind its final.
+	if left == "" {
+		return 1
+	}
+	if right == "" {
+		return -1
+	}
+	leftKind, leftN, leftOK := preReleaseRank(left)
+	rightKind, rightN, rightOK := preReleaseRank(right)
+	if leftOK && rightOK {
+		if leftKind != rightKind {
+			if leftKind < rightKind {
+				return -1
+			}
+			return 1
+		}
+		if leftN < rightN {
+			return -1
+		}
+		if leftN > rightN {
+			return 1
+		}
+		return 0
+	}
+	if left < right {
+		return -1
+	}
+	return 1
+}
+
+func preReleaseRank(suffix string) (kind int, n int, ok bool) {
+	for _, item := range []struct {
+		prefix string
+		kind   int
+	}{
+		{"alpha", 1},
+		{"beta", 2},
+		{"preview", 2},
+		{"pre", 2},
+		{"rc", 3},
+		{"dev", 0},
+		{"a", 1},
+		{"b", 2},
+		{"c", 2},
+	} {
+		if !strings.HasPrefix(suffix, item.prefix) {
+			continue
+		}
+		rest := strings.TrimLeft(suffix[len(item.prefix):], "._-")
+		if rest == "" {
+			return item.kind, 0, true
+		}
+		value, err := strconv.Atoi(rest)
+		if err != nil {
+			return 0, 0, false
+		}
+		return item.kind, value, true
+	}
+	return 0, 0, false
 }
 
 func versionPart(segment string) int {

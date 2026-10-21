@@ -30,7 +30,9 @@ export function textHasExpertMention(text: string, name: string): boolean {
 export const EVERYONE_MENTION_NAMES = ["所有人", "everyone"] as const;
 
 export function textHasEveryoneMention(text: string): boolean {
-  return EVERYONE_MENTION_NAMES.some((name) => textHasExpertMention(text, name));
+  return EVERYONE_MENTION_NAMES.some((name) =>
+    textHasExpertMention(text, name),
+  );
 }
 
 export function mentionedExpertIds(

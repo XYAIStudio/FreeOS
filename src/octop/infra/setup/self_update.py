@@ -29,7 +29,7 @@ from octop.infra.utils.paths import PathLayout
 
 logger = logging.getLogger(__name__)
 
-_PACKAGE_NAME = "octop"
+_PACKAGE_NAME = "freeos"
 _GREEN_PACKAGES_ENV = "OCTOP_GREEN_PACKAGES"
 PENDING_PORTABLE_NAME = "pending-portable.zip"
 PENDING_META_NAME = "pending.json"
@@ -429,7 +429,7 @@ def get_version_in_dir(python_exe: str, target: str) -> str | None:
     try:
         code = (
             "import sys; sys.path.insert(0, sys.argv[1]); "
-            "from importlib.metadata import version; print(version('octop'))"
+            "from importlib.metadata import version; print(version('freeos'))"
         )
         result = subprocess.run(
             [python_exe, "-c", code, target],

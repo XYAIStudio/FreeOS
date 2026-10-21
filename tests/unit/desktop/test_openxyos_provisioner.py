@@ -159,6 +159,8 @@ def test_start_sidecar_cors_origin_is_parseorigins_safe() -> None:
     assert origins
     assert "*" not in origins
     assert "http://127.0.0.1:3780" in origins
+    assert "$env:HOST = '127.0.0.1'" in text
+    assert "$env:FREEOS_ORG_LOCAL_TEST = '1'" in text
     assert "http://localhost:3780" in origins
     for origin in origins:
         parsed = urlparse(origin)

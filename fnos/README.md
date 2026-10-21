@@ -39,13 +39,13 @@ octop backup --help     # 备份/恢复
 
 | 版本 | 包名 | 体积 | 运行方式 | 依赖 |
 |------|------|------|----------|------|
-| **Docker 版** | `octop-<ver>.fpk` | ~8 KB | 飞牛自动从 GHCR 拉取 `ghcr.io/xyaistudio/freeos:latest` 镜像运行 | 宿主需有 Docker 运行时 |
-| **本地版（非 Docker）** | `octop-native-<ver>.fpk` | ~560 MB | 自带 Python 3.12 运行时 + 前端 + 核心依赖，原生运行在飞牛主机 | 无需 Docker |
+| **Docker 版** | `FreeOS-fnos-docker-<ver>.fpk` | ~8 KB | 飞牛自动从 GHCR 拉取 `ghcr.io/xyaistudio/freeos:latest` 镜像运行 | 宿主需有 Docker 运行时 |
+| **本地版（非 Docker）** | `FreeOS-fnos-native-<ver>.fpk` | ~560 MB | 自带 Python 3.12 运行时 + 前端 + 核心依赖，原生运行在飞牛主机 | 无需 Docker |
 
 - **Docker 版**实现为 FnOS `docker-project`：包体只含 `docker-compose.yaml` 与向导配置，运行时由飞牛从 GHCR 拉取镜像。镜像已内置 `desktop` 桌面控制与前端；Playwright Chromium 不预装，可在控制台按需安装。
 - **本地版**实现为 FnOS 原生 `app`：包内自带独立 Python 3.12 运行时、Octop 核心依赖、前端构建产物，以及 `data-share` 共享数据目录，直接以进程方式运行，不依赖 Docker。
 
-> 两款包随正式版一起挂在 **`v*` GitHub Release** 上（例如 [Releases](https://github.com/XYAIStudio/FreeOS/releases/latest)）：`Octop-fnos-docker-<ver>.fpk` / `Octop-fnos-native-<ver>.fpk`。
+> 两款包随正式版一起挂在 **`v*` GitHub Release** 上（例如 [Releases](https://github.com/XYAIStudio/FreeOS/releases/latest)）：`FreeOS-fnos-docker-<ver>.fpk` / `FreeOS-fnos-native-<ver>.fpk`。更早的 Release 资产可能仍使用 `Octop-fnos-*` 文件名。
 
 ## 目录结构
 
@@ -88,15 +88,15 @@ fnos/
 
 1. **发版链路**：`v*` tag → `release.yml`（PyPI + GitHub Release）与 `docker-publish.yml`（GHCR / Hub）并行；Release 成功后自动 `workflow_dispatch` 本工作流。
 2. **镜像复用**：不再重新 build 镜像；`ensure-image` 轮询等待 `ghcr.io/xyaistudio/freeos:{version}`（由 docker-publish 推送）。Docker 版 `.fpk` 仅打包 compose，运行时拉取该镜像。
-3. **Wheel 复用**：Native 版优先从同版本 GitHub Release（`v*`）下载 `octop-*.whl`；若缺失再回退源码构建前端 + wheel。
-4. **安装包构建**：`fpk` / `native` job 用 `scripts/build-fpk.sh` 打包，产物 `Octop-fnos-docker-<ver>.fpk` / `Octop-fnos-native-<ver>.fpk` 挂到同一个 `v*` GitHub Release（与 wheel、桌面包并列）。
+3. **Wheel 复用**：Native 版优先从同版本 GitHub Release（`v*`）下载 `freeos-*.whl`；若缺失再回退源码构建前端 + wheel。更早的 Release 上可能仍是 `octop-*.whl`，那不是 PyPI 上的上游包。
+4. **安装包构建**：`fpk` / `native` job 用 `scripts/build-fpk.sh` 打包，产物 `FreeOS-fnos-docker-<ver>.fpk` / `FreeOS-fnos-native-<ver>.fpk` 挂到同一个 `v*` GitHub Release（与 wheel、桌面包并列）。
 
 ## 本地构建 .fpk（无需 Docker）
 
 ```bash
-bash scripts/build-fpk.sh            # 仅 Docker 版  → dist/Octop-fnos-docker-<version>.fpk
+bash scripts/build-fpk.sh            # 仅 Docker 版  → dist/FreeOS-fnos-docker-<version>.fpk
 bash scripts/build-fpk.sh docker     # 仅 Docker 版
-bash scripts/build-fpk.sh native     # 仅本地版      → dist/Octop-fnos-native-<version>.fpk
+bash scripts/build-fpk.sh native     # 仅本地版      → dist/FreeOS-fnos-native-<version>.fpk
 ```
 
 `.fpk` 为「双层 gzip tar」：外层含 `app.tgz / cmd / config / wizard / ICON.PNG / ICON_256.PNG / LICENSE / manifest`，内层 `app.tgz` 含 `app/` 内容。
@@ -104,8 +104,8 @@ bash scripts/build-fpk.sh native     # 仅本地版      → dist/Octop-fnos-nat
 ## 在飞牛上安装
 
 1. 飞牛「应用中心 → 设置 → 手动安装应用」选择对应 `.fpk`：
-   - 想用 Docker 跑、主机已装 Docker → 选 `Octop-fnos-docker-<version>.fpk`
-   - 不想依赖 Docker、希望自带运行时原生运行 → 选 `Octop-fnos-native-<version>.fpk`
+   - 想用 Docker 跑、主机已装 Docker → 选 `FreeOS-fnos-docker-<version>.fpk`
+   - 不想依赖 Docker、希望自带运行时原生运行 → 选 `FreeOS-fnos-native-<version>.fpk`
 2. 安装向导中设置管理员账号/密码、日志级别、LLM 密钥（可选）。
 3. 安装完成后桌面出现「Octop AI 助手」图标，浏览器打开 `http://<设备IP>:8088`。
 4. Docker 版镜像首次会从 GHCR `ghcr.io/xyaistudio/freeos:latest` 拉取；请确保该包为 Public（首次推送后可在 GitHub Packages 设置）。本地版无需联网拉镜像。Playwright Chromium 不预装，需要远程浏览器时在控制台按需安装。

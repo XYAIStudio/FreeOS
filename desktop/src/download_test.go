@@ -693,6 +693,13 @@ func TestCompareVersions(t *testing.T) {
 		{"0.9.31", "0.9.32", -1},
 		{"1.0", "1.0.0", 0},
 		{"0.9.32rc1", "0.9.31", 1},
+		{"0.1.0rc1", "0.0.10", 1},
+		{"0.1.0rc1", "0.1.0", -1},
+		{"0.1.0", "0.1.0rc1", 1},
+		{"0.1.0rc1", "0.1.0rc2", -1},
+		{"0.1.0rc2", "0.1.0rc10", -1},
+		{"0.1.0a1", "0.1.0rc1", -1},
+		{"0.1.0.dev1", "0.1.0a1", -1},
 	} {
 		if got := compareVersions(test.left, test.right); got != test.want {
 			t.Fatalf("compareVersions(%q, %q) = %d, want %d", test.left, test.right, got, test.want)

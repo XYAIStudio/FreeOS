@@ -2,12 +2,14 @@
 # Usage: irm <url>/install.ps1 | iex
 #    or: .\install.ps1 [-Version X.Y.Z] [-FromSource] [-SourceDir DIR] [-Extras "browser"]
 #
-# Installs Octop into ~/.octop with a uv-managed Python environment.
+# New installs use ~/.freeos. An existing ~/.octop is kept when ~/.freeos
+# does not exist yet (same order as PathLayout.from_env).
 
 & {
 param(
     [string]$Version   = "",
     [switch]$FromSource,
+    [switch]$FromPyPI,
     [string]$SourceDir = "",
     [string]$Extras    = "",
     [string]$UvPath    = "",
@@ -16,15 +18,31 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-$OctopHome     = if ($env:OCTOP_HOME) { $env:OCTOP_HOME } else { Join-Path $HOME ".octop" }
+function Resolve-FreeOSHome {
+    if ($env:FREEOS_HOME) { return $env:FREEOS_HOME }
+    if ($env:OCTOP_HOME) { return $env:OCTOP_HOME }
+    $freeos = Join-Path $HOME ".freeos"
+    $legacy = Join-Path $HOME ".octop"
+    if (Test-Path $freeos) { return $freeos }
+    foreach ($flag in @($env:OCTOP_DESKTOP, $env:FREEOS_DESKTOP)) {
+        if ($flag -match '^(1|true|yes|on)$') { return $freeos }
+    }
+    if (Test-Path $legacy) { return $legacy }
+    return $freeos
+}
+
+$OctopHome     = Resolve-FreeOSHome
 $OctopVenv     = Join-Path $OctopHome "venv"
 $OctopBin      = Join-Path $OctopHome "bin"
 $PythonVersion = "3.12"
-$OctopRepo     = if ($env:OCTOP_REPO) { $env:OCTOP_REPO } else { "https://github.com/TencentCloud/Octop.git" }
+$OctopRepo     = if ($env:OCTOP_REPO) { $env:OCTOP_REPO } else { "https://github.com/XYAIStudio/FreeOS.git" }
 
 function Write-Info { param([string]$Message) Write-Host "[octop] " -ForegroundColor Green  -NoNewline; Write-Host $Message }
 function Write-Warn { param([string]$Message) Write-Host "[octop] " -ForegroundColor Yellow -NoNewline; Write-Host $Message }
 function Stop-WithError { param([string]$Message) Write-Host "[octop] ERROR: $Message" -ForegroundColor Red; exit 1 }
+
+if ($FromSource -and $FromPyPI) { Stop-WithError "Choose only one of -FromSource or -FromPyPI." }
+if (-not $FromPyPI) { $FromSource = $true }
 
 if ($Help) {
     @"
@@ -35,6 +53,7 @@ Usage: .\install.ps1 [OPTIONS]
 Options:
   -Version <VER>        Install a specific version (e.g. 0.1.0)
   -FromSource           Install from source (requires git, or use -SourceDir)
+  -FromPyPI             Install upstream Octop from PyPI (does not include FreeOS changes)
   -SourceDir <DIR>      Local source directory (used with -FromSource)
   -Extras <EXTRAS>      Extra optional components (e.g. desktop, browser)
   -UvPath <PATH>        Path to a pre-installed uv.exe
@@ -45,7 +64,10 @@ to install it, or install later from the dashboard. If a system Chrome already
 exists, that download is skipped even with -Extras browser.
 
 Environment:
-  OCTOP_HOME            Installation directory (default: ~/.octop)
+  FREEOS_HOME           Installation directory (preferred)
+  OCTOP_HOME            Legacy installation directory override
+                        New installs use ~/.freeos. An existing ~/.octop is
+                        kept when ~/.freeos does not exist yet.
   OCTOP_REPO            Git clone URL for -FromSource without -SourceDir
 "@
     exit 0
@@ -226,7 +248,11 @@ if ($FromSource) {
         }
         $cloneDir = Join-Path $env:TEMP "octop-install-$(Get-Random)"
         try {
+        if ($Version) {
+            git clone --depth 1 --branch "v$Version" $OctopRepo $cloneDir
+        } else {
             git clone --depth 1 $OctopRepo $cloneDir
+        }
             Prepare-Console $cloneDir
             uv pip install "${cloneDir}${ExtrasSuffix}" --python $VenvPython
         } finally {
@@ -309,7 +335,19 @@ New-Item -ItemType Directory -Path $OctopBin -Force | Out-Null
 $wrapperPs1 = Join-Path $OctopBin "octop.ps1"
 @'
 $ErrorActionPreference = "Stop"
-$OctopHome = if ($env:OCTOP_HOME) { $env:OCTOP_HOME } else { Join-Path $HOME ".octop" }
+function Resolve-FreeOSHome {
+    if ($env:FREEOS_HOME) { return $env:FREEOS_HOME }
+    if ($env:OCTOP_HOME) { return $env:OCTOP_HOME }
+    $freeos = Join-Path $HOME ".freeos"
+    $legacy = Join-Path $HOME ".octop"
+    if (Test-Path $freeos) { return $freeos }
+    foreach ($flag in @($env:OCTOP_DESKTOP, $env:FREEOS_DESKTOP)) {
+        if ($flag -match '^(1|true|yes|on)$') { return $freeos }
+    }
+    if (Test-Path $legacy) { return $legacy }
+    return $freeos
+}
+$OctopHome = Resolve-FreeOSHome
 $RealBin = Join-Path $OctopHome "venv\Scripts\octop.exe"
 if (-not (Test-Path $RealBin)) {
     Write-Error "Octop environment not found at $OctopHome\venv"
@@ -321,8 +359,17 @@ if (-not (Test-Path $RealBin)) {
 $cmdWrapper = Join-Path $OctopBin "octop.cmd"
 @'
 @echo off
-set "OCTOP_HOME=%OCTOP_HOME%"
-if "%OCTOP_HOME%"=="" set "OCTOP_HOME=%USERPROFILE%\.octop"
+if defined FREEOS_HOME (
+  set "OCTOP_HOME=%FREEOS_HOME%"
+) else if defined OCTOP_HOME (
+  rem keep the legacy override
+) else if exist "%USERPROFILE%\.freeos" (
+  set "OCTOP_HOME=%USERPROFILE%\.freeos"
+) else if exist "%USERPROFILE%\.octop" (
+  set "OCTOP_HOME=%USERPROFILE%\.octop"
+) else (
+  set "OCTOP_HOME=%USERPROFILE%\.freeos"
+)
 set "REAL_BIN=%OCTOP_HOME%\venv\Scripts\octop.exe"
 if not exist "%REAL_BIN%" (
     echo Error: Octop environment not found at %OCTOP_HOME%\venv >&2

@@ -305,6 +305,7 @@ def test_sidecar_launch_env_writes_secrets(tmp_path: Path) -> None:
     assert env["FREEOS_INGEST_TOKEN"]
     assert env["FREEOS_ORG_INTEGRATED"] == "1"
     assert env["FREEOS_ORG_LOCAL_TEST"] == "1"
+    assert env["HOST"] == "127.0.0.1"
 
 
 def test_sidecar_launch_env_merges_existing_cors(

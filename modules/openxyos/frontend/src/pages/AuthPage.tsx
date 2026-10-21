@@ -8,7 +8,7 @@ const R = "[border-radius:1.5px]";
 
 export default function AuthPage() {
   const navigate = useNavigate();
-  const { login, register } = useAuthStore();
+  const { login, register, changePassword } = useAuthStore();
   const { isEnglish } = useLocale();
   const tx = (zh: string, en: string) => (isEnglish ? en : zh);
   const [tab, setTab] = useState<"login" | "register">("login");
@@ -18,6 +18,9 @@ export default function AuthPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [agreed, setAgreed] = useState(false);
+  const [mustChange, setMustChange] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [nextPassword, setNextPassword] = useState("");
 
   const enterAfterAuthentication = async () => {
     try {
@@ -34,14 +37,22 @@ export default function AuthPage() {
     }
   };
 
-  const enterTestAccount = async () => {
+  const handlePasswordChange = async (e: React.FormEvent) => {
+    e.preventDefault();
     setLoading(true);
     setError("");
     try {
-      await login("demo@demo.com", "openxyos-demo-2026");
+      if (nextPassword.length < 12) {
+        setError(tx("新密码至少 12 位", "New password must be at least 12 characters."));
+        return;
+      }
+      await changePassword(currentPassword, nextPassword);
+      setMustChange(false);
+      setCurrentPassword("");
+      setNextPassword("");
       await enterAfterAuthentication();
     } catch (err: any) {
-      setError(err.message || tx("测试账号暂时不可用", "The test account is unavailable."));
+      setError(err.message || tx("暂时无法修改密码", "Unable to change the password right now."));
     } finally {
       setLoading(false);
     }
@@ -53,7 +64,13 @@ export default function AuthPage() {
     setError("");
     try {
       if (tab === "login") {
-        await login(email, password);
+        const needsChange = await login(email, password);
+        if (needsChange) {
+          setMustChange(true);
+          setCurrentPassword(password);
+          setPassword("");
+          return;
+        }
       } else {
         if (!agreed) {
           setError(
@@ -186,19 +203,11 @@ export default function AuthPage() {
               <br />
               <span className="text-text-muted">
                 {tx(
-                  "试用、布置这里的流程；钥匙只开这扇门。",
-                  "Try and arrange the workflows here. This key opens only this door.",
+                  "本机引导口令只写在数据目录的 bootstrap-credentials.txt，登录后必须修改。页面不再内置演示口令。",
+                  "The local bootstrap password is written only to bootstrap-credentials.txt in the data directory. Change it after signing in. This page does not embed a demo password.",
                 )}
               </span>
             </span>
-            <button
-              type="button"
-              onClick={() => void enterTestAccount()}
-              disabled={loading}
-              className={`ml-auto px-3.5 py-2 bg-primary text-white text-xs font-semibold ${R} hover:opacity-90 disabled:opacity-60 whitespace-nowrap`}
-            >
-              {tx("一键登录", "One-click sign in")}
-            </button>
           </div>
 
           <div className={`flex bg-bg-card border border-border ${R} p-1 mb-6`}>
@@ -213,6 +222,39 @@ export default function AuthPage() {
             ))}
           </div>
 
+          {mustChange ? (
+            <form onSubmit={(e) => void handlePasswordChange(e)}>
+              <p className="text-sm text-text mb-4">
+                {tx(
+                  "这是本机引导账号。请先设置一个新密码，然后才能继续。",
+                  "This is a local bootstrap account. Set a new password before continuing.",
+                )}
+              </p>
+              <div className="mb-4">
+                <label className="block text-[13px] font-medium mb-2 text-text">
+                  {tx("新密码", "New password")}
+                </label>
+                <input
+                  type="password"
+                  value={nextPassword}
+                  onChange={(e) => setNextPassword(e.target.value)}
+                  placeholder={tx("至少 12 位", "At least 12 characters")}
+                  required
+                  autoComplete="new-password"
+                  className={`w-full px-3.5 py-2.5 border-[1.5px] border-border ${R} text-sm bg-bg-card text-text outline-none transition-all focus:border-primary`}
+                />
+              </div>
+              {error && <p className="text-danger text-xs mb-3">{error}</p>}
+              <button
+                type="submit"
+                disabled={loading}
+                className={`w-full py-3 ${R} text-[15px] font-semibold text-white transition-all disabled:opacity-85`}
+                style={{ background: "linear-gradient(135deg, #10B981, #059669)" }}
+              >
+                {loading ? tx("处理中...", "Working...") : tx("修改密码并继续", "Change password and continue")}
+              </button>
+            </form>
+          ) : (
           <form onSubmit={handleSubmit}>
             <div className="mb-4">
               <label className="block text-[13px] font-medium mb-2 text-text">
@@ -310,6 +352,7 @@ export default function AuthPage() {
               </p>
             )}
           </form>
+          )}
         </div>
       </div>
     </div>

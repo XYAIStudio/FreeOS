@@ -27,6 +27,9 @@ _SMOKE_IMPORTS = (
     "cryptography.fernet",
     "langchain_core",
     "langchain_openai",
+    "octop.infra.agents.middleware.system_message_cleanup",
+    "octop.infra.server",
+    "octop.api.app",
 )
 
 
@@ -117,11 +120,12 @@ def main() -> int:
         except Exception as exc:
             errors.append(f"import {mod}: {type(exc).__name__}: {exc}")
 
-    # Sanity: launch.py must stay importable as a file (no compile errors).
+    # Compile the launcher shipped alongside packages/, not this checker.
+    launcher = packages.parent / "launch.py"
     try:
-        ast.parse(Path(__file__).read_text(encoding="utf-8"))
-    except SyntaxError as exc:
-        errors.append(f"self-parse: {exc}")
+        ast.parse(launcher.read_text(encoding="utf-8"), filename=str(launcher))
+    except (OSError, SyntaxError) as exc:
+        errors.append(f"launch.py: {exc}")
 
     if errors:
         print("verify_imports FAILED:", file=sys.stderr)

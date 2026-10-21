@@ -263,8 +263,8 @@ export function CustomProviderModal({
                 k.value === "openai"
                   ? t("models.kindOpenaiCompat")
                   : k.value === "anthropic"
-                    ? "Anthropic"
-                    : "AWS Bedrock",
+                  ? "Anthropic"
+                  : "AWS Bedrock",
             }))}
           />
         </Form.Item>

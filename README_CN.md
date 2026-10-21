@@ -11,10 +11,9 @@
 <p align="center">
   <a href="https://www.python.org/downloads/"><img alt="Python 3.12+" src="https://img.shields.io/badge/python-3.12%2B-blue?logo=python&logoColor=white" /></a>
   <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-green" /></a>
-  <a href="https://github.com/XYAIStudio/FreeOS/releases"><img alt="Version" src="https://img.shields.io/badge/version-0.0.6-orange" /></a>
+  <a href="https://github.com/XYAIStudio/FreeOS/releases"><img alt="Version" src="https://img.shields.io/badge/version-0.1.0-orange" /></a>
   <a href="https://github.com/TencentCloud/Octop"><img alt="上游：Octop" src="https://img.shields.io/badge/上游-Octop-1677ff.svg?style=flat" /></a>
   <a href="https://github.com/XYAIStudio/openXYOS"><img alt="组织模块：openXYOS" src="https://img.shields.io/badge/组织模块-openXYOS-0f766e.svg?style=flat" /></a>
-  <a href="https://pypi.org/project/octop/"><img src="https://img.shields.io/pypi/v/octop" alt="PyPI" /></a>
   <a href="https://github.com/astral-sh/ruff"><img alt="Code Style: Ruff" src="https://img.shields.io/badge/code%20style-ruff-000000?logo=ruff&logoColor=white" /></a>
   <a href="https://github.com/XYAIStudio/FreeOS"><img alt="GitHub stars" src="https://img.shields.io/github/stars/XYAIStudio/FreeOS?style=social" /></a>
   <a href="https://github.com/XYAIStudio/FreeOS/fork"><img alt="GitHub forks" src="https://img.shields.io/github/forks/XYAIStudio/FreeOS?style=social" /></a>
@@ -92,7 +91,7 @@ FreeOS 诞生于一个简单而清晰的目标：在 Octop 的自托管多智能
 | 💻 | **终端 AI+** | 浏览器内交互式 Shell，AI 辅助命令执行与排障 |
 | 🌐 | **浏览器 AI+** | 基于 Chromium 的无头浏览器会话，支持网页自动化、截图与远程操控 |
 | 🖥️ | **远程桌面** | 控制台内实时看屏与键鼠操控，跨 Linux / Windows / macOS；适合远程办公、GUI 软件操作，无图形 Linux 可一键搭建隔离桌面 |
-| 🏠 | **可自托管** | 一条 `octop run` 即可运行控制台、CLI、IM 通道与定时任务，数据存于 `~/.octop/` |
+| 🏠 | **可自托管** | 一条 `octop run` 即可运行控制台、CLI、IM 通道与定时任务，新安装的数据在 `~/.freeos/` |
 
 <details>
 <summary>🐾 你能用 Octop 做什么</summary>
@@ -129,7 +128,7 @@ Octop 基于一系列 Harness 工程实践构建——它将这些专注的运�
 - **harness-memory** — 分层记忆与全文检索，让 Agent 的记忆随工作区一同迁移。
 - **harness-browser** — 基于 CDP 的浏览器自动化，支持持久化配置，用于网页类任务。
 
-Octop 不依赖外部消息队列或中间件，而是通过进程内的 `HarnessProcessor` 统一路由所有入口——Web UI、IM 与定时任务。最终呈现为一个可重启恢复的单进程：启动时整个状态都从控制面数据库重建（默认 `~/.octop/octop.db`，亦可配置 PostgreSQL）。
+Octop 不依赖外部消息队列或中间件，而是通过进程内的 `HarnessProcessor` 统一路由所有入口——Web UI、IM 与定时任务。最终呈现为一个可重启恢复的单进程：启动时整个状态都从控制面数据库重建（新安装默认 `~/.freeos/octop.db`；已有 `~/.octop` 且没有 `~/.freeos` 时仍用旧目录，亦可配置 PostgreSQL）。
 
 ## 🤔 功能特性
 
@@ -193,29 +192,31 @@ Octop 支持两个方向的 ACP 集成：
 ### 环境要求
 
 - **macOS / Linux / Windows**
-- 无需预先安装 Python — 安装脚本通过 [uv](https://docs.astral.sh/uv/) 在 `~/.octop/` 下创建隔离的 Python 3.12 虚拟环境
+- 无需预先安装 Python — 安装脚本通过 [uv](https://docs.astral.sh/uv/) 在 `~/.freeos/` 下创建隔离的 Python 3.12 虚拟环境（若还没有 `~/.freeos`、但已有 `~/.octop`，则继续用旧目录）
 - 现代多核 CPU，并预留数 GB 内存供进程与模型/Embedding 缓存使用；磁盘需容纳数据库、Agent 工作区与文档语料
 
 ### 1. 安装
 
-**macOS / Linux** — 一键安装（推荐）：
+**推荐：桌面安装包。** 从 [GitHub Releases](https://github.com/XYAIStudio/FreeOS/releases/latest) 下载 `FreeOS-desktop-*`，安装后打开 FreeOS。
+
+**命令行 / 源码**（安装本仓库脚本，不是上游 Octop）。打出版本标签之后，Release 说明会改成固定标签；当前用 `develop`：
 
 ```bash
-curl -fsSL https://finnie-1258344699.cos.ap-guangzhou.myqcloud.com/octop/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/XYAIStudio/FreeOS/develop/scripts/install.sh | bash
 ```
-
-**Windows（PowerShell）**：
 
 ```powershell
-irm https://finnie-1258344699.cos.ap-guangzhou.myqcloud.com/octop/install.ps1 | iex
+irm https://raw.githubusercontent.com/XYAIStudio/FreeOS/develop/scripts/install.ps1 | iex
 ```
-
-**Windows（cmd）** — 下载后运行，或从已克隆的仓库执行：
 
 ```bat
-curl -fsSL https://finnie-1258344699.cos.ap-guangzhou.myqcloud.com/octop/install.bat -o install.bat
+curl -fsSL https://raw.githubusercontent.com/XYAIStudio/FreeOS/develop/scripts/install.bat -o install.bat
 install.bat
 ```
+
+已克隆本仓库时：`bash scripts/install.sh`，或 Windows 的 `scripts\install.ps1` / `scripts\install.bat`。
+
+**不要**使用 `finnie-1258344699.cos.ap-guangzhou.myqcloud.com/octop/install.sh`（以及同目录的 `.ps1` / `.bat`）。那是上游 Octop 脚本，默认安装 PyPI 上的 `octop`，不是 FreeOS。
 
 安装完成后，请打开**新终端**，或重新加载 shell 配置：
 
@@ -225,14 +226,11 @@ source ~/.zshrc   # Zsh
 source ~/.bashrc  # Bash
 ```
 
-安装脚本会将 `octop` 加入 PATH（`~/.octop/bin`）。可选附加组件：
+新安装会把 `octop` 加入 PATH（`~/.freeos/bin`）。可选附加组件：
 
 ```bash
-# 浏览器自动化（Playwright Chromium）
-curl -fsSL https://finnie-1258344699.cos.ap-guangzhou.myqcloud.com/octop/install.sh | bash -s -- --extras browser
-
-# 飞书通道支持
-curl -fsSL https://finnie-1258344699.cos.ap-guangzhou.myqcloud.com/octop/install.sh | bash -s -- --extras channels-feishu
+curl -fsSL https://raw.githubusercontent.com/XYAIStudio/FreeOS/develop/scripts/install.sh | bash -s -- --extras browser
+curl -fsSL https://raw.githubusercontent.com/XYAIStudio/FreeOS/develop/scripts/install.sh | bash -s -- --extras channels-feishu
 ```
 
 完整安装选项见 [scripts/README.md](scripts/README.md)（`--version`、`--from-source`、`--mirror` 及 Windows 参数）。
@@ -244,18 +242,11 @@ curl -fsSL https://finnie-1258344699.cos.ap-guangzhou.myqcloud.com/octop/install
 | Windows | `FreeOS-desktop-windows-amd64-<version>.exe`（64 位）/ `FreeOS-desktop-windows-arm64-<version>.exe`（ARM64）— NSIS 安装程序，单进程 FreeOS + 宿主内 Organization；不捆绑也不自动拉起 openXYOS Node |
 | macOS | `FreeOS-desktop-darwin-arm64-<version>.dmg`（Apple 芯片）/ `FreeOS-desktop-darwin-amd64-<version>.dmg`（Intel） |
 | Linux | `FreeOS-desktop-linux-amd64-<version>.tar.gz` / `FreeOS-desktop-linux-arm64-<version>.tar.gz` |
-| 飞牛 NAS（FnOS） | `Octop-fnos-docker-<version>.fpk`（依赖 Docker）/ `Octop-fnos-native-<version>.fpk`（无需 Docker）— 通过应用中心安装 |
+| 飞牛 NAS（FnOS） | `FreeOS-fnos-docker-<version>.fpk`（依赖 Docker）/ `FreeOS-fnos-native-<version>.fpk`（无需 Docker）— 通过应用中心安装。更早的 Release 资产可能仍叫 `Octop-fnos-*` |
 
 桌面客户端说明见 [desktop/README.md](desktop/README.md)，飞牛打包指南见 [fnos/README.md](fnos/README.md)。独立商业组织站见 [docs/org-export.md](docs/org-export.md)（`freeos org export-standalone`，默认导出完整 openXYOS 源码树），不是默认安装器里的第二套 Node。
 
-**备选 — PyPI**（若你已自行管理 Python 环境）：
-
-```bash
-pip install octop
-# 可选：pip install "octop[browser]"
-# 可选本地 ONNX Embedding 模型缓存（设置 → 模型 → 本地）：pip install "octop[local-embedding]"
-# 仅下载目录模型到 ~/.octop/embedding_models；不用于对话，也不接入 Memory。
-```
+**不要** `pip install octop`。PyPI 上的 `octop` 是上游 Octop，不是 FreeOS 0.1.0。本仓库发到 GitHub Releases 的 Python 制品是 `freeos-<version>-py3-none-any.whl` 和 `freeos-<version>.tar.gz`（导入包仍叫 `octop`）。更早的 Release 里可能还有 `octop-0.0.10*` 文件名，那是旧制品名，不是 PyPI 安装命令。桌面安装包从 [GitHub Releases](https://github.com/XYAIStudio/FreeOS/releases) 下载；终端安装用上面的安装脚本（默认拉取 FreeOS GitHub 源码）。只有在你明确要上游 Octop 时才加 `--from-pypi`。可选组件仍通过安装脚本传递，例如 `--extras browser`。
 
 从源码用 uv 开发时：
 
@@ -339,18 +330,16 @@ docker run -d \
 
 | 方式 | 平台 | 说明 |
 |------|------|------|
-| 远程一键安装 | macOS / Linux | `curl …/octop/install.sh \| bash` |
-| 远程一键安装 | Windows | `irm …/octop/install.ps1 \| iex` 或 `install.bat` |
-| 本地脚本 | macOS / Linux | `bash scripts/install.sh` |
-| 本地脚本 | Windows | `scripts\install.bat` 或 `install.ps1` |
-| PyPI | 全平台 | `pip install octop` 或 `pip install "octop[browser]"` |
+| GitHub Releases（推荐） | 全平台 | `FreeOS-desktop-*` 桌面安装包，以及 `freeos-<version>-py3-none-any.whl` / `freeos-<version>.tar.gz`。**不要** `pip install octop`（那是上游 PyPI 包） |
+| 本仓库脚本 | macOS / Linux | `bash scripts/install.sh`，或 `raw.githubusercontent.com/XYAIStudio/FreeOS/develop/scripts/install.sh` |
+| 本仓库脚本 | Windows | `scripts\install.ps1` / `install.bat`，或同路径的 develop raw 脚本 |
 | Docker | 全平台 | `docker/docker-compose.yml` |
 
-所有安装脚本均在 `~/.octop/venv` 创建隔离环境，并通过 `~/.octop/bin/octop` 包装 CLI，不会影响系统 Python。
+新安装的数据目录是 `~/.freeos`：脚本在 `~/.freeos/venv` 创建隔离环境，并用 `~/.freeos/bin/octop` 包装 CLI，不会影响系统 Python。若还没有 `~/.freeos`、但已经有 `~/.octop`，脚本和 CLI 继续用旧目录。`FREEOS_HOME` 优先于 `OCTOP_HOME`。桌面端不会把残留的 `~/.octop` 当成家目录。
 
 ### 升级
 
-`octop update` 只替换 wheel / 二进制，你的 `~/.octop/` 数据库、工作区、密钥与 `config.json` 均会保留：
+`octop update` 只替换 wheel / 二进制。数据留在当前家目录（新安装是 `~/.freeos/`；已在使用的 `~/.octop/` 会保留）里的数据库、工作区、密钥与 `config.json`：
 
 ```bash
 octop update          # 获取并安装最新版 Octop，若已注册系统服务则自动重启
@@ -360,7 +349,7 @@ octop update          # 获取并安装最新版 Octop，若已注册系统服�
 
 ### ⚙️ 配置
 
-所有运行时数据存放在 `~/.octop/`。可通过 CLI 管理，也可直接编辑文件。
+新安装的运行时数据在 `~/.freeos/`。已有 `~/.octop/` 且还没有 `~/.freeos/` 时，CLI 继续用旧目录。可通过 CLI 管理，也可直接编辑文件。
 
 ```bash
 # LLM 供应商与模型
@@ -401,7 +390,7 @@ octop user list
 
 | 命令 | 说明 |
 |------|------|
-| `octop init` | 初始化 `~/.octop/`（数据库、管理员、JWT 密钥） |
+| `octop init` | 初始化数据目录（新安装为 `~/.freeos/`；数据库、管理员、JWT 密钥） |
 | `octop run` | 前台启动 Octop |
 | `octop service start` | 安装并启动系统服务 |
 | `octop service stop` | 停止系统服务 |
@@ -414,7 +403,7 @@ octop user list
 | `octop skills` | 按 Agent 启用/禁用 Skill |
 | `octop plugin` | 安装并管理第三方插件 |
 | `octop backup` | 导出 / 恢复备份 |
-| `octop clean` | 清理 CLI 状态或清空 `~/.octop/` |
+| `octop clean` | 清理 CLI 状态或清空当前数据目录 |
 | `octop update` | 检查并安装更新 |
 
 完整参考：**[docs/cli.md](docs/cli.md)**。
@@ -442,7 +431,7 @@ octop user list
 ### 📁 数据目录
 
 ```
-~/.octop/                          ← 安装与数据根目录
+~/.freeos/                         ← 新安装的数据根目录（已有 ~/.octop 且没有 ~/.freeos 时仍用旧目录）
 ├── config.json                    # 进程配置（含可选 database 段）
 ├── octop.db                       # 默认 SQLite 控制面（用户、Agent、通道、定时任务 …）
 ├── secrets/                       # JWT 密钥、通道 Token
@@ -517,10 +506,10 @@ cd dashboard && npx tsc --noEmit
 
 ### 🔒 安全与隐私
 
-- **本地优先**：配置、对话、工作区与凭证均存储在 `~/.octop/`。
+- **本地优先**：配置、对话、工作区与凭证存在本机数据目录。新安装是 `~/.freeos/`；已有的 `~/.octop/` 在没有 `~/.freeos/` 时继续使用。
 - **多用户隔离**：JWT 认证，按用户隔离 Agent 与工作区。
 - **敏感信息脱敏与工具审批**：离开工作区前自动脱敏敏感数据；高风险工具或 Shell 命令需依据护栏规则显式审批。
-- **工具护栏**：可在 `~/.octop/security/tool_guard/` 编辑 Shell 命令规则。
+- **工具护栏**：可在数据目录的 `security/tool_guard/` 编辑 Shell 命令规则（新安装为 `~/.freeos/security/tool_guard/`）。
 - **无厂商锁定**：可自由切换 LLM 供应商、存储后端与 IM 通道。
 
 ### 🤝 参与贡献
@@ -553,13 +542,7 @@ cd dashboard && npx tsc --noEmit
 
 ### 💬 客户企业微信群
 
-如需加入客户企业微信服务群，请扫码：
-
-<p align="center">
-  <img src="docs/assets/qrcode.png" alt="客户企业微信服务群二维码" width="220" />
-</p>
-
-> 请扫码进入工作群，如有任何疑问或需求，请直接联系群管理员对接处理。
+客户企业微信群二维码已失效（有效期至 2026-08-03），本文不再提供该图。请到 [GitHub Discussions](https://github.com/XYAIStudio/FreeOS/discussions) 讨论，或使用页首 [Discord](https://discord.gg/jPas5J8Ua) 徽章加入社区。
 
 ### 📄 许可证
 
