@@ -100,7 +100,7 @@ and applies asset packs onto openXYOS-shaped **in-host** surfaces
                  │  in-host org storage + xyos-governance-mcp   │
                  └───────┬───────────────────┬─────────────────┘
                          │ optional HTTP     │ durable pause
-                         │ if opted in       │ ~/.octop/governance/
+                         │ if opted in       │ ~/.freeos/governance/
                  ┌───────▼─────────┐   ┌─────▼─────────────────┐
   Optional       │ openXYOS :3780  │   │ Pause + audit JSONL   │
   Node sidecar   │ export / sync   │   │ Human must approve    │
@@ -128,7 +128,7 @@ Agent → tool (outbound / delete / pay / prod)
      → optional POST {sidecar}/api/governance/validate
      → no matching allow rule → DEFAULT DENY
      → write audit.jsonl (and sidecar log when reachable)
-     → create durable pause  ~/.octop/governance/pauses/<id>.json
+     → create durable pause  ~/.freeos/governance/pauses/<id>.json
      → return execute=false  (caller MUST stop)
 Human → FreeOS/Octop IM /approve  or  `freeos org governance approve <id>`
      → pause status=approved
@@ -287,7 +287,7 @@ The Phase A work sits on the existing FreeOS bootstrap:
 - Octop history as the host (`src/octop/`, `dashboard/`)
 - openXYOS vendored at `modules/openxyos/` (subtree `@ 1bdba35f`)
 - Bundled plugin `org-os`, BFF `/api/org-module`, CLI `freeos org`
-- Data directory today: `~/.octop` (`OCTOP_HOME`). `FREEOS_HOME` is honored when already set. This release does not migrate `~/.octop` to `~/.freeos`.
+- Data directory for a new install: `~/.freeos`. Order matches `PathLayout.from_env`: `FREEOS_HOME`, `OCTOP_HOME`, existing `~/.freeos`, existing `~/.octop` (not for the desktop app), else `~/.freeos`. This release does not copy one tree into the other.
 - Distribution name is `freeos` (GitHub Release wheels). Imports stay `octop.*`. CLI aliases: `freeos` and `octop`.
 
 ### Capability map (host + sidecar)

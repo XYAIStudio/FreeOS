@@ -4,15 +4,19 @@
 
 ## 安装 Octop（终端用户）
 
-将 Octop 安装到隔离虚拟环境 `~/.octop/venv`，并创建 `~/.octop/bin/octop` 包装脚本加入 PATH。
+新安装使用 `~/.freeos/venv` 与 `~/.freeos/bin/octop`。还没有 `~/.freeos`、但已经有 `~/.octop` 时，继续用旧目录。
 
-### 远程一键安装（推荐）
+**不要**使用腾讯云 COS 上的 `…/octop/install.*`。那是上游 Octop，默认安装 PyPI `octop`，不是 FreeOS。
+
+桌面用户优先下载 GitHub Releases 的 `FreeOS-desktop-*`。
+
+### 远程脚本（develop；打 tag 后由 Release 说明固定标签）
 
 | 平台 | 命令 |
 |------|------|
-| macOS / Linux | `curl -fsSL https://finnie-1258344699.cos.ap-guangzhou.myqcloud.com/octop/install.sh \| bash` |
-| Windows (PowerShell) | `irm https://finnie-1258344699.cos.ap-guangzhou.myqcloud.com/octop/install.ps1 \| iex` |
-| Windows (cmd) | 下载 `…/octop/install.bat` 后运行，或使用下方本地脚本 |
+| macOS / Linux | `curl -fsSL https://raw.githubusercontent.com/XYAIStudio/FreeOS/develop/scripts/install.sh \| bash` |
+| Windows (PowerShell) | `irm https://raw.githubusercontent.com/XYAIStudio/FreeOS/develop/scripts/install.ps1 \| iex` |
+| Windows (cmd) | 下载 `https://raw.githubusercontent.com/XYAIStudio/FreeOS/develop/scripts/install.bat` 后运行 |
 
 ### 本地脚本（仓库内）
 
@@ -52,7 +56,8 @@ Windows PowerShell 等价参数：`-Version`、`-FromSource`、`-FromPyPI`、`-S
 
 | 变量 | 说明 |
 |------|------|
-| `OCTOP_HOME` | 安装根目录，默认 `~/.octop` |
+| `FREEOS_HOME` | 安装根目录（优先） |
+| `OCTOP_HOME` | 旧安装根目录覆盖。未设置时：已有 `~/.freeos`，否则已有 `~/.octop`，否则新建 `~/.freeos` |
 | `OCTOP_REPO` | `--from-source` 无本地目录时的 git 克隆地址 |
 | `OCTOP_PYPI_MIRROR` | PyPI 镜像（与 `--mirror` 等效） |
 | `PLAYWRIGHT_DOWNLOAD_HOST` | Playwright 浏览器下载镜像（仅 `--extras browser`） |

@@ -4,7 +4,17 @@ setlocal EnableDelayedExpansion
 REM Octop Installer for Windows (cmd.exe)
 REM Usage: install.bat [-Version X.Y.Z] [-FromSource | -FromPyPI] [-SourceDir DIR] [-Extras browser] [-Help]
 
-if defined OCTOP_HOME (set "OCTOP_HOME=%OCTOP_HOME%") else (set "OCTOP_HOME=%USERPROFILE%\.octop")
+if defined FREEOS_HOME (
+    set "OCTOP_HOME=%FREEOS_HOME%"
+) else if not defined OCTOP_HOME (
+    if exist "%USERPROFILE%\.freeos" (
+        set "OCTOP_HOME=%USERPROFILE%\.freeos"
+    ) else if exist "%USERPROFILE%\.octop" (
+        set "OCTOP_HOME=%USERPROFILE%\.octop"
+    ) else (
+        set "OCTOP_HOME=%USERPROFILE%\.freeos"
+    )
+)
 set "OCTOP_VENV=%OCTOP_HOME%\venv"
 set "OCTOP_BIN=%OCTOP_HOME%\bin"
 set "PYTHON_VERSION=3.12"
@@ -147,8 +157,10 @@ if errorlevel 1 (
 if not exist "%OCTOP_BIN%" mkdir "%OCTOP_BIN%"
 
 echo @echo off > "%OCTOP_BIN%\octop.cmd"
-echo set "OCTOP_HOME=%%OCTOP_HOME%%" >> "%OCTOP_BIN%\octop.cmd"
-echo if "%%OCTOP_HOME%%"=="" set "OCTOP_HOME=%%USERPROFILE%%\.octop" >> "%OCTOP_BIN%\octop.cmd"
+echo if defined FREEOS_HOME set "OCTOP_HOME=%%FREEOS_HOME%%" >> "%OCTOP_BIN%\octop.cmd"
+echo if not defined OCTOP_HOME if exist "%%USERPROFILE%%\.freeos" set "OCTOP_HOME=%%USERPROFILE%%\.freeos" >> "%OCTOP_BIN%\octop.cmd"
+echo if not defined OCTOP_HOME if exist "%%USERPROFILE%%\.octop" set "OCTOP_HOME=%%USERPROFILE%%\.octop" >> "%OCTOP_BIN%\octop.cmd"
+echo if not defined OCTOP_HOME set "OCTOP_HOME=%%USERPROFILE%%\.freeos" >> "%OCTOP_BIN%\octop.cmd"
 echo "%%OCTOP_HOME%%\venv\Scripts\octop.exe" %%* >> "%OCTOP_BIN%\octop.cmd"
 
 set "OCTOP_BIN_FOR_PS=%OCTOP_BIN%"

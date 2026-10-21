@@ -10,7 +10,7 @@ FreeOS **0.1.0** is an independent semver baseline. It does not track or align w
 
 ### Upgrade from 0.0.10
 
-- In-app update and a manual reinstall keep the data directory the process already uses. Today that directory is `~/.octop` (`OCTOP_HOME`): sessions, local models, knowledge bases, organization data, and `config.json`. `FREEOS_HOME` is honored only when it is already set. This release does not migrate `~/.octop` to `~/.freeos`.
+- In-app update and a manual reinstall keep the data directory the process already uses. New installs use `~/.freeos` (`FREEOS_HOME`, then `OCTOP_HOME`, then an existing `~/.freeos`; the desktop app does not adopt a leftover `~/.octop`). CLI installs keep an existing `~/.octop` when `~/.freeos` is not there yet. Sessions, local models, knowledge bases, organization data, and `config.json` stay in that directory. This release does not copy one tree into the other.
 - Desktop portable upgrades copy a SQLite backup under the data directory's `backups/` before replacing the runtime, and checkpoint the WAL before the process restarts.
 - A `config.json` that cannot be parsed is left in place and reported. It is not rewritten as an empty file.
 - Roll back by installing the **v0.0.10** desktop package again, or restore a backup with `octop backup restore`. Do not point install scripts at PyPI `octop`; that package is upstream Octop, not this release. Use [GitHub Releases](https://github.com/XYAIStudio/FreeOS/releases) or `scripts/install.sh` (add `--from-pypi` only when you explicitly want upstream Octop).

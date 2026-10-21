@@ -14,7 +14,7 @@ Windows end-user product: **download the NSIS `.exe` → install → open FreeOS
 
 ## Data directory
 
-Today the data directory is `~/.octop` (`OCTOP_HOME`). If `FREEOS_HOME` is already set, that path is used. This release does not migrate `~/.octop` to `~/.freeos`.
+New desktop installs use `~/.freeos`. Order: `FREEOS_HOME`, then `OCTOP_HOME`, then `~/.freeos`. A leftover `~/.octop` is not the desktop home. CLI installs still keep that legacy tree when `~/.freeos` does not exist yet. This release does not copy one tree into the other.
 
 - Green runtime extract → `{home}/portable/`
 - Organization data (in-host) → `{home}/tenants/`, `{home}/openxyos-mirror/`, `{home}/org-skills/`
@@ -42,7 +42,7 @@ The finish page offers **运行 FreeOS** / **Run FreeOS**, checked by
 default: leave it checked and click Finish to start FreeOS from `$INSTDIR`,
 or uncheck it and click Finish to close Setup without launching. Setup
 does **not** auto-launch or auto-close. The launch uses the unelevated
-explorer token so the first run does not stamp `%USERPROFILE%\.octop`
+explorer token so the first run does not stamp `%USERPROFILE%\.freeos`
 as High integrity. Silent (`/S`) installs stay headless and do not launch.
 Chinese installer strings are compiled with `makensis -INPUTCHARSET UTF8`
 from a UTF-8 BOM `project.nsi`.
@@ -54,12 +54,13 @@ Upgrade / reinstall (same version included) refreshes the extracted runtime:
    handed off to the old process.
 2. Setup writes `$INSTDIR\FREEOS_INSTALL_STAMP` (product version + tick
    count, unique per Setup run) and deletes
-   `%USERPROFILE%\.octop\portable\FREEOS_STAMP` (also `OCTOP_HOME`, or
-   `FREEOS_HOME` when that variable is already set). User data
-   (`octop.db`, settings, chats) is not deleted.
+   `%USERPROFILE%\.freeos\portable\FREEOS_STAMP` (also `FREEOS_HOME` /
+   `OCTOP_HOME` when those variables are set). A leftover `~/.octop`
+   is not the desktop home. User data (`octop.db`, settings, chats) is
+   not deleted.
 3. The next launch compares the install stamp and the zip `FREEOS_STAMP`.
    Either mismatch re-extracts `packages/` and the embedded dashboard from
-   the new installer into `~/.octop/portable`, then copies the install
+   the new installer into `~/.freeos/portable`, then copies the install
    stamp into that tree. Later opens skip the extract until the next
    Setup run. If renaming the live `portable` directory to
    `portable.previous` fails because Windows still has the folder open
@@ -108,7 +109,7 @@ the sidecar-era `v0.0.1` Windows builds.
 
 **Keeps**
 
-- `%USERPROFILE%\.octop` (or `OCTOP_HOME`; `FREEOS_HOME` only when already set):
+- `%USERPROFILE%\.freeos` (or `FREEOS_HOME` / `OCTOP_HOME`; not a leftover `~/.octop`):
   workspaces, `octop.db`, memories, settings, logs, and the extracted portable
   runtime under `{home}/portable/`
 - Documented exceptions **inside** the install directory, if you created them:
@@ -196,7 +197,7 @@ cd desktop/src
 OCTOP_DESKTOP_URL=http://127.0.0.1:8088 wails3 dev
 ```
 
-Without `OCTOP_DESKTOP_URL`, first launch uses `~/.octop/portable/` if valid
+Without `OCTOP_DESKTOP_URL`, first launch uses `~/.freeos/portable/` if valid
 **and** it already matches this install (same `FREEOS_STAMP` / install stamp);
 otherwise it extracts the matching zip shipped with the desktop package
 (embedded in the Windows and Linux binaries, under `Contents/Resources` on

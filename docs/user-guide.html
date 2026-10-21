@@ -173,7 +173,7 @@ img {
   <article class="article">
 <blockquote>
 <p>本帮助文档面向最终用户，介绍 <strong>安装 → 设置向导 → 配置模型 → 基本使用</strong> 的完整流程。
-所有运行时数据默认存放在 <code>~/.octop/</code>（可通过 <code>OCTOP_HOME</code> 覆盖）。</p>
+新安装的运行时数据在 <code>~/.freeos/</code>。已有 <code>~/.octop/</code> 且还没有 <code>~/.freeos/</code> 时，CLI 继续用旧目录。</p>
 </blockquote>
 <hr />
 <h2 id="h1">一、简介</h2>
@@ -193,26 +193,26 @@ img {
 <h3 id="h2-1">2.1 环境要求</h3>
 <ul>
 <li>操作系统：<strong>macOS / Linux / Windows</strong>。</li>
-<li><strong>无需</strong> 预先安装 Python —— 安装脚本会通过 <a href="https://docs.astral.sh/uv/">uv</a> 在 <code>~/.octop/</code> 下自动创建隔离的 Python 3.12 虚拟环境。</li>
+<li><strong>无需</strong> 预先安装 Python —— 本仓库安装脚本会通过 <a href="https://docs.astral.sh/uv/">uv</a> 在 <code>~/.freeos/</code> 下自动创建隔离的 Python 3.12 虚拟环境（已有 <code>~/.octop/</code> 且还没有 <code>~/.freeos/</code> 时继续用旧目录）。</li>
 <li>需要可访问外网，用于下载安装脚本与依赖。</li>
 </ul>
-<h3 id="h2-2">2.2 一键脚本安装（推荐）</h3>
-<p><strong>macOS / Linux</strong></p>
-<pre><code class="language-bash">curl -fsSL https://finnie-1258344699.cos.ap-guangzhou.myqcloud.com/octop/install.sh | bash
+<h3 id="h2-2">2.2 安装</h3>
+<p><strong>推荐：</strong>从 <a href="https://github.com/XYAIStudio/FreeOS/releases/latest">GitHub Releases</a> 下载 <code>FreeOS-desktop-*</code>。</p>
+<p><strong>命令行</strong>使用本仓库脚本（当前 <code>develop</code>；打 tag 后由 Release 说明固定标签）：</p>
+<pre><code class="language-bash">curl -fsSL https://raw.githubusercontent.com/XYAIStudio/FreeOS/develop/scripts/install.sh | bash
 </code></pre>
-<p><strong>Windows（PowerShell）</strong></p>
-<pre><code class="language-powershell">irm https://finnie-1258344699.cos.ap-guangzhou.myqcloud.com/octop/install.ps1 | iex
+<pre><code class="language-powershell">irm https://raw.githubusercontent.com/XYAIStudio/FreeOS/develop/scripts/install.ps1 | iex
 </code></pre>
-<p><strong>Windows（cmd）</strong> —— 先下载再运行：</p>
-<pre><code class="language-bat">curl -fsSL https://finnie-1258344699.cos.ap-guangzhou.myqcloud.com/octop/install.bat -o install.bat
+<pre><code class="language-bat">curl -fsSL https://raw.githubusercontent.com/XYAIStudio/FreeOS/develop/scripts/install.bat -o install.bat
 install.bat
 </code></pre>
+<p><strong>不要</strong>使用腾讯云 COS 上的 <code>…/octop/install.sh</code>（以及 <code>.ps1</code> / <code>.bat</code>）。那是上游 Octop，默认安装 PyPI 上的 <code>octop</code>，不是 FreeOS。</p>
 <p>安装完成后，<strong>打开一个新终端</strong> 或重新加载 shell 配置，使 PATH 生效：</p>
 <pre><code class="language-bash">source ~/.zshrc   # Zsh
 # 或
 source ~/.bashrc  # Bash
 </code></pre>
-<p>安装脚本会把 <code>octop</code> 命令放入 <code>~/.octop/bin</code> 并加入 PATH，并在 <code>~/.octop/venv</code> 创建隔离环境；<strong>不会改动系统 Python</strong>。</p>
+<p>新安装会把 <code>octop</code> 放入 <code>~/.freeos/bin</code> 并加入 PATH，并在 <code>~/.freeos/venv</code> 创建隔离环境；<strong>不会改动系统 Python</strong>。</p>
 <blockquote>
 <p><strong>可选附加组件</strong>：安装脚本支持通过 <code>--extras</code> 追加能力，例如浏览器自动化 <code>--extras browser</code>、飞书通道 <code>--extras channels-feishu</code>；也可用 <code>--version</code> 指定版本、<code>--mirror &lt;url&gt;</code> 使用国内 PyPI 镜像。更多选项见 <a href="scripts/README.md">scripts/README.md</a>。</p>
 </blockquote>
@@ -220,7 +220,7 @@ source ~/.bashrc  # Bash
 <pre><code class="language-bash">octop --version
 octop run --help
 </code></pre>
-<p>若提示 <code>command not found: octop</code>，请确认已重新加载 shell 或检查 <code>~/.octop/bin</code> 是否在 PATH 中。</p>
+<p>若提示 <code>command not found: octop</code>，请确认已重新加载 shell，或检查 <code>~/.freeos/bin</code>（旧安装则是 <code>~/.octop/bin</code>）是否在 PATH 中。</p>
 <h3 id="h2-4">2.4 Docker 安装（生产推荐）</h3>
 <pre><code class="language-bash"># 构建并后台启动
 docker compose -f docker/docker-compose.yml up -d
@@ -579,8 +579,8 @@ octop provider --help     # 供应商增删改查帮助
 <p><strong>Q：如何修改监听地址让局域网访问？</strong>
 - 启动时：<code>octop run --host 0.0.0.0 --port 8088</code>；或设置环境变量 <code>OCTOP_BIND_HOST=0.0.0.0</code>、<code>OCTOP_PORT=8088</code>。</p>
 <p><strong>Q：数据存放在哪里？</strong>
-- 全部在 <code>~/.octop/</code>：</p>
-<pre><code>~/.octop/
+- 新安装在 <code>~/.freeos/</code>。还没有 <code>~/.freeos/</code> 时，已有的 <code>~/.octop/</code> 仍给 CLI 使用。桌面端不用残留的 <code>~/.octop</code> 当家目录。</p>
+<pre><code>~/.freeos/
 ├── config.json              # 进程级配置（地址、端口、CORS、TLS …）
 ├── octop.db                 # SQLite — 用户、Agent、通道、定时任务 …
 ├── secrets/                 # JWT 密钥、通道 Token

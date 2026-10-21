@@ -4,14 +4,42 @@
 #   或: bash scripts/install.sh --from-pypi   # 从 PyPI 安装 Octop（不含 FreeOS 下游改动）
 #   或: curl -fsSL <url>/install.sh | bash   # 远程安装
 #
-# 将 Octop 安装到 ~/.octop，使用 uv 管理 Python 环境。
+# 新安装目录是 ~/.freeos（已有 ~/.octop 且还没有 ~/.freeos 时继续用旧目录）。
 # 用户无需预先安装 Python — uv 会处理一切。
 # 安装后会尽量把 octop 链接到已在 PATH 中的目录（如 /usr/local/bin），
 # 当前终端无需 source / 重开即可直接使用。
 set -euo pipefail
 
 # ── 默认配置 ──────────────────────────────────────────────────────────────────
-OCTOP_HOME="${OCTOP_HOME:-$HOME/.octop}"
+# Same order as src/octop/infra/utils/paths.py PathLayout.from_env:
+# FREEOS_HOME, OCTOP_HOME, existing ~/.freeos, existing ~/.octop
+# (skipped when the desktop flag is set), else ~/.freeos.
+resolve_install_home() {
+    if [ -n "${FREEOS_HOME:-}" ]; then
+        printf '%s\n' "$FREEOS_HOME"
+        return
+    fi
+    if [ -n "${OCTOP_HOME:-}" ]; then
+        printf '%s\n' "$OCTOP_HOME"
+        return
+    fi
+    if [ -e "$HOME/.freeos" ]; then
+        printf '%s\n' "$HOME/.freeos"
+        return
+    fi
+    _skip_legacy=0
+    for _flag in "${OCTOP_DESKTOP:-}" "${FREEOS_DESKTOP:-}"; do
+        case "$(printf '%s' "$_flag" | tr '[:upper:]' '[:lower:]')" in
+            1|true|yes|on) _skip_legacy=1 ;;
+        esac
+    done
+    if [ "$_skip_legacy" -eq 0 ] && [ -e "$HOME/.octop" ]; then
+        printf '%s\n' "$HOME/.octop"
+        return
+    fi
+    printf '%s\n' "$HOME/.freeos"
+}
+OCTOP_HOME="$(resolve_install_home)"
 OCTOP_VENV="$OCTOP_HOME/venv"
 OCTOP_BIN="$OCTOP_HOME/bin"
 PYTHON_VERSION="3.12"
@@ -94,7 +122,10 @@ Note: Playwright Chromium is not downloaded by default. Pass
   even with --extras browser.
 
 Environment variables:
-  OCTOP_HOME              Install directory (default: ~/.octop)
+  FREEOS_HOME             Install directory (preferred)
+  OCTOP_HOME              Legacy install directory override
+                          New installs use ~/.freeos. An existing ~/.octop is
+                          kept when ~/.freeos does not exist yet.
   OCTOP_PYPI_MIRROR       PyPI mirror URL (same as --mirror)
   OCTOP_REPO              Git URL to clone (used by --from-source with no local dir)
   HARNESS_AGENT_REPO      harness-agent repo (derived from OCTOP_REPO by default)
@@ -104,7 +135,8 @@ Environment variables:
   PLAYWRIGHT_INSTALL_TIMEOUT  Per-mirror download timeout in seconds (default 600)
 
 Details:
-  Everything is installed into an isolated virtualenv (~/.octop/venv), so the
+  Everything is installed into an isolated virtualenv (~/.freeos/venv, or the
+  existing ~/.octop/venv when that legacy tree is still the home), so the
   system Python is untouched. Playwright Chromium is opt-in (--extras browser):
   1. Playwright Chromium browser (skipped if a system browser exists)
   2. System libraries (Linux: apt/dnf/yum/pacman/zypper; only needed for Chromium)
@@ -950,10 +982,35 @@ mkdir -p "$OCTOP_BIN"
 
 cat > "$OCTOP_BIN/octop" << 'WRAPPER'
 #!/usr/bin/env bash
-# Octop CLI 包装脚本 — 委托给 uv 管理的环境。
+# FreeOS CLI wrapper — delegates to the uv-managed environment.
 set -euo pipefail
 
-OCTOP_HOME="${OCTOP_HOME:-$HOME/.octop}"
+resolve_install_home() {
+    if [ -n "${FREEOS_HOME:-}" ]; then
+        printf '%s\n' "$FREEOS_HOME"
+        return
+    fi
+    if [ -n "${OCTOP_HOME:-}" ]; then
+        printf '%s\n' "$OCTOP_HOME"
+        return
+    fi
+    if [ -e "$HOME/.freeos" ]; then
+        printf '%s\n' "$HOME/.freeos"
+        return
+    fi
+    _skip_legacy=0
+    for _flag in "${OCTOP_DESKTOP:-}" "${FREEOS_DESKTOP:-}"; do
+        case "$(printf '%s' "$_flag" | tr '[:upper:]' '[:lower:]')" in
+            1|true|yes|on) _skip_legacy=1 ;;
+        esac
+    done
+    if [ "$_skip_legacy" -eq 0 ] && [ -e "$HOME/.octop" ]; then
+        printf '%s\n' "$HOME/.octop"
+        return
+    fi
+    printf '%s\n' "$HOME/.freeos"
+}
+OCTOP_HOME="$(resolve_install_home)"
 REAL_BIN="$OCTOP_HOME/venv/bin/octop"
 
 if [ ! -x "$REAL_BIN" ]; then

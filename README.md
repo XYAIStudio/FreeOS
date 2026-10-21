@@ -140,7 +140,7 @@ Operator detail: [docs/asset-loop.md](docs/asset-loop.md).
 
 **不要**执行 `pip install octop`。PyPI 上的 `octop` 是上游 Octop，不是 FreeOS。本仓库的 Python 制品在 GitHub Releases 上，文件名是 `freeos-<version>-py3-none-any.whl` 和 `freeos-<version>.tar.gz`（导入包仍是 `octop`）。桌面安装包仍是 `FreeOS-desktop-*`。
 
-数据目录是 `%USERPROFILE%\.octop`（也可用 `OCTOP_HOME` 指定）。已经设置的 `FREEOS_HOME` 会被沿用；这一版不会把 `~/.octop` 迁到 `~/.freeos`。卸载安装包会清空安装目录（默认为 `Program Files\FreeOS`）并删除快捷方式，但**不会**删除该用户数据目录；详见 [desktop/README.md](desktop/README.md#windows-uninstall)。
+新安装的数据目录是 `%USERPROFILE%\.freeos`（`FREEOS_HOME` 优先于 `OCTOP_HOME`）。桌面端不会把残留的 `~/.octop` 当成家目录。命令行安装在还没有 `~/.freeos`、但已经有 `~/.octop` 时继续用旧目录。卸载安装包会清空安装目录（默认为 `Program Files\FreeOS`）并删除快捷方式，但**不会**删除该用户数据目录；详见 [desktop/README.md](desktop/README.md#windows-uninstall)。
 
 安装包由 CI 工作流 **FreeOS Desktop Package**（文件名仍是 `.github/workflows/octop-desktop.yml`，给现有发版脚本用）在 Windows runner 上打出来。本仓库的云环境打不出 `.exe`；合并后由该 job 产出。
 
@@ -170,7 +170,7 @@ FreeOS prefers runtimes and files on this computer. Cloud vendors are optional.
 | Knowledge | Sidebar **Knowledge Bases**: mount a local folder first. Local ONNX embeddings are the default vector path. ima / WeKnora remain optional connectors. |
 | Detail | [User guide](docs/user-guide.md#四配置模型llm-供应商) · [Configuration](docs/configuration.md#local-models-and-knowledge-bases) · [Product contract](docs/product-contract.md#local-models-and-knowledge-bases) |
 
-Data directory: `~/.octop` (`OCTOP_HOME`). If `FREEOS_HOME` is already set, that path is used. This release does not migrate `~/.octop` to `~/.freeos`.
+Data directory for a new install: `~/.freeos`. Order: `FREEOS_HOME`, `OCTOP_HOME`, an existing `~/.freeos`, an existing `~/.octop` (CLI only; the desktop app does not adopt a leftover `~/.octop`), otherwise `~/.freeos`. This release does not copy an old tree into the new one.
 
 ### Rebuild the dashboard (optional)
 
@@ -235,7 +235,7 @@ Inbound import compiles the blueprint **and** registers a FreeOS agent (`org-pol
 
 ## Host platform features (from Octop)
 
-Unchanged in this fork: multi-user JWT, multi-agent chat, expert library, connectors, ACP, knowledge bases, bundled plugins, cron, terminal/browser/desktop surfaces. The **Windows desktop installer** is branded **FreeOS**. User data stays in `~/.octop` (`OCTOP_HOME`); `FREEOS_HOME` is honored only when it is already set. The import package, `octop` CLI alias, `OCTOP_*` env vars, and `octop.db` stay for compatibility. GitHub Release wheels are named `freeos-<version>*`.
+Unchanged in this fork: multi-user JWT, multi-agent chat, expert library, connectors, ACP, knowledge bases, bundled plugins, cron, terminal/browser/desktop surfaces. The **Windows desktop installer** is branded **FreeOS** and stores new data in `~/.freeos`. The import package, `octop` CLI alias, `OCTOP_*` env vars, and `octop.db` stay for compatibility. GitHub Release wheels are named `freeos-<version>*`. Do not install from the Tencent COS `octop/install.*` URLs; those scripts install upstream PyPI `octop`.
 
 Longer host docs: [docs/user-guide.md](docs/user-guide.md), [docs/configuration.md](docs/configuration.md), [docs/architecture.md](docs/architecture.md), [README_CN.md](README_CN.md).
 
