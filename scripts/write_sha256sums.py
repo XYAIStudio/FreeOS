@@ -49,8 +49,11 @@ def write_sha256sums(directory: Path) -> Path:
     """
     if not directory.is_dir():
         raise SystemExit(f"not a directory: {directory}")
+    # Sort by the filename string. pathlib.Path ordering on Windows is
+    # case-insensitive, which would place freeos-* ahead of FreeOS-*.
     files = sorted(
-        path for path in directory.iterdir() if path.is_file() and is_checksum_target(path.name)
+        (path for path in directory.iterdir() if path.is_file() and is_checksum_target(path.name)),
+        key=lambda path: path.name,
     )
     if not files:
         raise SystemExit(f"no desktop, zip, wheel, or sdist artifacts in {directory}")
