@@ -2,6 +2,7 @@
 build/
 !desktop/src/build/
 !desktop/src/build/**
+desktop/src/build/windows/nsis/product_version.nsh
 dist/
 
 # OS

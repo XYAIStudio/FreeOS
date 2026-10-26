@@ -115,6 +115,10 @@ tasks:
           powershell -NoProfile -Command
           "Remove-Item -Force '{{.ROOT_DIR}}/{{.ARCHIVE}}' -ErrorAction SilentlyContinue;
           New-Item -ItemType Directory -Force '{{.ROOT_DIR}}/{{.BIN_DIR}}' | Out-Null"
+      - cmd: python ../../stamp_version.py nsis-numeric "{{.VERSION}}" product_version.nsh
+        platforms: [windows]
+      - cmd: python3 ../../stamp_version.py nsis-numeric "{{.VERSION}}" product_version.nsh
+        platforms: [linux, darwin]
       - |
         {{if eq OS "windows"}}
         makensis -INPUTCHARSET UTF8 {{.VERSION_NSIS_DEFINE}}-DARG_WAILS_{{.ARG_FLAG}}_BINARY="{{.ROOT_DIR}}\{{.BIN_DIR}}\{{.APP_NAME}}.exe" -DINSTALLER_OUTFILE="{{.ROOT_DIR}}\{{.ARCHIVE}}" project.nsi

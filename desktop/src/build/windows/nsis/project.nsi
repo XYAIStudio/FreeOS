@@ -11,12 +11,16 @@
 # "è¿è¡Œ FreeOS". Keep this file UTF-8 with BOM.
 
 !include "wails_tools.nsh"
+# Written by `stamp_version.py nsis-numeric` before makensis.
+# VIProductVersion / VIFileVersion must be four integers (0.1.0rc1 -> 0.1.0.0).
+# String keys below keep the full product version, including a prerelease suffix.
+!include "product_version.nsh"
 
 SetCompressor /SOLID lzma
 
 # The version information for this two must consist of 4 parts
-VIProductVersion "${INFO_PRODUCTVERSION}.0"
-VIFileVersion    "${INFO_PRODUCTVERSION}.0"
+VIProductVersion "${INFO_PRODUCTVERSION_NUMERIC}"
+VIFileVersion    "${INFO_PRODUCTVERSION_NUMERIC}"
 
 VIAddVersionKey "CompanyName"     "${INFO_COMPANYNAME}"
 VIAddVersionKey "FileDescription" "${INFO_PRODUCTNAME} Installer"
