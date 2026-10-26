@@ -32,8 +32,8 @@
 # 从 FreeOS GitHub 源码安装最新版（默认）
 bash scripts/install.sh
 
-# 从 FreeOS GitHub v0.1.0 标签安装
-bash scripts/install.sh --version 0.1.0
+# 从 FreeOS GitHub v0.1.0rc1 标签安装
+bash scripts/install.sh --version 0.1.0rc1
 
 # 显式安装 PyPI 上游 Octop（不包含 FreeOS 下游修改）
 bash scripts/install.sh --from-pypi

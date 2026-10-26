@@ -1,7 +1,7 @@
 {
   "name": "openxyos-web",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.1.0rc1",
   "description": "Standalone Organization web generated from dashboard/src/org-ui. Interim API talks to a FreeOS host /api/org-module via proxy.",
   "type": "module",
   "scripts": {

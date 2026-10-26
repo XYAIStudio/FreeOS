@@ -13,6 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, PlainTextResponse
 from scalar_fastapi import get_scalar_api_reference
 
+from octop import __version__
 from octop.api.middleware.jwt_auth import install as install_jwt_auth
 from octop.api.middleware.setup_lockdown import install as install_setup_lockdown
 from octop.api.openapi_meta import API_DESCRIPTION, OPENAPI_TAGS, configure_openapi
@@ -108,7 +109,7 @@ def build_app(server: OctopServer) -> FastAPI:
 
     app = FastAPI(
         title="FreeOS API",
-        version="0.1.0",
+        version=__version__,
         description=API_DESCRIPTION,
         openapi_url="/api/openapi.json" if enable_api_docs else None,
         openapi_tags=OPENAPI_TAGS,

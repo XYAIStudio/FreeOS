@@ -216,8 +216,11 @@ async def list_backups(
     _: Any = Depends(require_permission("backup")),
     server: Any = Depends(get_server),
 ) -> dict[str, Any]:
-    """List ``.tar.gz`` files in ``~/.octop/backups/``.
+    """List ``.tar.gz`` files in the data directory's ``backups/``.
 
+    New installs use ``~/.freeos/backups/``. An existing ``~/.octop/backups/``
+    is used when ``~/.freeos`` is absent, unless ``OCTOP_DESKTOP`` or
+    ``FREEOS_DESKTOP`` is set. ``FREEOS_HOME`` overrides ``OCTOP_HOME``.
     Disk/manifest peek runs in a worker thread so the event loop stays free.
     """
     files = await asyncio.to_thread(list_backup_files, server.paths)

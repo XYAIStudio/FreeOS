@@ -16,6 +16,13 @@ from octop.infra.db.migrate import run_migrations
 from octop.infra.db.services import build_shared_services
 from octop.infra.utils.paths import PathLayout
 
+# Same order as PathLayout.from_env. Do not describe ~/.octop as the default.
+_HOME_HELP = (
+    "Data directory. Precedence: FREEOS_HOME, OCTOP_HOME, an existing ~/.freeos, "
+    "an existing ~/.octop (skipped when OCTOP_DESKTOP or FREEOS_DESKTOP is set), "
+    "otherwise ~/.freeos."
+)
+
 
 def _paths(home: Path | None = None) -> PathLayout:
     return PathLayout(home) if home is not None else PathLayout.from_env()
@@ -23,16 +30,19 @@ def _paths(home: Path | None = None) -> PathLayout:
 
 @click.group()
 def backup() -> None:
-    """Backup and restore database + local agent workspaces."""
+    """Backup and restore the database and local agent workspaces.
+
+    New installs use ~/.freeos. An existing ~/.octop is used when ~/.freeos
+    is absent, unless OCTOP_DESKTOP or FREEOS_DESKTOP is set. FREEOS_HOME
+    overrides OCTOP_HOME.
+    """
 
 
 @backup.command("create")
 @click.option(
     "-o", "--output", type=click.Path(path_type=Path), default=None, help="Output .tar.gz path."
 )
-@click.option(
-    "--home", type=click.Path(path_type=Path), default=None, help="Octop home (default ~/.octop)."
-)
+@click.option("--home", type=click.Path(path_type=Path), default=None, help=_HOME_HELP)
 @click.option("--no-config", is_flag=True, help="Do not include config.json / env.")
 @click.option("--no-workspaces", is_flag=True, help="Do not include agent workspaces.")
 @click.option("--no-skill-packages", is_flag=True, help="Do not include global skill packages.")
@@ -93,9 +103,7 @@ def auto() -> None:
 
 
 @auto.command("status")
-@click.option(
-    "--home", type=click.Path(path_type=Path), default=None, help="Octop home (default ~/.octop)."
-)
+@click.option("--home", type=click.Path(path_type=Path), default=None, help=_HOME_HELP)
 def auto_status(home: Path | None) -> None:
     """Print automatic backup settings from config.json."""
     paths = _paths(home)
@@ -114,9 +122,7 @@ def auto_status(home: Path | None) -> None:
 
 
 @auto.command("run")
-@click.option(
-    "--home", type=click.Path(path_type=Path), default=None, help="Octop home (default ~/.octop)."
-)
+@click.option("--home", type=click.Path(path_type=Path), default=None, help=_HOME_HELP)
 def auto_run(home: Path | None) -> None:
     """Create one automatic backup now and apply retention pruning."""
     paths = _paths(home)
@@ -148,9 +154,7 @@ def auto_run(home: Path | None) -> None:
 
 @backup.command("restore")
 @click.argument("archive", type=click.Path(exists=True, path_type=Path))
-@click.option(
-    "--home", type=click.Path(path_type=Path), default=None, help="Octop home (default ~/.octop)."
-)
+@click.option("--home", type=click.Path(path_type=Path), default=None, help=_HOME_HELP)
 @click.option("--no-config", is_flag=True, default=False, help="Do not restore config.json / env.")
 @click.option(
     "--owner-user-id",
@@ -167,7 +171,12 @@ def restore(
     owner_user_id: int | None,
     yes: bool,
 ) -> None:
-    """Restore from a backup archive. Stop ``octop run`` first for a clean restore."""
+    """Restore a backup into ~/.freeos, or ~/.octop when that legacy home is still in use.
+
+    Stop ``octop run`` first for a clean restore. An existing ~/.octop is
+    selected only when ~/.freeos is absent and OCTOP_DESKTOP / FREEOS_DESKTOP
+    are unset. FREEOS_HOME overrides OCTOP_HOME.
+    """
     if not yes:
         click.confirm(
             "This overwrites the database and local workspaces. Continue?",

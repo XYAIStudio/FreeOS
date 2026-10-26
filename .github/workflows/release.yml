@@ -139,6 +139,16 @@ jobs:
           prerelease: ${{ steps.channel.outputs.prerelease }}
           make_latest: ${{ steps.channel.outputs.prerelease == 'true' && 'false' || 'true' }}
 
+      # Hash wheel/sdist plus any desktop installers and portable zips already
+      # attached by Desktop Package. That workflow runs the same script again
+      # after its own upload, so the last publisher leaves one SHA256SUMS that
+      # covers every class. v0.1.0rc1 is a prerelease via release_prerelease.py
+      # (PEP 440 rcN). v0.1.0-rc.1 is not.
+      - name: Publish SHA256SUMS
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: bash scripts/publish_sha256sums.sh "${GITHUB_REF_NAME}" dist
+
   # workflow_run / release:published are unreliable when Release itself was
   # started via GITHUB_TOKEN workflow_dispatch (Auto Tag). Explicitly cascade.
   #

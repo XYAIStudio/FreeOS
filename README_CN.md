@@ -11,7 +11,7 @@
 <p align="center">
   <a href="https://www.python.org/downloads/"><img alt="Python 3.12+" src="https://img.shields.io/badge/python-3.12%2B-blue?logo=python&logoColor=white" /></a>
   <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-green" /></a>
-  <a href="https://github.com/XYAIStudio/FreeOS/releases"><img alt="Version" src="https://img.shields.io/badge/version-0.1.0-orange" /></a>
+  <a href="https://github.com/XYAIStudio/FreeOS/releases"><img alt="Version" src="https://img.shields.io/badge/version-0.1.0rc1-orange" /></a>
   <a href="https://github.com/TencentCloud/Octop"><img alt="上游：Octop" src="https://img.shields.io/badge/上游-Octop-1677ff.svg?style=flat" /></a>
   <a href="https://github.com/XYAIStudio/openXYOS"><img alt="组织模块：openXYOS" src="https://img.shields.io/badge/组织模块-openXYOS-0f766e.svg?style=flat" /></a>
   <a href="https://github.com/astral-sh/ruff"><img alt="Code Style: Ruff" src="https://img.shields.io/badge/code%20style-ruff-000000?logo=ruff&logoColor=white" /></a>
@@ -246,7 +246,7 @@ curl -fsSL https://raw.githubusercontent.com/XYAIStudio/FreeOS/develop/scripts/i
 
 桌面客户端说明见 [desktop/README.md](desktop/README.md)，飞牛打包指南见 [fnos/README.md](fnos/README.md)。独立商业组织站见 [docs/org-export.md](docs/org-export.md)（`freeos org export-standalone`，默认导出完整 openXYOS 源码树），不是默认安装器里的第二套 Node。
 
-**不要** `pip install octop`。PyPI 上的 `octop` 是上游 Octop，不是 FreeOS 0.1.0。本仓库发到 GitHub Releases 的 Python 制品是 `freeos-<version>-py3-none-any.whl` 和 `freeos-<version>.tar.gz`（导入包仍叫 `octop`）。更早的 Release 里可能还有 `octop-0.0.10*` 文件名，那是旧制品名，不是 PyPI 安装命令。桌面安装包从 [GitHub Releases](https://github.com/XYAIStudio/FreeOS/releases) 下载；终端安装用上面的安装脚本（默认拉取 FreeOS GitHub 源码）。只有在你明确要上游 Octop 时才加 `--from-pypi`。可选组件仍通过安装脚本传递，例如 `--extras browser`。
+**不要** `pip install octop`。PyPI 上的 `octop` 是上游 Octop，不是 FreeOS 0.1.0rc1。本仓库发到 GitHub Releases 的 Python 制品是 `freeos-<version>-py3-none-any.whl` 和 `freeos-<version>.tar.gz`（导入包仍叫 `octop`）。更早的 Release 里可能还有 `octop-0.0.10*` 文件名，那是旧制品名，不是 PyPI 安装命令。桌面安装包从 [GitHub Releases](https://github.com/XYAIStudio/FreeOS/releases) 下载；终端安装用上面的安装脚本（默认拉取 FreeOS GitHub 源码）。只有在你明确要上游 Octop 时才加 `--from-pypi`。可选组件仍通过安装脚本传递，例如 `--extras browser`。
 
 从源码用 uv 开发时：
 

@@ -4,9 +4,9 @@
 
 格式遵循 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)，版本号遵循 [语义化版本规范](https://semver.org/spec/v2.0.0.html)。
 
-## [0.1.0] - TBD
+## [0.1.0rc1] - TBD
 
-FreeOS **0.1.0** is an independent semver baseline. It does not track or align with Octop 1.0.x. GitHub Release Python artifacts are `freeos-0.1.0*` (sdist and wheel). The import package stays `octop`. This release does not publish to PyPI, and `pip install octop` installs upstream Octop, not FreeOS. Older Release files may still be named `octop-0.0.10*`.
+FreeOS **0.1.0rc1** is a prerelease of an independent semver baseline. It does not track or align with Octop 1.0.x. The release tag is `v0.1.0rc1`. GitHub Release Python artifacts are `freeos-0.1.0rc1*` (sdist and wheel). The import package stays `octop`. This release does not publish to PyPI, and `pip install octop` installs upstream Octop, not FreeOS. Older Release files may still be named `octop-0.0.10*`.
 
 ### Upgrade from 0.0.10
 
@@ -27,7 +27,7 @@ FreeOS **0.1.0** is an independent semver baseline. It does not track or align w
 - Preserve `config.json` when it is malformed: startup and configuration writers now report the file and parser position, avoid leaking stored credentials, and use atomic replacement instead of silently rebuilding an empty configuration. Absorbed from upstream Octop #730 / #738.
 - Checkpoint the SQLite WAL before the desktop process restarts so an in-app update does not drop the latest writes. Absorbed from upstream Octop #918.
 
-### Not in 0.1.0
+### Not in 0.1.0rc1
 
 Harness migration, cloud bridge default-on, default LDAP/SSO, Teams, and a whole-repo catch-up to Octop are out of scope.
 

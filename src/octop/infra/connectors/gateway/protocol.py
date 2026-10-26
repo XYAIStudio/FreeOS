@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+from octop import __version__
 from octop.infra.connectors.gateway.registry import call_gateway_tool, mcp_tools_for_kind
 
 logger = logging.getLogger(__name__)
@@ -28,7 +29,7 @@ def handle_mcp_request(
             {
                 "protocolVersion": MCP_PROTOCOL_VERSION,
                 "capabilities": {"tools": {}},
-                "serverInfo": {"name": f"octop-{kind}", "version": "0.1.0"},
+                "serverInfo": {"name": f"octop-{kind}", "version": __version__},
             },
         )
 

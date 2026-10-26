@@ -42,6 +42,7 @@ def test_render_download_section_matches_github_asset_names() -> None:
     assert f"{base}/FreeOS-fnos-native-0.9.31.fpk" in body
     assert f"{base}/freeos-0.9.31-py3-none-any.whl" in body
     assert f"{base}/freeos-0.9.31.tar.gz" in body
+    assert f"{base}/SHA256SUMS" in body
     assert "octop-0.9.31" not in body
     assert "Do not** `pip install octop`" in body
     assert "## Downloads" in body

@@ -414,3 +414,11 @@ jobs:
           generate_release_notes: false
           prerelease: ${{ steps.channel.outputs.prerelease }}
           make_latest: ${{ steps.channel.outputs.prerelease == 'true' && 'false' || 'true' }}
+
+      # Refresh SHA256SUMS after desktop installers and portable zips land.
+      # Release publishes the same file for wheel/sdist; this pass adds the
+      # packages just uploaded and any freeos-* assets already on the release.
+      - name: Publish SHA256SUMS
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: bash scripts/publish_sha256sums.sh "${{ steps.rel.outputs.tag }}" release-assets

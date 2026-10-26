@@ -15,7 +15,7 @@ Everything runs in a single Python process served by uvicorn. There is no extern
 
 ## Rationale
 
-- **Self-hosted target:** Operators install with `pip install octop && octop init`. Adding Redis or a process supervisor doubles the ops burden for the primary audience. Historical note (2026-10): that command describes the upstream-era install path. FreeOS 0.1.0 is installed from GitHub Releases or `scripts/install.sh`, not from the PyPI `octop` package.
+- **Self-hosted target:** Operators install with `pip install octop && octop init`. Adding Redis or a process supervisor doubles the ops burden for the primary audience. Historical note (2026-10): that command describes the upstream-era install path. FreeOS 0.1.0rc1 is installed from GitHub Releases or `scripts/install.sh`, not from the PyPI `octop` package.
 - **Workload profile:** Agent calls are LLM-bound (seconds to minutes of I/O wait). Python's asyncio handles this fan-out efficiently without threads or processes.
 - **SQLite is sufficient:** Concurrent writes are rare (one writer per agent at a time); WAL mode handles the load. Migrating to Postgres requires only a new `SqlitePool` implementation.
 - **Restart semantics are simple:** `OctopServer.start()` rebuilds the entire runtime tree from the SQLite file. No external state to reconcile.

@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "freeos"
-version = "0.1.0"
+version = "0.1.0rc1"
 description = "FreeOS — self-hosted multi-user multi-agent assistant. GitHub Release artifacts are named freeos-*; the import package stays octop. Not published to PyPI."
 readme = "README.md"
 license = { text = "MIT" }

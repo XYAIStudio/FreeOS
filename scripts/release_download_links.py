@@ -98,6 +98,10 @@ def render_download_section(raw_version: str) -> str:
             f"- {md_link('Wheel', tag, f'freeos-{version}-py3-none-any.whl')}",
             f"- {md_link('sdist', tag, f'freeos-{version}.tar.gz')}",
             "",
+            "### Checksums",
+            "",
+            f"- {md_link('SHA256SUMS', tag, 'SHA256SUMS')}",
+            "",
         ]
     )
 
