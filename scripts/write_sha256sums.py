@@ -2,8 +2,9 @@
 """Write GNU SHA256SUMS for FreeOS GitHub Release artifacts.
 
 Covers desktop installers (``FreeOS-desktop-*``), portable zips
-(``FreeOS-portable-*.zip``), wheels (``*.whl``), and sdists
-(``freeos-*.tar.gz``). ``SHA256SUMS`` itself is not hashed.
+(``FreeOS-portable-*.zip``), FnOS packages (``FreeOS-fnos-*.fpk``),
+wheels (``*.whl``), and sdists (``freeos-*.tar.gz``). ``SHA256SUMS``
+itself is not hashed.
 
     python3 scripts/write_sha256sums.py dist/
 """
@@ -17,12 +18,14 @@ from pathlib import Path
 
 
 def is_checksum_target(name: str) -> bool:
-    """Return whether ``name`` is a desktop installer, zip, wheel, or sdist."""
+    """Return whether ``name`` is a desktop installer, zip, FnOS package, wheel, or sdist."""
     if not name or name == "SHA256SUMS" or name.startswith("."):
         return False
     if name.startswith("FreeOS-desktop-"):
         return True
     if name.startswith("FreeOS-portable-") and name.endswith(".zip"):
+        return True
+    if name.startswith("FreeOS-fnos-") and name.endswith(".fpk"):
         return True
     if name.endswith(".whl"):
         return True

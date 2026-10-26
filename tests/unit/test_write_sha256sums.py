@@ -27,7 +27,9 @@ def test_checksum_covers_desktop_zip_wheel_and_sdist(tmp_path: Path) -> None:
         "FreeOS-portable-linux-amd64-0.1.0rc1.zip": b"zip",
         "freeos-0.1.0rc1-py3-none-any.whl": b"wheel",
         "freeos-0.1.0rc1.tar.gz": b"sdist",
-        "FreeOS-fnos-docker-0.1.0rc1.fpk": b"not-a-target",
+        "FreeOS-fnos-docker-0.1.0rc1.fpk": b"fnos-docker",
+        "FreeOS-fnos-native-0.1.0rc1.fpk": b"fnos-native",
+        "Octop-fnos-docker-0.1.0rc1.fpk": b"legacy-name",
         "notes.txt": b"nope",
     }
     for name, payload in names.items():
@@ -41,15 +43,19 @@ def test_checksum_covers_desktop_zip_wheel_and_sdist(tmp_path: Path) -> None:
         "FreeOS-desktop-darwin-arm64-0.1.0rc1.dmg",
         "FreeOS-desktop-linux-amd64-0.1.0rc1.tar.gz",
         "FreeOS-desktop-windows-amd64-0.1.0rc1.exe",
+        "FreeOS-fnos-docker-0.1.0rc1.fpk",
+        "FreeOS-fnos-native-0.1.0rc1.fpk",
         "FreeOS-portable-linux-amd64-0.1.0rc1.zip",
         "freeos-0.1.0rc1-py3-none-any.whl",
         "freeos-0.1.0rc1.tar.gz",
     ]
-    assert "FreeOS-fnos" not in text
+    assert "Octop-fnos" not in text
     assert "notes.txt" not in text
     assert text.endswith("\n")
     wheel_line = next(line for line in lines if line.endswith("freeos-0.1.0rc1-py3-none-any.whl"))
     assert wheel_line.startswith(hashlib.sha256(b"wheel").hexdigest() + "  ")
+    fpk_line = next(line for line in lines if line.endswith("FreeOS-fnos-docker-0.1.0rc1.fpk"))
+    assert fpk_line.startswith(hashlib.sha256(b"fnos-docker").hexdigest() + "  ")
 
 
 def test_empty_directory_is_rejected(tmp_path: Path) -> None:
@@ -73,9 +79,13 @@ def test_missing_from_reports_assets_added_after_the_hash(tmp_path: Path) -> Non
             "SHA256SUMS",
             "FreeOS-desktop-windows-amd64-0.1.0rc1.exe",
             "FreeOS-fnos-native-0.1.0rc1.fpk",
+            "Octop-fnos-docker-0.1.0rc1.fpk",
         ],
     )
-    assert missing == ["FreeOS-desktop-windows-amd64-0.1.0rc1.exe"]
+    assert missing == [
+        "FreeOS-desktop-windows-amd64-0.1.0rc1.exe",
+        "FreeOS-fnos-native-0.1.0rc1.fpk",
+    ]
 
 
 def test_cli_missing_from_exits_3(tmp_path: Path) -> None:
@@ -97,6 +107,8 @@ def test_release_workflows_publish_sha256sums() -> None:
     root = Path(__file__).resolve().parents[2]
     release = (root / ".github/workflows/release.yml").read_text(encoding="utf-8")
     desktop = (root / ".github/workflows/octop-desktop.yml").read_text(encoding="utf-8")
+    fnos = (root / ".github/workflows/fnos-build-fpk.yml").read_text(encoding="utf-8")
     assert "bash scripts/publish_sha256sums.sh" in release
     assert "bash scripts/publish_sha256sums.sh" in desktop
+    assert "bash scripts/publish_sha256sums.sh" in fnos
     assert 'scripts/release_prerelease.py "${GITHUB_REF_NAME}"' in release

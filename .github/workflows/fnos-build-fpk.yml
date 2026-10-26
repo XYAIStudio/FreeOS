@@ -288,3 +288,11 @@ jobs:
           make_latest: ${{ steps.channel.outputs.prerelease == 'true' && 'false' || 'true' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Refresh SHA256SUMS after FreeOS-fnos-*.fpk lands. Release and Desktop
+      # Package publish the same file earlier; this pass adds the FnOS packages
+      # and keeps installers, zips, wheels, and sdists already on the release.
+      - name: Publish SHA256SUMS
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: bash scripts/publish_sha256sums.sh "${{ needs.version.outputs.tag }}" dist

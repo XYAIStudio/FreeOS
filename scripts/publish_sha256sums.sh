@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
-# Upload SHA256SUMS for the desktop installers, portable zips, wheels, and
-# sdists on a GitHub Release. Local directories are overlaid on assets already
-# attached, so Release and Desktop Package can each refresh the same file.
+# Upload SHA256SUMS for the desktop installers, portable zips, FnOS packages
+# (FreeOS-fnos-*.fpk), wheels, and sdists on a GitHub Release. Local
+# directories are overlaid on assets already attached, so Release, Desktop
+# Package, and FnOS can each refresh the same file.
 #
 #   bash scripts/publish_sha256sums.sh v0.1.0rc1 dist
 #   bash scripts/publish_sha256sums.sh v0.1.0rc1 release-assets
@@ -65,6 +66,8 @@ stage_assets() {
     if [[ -n "$listed" ]]; then
       mapfile -t ASSET_NAMES <<<"$listed"
     fi
+    # freeos-* is the wheel and sdist. FreeOS-* is desktop installers,
+    # portable zips, and FnOS packages named FreeOS-fnos-*.fpk.
     download_pattern_if_present 'freeos-*'
     download_pattern_if_present 'FreeOS-*'
   fi
