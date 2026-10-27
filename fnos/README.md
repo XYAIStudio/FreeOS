@@ -11,7 +11,7 @@
 
 生成的 / 设置的密码通过以下两种方式**双保险**送达用户：
 
-- **应用「设置」窗口**：飞牛应用中心 → Octop → 设置，窗口顶部直接显示当前管理员账号与密码，也可在此随时改密（保持不变 / 随机生成 / 自己设置）；
+- **应用「设置」窗口**：飞牛应用中心 → FreeOS → 设置，窗口顶部直接显示当前管理员账号与密码，也可在此随时改密（保持不变 / 随机生成 / 自己设置）；
 - **回落备份文件**：数据共享目录下的 `octop-login.txt`（本地版在 data-share 共享目录，Docker 版在 `/var/apps/octop/share/octop/data/`），永久保留并随改密同步更新。
 
 > 若你在 Web 控制台「头像菜单 → 修改密码」中改过密码，则以 Web 密码为准（`octop-login.txt` 与「设置」窗口显示的是安装/配置阶段写入的凭据）。
@@ -107,7 +107,7 @@ bash scripts/build-fpk.sh native     # 仅本地版      → dist/FreeOS-fnos-na
    - 想用 Docker 跑、主机已装 Docker → 选 `FreeOS-fnos-docker-<version>.fpk`
    - 不想依赖 Docker、希望自带运行时原生运行 → 选 `FreeOS-fnos-native-<version>.fpk`
 2. 安装向导中设置管理员账号/密码、日志级别、LLM 密钥（可选）。
-3. 安装完成后桌面出现「Octop AI 助手」图标，浏览器打开 `http://<设备IP>:8088`。
+3. 安装完成后桌面出现「FreeOS」图标，浏览器打开 `http://<设备IP>:8088`。
 4. Docker 版镜像首次会从 GHCR `ghcr.io/xyaistudio/freeos:latest` 拉取；请确保该包为 Public（首次推送后可在 GitHub Packages 设置）。本地版无需联网拉镜像。Playwright Chromium 不预装，需要远程浏览器时在控制台按需安装。
 
 > 服务端口固定为 `8088`（飞牛端口映射与桌面图标均据此）。`desktop` 桌面控制已在镜像中默认安装。

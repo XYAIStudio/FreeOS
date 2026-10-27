@@ -27,7 +27,7 @@ free_octop_ports() {
         for pid in $pids; do
             [ -n "$pid" ] || continue
             if kill -TERM "$pid" 2>/dev/null; then
-                echo "[octop] 已发送 TERM 给占用 ${port} 的进程 ${pid}" > "${TRIM_TEMP_LOGFILE:-/dev/null}" 2>/dev/null || true
+                echo "[freeos] 已发送 TERM 给占用 ${port} 的进程 ${pid}" > "${TRIM_TEMP_LOGFILE:-/dev/null}" 2>/dev/null || true
             fi
         done
         sleep 1
@@ -35,7 +35,7 @@ free_octop_ports() {
             [ -n "$pid" ] || continue
             if kill -0 "$pid" 2>/dev/null; then
                 kill -KILL "$pid" 2>/dev/null || true
-                echo "[octop] 已强制 KILL 占用 ${port} 的进程 ${pid}" > "${TRIM_TEMP_LOGFILE:-/dev/null}" 2>/dev/null || true
+                echo "[freeos] 已强制 KILL 占用 ${port} 的进程 ${pid}" > "${TRIM_TEMP_LOGFILE:-/dev/null}" 2>/dev/null || true
             fi
         done
     done
@@ -45,7 +45,7 @@ free_octop_ports() {
     for pat in "$appdir/bin/octop" "$appdir/app/bin/octop"; do
         pids="$(pgrep -f -- "$pat" 2>/dev/null | tr '\n' ' ')" || true
         [ -z "$pids" ] && continue
-        echo "[octop] 发现本应用残留服务进程（$pat）: $pids，准备清理" > "${TRIM_TEMP_LOGFILE:-/dev/null}" 2>&1 || true
+        echo "[freeos] 发现本应用残留服务进程（$pat）: $pids，准备清理" > "${TRIM_TEMP_LOGFILE:-/dev/null}" 2>&1 || true
         for pid in $pids; do
             kill -TERM "$pid" 2>/dev/null || true
         done
@@ -53,7 +53,7 @@ free_octop_ports() {
         for pid in $pids; do
             if kill -0 "$pid" 2>/dev/null; then
                 kill -KILL "$pid" 2>/dev/null || true
-                echo "[octop] 已强制 KILL 残留服务进程 ${pid}" > "${TRIM_TEMP_LOGFILE:-/dev/null}" 2>&1 || true
+                echo "[freeos] 已强制 KILL 残留服务进程 ${pid}" > "${TRIM_TEMP_LOGFILE:-/dev/null}" 2>&1 || true
             fi
         done
     done
@@ -69,7 +69,7 @@ fix_ownership_and_perms() {
     local pkgvar="$1" envfile="$2"
     local octop_user="octop-native"
     id "$octop_user" >/dev/null 2>&1 || {
-        echo "[octop] 警告：${octop_user} 账户不存在，跳过数据目录 chown（服务将回退以 root 运行）" > "${TRIM_TEMP_LOGFILE:-/dev/null}" 2>&1 || true
+        echo "[freeos] 警告：${octop_user} 账户不存在，跳过数据目录 chown（服务将回退以 root 运行）" > "${TRIM_TEMP_LOGFILE:-/dev/null}" 2>&1 || true
         return 0
     }
 
@@ -100,7 +100,7 @@ fix_ownership_and_perms() {
         fi
     fi
 
-    echo "[octop] 已修正数据目录/.env 属主与权限（${octop_user}:${octop_user}）" > "${TRIM_TEMP_LOGFILE:-/dev/null}" 2>&1 || true
+    echo "[freeos] 已修正数据目录/.env 属主与权限（${octop_user}:${octop_user}）" > "${TRIM_TEMP_LOGFILE:-/dev/null}" 2>&1 || true
 }
 
 # ---------------------------------------------------------------------------
@@ -235,7 +235,7 @@ octop_write_login_file() {
     file="${data_dir}/octop-login.txt"
     cat > "$file" << EOF
 ==========================================================
- Octop 管理员登录信息（请妥善保管，勿泄露给他人）
+ FreeOS 管理员登录信息（请妥善保管，勿泄露给他人）
 ==========================================================
 访问地址：http://<飞牛IP>:${port}
 管理员账号：${username}
@@ -243,7 +243,7 @@ octop_write_login_file() {
 
 说明：
 - 本文件是管理员密码的备份副本，每次通过应用「设置」修改密码后会自动更新。
-- 也可以随时在飞牛应用中心 → Octop → 「设置」窗口中直接查看当前密码。
+- 也可以随时在飞牛应用中心 → FreeOS → 「设置」窗口中直接查看当前密码。
 - 建议登录后在 Web 控制台「头像菜单 → 修改密码」中更换为自己的密码。
 EOF
     chmod 600 "$file" 2>/dev/null || true

@@ -1,4 +1,4 @@
-# Octop Installer for Windows (PowerShell)
+# FreeOS Installer for Windows (PowerShell)
 # Usage: irm <url>/install.ps1 | iex
 #    or: .\install.ps1 [-Version X.Y.Z] [-FromSource] [-SourceDir DIR] [-Extras "browser"]
 #
@@ -37,16 +37,16 @@ $OctopBin      = Join-Path $OctopHome "bin"
 $PythonVersion = "3.12"
 $OctopRepo     = if ($env:OCTOP_REPO) { $env:OCTOP_REPO } else { "https://github.com/XYAIStudio/FreeOS.git" }
 
-function Write-Info { param([string]$Message) Write-Host "[octop] " -ForegroundColor Green  -NoNewline; Write-Host $Message }
-function Write-Warn { param([string]$Message) Write-Host "[octop] " -ForegroundColor Yellow -NoNewline; Write-Host $Message }
-function Stop-WithError { param([string]$Message) Write-Host "[octop] ERROR: $Message" -ForegroundColor Red; exit 1 }
+function Write-Info { param([string]$Message) Write-Host "[freeos] " -ForegroundColor Green  -NoNewline; Write-Host $Message }
+function Write-Warn { param([string]$Message) Write-Host "[freeos] " -ForegroundColor Yellow -NoNewline; Write-Host $Message }
+function Stop-WithError { param([string]$Message) Write-Host "[freeos] ERROR: $Message" -ForegroundColor Red; exit 1 }
 
 if ($FromSource -and $FromPyPI) { Stop-WithError "Choose only one of -FromSource or -FromPyPI." }
 if (-not $FromPyPI) { $FromSource = $true }
 
 if ($Help) {
     @"
-Octop Installer for Windows
+FreeOS Installer for Windows
 
 Usage: .\install.ps1 [OPTIONS]
 
@@ -73,7 +73,7 @@ Environment:
     exit 0
 }
 
-Write-Host "[octop] Installing Octop into $OctopHome" -ForegroundColor Green
+Write-Host "[freeos] Installing FreeOS into $OctopHome" -ForegroundColor Green
 
 $policy = Get-ExecutionPolicy
 if ($policy -eq "Restricted") {
@@ -273,7 +273,7 @@ Pin-McpCompat
 Test-Install
 
 if (-not (Test-Path $VenvOctop)) { Stop-WithError "Installation failed: octop CLI not found in venv" }
-Write-Info "Octop installed successfully"
+Write-Info "FreeOS installed successfully"
 
 if (-not $script:ConsoleAvailable) {
     $check = & $VenvPython -c "import importlib.resources, octop; p=importlib.resources.files('octop')/'dashboard'/'index.html'; print('yes' if p.is_file() else 'no')" 2>&1
@@ -350,7 +350,7 @@ function Resolve-FreeOSHome {
 $OctopHome = Resolve-FreeOSHome
 $RealBin = Join-Path $OctopHome "venv\Scripts\octop.exe"
 if (-not (Test-Path $RealBin)) {
-    Write-Error "Octop environment not found at $OctopHome\venv"
+    Write-Error "FreeOS environment not found at $OctopHome\venv"
     exit 1
 }
 & $RealBin @args
@@ -372,7 +372,7 @@ if defined FREEOS_HOME (
 )
 set "REAL_BIN=%OCTOP_HOME%\venv\Scripts\octop.exe"
 if not exist "%REAL_BIN%" (
-    echo Error: Octop environment not found at %OCTOP_HOME%\venv >&2
+    echo Error: FreeOS environment not found at %OCTOP_HOME%\venv >&2
     exit /b 1
 )
 "%REAL_BIN%" %*
@@ -403,7 +403,7 @@ if ($env:Path -notlike "*$targetPath*") {
 }
 
 Write-Host ""
-Write-Host "Octop installed successfully!" -ForegroundColor Green
+Write-Host "FreeOS installed successfully!" -ForegroundColor Green
 Write-Host ""
 Write-Host "  Install location:  $OctopHome"
 Write-Host "  Python:            $pyVersion"
