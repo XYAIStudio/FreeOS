@@ -387,9 +387,9 @@ class OllamaModelManager:
     """High-level wrapper around the Ollama SDK for model lifecycle."""
 
     @staticmethod
-    def list_models() -> list[OllamaModelInfo]:
-        """Return the current model list from ``ollama.list()``."""
-        ollama = _ensure_ollama()
+    def list_models(*, start_if_needed: bool = True) -> list[OllamaModelInfo]:
+        """Return models without starting Ollama unless explicitly allowed."""
+        ollama = _ensure_ollama() if start_if_needed else _ensure_ollama_sdk()
         models: list[OllamaModelInfo] = []
         for m in _iter_ollama_list_models(ollama.list()):
             name = str(m.get("model") or m.get("name") or "")

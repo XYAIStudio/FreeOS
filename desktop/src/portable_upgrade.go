@@ -1,8 +1,11 @@
 package main
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -10,14 +13,25 @@ import (
 	"time"
 )
 
-const sqliteBackupScript = "import sqlite3,sys; src=sqlite3.connect(sys.argv[1]); dst=sqlite3.connect(sys.argv[2]); src.backup(dst); dst.close(); src.close()"
-
-var runSQLiteBackup = func(python, source, destination string) error {
-	cmd := exec.Command(python, "-c", sqliteBackupScript, source, destination)
+var runPreUpgradeBackup = func(python, launch, home, dest string) error {
+	cmd := exec.Command(python, launch, "backup", "create", "--home", home, "--include-chats", "-o", dest)
 	if output, err := cmd.CombinedOutput(); err != nil {
-		return fmt.Errorf("SQLite backup failed: %w: %s", err, strings.TrimSpace(string(output)))
+		return fmt.Errorf("pre-upgrade backup failed: %w: %s", err, strings.TrimSpace(string(output)))
 	}
 	return nil
+}
+
+func sha256File(path string) (string, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return "", err
+	}
+	defer file.Close()
+	sum := sha256.New()
+	if _, err := io.Copy(sum, file); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(sum.Sum(nil)), nil
 }
 
 type desktopDatabaseConfig struct {
@@ -83,34 +97,35 @@ func safeVersion(value string) string {
 
 func backupSQLiteBeforeUpgrade(root, currentVersion, nextVersion string) (string, error) {
 	home := octopHome()
-	source, isSQLite, err := desktopSQLitePath(home)
-	if err != nil || !isSQLite {
-		return "", err
+	if strings.TrimSpace(home) == "" {
+		return "", fmt.Errorf("product home is empty")
 	}
-	if _, err := os.Stat(source); os.IsNotExist(err) {
-		return "", nil
-	} else if err != nil {
-		return "", fmt.Errorf("inspect SQLite database: %w", err)
-	}
-
 	backupDir := filepath.Join(home, "backups")
 	if err := os.MkdirAll(backupDir, 0o700); err != nil {
 		return "", fmt.Errorf("create backup directory: %w", err)
 	}
 	name := fmt.Sprintf(
-		"octop-desktop-pre-upgrade-%s-to-%s-%s.db",
+		"freeos-pre-upgrade-%s-to-%s-%s.tar.gz",
 		safeVersion(currentVersion),
 		safeVersion(nextVersion),
 		time.Now().UTC().Format("20060102T150405.000000000Z"),
 	)
 	destination := filepath.Join(backupDir, name)
-	if err := runSQLiteBackup(pythonExe(root), source, destination); err != nil {
+	launch := filepath.Join(root, "launch.py")
+	if err := runPreUpgradeBackup(pythonExe(root), launch, home, destination); err != nil {
 		_ = os.Remove(destination)
 		return "", err
 	}
-	if err := os.Chmod(destination, 0o600); err != nil {
+	sum, err := sha256File(destination)
+	if err != nil {
 		_ = os.Remove(destination)
-		return "", fmt.Errorf("secure SQLite backup: %w", err)
+		return "", fmt.Errorf("hash pre-upgrade backup: %w", err)
+	}
+	record := sum + "  " + filepath.Base(destination) + "\n"
+	if err := os.WriteFile(destination+".sha256", []byte(record), 0o600); err != nil {
+		_ = os.Remove(destination)
+		_ = os.Remove(destination + ".sha256")
+		return "", fmt.Errorf("record backup sha256: %w", err)
 	}
 	return destination, nil
 }

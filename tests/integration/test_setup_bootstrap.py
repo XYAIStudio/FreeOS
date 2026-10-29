@@ -8,6 +8,7 @@ from typing import Any
 
 from octop.infra.server import OctopServer
 from octop.infra.setup.password_file import read_password
+from octop.infra.utils.host_dirs import host_path_text
 from tests.support.app import write_octop_config
 from tests.support.auth import auth_header, bootstrap_admin
 
@@ -41,7 +42,7 @@ async def test_bootstrap_creates_default_main_agent(patched_app_client: Any) -> 
 
 async def test_main_not_created_until_finish(patched_app_client: Any) -> None:
     c, _srv, home = patched_app_client
-    pw = read_password(home.parent)
+    pw = read_password(home)
     assert pw is not None
     tok = (await c.post("/api/setup/verify-password", json={"password": pw})).json()["wizard_token"]
     admin = (
@@ -83,7 +84,8 @@ async def test_start_writes_wizard_password_when_no_users(tmp_octop_home: Path) 
     srv = OctopServer(home=tmp_octop_home)
     await srv.start()
     try:
-        assert (tmp_octop_home.parent / "octop-login.txt").exists()
+        assert (tmp_octop_home / "octop-login.txt").exists()
+        assert not (tmp_octop_home.parent / "octop-login.txt").exists()
     finally:
         await srv.stop()
 
@@ -94,6 +96,7 @@ async def test_start_skips_wizard_password_when_disabled(tmp_octop_home: Path) -
     await srv.start()
     try:
         assert not (tmp_octop_home / "octop-login.txt").exists()
+        assert not (tmp_octop_home.parent / "octop-login.txt").exists()
     finally:
         await srv.stop()
 
@@ -102,7 +105,7 @@ async def test_main_agent_seeds_general_assistant_workspace(patched_app_client: 
     """Finish creates main with expert files even when no provider is configured yet."""
     c, _srv, home = patched_app_client
     await bootstrap_admin(c, home)
-    ws = home / "workspaces" / "main"
+    ws = home / ".octop" / "workspaces" / "main"
     assert (ws / "SOUL.md").is_file()
     # New agents use system_files_path=.octop — BackendWorkspace remaps skills/.
     assert (ws / ".octop" / "skills" / "octop-assistant" / "SKILL.md").is_file()
@@ -118,7 +121,7 @@ async def test_main_agent_uses_home_scoped_backend(patched_app_client: Any) -> N
     cfg = json.loads(row.config_json or "{}")
     assert cfg["backend"] == {
         "type": "local_shell",
-        "root_dir": home.parent.resolve().as_posix(),
+        "root_dir": host_path_text(home),
         "virtual_mode": True,
     }
     assert cfg["workspace_dir"] == "/.octop/workspaces/main"

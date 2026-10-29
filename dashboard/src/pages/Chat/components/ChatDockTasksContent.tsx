@@ -82,9 +82,7 @@ export default function ChatDockTasksContent({
         <Empty
           description={
             <div>
-              <div>
-                {t("chat.rightRail.tasksEmpty", "当前没有后台任务")}
-              </div>
+              <div>{t("chat.rightRail.tasksEmpty", "当前没有后台任务")}</div>
               <p className={styles.rightRailPanelEmptyHint}>
                 {t(
                   "chat.rightRail.tasksEmptyHint",

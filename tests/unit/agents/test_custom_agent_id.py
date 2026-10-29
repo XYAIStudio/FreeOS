@@ -62,7 +62,12 @@ def _make_manager(*, existing_agent_ids: set[str]):
         agent_repo=SimpleNamespace(get=repo_get),
         user_policy_repo=SimpleNamespace(get=lambda *args, **kwargs: None),
     )
-    mgr._paths = SimpleNamespace(ensure_agent_workspace=ensure_workspace)
+    # create() resolves the workspace through agent_workspace before ensure_agent_workspace.
+    mgr._paths = SimpleNamespace(
+        ensure_agent_workspace=ensure_workspace,
+        agent_workspace=ensure_workspace,
+        root="/tmp/freeos-home",
+    )
     mgr._lock = asyncio.Lock()
     mgr._assert_agent_name_available = lambda user_id, name: None  # type: ignore[method-assign]
     return mgr, WorkspaceReached

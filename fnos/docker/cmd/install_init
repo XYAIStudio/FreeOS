@@ -11,8 +11,8 @@ _OCTOP_COMMON="$(dirname "$0")/common.sh"
 [ -f "$_OCTOP_COMMON" ] && source "$_OCTOP_COMMON"
 
 fail_init() {
-    echo "[octop] $1" > "${TRIM_TEMP_LOGFILE:-/dev/null}" 2>&1 || true
-    echo "[octop] $1" >&2 || true
+    echo "[freeos] $1" > "${TRIM_TEMP_LOGFILE:-/dev/null}" 2>&1 || true
+    echo "[freeos] $1" >&2 || true
     exit 1
 }
 

@@ -44,8 +44,8 @@ OPENAI_NEW="$(octop_sanitize_value "${wizard_openai_api_key:-}")"
 DASHSCOPE_NEW="$(octop_sanitize_value "${wizard_dashscope_api_key:-}")"
 
 fail_config() {
-    echo "[octop-native] $1" > "${TRIM_TEMP_LOGFILE:-/dev/null}" 2>&1 || true
-    echo "[octop-native] $1" >&2 || true
+    echo "[freeos-native] $1" > "${TRIM_TEMP_LOGFILE:-/dev/null}" 2>&1 || true
+    echo "[freeos-native] $1" >&2 || true
     exit 1
 }
 
@@ -98,12 +98,12 @@ DASHSCOPE="$CUR_DASH"
 OCTOP_HOME="${DATA_DIR}/.octop"
 MAIN="$APPDEST/cmd/main"
 if [ "$PASS_CHANGED" = "1" ] && [ -f "$OCTOP_HOME/octop.db" ]; then
-    echo "[octop-native] 检测到已初始化实例，先停止服务再离线修改管理员密码 ..." > "${TRIM_TEMP_LOGFILE:-/dev/null}" 2>&1 || true
+    echo "[freeos-native] 检测到已初始化实例，先停止服务再离线修改管理员密码 ..." > "${TRIM_TEMP_LOGFILE:-/dev/null}" 2>&1 || true
     [ -x "$MAIN" ] && "$MAIN" stop >/dev/null 2>&1 || true
     if "$APPDEST/bin/octop-cli" user passwd "$ADMIN_USER" --password "$ADMIN_PASS" > "${TRIM_TEMP_LOGFILE:-/dev/null}" 2>&1; then
-        echo "[octop-native] 已通过官方 CLI（octop user passwd）修改管理员密码" > "${TRIM_TEMP_LOGFILE:-/dev/null}" 2>&1 || true
+        echo "[freeos-native] 已通过官方 CLI（octop user passwd）修改管理员密码" > "${TRIM_TEMP_LOGFILE:-/dev/null}" 2>&1 || true
     else
-        echo "[octop-native] 警告：离线改密未成功（octop user passwd 执行失败），将仅更新 .env；首次重启 init / 重新安装时生效。" > "${TRIM_TEMP_LOGFILE:-/dev/null}" 2>&1 || true
+        echo "[freeos-native] 警告：离线改密未成功（octop user passwd 执行失败），将仅更新 .env；首次重启 init / 重新安装时生效。" > "${TRIM_TEMP_LOGFILE:-/dev/null}" 2>&1 || true
     fi
     [ -x "$MAIN" ] && "$MAIN" start >/dev/null 2>&1 || true
 fi
@@ -120,7 +120,7 @@ octop_env_set "$ENV_FILE" OCTOP_ADMIN_DISPLAY_NAME "Admin"
 octop_env_set "$ENV_FILE" OPENAI_API_KEY "$OPENAI"
 octop_env_set "$ENV_FILE" DASHSCOPE_API_KEY "$DASHSCOPE"
 
-echo "[octop-native] 已更新配置: $ENV_FILE" > "${TRIM_TEMP_LOGFILE:-/dev/null}" 2>/dev/null || true
+echo "[freeos-native] 已更新配置: $ENV_FILE" > "${TRIM_TEMP_LOGFILE:-/dev/null}" 2>/dev/null || true
 
 # 凭据回落保存 + 「设置」窗口当前密码显示刷新
 octop_write_login_file "$DATA_DIR" "$ADMIN_USER" "$ADMIN_PASS" 8089

@@ -33,6 +33,9 @@ async function main() {
     ["openXYOS 本地租户", "openxyos-local"],
   );
   dbRun(
+    "INSERT OR IGNORE INTO tenants (id, name, slug, status, plan) VALUES (3, 'Acme', 'acme', 'active', 'community')",
+  );
+  dbRun(
     "INSERT INTO users (email, password_hash, nickname, role, tenant_id) VALUES (?, ?, ?, 'super_admin', 1)",
     ["admin@example.com", "unused", "超级管理员"],
   );
@@ -40,14 +43,19 @@ async function main() {
     "INSERT INTO users (email, password_hash, nickname, role, tenant_id) VALUES (?, ?, ?, 'admin', 2)",
     ["demo@demo.com", "unused", "管理员"],
   ).lastInsertRowid);
-  dbRun("UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = ?", [demoId]);
+  const ownerId = Number(dbRun(
+    "INSERT INTO users (email, password_hash, nickname, role, tenant_id) VALUES (?, ?, ?, 'admin', 3)",
+    ["owner@example.com", "unused", "Owner"],
+  ).lastInsertRowid);
+  dbRun("UPDATE users SET last_login = '2020-01-01 00:00:00' WHERE id = ?", [ownerId]);
+  dbRun("UPDATE users SET last_login = '2099-01-01 00:00:00' WHERE id = ?", [demoId]);
 
   const token = signToken({
-    id: demoId,
-    email: "demo@demo.com",
-    nickname: "管理员",
+    id: ownerId,
+    email: "owner@example.com",
+    nickname: "Owner",
     role: "admin",
-    tenant_id: 2,
+    tenant_id: 3,
   });
 
   const app = express();
@@ -84,7 +92,7 @@ async function main() {
     const health = await fetch(`${baseUrl}/api/freeos/health`);
     assert.equal(health.status, 200);
     const healthBody = await health.json() as { data: { ui_tenant_id: number } };
-    assert.equal(healthBody.data.ui_tenant_id, 2);
+    assert.equal(healthBody.data.ui_tenant_id, 3);
 
     const ingested = await ingest({
       tenant_id: 1,
@@ -118,7 +126,7 @@ async function main() {
       data: { tenant_id: number; also_tenants: number[]; landed: Record<string, { created: number }> };
     };
     assert.equal(ingestBody.success, true);
-    assert.equal(ingestBody.data.tenant_id, 2);
+    assert.equal(ingestBody.data.tenant_id, 3);
     assert.deepEqual(ingestBody.data.also_tenants, [1]);
     assert.equal(ingestBody.data.landed.employees.created, 2);
     assert.equal(ingestBody.data.landed.talent.created, 2);
@@ -131,7 +139,7 @@ async function main() {
     assert.deepEqual(names, ["Ops Coordinator", "Policy Analyst"]);
     assert(employeeBody.data.every((row) => row.employment_category === "internal"));
     assert(employeeBody.data.every((row) => row.status === "active"));
-    assert(employeeBody.data.every((row) => row.tenant_id === 2));
+    assert(employeeBody.data.every((row) => row.tenant_id === 3));
 
     const talent = await asDemo("/api/talent");
     assert.equal(talent.status, 200);
@@ -155,10 +163,14 @@ async function main() {
       "SELECT name FROM employees WHERE tenant_id = 1 ORDER BY name",
     ) as Array<{ name: string }>;
     assert.deepEqual(tenant1Employees.map((row) => row.name), ["Ops Coordinator", "Policy Analyst"]);
-    const tenant2Count = dbGet(
+    const tenant3Count = dbGet(
+      "SELECT COUNT(*) as c FROM employees WHERE tenant_id = 3",
+    ) as { c: number };
+    assert.equal(Number(tenant3Count.c), 2);
+    const seedTenantCount = dbGet(
       "SELECT COUNT(*) as c FROM employees WHERE tenant_id = 2",
     ) as { c: number };
-    assert.equal(Number(tenant2Count.c), 2);
+    assert.equal(Number(seedTenantCount.c), 0);
 
     console.log("freeos ingest writes to the active UI tenant and list APIs see the rows");
   } finally {

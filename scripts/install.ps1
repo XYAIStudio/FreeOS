@@ -1,13 +1,15 @@
-# Octop Installer for Windows (PowerShell)
+# FreeOS Installer for Windows (PowerShell)
 # Usage: irm <url>/install.ps1 | iex
 #    or: .\install.ps1 [-Version X.Y.Z] [-FromSource] [-SourceDir DIR] [-Extras "browser"]
 #
-# Installs Octop into ~/.octop with a uv-managed Python environment.
+# New installs use ~/.freeos. An existing ~/.octop is kept when ~/.freeos
+# does not exist yet (same order as PathLayout.from_env).
 
 & {
 param(
     [string]$Version   = "",
     [switch]$FromSource,
+    [switch]$FromPyPI,
     [string]$SourceDir = "",
     [string]$Extras    = "",
     [string]$UvPath    = "",
@@ -16,25 +18,42 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-$OctopHome     = if ($env:OCTOP_HOME) { $env:OCTOP_HOME } else { Join-Path $HOME ".octop" }
+function Resolve-FreeOSHome {
+    if ($env:FREEOS_HOME) { return $env:FREEOS_HOME }
+    if ($env:OCTOP_HOME) { return $env:OCTOP_HOME }
+    $freeos = Join-Path $HOME ".freeos"
+    $legacy = Join-Path $HOME ".octop"
+    if (Test-Path $freeos) { return $freeos }
+    foreach ($flag in @($env:OCTOP_DESKTOP, $env:FREEOS_DESKTOP)) {
+        if ($flag -match '^(1|true|yes|on)$') { return $freeos }
+    }
+    if (Test-Path $legacy) { return $legacy }
+    return $freeos
+}
+
+$OctopHome     = Resolve-FreeOSHome
 $OctopVenv     = Join-Path $OctopHome "venv"
 $OctopBin      = Join-Path $OctopHome "bin"
 $PythonVersion = "3.12"
-$OctopRepo     = if ($env:OCTOP_REPO) { $env:OCTOP_REPO } else { "https://github.com/TencentCloud/Octop.git" }
+$OctopRepo     = if ($env:OCTOP_REPO) { $env:OCTOP_REPO } else { "https://github.com/XYAIStudio/FreeOS.git" }
 
-function Write-Info { param([string]$Message) Write-Host "[octop] " -ForegroundColor Green  -NoNewline; Write-Host $Message }
-function Write-Warn { param([string]$Message) Write-Host "[octop] " -ForegroundColor Yellow -NoNewline; Write-Host $Message }
-function Stop-WithError { param([string]$Message) Write-Host "[octop] ERROR: $Message" -ForegroundColor Red; exit 1 }
+function Write-Info { param([string]$Message) Write-Host "[freeos] " -ForegroundColor Green  -NoNewline; Write-Host $Message }
+function Write-Warn { param([string]$Message) Write-Host "[freeos] " -ForegroundColor Yellow -NoNewline; Write-Host $Message }
+function Stop-WithError { param([string]$Message) Write-Host "[freeos] ERROR: $Message" -ForegroundColor Red; exit 1 }
+
+if ($FromSource -and $FromPyPI) { Stop-WithError "Choose only one of -FromSource or -FromPyPI." }
+if (-not $FromPyPI) { $FromSource = $true }
 
 if ($Help) {
     @"
-Octop Installer for Windows
+FreeOS Installer for Windows
 
 Usage: .\install.ps1 [OPTIONS]
 
 Options:
   -Version <VER>        Install a specific version (e.g. 0.1.0)
   -FromSource           Install from source (requires git, or use -SourceDir)
+  -FromPyPI             Install upstream Octop from PyPI (does not include FreeOS changes)
   -SourceDir <DIR>      Local source directory (used with -FromSource)
   -Extras <EXTRAS>      Extra optional components (e.g. desktop, browser)
   -UvPath <PATH>        Path to a pre-installed uv.exe
@@ -45,13 +64,16 @@ to install it, or install later from the dashboard. If a system Chrome already
 exists, that download is skipped even with -Extras browser.
 
 Environment:
-  OCTOP_HOME            Installation directory (default: ~/.octop)
+  FREEOS_HOME           Installation directory (preferred)
+  OCTOP_HOME            Legacy installation directory override
+                        New installs use ~/.freeos. An existing ~/.octop is
+                        kept when ~/.freeos does not exist yet.
   OCTOP_REPO            Git clone URL for -FromSource without -SourceDir
 "@
     exit 0
 }
 
-Write-Host "[octop] Installing Octop into $OctopHome" -ForegroundColor Green
+Write-Host "[freeos] Installing FreeOS into $OctopHome" -ForegroundColor Green
 
 $policy = Get-ExecutionPolicy
 if ($policy -eq "Restricted") {
@@ -141,6 +163,21 @@ Ensure-Uv
 
 if (Test-Path $OctopVenv) {
     Write-Info "Existing environment found, upgrading..."
+    $existingCli = Join-Path $OctopVenv "Scripts\octop.exe"
+    $hasData = (Test-Path (Join-Path $OctopHome "octop.db")) -or (Test-Path (Join-Path $OctopHome "config.json"))
+    if ((Test-Path $existingCli) -and $hasData) {
+        $backupDir = Join-Path $OctopHome "backups"
+        New-Item -ItemType Directory -Force -Path $backupDir | Out-Null
+        $stamp = [DateTime]::UtcNow.ToString("yyyyMMddTHHmmssZ")
+        $backupOut = Join-Path $backupDir "pre-upgrade-$stamp.tar.gz"
+        Write-Info "Full backup before upgrade: $backupOut"
+        & $existingCli backup create --home $OctopHome --include-chats -o $backupOut
+        if ($LASTEXITCODE -ne 0) { Stop-WithError "Upgrade aborted: backup failed" }
+        $hash = (Get-FileHash -Algorithm SHA256 -Path $backupOut).Hash.ToLower()
+        $leaf = Split-Path -Leaf $backupOut
+        Set-Content -Encoding ascii -Path "$backupOut.sha256" -Value "$hash  $leaf"
+        Write-Info "Backup sha256 written to $backupOut.sha256"
+    }
 } else {
     Write-Info "Creating Python $PythonVersion environment..."
 }
@@ -226,7 +263,11 @@ if ($FromSource) {
         }
         $cloneDir = Join-Path $env:TEMP "octop-install-$(Get-Random)"
         try {
+        if ($Version) {
+            git clone --depth 1 --branch "v$Version" $OctopRepo $cloneDir
+        } else {
             git clone --depth 1 $OctopRepo $cloneDir
+        }
             Prepare-Console $cloneDir
             uv pip install "${cloneDir}${ExtrasSuffix}" --python $VenvPython
         } finally {
@@ -247,7 +288,7 @@ Pin-McpCompat
 Test-Install
 
 if (-not (Test-Path $VenvOctop)) { Stop-WithError "Installation failed: octop CLI not found in venv" }
-Write-Info "Octop installed successfully"
+Write-Info "FreeOS installed successfully"
 
 if (-not $script:ConsoleAvailable) {
     $check = & $VenvPython -c "import importlib.resources, octop; p=importlib.resources.files('octop')/'dashboard'/'index.html'; print('yes' if p.is_file() else 'no')" 2>&1
@@ -309,10 +350,22 @@ New-Item -ItemType Directory -Path $OctopBin -Force | Out-Null
 $wrapperPs1 = Join-Path $OctopBin "octop.ps1"
 @'
 $ErrorActionPreference = "Stop"
-$OctopHome = if ($env:OCTOP_HOME) { $env:OCTOP_HOME } else { Join-Path $HOME ".octop" }
+function Resolve-FreeOSHome {
+    if ($env:FREEOS_HOME) { return $env:FREEOS_HOME }
+    if ($env:OCTOP_HOME) { return $env:OCTOP_HOME }
+    $freeos = Join-Path $HOME ".freeos"
+    $legacy = Join-Path $HOME ".octop"
+    if (Test-Path $freeos) { return $freeos }
+    foreach ($flag in @($env:OCTOP_DESKTOP, $env:FREEOS_DESKTOP)) {
+        if ($flag -match '^(1|true|yes|on)$') { return $freeos }
+    }
+    if (Test-Path $legacy) { return $legacy }
+    return $freeos
+}
+$OctopHome = Resolve-FreeOSHome
 $RealBin = Join-Path $OctopHome "venv\Scripts\octop.exe"
 if (-not (Test-Path $RealBin)) {
-    Write-Error "Octop environment not found at $OctopHome\venv"
+    Write-Error "FreeOS environment not found at $OctopHome\venv"
     exit 1
 }
 & $RealBin @args
@@ -321,11 +374,20 @@ if (-not (Test-Path $RealBin)) {
 $cmdWrapper = Join-Path $OctopBin "octop.cmd"
 @'
 @echo off
-set "OCTOP_HOME=%OCTOP_HOME%"
-if "%OCTOP_HOME%"=="" set "OCTOP_HOME=%USERPROFILE%\.octop"
+if defined FREEOS_HOME (
+  set "OCTOP_HOME=%FREEOS_HOME%"
+) else if defined OCTOP_HOME (
+  rem keep the legacy override
+) else if exist "%USERPROFILE%\.freeos" (
+  set "OCTOP_HOME=%USERPROFILE%\.freeos"
+) else if exist "%USERPROFILE%\.octop" (
+  set "OCTOP_HOME=%USERPROFILE%\.octop"
+) else (
+  set "OCTOP_HOME=%USERPROFILE%\.freeos"
+)
 set "REAL_BIN=%OCTOP_HOME%\venv\Scripts\octop.exe"
 if not exist "%REAL_BIN%" (
-    echo Error: Octop environment not found at %OCTOP_HOME%\venv >&2
+    echo Error: FreeOS environment not found at %OCTOP_HOME%\venv >&2
     exit /b 1
 )
 "%REAL_BIN%" %*
@@ -356,7 +418,7 @@ if ($env:Path -notlike "*$targetPath*") {
 }
 
 Write-Host ""
-Write-Host "Octop installed successfully!" -ForegroundColor Green
+Write-Host "FreeOS installed successfully!" -ForegroundColor Green
 Write-Host ""
 Write-Host "  Install location:  $OctopHome"
 Write-Host "  Python:            $pyVersion"

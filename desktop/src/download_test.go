@@ -22,6 +22,11 @@ func TestMain(m *testing.M) {
 	if os.Getenv("OCTOP_DESKTOP_INSTALL_STAMP_FILE") == "" {
 		_ = os.Setenv("OCTOP_DESKTOP_INSTALL_STAMP_FILE", "")
 	}
+	// Upgrade tests ship a fake python, not a runnable interpreter. The real
+	// backup command is covered by the tests that replace this stub.
+	runPreUpgradeBackup = func(_, _, _, dest string) error {
+		return os.WriteFile(dest, []byte("backup"), 0o600)
+	}
 	os.Exit(m.Run())
 }
 
@@ -129,14 +134,14 @@ func TestEnsurePortableUpgradesBundledVersionAfterDatabaseBackup(t *testing.T) {
 	writeTestGreenZip(t, newZip, "0.9.32")
 	t.Setenv("OCTOP_DESKTOP_PORTABLE_ZIP", newZip)
 
-	previousBackup := runSQLiteBackup
-	runSQLiteBackup = func(_ string, source string, destination string) error {
-		if source != database {
-			t.Fatalf("backup source = %q, want %q", source, database)
+	previousBackup := runPreUpgradeBackup
+	runPreUpgradeBackup = func(_, _, gotHome, destination string) error {
+		if gotHome != home {
+			t.Fatalf("backup home = %q, want %q", gotHome, home)
 		}
 		return os.WriteFile(destination, []byte("backup"), 0o600)
 	}
-	t.Cleanup(func() { runSQLiteBackup = previousBackup })
+	t.Cleanup(func() { runPreUpgradeBackup = previousBackup })
 
 	if err := ensurePortable(LocaleZH, func(string) {}); err != nil {
 		t.Fatal(err)
@@ -144,9 +149,12 @@ func TestEnsurePortableUpgradesBundledVersionAfterDatabaseBackup(t *testing.T) {
 	if got := portableVersion(root); got != "0.9.32" {
 		t.Fatalf("portable version = %q, want 0.9.32", got)
 	}
-	backups, err := filepath.Glob(filepath.Join(home, "backups", "octop-desktop-pre-upgrade-*.db"))
+	backups, err := filepath.Glob(filepath.Join(home, "backups", "freeos-pre-upgrade-*.tar.gz"))
 	if err != nil || len(backups) != 1 {
 		t.Fatalf("upgrade backup = %v, err = %v", backups, err)
+	}
+	if _, err := os.Stat(backups[0] + ".sha256"); err != nil {
+		t.Fatalf("backup sha256 missing: %v", err)
 	}
 }
 
@@ -167,9 +175,9 @@ func TestEnsurePortableKeepsRuntimeWhenDatabaseBackupFails(t *testing.T) {
 	writeTestGreenZip(t, newZip, "0.9.32")
 	t.Setenv("OCTOP_DESKTOP_PORTABLE_ZIP", newZip)
 
-	previousBackup := runSQLiteBackup
-	runSQLiteBackup = func(_, _, _ string) error { return errors.New("backup unavailable") }
-	t.Cleanup(func() { runSQLiteBackup = previousBackup })
+	previousBackup := runPreUpgradeBackup
+	runPreUpgradeBackup = func(_, _, _, _ string) error { return errors.New("backup unavailable") }
+	t.Cleanup(func() { runPreUpgradeBackup = previousBackup })
 
 	if err := ensurePortable(LocaleZH, func(string) {}); err == nil {
 		t.Fatal("backup failure should abort the runtime upgrade")
@@ -693,6 +701,13 @@ func TestCompareVersions(t *testing.T) {
 		{"0.9.31", "0.9.32", -1},
 		{"1.0", "1.0.0", 0},
 		{"0.9.32rc1", "0.9.31", 1},
+		{"0.1.0rc1", "0.0.10", 1},
+		{"0.1.0rc1", "0.1.0", -1},
+		{"0.1.0", "0.1.0rc1", 1},
+		{"0.1.0rc1", "0.1.0rc2", -1},
+		{"0.1.0rc2", "0.1.0rc10", -1},
+		{"0.1.0a1", "0.1.0rc1", -1},
+		{"0.1.0.dev1", "0.1.0a1", -1},
 	} {
 		if got := compareVersions(test.left, test.right); got != test.want {
 			t.Fatalf("compareVersions(%q, %q) = %d, want %d", test.left, test.right, got, test.want)

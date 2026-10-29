@@ -1,6 +1,6 @@
 name: Release
 
-# 版本标签 v* → 测包、发 PyPI、建 GitHub Release，再级联：
+# 版本标签 v* → 测包、构建 GitHub Release 制品，再级联：
 #   - Sync Main Into Develop
 #   - Build Octop FPK（复用本 Release 的 wheel；等待 docker-publish 的 GHCR 镜像）
 #
@@ -18,7 +18,6 @@ on:
 permissions:
   contents: write
   actions: write
-  id-token: write
 
 concurrency:
   group: release-${{ github.ref }}
@@ -43,6 +42,11 @@ jobs:
             echo "Refusing release: tag $GITHUB_REF_NAME does not match pyproject.toml $package_version" >&2
             exit 1
           fi
+          git fetch origin main
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
+            echo "Refusing release: production tags must point to a commit on main" >&2
+            exit 1
+          fi
 
       - uses: astral-sh/setup-uv@v4
         with:
@@ -54,7 +58,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "24"
           cache: npm
           cache-dependency-path: dashboard/package-lock.json
 
@@ -73,26 +77,9 @@ jobs:
           name: dist
           path: dist/
 
-  publish:
-    name: Publish to PyPI
-    needs: build
-    runs-on: ubuntu-latest
-    environment: pypi
-    steps:
-      - name: Download distributions
-        uses: actions/download-artifact@v4
-        with:
-          name: dist
-          path: dist/
-
-      - name: Publish package
-        uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          password: ${{ secrets.PYPI_API_TOKEN }}
-
   github-release:
     name: Create GitHub Release
-    needs: publish
+    needs: build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -128,8 +115,10 @@ jobs:
               echo ""
               echo "## Install"
               echo ""
+              echo "**Do not** \`pip install octop\`. PyPI \`octop\` is upstream Octop, not this FreeOS release."
+              echo "Install the wheel attached to this GitHub Release:"
               echo '```bash'
-              echo "pip install octop==$version"
+              echo "uv pip install ./freeos-$version-py3-none-any.whl"
               echo '```'
             } > .release-notes.md
           fi
@@ -137,12 +126,28 @@ jobs:
             python3 scripts/release_download_links.py "$version" >> .release-notes.md
           fi
 
+      - name: Classify pre-release
+        id: channel
+        run: python3 scripts/release_prerelease.py "${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+
       - name: Create release
         uses: softprops/action-gh-release@v2
         with:
           body_path: .release-notes.md
           files: dist/*
           generate_release_notes: true
+          prerelease: ${{ steps.channel.outputs.prerelease }}
+          make_latest: ${{ steps.channel.outputs.prerelease == 'true' && 'false' || 'true' }}
+
+      # Hash wheel/sdist plus any desktop installers and portable zips already
+      # attached by Desktop Package. That workflow runs the same script again
+      # after its own upload, so the last publisher leaves one SHA256SUMS that
+      # covers every class. v0.1.0rc1 is a prerelease via release_prerelease.py
+      # (PEP 440 rcN). v0.1.0-rc.1 is not.
+      - name: Publish SHA256SUMS
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: bash scripts/publish_sha256sums.sh "${GITHUB_REF_NAME}" dist
 
   # workflow_run / release:published are unreliable when Release itself was
   # started via GITHUB_TOKEN workflow_dispatch (Auto Tag). Explicitly cascade.
@@ -165,7 +170,7 @@ jobs:
             -f version="${{ github.ref_name }}"
 
   # FnOS FPK：复用本 Release 的 wheel + docker-publish 的 GHCR 镜像。
-  # 与 sync-develop 并行。Dispatch 失败必须让本 workflow 变红（PyPI 已发布仍如此）。
+  # 与 sync-develop 并行。Dispatch 失败必须让本 workflow 变红，以便发现下游构建漏触发。
   trigger-fnos:
     name: Trigger FnOS FPK build
     needs: github-release
@@ -175,7 +180,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # --ref 用版本 tag，保证 FPK 打在与 PyPI / 镜像相同的 commit 上
+          # --ref 用版本 tag，保证 FPK 打在与 GitHub Release / 镜像相同的 commit 上
           gh workflow run fnos-build-fpk.yml \
             --repo "${{ github.repository }}" \
             --ref "${{ github.ref_name }}"

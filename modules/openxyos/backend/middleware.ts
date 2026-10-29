@@ -25,6 +25,15 @@ export interface AuthRequest extends Request {
   user?: AuthUser;
 }
 
+function passwordChangeAllowed(req: AuthRequest): boolean {
+  const path = (req.originalUrl || req.url || "").split("?")[0];
+  return (
+    path === "/api/auth/change-password"
+    || path === "/api/auth/me"
+    || path === "/api/auth/revoke"
+  );
+}
+
 export async function authenticate(req: AuthRequest, res: Response, next: NextFunction) {
   const authHeader = req.headers.authorization;
   if (!authHeader?.startsWith("Bearer ")) {
@@ -37,6 +46,21 @@ export async function authenticate(req: AuthRequest, res: Response, next: NextFu
       return res.status(401).json({ success: false, error: result.error || localizedError(req, "登录已过期", "Your session has expired") });
     }
     req.user = result.user;
+    const gate = dbGet(
+      "SELECT must_change_password AS flag FROM users WHERE id = ?",
+      [result.user.id],
+    ) as { flag?: number } | undefined;
+    if (Number(gate?.flag) === 1 && !passwordChangeAllowed(req)) {
+      return res.status(403).json({
+        success: false,
+        code: "PASSWORD_CHANGE_REQUIRED",
+        error: localizedError(
+          req,
+          "请先修改本机引导密码",
+          "Change the local bootstrap password before continuing",
+        ),
+      });
+    }
     runWithRequestContext(
       { tenantId: result.user.tenant_id, userId: result.user.id },
       next,

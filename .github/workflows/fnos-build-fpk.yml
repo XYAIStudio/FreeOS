@@ -25,7 +25,7 @@ permissions:
   packages: read
 
 concurrency:
-  group: build-octop-fnos
+  group: build-freeos-fnos
   cancel-in-progress: false
 
 jobs:
@@ -99,14 +99,14 @@ jobs:
 
       - name: Build Docker FPK
         env:
-          FPK_NAME_PREFIX: Octop-fnos
+          FPK_NAME_PREFIX: FreeOS-fnos
         run: bash scripts/build-fpk.sh docker
 
       - name: Upload docker fpk artifact
         uses: actions/upload-artifact@v4
         with:
           name: docker-fpk
-          path: dist/Octop-fnos-docker-*.fpk
+          path: dist/FreeOS-fnos-docker-*.fpk
           if-no-files-found: error
 
   native:
@@ -131,8 +131,8 @@ jobs:
           set -euo pipefail
           mkdir -p dist
           REL_TAG="v${VER}"
-          if gh release download "$REL_TAG" --repo "${{ github.repository }}" -p 'octop-*.whl' -D dist 2>/tmp/wheel-dl.err; then
-            ls -lh dist/octop-*.whl
+          if gh release download "$REL_TAG" --repo "${{ github.repository }}" -p 'freeos-*.whl' -D dist 2>/tmp/wheel-dl.err; then
+            ls -lh dist/freeos-*.whl
             echo "source=release" >> "$GITHUB_OUTPUT"
             echo "Reusing wheel from GitHub Release ${REL_TAG}"
           else
@@ -169,7 +169,7 @@ jobs:
           python3 -m pip install --quiet build
           python3 -m build --wheel
           echo "=== built wheel ==="
-          ls -lh dist/octop-*.whl
+          ls -lh dist/freeos-*.whl
 
       - name: Install Octop core into app/site-packages (no Chromium, no preinstalled skills)
         id: install_core
@@ -185,7 +185,7 @@ jobs:
           {
             python3 -m pip install --quiet uv
             python3 -m uv pip install --python python3.12 \
-              --target "$SP" --no-cache "$(ls dist/octop-*.whl | head -1)"
+              --target "$SP" --no-cache "$(ls dist/freeos-*.whl | head -1)"
             rm -rf "$SP/mcp" "$SP"/mcp-*.dist-info \
                    "$SP/langchain_mcp_adapters" "$SP"/langchain_mcp_adapters-*.dist-info
             mkdir -p /tmp/octop-pinned
@@ -195,7 +195,7 @@ jobs:
               echo "Extracting pinned wheel: $whl"
               python3.12 -m zipfile -e "$whl" "$SP"
             done
-            cp dist/octop-*.whl "$SP/octop.whl"
+            cp dist/freeos-*.whl "$SP/freeos.whl"
             PYTHONPATH="$SP" python3.12 \
               -c "import octop, mcp, langchain_mcp_adapters; from octop.launch import run_foreground_blocking; print('octop', octop.__version__, '| mcp', mcp.__version__, '| lcma', langchain_mcp_adapters.__version__)"
           } 2>&1 | tee -a "$LOG"
@@ -203,18 +203,18 @@ jobs:
       - name: Build native FPK
         id: build_native
         env:
-          FPK_NAME_PREFIX: Octop-fnos
+          FPK_NAME_PREFIX: FreeOS-fnos
         run: bash scripts/build-fpk.sh native
 
       - name: Show native fpk size
-        run: ls -lh dist/Octop-fnos-native-*.fpk
+        run: ls -lh dist/FreeOS-fnos-native-*.fpk
 
       - name: Upload native fpk artifact
         id: upload_native
         uses: actions/upload-artifact@v4
         with:
           name: native-fpk
-          path: dist/Octop-fnos-native-*.fpk
+          path: dist/FreeOS-fnos-native-*.fpk
           if-no-files-found: error
 
       - name: Upload native install log (for debugging)
@@ -273,6 +273,10 @@ jobs:
             exit 1
           fi
 
+      - name: Classify pre-release
+        id: channel
+        run: python3 scripts/release_prerelease.py "${{ needs.version.outputs.tag }}" >> "$GITHUB_OUTPUT"
+
       - name: Attach fpk to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
@@ -280,5 +284,15 @@ jobs:
           files: dist/*.fpk
           fail_on_unmatched_files: true
           generate_release_notes: false
+          prerelease: ${{ steps.channel.outputs.prerelease }}
+          make_latest: ${{ steps.channel.outputs.prerelease == 'true' && 'false' || 'true' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Refresh SHA256SUMS after FreeOS-fnos-*.fpk lands. Release and Desktop
+      # Package publish the same file earlier; this pass adds the FnOS packages
+      # and keeps installers, zips, wheels, and sdists already on the release.
+      - name: Publish SHA256SUMS
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: bash scripts/publish_sha256sums.sh "${{ needs.version.outputs.tag }}" dist

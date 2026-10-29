@@ -31,8 +31,8 @@ DATA_DIR="/var/apps/octop/share/octop/data"
 mkdir -p "$DATA_DIR"
 
 fail_install() {
-    echo "[octop] $1" > "${TRIM_TEMP_LOGFILE:-/dev/null}" 2>&1 || true
-    echo "[octop] $1" >&2 || true
+    echo "[freeos] $1" > "${TRIM_TEMP_LOGFILE:-/dev/null}" 2>&1 || true
+    echo "[freeos] $1" >&2 || true
     exit 1
 }
 
@@ -86,7 +86,7 @@ esac
 } > "$ENV_FILE"
 
 chmod 600 "$ENV_FILE"
-echo "[octop] 已写入配置: $ENV_FILE" > "${TRIM_TEMP_LOGFILE:-/dev/null}" 2>/dev/null || true
+echo "[freeos] 已写入配置: $ENV_FILE" > "${TRIM_TEMP_LOGFILE:-/dev/null}" 2>/dev/null || true
 
 # ---------------------------------------------------------------------------
 # 凭据回落保存（octop-login.txt）+ 「设置」窗口当前密码显示渲染

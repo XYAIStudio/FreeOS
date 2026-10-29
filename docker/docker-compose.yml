@@ -2,7 +2,8 @@
 # FreeOS / Octop — Docker Compose (single Python process)
 #
 # One service. No Node / openXYOS sidecar. Organization is in-host.
-# Product home name is FREEOS_HOME; OCTOP_* and ~/.octop remain aliases.
+# Product home is FREEOS_HOME (/data/.freeos). OCTOP_HOME is the same path.
+# Host default mount is ~/.freeos. Set OCTOP_DATA to point at an existing tree.
 # Published image: ghcr.io/xyaistudio/freeos
 # Local build tag remains octop:latest (compatibility).
 #
@@ -19,7 +20,7 @@
 #   OCTOP_DATABASE_URL=postgresql://octop:octop@host.docker.internal:5432/octop
 #
 # 注意: docker/.env 仅用于 Compose 插值；变量必须列在下方 environment
-# 才会进入容器。也可写入数据卷内的 ~/.octop/env（宿主机挂载目录下的 env）。
+# 才会进入容器。也可写入数据卷内的 env（宿主机挂载目录下的 env）。
 # 密码须 ≥8 位且同时包含字母与数字（与控制台改密策略一致）。
 # 后续计划：首次启动可改为随机生成密码并写入 credential.txt。
 # =============================================================================
@@ -33,11 +34,16 @@ services:
     container_name: octop
     restart: unless-stopped
     ports:
-      - "${OCTOP_PORT:-8088}:${OCTOP_PORT:-8088}"
+      # Host side is loopback. Set OCTOP_PUBLISH_HOST=0.0.0.0 to opt into LAN.
+      # OCTOP_BIND_HOST=0.0.0.0 below is container-internal so the published
+      # port can reach the process; it does not open the host LAN by itself.
+      - "${OCTOP_PUBLISH_HOST:-127.0.0.1}:${OCTOP_PORT:-8088}:${OCTOP_PORT:-8088}"
     volumes:
-      - ${OCTOP_DATA:-~/.octop}:/data/.octop
+      - ${OCTOP_DATA:-~/.freeos}:/data/.freeos
     environment:
       - HOME=/data
+      - FREEOS_HOME=/data/.freeos
+      - OCTOP_HOME=/data/.freeos
       - OCTOP_BIND_HOST=0.0.0.0
       - OCTOP_PORT=${OCTOP_PORT:-8088}
       - OCTOP_LOG_LEVEL=${OCTOP_LOG_LEVEL:-info}

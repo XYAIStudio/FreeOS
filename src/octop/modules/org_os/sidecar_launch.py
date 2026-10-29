@@ -348,6 +348,33 @@ def sidecar_node_command(runtime: SidecarRuntime) -> str:
     return " ".join(sidecar_node_argv(runtime))
 
 
+_ENV_TRUTHY = {"1", "true", "yes", "on"}
+
+
+def _env_truthy(source: dict[str, str], key: str) -> bool:
+    return (source.get(key) or "").strip().lower() in _ENV_TRUTHY
+
+
+def apply_org_launch_flags(env: dict[str, str]) -> None:
+    """Mark the sidecar as the FreeOS organization module, without demo users.
+
+    ``FREEOS_ORG_INTEGRATED`` is required for a real install: registration
+    creates a distinct tenant instead of a shared tenant, and the host accepts
+    organization identity. Release builds hard-ignore inherited
+    ``FREEOS_ORG_LOCAL_TEST`` and ``FREEOS_ORG_DEV_BOOTSTRAP``. Those switches
+    are honoured only when ``FREEOS_DEV_BUILD`` is explicitly set.
+    """
+    env["FREEOS_ORG_INTEGRATED"] = "1"
+    if not _env_truthy(env, "FREEOS_DEV_BUILD"):
+        env.pop("FREEOS_ORG_LOCAL_TEST", None)
+        env.pop("FREEOS_ORG_DEV_BOOTSTRAP", None)
+        return
+    if _env_truthy(env, "FREEOS_ORG_DEV_BOOTSTRAP") or _env_truthy(env, "FREEOS_ORG_LOCAL_TEST"):
+        env["FREEOS_ORG_LOCAL_TEST"] = "1"
+        return
+    env.pop("FREEOS_ORG_LOCAL_TEST", None)
+
+
 def sidecar_launch_env(home: Path, *, dashboard_port: int | None = None) -> dict[str, str]:
     secrets = load_or_create_sidecar_secrets(home)
     jwt = secrets["JWT_SECRET"]
@@ -370,10 +397,13 @@ def sidecar_launch_env(home: Path, *, dashboard_port: int | None = None) -> dict
         if configured
         else origin
     )
+    # Inherited HOST is not an opt-in. FREEOS_ORG_BIND_HOST is.
+    bind_host = (env.get("FREEOS_ORG_BIND_HOST") or "127.0.0.1").strip() or "127.0.0.1"
     env.update(
         {
             "NODE_ENV": "production",
             "PORT": port,
+            "HOST": bind_host,
             "DB_DIALECT": "sqlite",
             "DATABASE_PATH": str(sidecar_data_dir(home) / "xiongyuan.db"),
             "AIR_GAP_MODE": "true",
@@ -386,13 +416,9 @@ def sidecar_launch_env(home: Path, *, dashboard_port: int | None = None) -> dict
             "FREEOS_HOME": str(home),
             "OCTOP_HOME": str(home),
             "FREEOS_ORG_SIDECAR_PORT": port,
-            # Independent openXYOS test environment: keep its own login and
-            # bootstrap demo@demo.com / user@demo.com. Restart/recover must
-            # not inherit a host INTEGRATED=1 without LOCAL_TEST (that skips seed).
-            "FREEOS_ORG_INTEGRATED": "1",
-            "FREEOS_ORG_LOCAL_TEST": "1",
         }
     )
+    apply_org_launch_flags(env)
     return env
 
 

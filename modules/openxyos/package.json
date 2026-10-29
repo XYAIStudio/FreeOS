@@ -11,7 +11,12 @@
     "postinstall": "node scripts/patch-express-types.cjs",
     "typecheck": "tsc --noEmit",
     "lint": "eslint . --ext .ts,.tsx --max-warnings 0",
-    "test": "npm run test:db-persistence && npm run test:runtime-config && npm run test:cors-origins && npm run test:embed-trap && npm run test:hero-mascot && npm run test:r0-access-control && npm run test:module-settings && npm run test:llm-onboarding && npm run test:agent-studio && npm run test:freeos-ingest && npm run test:file-security && npm run test:download-token && npm run test:ws-ticket && npm run test:auth-provider && npm run test:pep && npm run test:audit-bundle && npm run test:tool-gateway && npm run test:v100",
+    "test": "npm run test:db-persistence && npm run test:no-release-bootstrap && npm run test:f10-upgrade-cleanup && npm run test:plugin-install && npm run test:f2-bootstrap && npm run test:listen-host && npm run test:runtime-config && npm run test:cors-origins && npm run test:embed-trap && npm run test:hero-mascot && npm run test:r0-access-control && npm run test:module-settings && npm run test:llm-onboarding && npm run test:agent-studio && npm run test:freeos-ingest && npm run test:file-security && npm run test:doc-parser && npm run test:download-token && npm run test:ws-ticket && npm run test:auth-provider && npm run test:pep && npm run test:audit-bundle && npm run test:tool-gateway && npm run test:v100",
+    "test:f10-upgrade-cleanup": "tsx scripts/test-f10-upgrade-cleanup.ts",
+    "test:plugin-install": "tsx scripts/test-plugin-install.ts",
+    "test:f2-bootstrap": "tsx scripts/test-f2-bootstrap.ts",
+    "test:listen-host": "tsx scripts/test-listen-host.ts",
+    "test:no-release-bootstrap": "tsx scripts/test-no-release-bootstrap.ts",
     "test:db-persistence": "tsx scripts/test-db-persistence.ts",
     "test:runtime-config": "tsx scripts/test-runtime-config.ts",
     "test:cors-origins": "tsx scripts/test-cors-origins.ts",
@@ -30,12 +35,13 @@
     "audit:legacy-knowledge-files": "tsx scripts/audit-legacy-knowledge-files.ts",
     "ci": "npm run lint && npm run typecheck && npm test && npm run verify:open-source && npm run build",
     "start": "node --import tsx backend/server.ts",
-    "seed": "tsx backend/seed.ts",
+    "seed": "FREEOS_DEV_BUILD=1 tsx backend/seed.ts",
     "verify:open-source": "node scripts/verify-open-source.mjs",
     "test:module-settings": "tsx scripts/test-module-settings.ts",
     "test:agent-studio": "tsx scripts/test-agent-studio.ts",
     "test:llm-onboarding": "tsx scripts/test-llm-onboarding.ts",
-    "test:freeos-ingest": "tsx scripts/test-freeos-ingest.ts"
+    "test:freeos-ingest": "tsx scripts/test-freeos-ingest.ts",
+    "test:doc-parser": "tsx scripts/test-doc-parser.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
@@ -65,7 +71,7 @@
     "sql.js": "^1.11.0",
     "ssh2": "^1.17.0",
     "unzipper": "^0.12.3",
-    "uuid": "^10.0.0",
+    "uuid": "^11.1.1",
     "ws": "^8.21.0"
   },
   "devDependencies": {
@@ -99,15 +105,25 @@
     "tsx": "^4.19.0",
     "typescript": "^5.6.0",
     "typescript-eslint": "^8.64.0",
-    "vite": "^6.0.0",
+    "vite": "^6.4.5",
     "vite-plugin-pwa": "^1.3.0",
     "zustand": "^5.0.0"
   },
   "description": "Open-source operating system for governed human-agent organizations",
   "engines": {
-    "node": ">=20.19"
+    "node": ">=22.12"
   },
   "overrides": {
-    "qs": "6.16.0"
+    "qs": "6.16.2",
+    "deepmerge": "4.1.2",
+    "follow-redirects": "1.16.1",
+    "vite": "^6.4.5",
+    "katex": "^0.18.2",
+    "exceljs": {
+      "uuid": "^11.1.1"
+    },
+    "mammoth": {
+      "argparse": "^2.0.1"
+    }
   }
 }

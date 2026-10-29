@@ -60,13 +60,13 @@ GitHub 工作流 **FreeOS Desktop Package**（`.github/workflows/octop-desktop.y
 | GHCR 镜像 | `ghcr.io/xyaistudio/freeos:{version\|latest}` |
 | 本地 Compose 标签 | `octop:latest`（兼容别名；单 Python 进程） |
 | 安全公告 | [XYAIStudio/FreeOS](https://github.com/XYAIStudio/FreeOS/security/advisories/new) |
-| PyPI 包名 | `octop`（有意保留的标识；CLI 是 `freeos`） |
+| Python 发行包标识 | `octop`（内部兼容名；仅通过 GitHub Releases 分发） |
 
-### 发版 / PyPI / Docker 门禁
+### 发版 / Docker 门禁
 
 - **Docker Publish** 始终推 GHCR。Docker Hub 登录是 **可选**
   （`DOCKERHUB_USERNAME` / `DOCKERHUB_TOKEN`）。没有 Hub secrets 不得让工作流变红。
-- **PyPI** 仍发布名为 `octop` 的发行版（`pypi` 环境的 `PYPI_API_TOKEN`）。这是
-  Python 包名，不是腾讯云安全公告地址。
+- **Python 发行包**随 GitHub Release 附件发布。不要将 `octop` 发行包发布到
+  PyPI：该名称已被上游 Octop 项目使用，会造成安装身份冲突。
 - **飞牛 Docker `.fpk`** 的 compose 必须拉 `ghcr.io/xyaistudio/freeos`，不是
   `ghcr.io/tencentcloud/octop`。

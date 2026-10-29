@@ -331,6 +331,20 @@ RequestExecutionLevel "${REQUEST_EXECUTION_LEVEL}"
     ${EndIf}
 !macroend
 
+# Overwrite install: full backup of an existing home before files are copied.
+# A non-zero exit aborts Setup. Fresh installs with no database/config continue.
+# Linux CI does not run makensis or this PowerShell path.
+!macro wails.backupBeforeOverwrite
+    InitPluginsDir
+    File "/oname=$PLUGINSDIR\backup-before-overwrite.ps1" "backup-before-overwrite.ps1"
+    nsExec::ExecToLog 'powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$PLUGINSDIR\backup-before-overwrite.ps1"'
+    Pop $0
+    ${If} $0 != 0
+        MessageBox MB_ICONSTOP|MB_OK "Upgrade aborted: backup failed (exit $0). Existing data was not overwritten."
+        Abort
+    ${EndIf}
+!macroend
+
 # Install/reinstall: stop a running shell so Setup can overwrite FreeOS.exe
 # and the next launch can refresh ~/.freeos/portable. Silent installs stop
 # without asking. LangString INSTALL_FREEOS_RUNNING is in project.nsi.

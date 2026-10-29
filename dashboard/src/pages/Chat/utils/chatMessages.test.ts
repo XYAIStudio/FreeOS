@@ -31,13 +31,15 @@ describe("formatRunUsage", () => {
 
 describe("composer permissionMode", () => {
   it("stamps and normalizes permissionMode", () => {
+    expect(buildComposerContext({ permissionMode: "auto" })).toEqual({
+      permissionMode: "auto",
+    });
+    expect(normalizeComposerContext({ permissionMode: "full" })).toEqual({
+      permissionMode: "full",
+    });
     expect(
-      buildComposerContext({ permissionMode: "auto" }),
-    ).toEqual({ permissionMode: "auto" });
-    expect(
-      normalizeComposerContext({ permissionMode: "full" }),
-    ).toEqual({ permissionMode: "full" });
-    expect(normalizeComposerContext({ permissionMode: "yolo" })).toBeUndefined();
+      normalizeComposerContext({ permissionMode: "yolo" }),
+    ).toBeUndefined();
   });
 });
 

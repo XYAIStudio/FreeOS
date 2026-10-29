@@ -13,8 +13,12 @@ services:
       DEPLOY_MODE: community
       PORT: "3000"
       SEED_DEMO_DATA: "false"
+      # Container-internal only. The published port below is loopback, so this
+      # does not expose the process on the host LAN. Set the host mapping to
+      # 0.0.0.0:3000:3000 only as an explicit opt-in.
+      FREEOS_ORG_BIND_HOST: "0.0.0.0"
     ports:
-      - "3000:3000"
+      - "127.0.0.1:3000:3000"
     volumes:
       - xyos_data:/app/backend/data
       - xyos_uploads:/app/uploads

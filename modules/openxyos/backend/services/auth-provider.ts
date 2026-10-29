@@ -71,6 +71,15 @@ export interface AuthProvider {
 const ACCESS_TOKEN_TTL = "1h";
 const REFRESH_TOKEN_TTL = "24h";
 
+function passwordMatches(password: string, hash: string): boolean {
+  if (!hash || hash.startsWith("!")) return false;
+  try {
+    return bcrypt.compareSync(password, hash);
+  } catch {
+    return false;
+  }
+}
+
 export class LTSProvider implements AuthProvider {
   readonly name = "lts";
 
@@ -92,7 +101,11 @@ export class LTSProvider implements AuthProvider {
       return { success: false, error: "邮箱或密码错误", code: "INVALID_CREDENTIALS" };
     }
 
-    const valid = bcrypt.compareSync(password, row.password_hash);
+    if (row.status === "disabled") {
+      return { success: false, error: "账号已被禁用", code: "ACCOUNT_LOCKED" };
+    }
+
+    const valid = passwordMatches(password, row.password_hash);
     // V0.60 审计 AUTH-01: 登录性能非关键路径，保留 compareSync 避免阻塞策略变更
     // 未来迁移到 async compare 需要处理异常流。当前 bcrypt 成本因子默认 10，
     // 配合 login 10/min 限流，阻塞风险可控。
@@ -131,13 +144,13 @@ export class LTSProvider implements AuthProvider {
 
       // 检查用户/租户状态
       const principal = dbGet(
-        `SELECT u.id, u.nickname, u.role, u.tenant_id, u.token_version, t.status as tenant_status
+        `SELECT u.id, u.nickname, u.role, u.tenant_id, u.token_version, u.status as user_status, t.status as tenant_status
          FROM users u INNER JOIN tenants t ON t.id = u.tenant_id
          WHERE u.id = ?`,
         [decoded.id]
       ) as any;
 
-      if (!principal || (principal.tenant_status !== "active" && principal.tenant_status !== "trial")) {
+      if (!principal || principal.user_status === "disabled" || (principal.tenant_status !== "active" && principal.tenant_status !== "trial")) {
         return { success: false, error: "账户或租户已停用", code: "ACCOUNT_LOCKED" };
       }
 
@@ -174,13 +187,13 @@ export class LTSProvider implements AuthProvider {
 
       // 验证用户仍然活跃
       const principal = dbGet(
-        `SELECT u.id, u.nickname, u.role, u.tenant_id, u.token_version, t.status as tenant_status
+        `SELECT u.id, u.nickname, u.role, u.tenant_id, u.token_version, u.status as user_status, t.status as tenant_status
          FROM users u INNER JOIN tenants t ON t.id = u.tenant_id
          WHERE u.id = ?`,
         [decoded.id]
       ) as any;
 
-      if (!principal || (principal.tenant_status !== "active" && principal.tenant_status !== "trial")) {
+      if (!principal || principal.user_status === "disabled" || (principal.tenant_status !== "active" && principal.tenant_status !== "trial")) {
         return { success: false, error: "账户已停用", code: "ACCOUNT_LOCKED" };
       }
 

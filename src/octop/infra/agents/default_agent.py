@@ -7,12 +7,14 @@ Used by the setup wizard (pinned ``agent_id=main``) and by invite redeem
 from __future__ import annotations
 
 import logging
+from pathlib import Path
 from typing import Any
 
 from octop.infra.agents.experts.catalog import ExpertCatalog, build_create_spec_from_expert
 from octop.infra.errors import ErrorCode, OctopError
-from octop.infra.utils.host_dirs import host_home_dir, host_path_text
+from octop.infra.utils.host_dirs import host_path_text
 from octop.infra.utils.locale import normalize_locale
+from octop.infra.utils.paths import PathLayout
 
 logger = logging.getLogger(__name__)
 
@@ -20,11 +22,17 @@ DEFAULT_EXPERT_ID = "general-assistant"
 SETUP_DEFAULT_AGENT_ID = "main"
 
 
-def default_home_local_backend() -> dict[str, Any]:
-    """Same local backend as the dashboard create-from-expert default (home-scoped)."""
+def default_home_local_backend(product_home: Path | None = None) -> dict[str, Any]:
+    """Local backend rooted at the FreeOS home (``FREEOS_HOME`` / ``--home``).
+
+    The OS profile (``Path.home()``) is not a data root. Scoped workspaces are
+    ``{root_dir}/.octop/workspaces/<id>``, so a profile root writes into
+    ``~/.octop`` even when the process was started with a separate home.
+    """
+    root = product_home if product_home is not None else PathLayout.from_env().root
     return {
         "type": "local_shell",
-        "root_dir": host_path_text(host_home_dir()),
+        "root_dir": host_path_text(root),
         "virtual_mode": True,
     }
 
@@ -36,6 +44,7 @@ async def bootstrap_default_agent(
     user_id: int,
     locale: str = "zh",
     agent_id: str | None = None,
+    product_home: Path | None = None,
 ) -> Any | None:
     """Create ``general-assistant`` for *user_id* when they have no agents yet.
 
@@ -61,7 +70,7 @@ async def bootstrap_default_agent(
         user_id=user_id,
         agent_id=agent_id,
         locale=loc,
-        config_extra={"backend": default_home_local_backend()},
+        config_extra={"backend": default_home_local_backend(product_home)},
     )
     return await registry.create(spec, defer_bootstrap=True)
 
@@ -72,11 +81,18 @@ async def try_bootstrap_default_agent(
     user_id: int,
     locale: str = "zh",
     agent_id: str | None = None,
+    product_home: Path | None = None,
 ) -> None:
     """Best-effort wrapper used by HTTP adapters (setup / invite)."""
     if server.app_runtime is None:
         logger.warning("skip default agent bootstrap: app_runtime not ready")
         return
+    home = product_home
+    if home is None:
+        paths = getattr(server, "paths", None)
+        root = getattr(paths, "root", None)
+        if isinstance(root, Path):
+            home = root
     try:
         await bootstrap_default_agent(
             server.app_runtime.agent_registry,
@@ -84,6 +100,7 @@ async def try_bootstrap_default_agent(
             user_id=user_id,
             locale=locale,
             agent_id=agent_id,
+            product_home=home,
         )
     except Exception as exc:  # pragma: no cover - logged; user creation should still succeed
         logger.warning("could not auto-create default agent for user %s: %s", user_id, exc)

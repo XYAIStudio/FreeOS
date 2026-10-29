@@ -58,6 +58,38 @@ func TestSidecarLaunchEnvPointsAtHomeDatabase(t *testing.T) {
 	if !strings.Contains(env["CORS_ORIGIN"], "http://[::1]:3780") {
 		t.Fatalf("CORS_ORIGIN missing ipv6 self origin: %q", env["CORS_ORIGIN"])
 	}
+	if env["HOST"] != "127.0.0.1" {
+		t.Fatalf("HOST=%q want 127.0.0.1", env["HOST"])
+	}
+	if value, ok := env["FREEOS_ORG_LOCAL_TEST"]; ok && value != "" {
+		t.Fatalf("release launch must not set FREEOS_ORG_LOCAL_TEST, got %q", value)
+	}
+}
+
+func TestSidecarLaunchEnvLocalTestRequiresDevSwitch(t *testing.T) {
+	t.Setenv("FREEOS_DEV_BUILD", "1")
+	t.Setenv("FREEOS_ORG_DEV_BOOTSTRAP", "1")
+	t.Setenv("FREEOS_ORG_LOCAL_TEST", "")
+	env, err := sidecarLaunchEnv(t.TempDir(), 8088)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if env["FREEOS_ORG_LOCAL_TEST"] != "1" {
+		t.Fatalf("FREEOS_ORG_LOCAL_TEST=%q", env["FREEOS_ORG_LOCAL_TEST"])
+	}
+}
+
+func TestSidecarLaunchEnvIgnoresInheritedLocalTest(t *testing.T) {
+	t.Setenv("FREEOS_DEV_BUILD", "")
+	t.Setenv("FREEOS_ORG_DEV_BOOTSTRAP", "1")
+	t.Setenv("FREEOS_ORG_LOCAL_TEST", "1")
+	env, err := sidecarLaunchEnv(t.TempDir(), 8088)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if value, ok := env["FREEOS_ORG_LOCAL_TEST"]; ok && value != "" {
+		t.Fatalf("release launch kept FREEOS_ORG_LOCAL_TEST=%q", value)
+	}
 }
 
 func TestSidecarReadyRequiresFrontendBuild(t *testing.T) {

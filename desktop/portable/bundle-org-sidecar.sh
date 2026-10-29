@@ -17,7 +17,7 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 # shellcheck source=desktop/portable/_common.sh
 source "${REPO_ROOT}/desktop/portable/_common.sh"
 
-NODE_VERSION="${NODE_VERSION:-20.19.5}"
+NODE_VERSION="${NODE_VERSION:-24.21.0}"
 NODE_BASE_URL="${NODE_BASE_URL:-https://nodejs.org/dist/v${NODE_VERSION}}"
 
 node_archive_name() {
@@ -125,6 +125,7 @@ build_openxyos() {
     rsync -a --delete \
       --exclude node_modules --exclude dist --exclude .git --exclude .github \
       --exclude backups --exclude dist-backup-20260626 --exclude V0.5 \
+      --exclude backend/dev --exclude 'scripts/test-*' \
       --include '.env.example' --exclude '.env' --exclude '.env.*' \
       --exclude '.freeos' --exclude '.octop' --exclude 'octop.db' --exclude '*.sqlite' \
       "${src}/" "${work}/"
@@ -134,6 +135,13 @@ import shutil, sys
 from pathlib import Path
 src, dest = Path(sys.argv[1]), Path(sys.argv[2])
 skip = {"node_modules", "dist", ".git", ".github", "backups", "dist-backup-20260626", "V0.5", ".freeos", ".octop"}
+def ignore(directory, names):
+    dropped = {name for name in names if name in skip}
+    if Path(directory).name == "backend":
+        dropped.add("dev")
+    if Path(directory).name == "scripts":
+        dropped.update(name for name in names if name.startswith("test-"))
+    return dropped
 for item in src.iterdir():
     if item.name in skip:
         continue
@@ -143,7 +151,7 @@ for item in src.iterdir():
         continue
     target = dest / item.name
     if item.is_dir():
-        shutil.copytree(item, target, ignore=shutil.ignore_patterns(*skip))
+        shutil.copytree(item, target, ignore=ignore)
     else:
         shutil.copy2(item, target)
 PY
@@ -213,11 +221,33 @@ ENV
 fi
 export NODE_ENV=production
 export PORT
+export HOST=127.0.0.1
+if [ -n "${FREEOS_ORG_BIND_HOST:-}" ]; then
+  export HOST="${FREEOS_ORG_BIND_HOST}"
+fi
 export DB_DIALECT=sqlite
 export DATABASE_PATH="${DATA_DIR}/xiongyuan.db"
 export AIR_GAP_MODE=true
 export ALLOW_PUBLIC_REGISTRATION="${ALLOW_PUBLIC_REGISTRATION:-false}"
 export SEED_DEMO_DATA="${SEED_DEMO_DATA:-false}"
+export FREEOS_ORG_INTEGRATED="${FREEOS_ORG_INTEGRATED:-1}"
+# Release builds ignore inherited demo-seed switches unless FREEOS_DEV_BUILD is set.
+org_local_test=0
+case "$(printf '%s' "${FREEOS_DEV_BUILD:-}" | tr '[:upper:]' '[:lower:]')" in
+  1|true|yes|on)
+    for value in "${FREEOS_ORG_DEV_BOOTSTRAP:-}" "${FREEOS_ORG_LOCAL_TEST:-}"; do
+      case "$(printf '%s' "$value" | tr '[:upper:]' '[:lower:]')" in
+        1|true|yes|on) org_local_test=1 ;;
+      esac
+    done
+    ;;
+esac
+if [ "$org_local_test" = 1 ]; then
+  export FREEOS_ORG_LOCAL_TEST=1
+else
+  unset FREEOS_ORG_LOCAL_TEST || true
+  unset FREEOS_ORG_DEV_BOOTSTRAP || true
+fi
 export JWT_SECRET COOKIE_SECRET
 export CORS_ORIGIN="${CORS_ORIGIN:-http://127.0.0.1:8088,http://localhost:8088,http://127.0.0.1:18900,http://localhost:18900}"
 cd "${APP}"
@@ -252,11 +282,27 @@ if not defined COOKIE_SECRET (
 >> "%FREEOS_ORG_DATA%\sidecar.env" echo COOKIE_SECRET=%COOKIE_SECRET%
 set "NODE_ENV=production"
 set "PORT=%FREEOS_ORG_SIDECAR_PORT%"
+set "HOST=127.0.0.1"
+if defined FREEOS_ORG_BIND_HOST set "HOST=%FREEOS_ORG_BIND_HOST%"
 set "DB_DIALECT=sqlite"
 set "DATABASE_PATH=%FREEOS_ORG_DATA%\xiongyuan.db"
 set "AIR_GAP_MODE=true"
 if not defined ALLOW_PUBLIC_REGISTRATION set "ALLOW_PUBLIC_REGISTRATION=false"
 if not defined SEED_DEMO_DATA set "SEED_DEMO_DATA=false"
+if not defined FREEOS_ORG_INTEGRATED set "FREEOS_ORG_INTEGRATED=1"
+set "ORG_LOCAL_TEST="
+if /I "%FREEOS_DEV_BUILD%"=="1" set "ORG_DEV_OK=1"
+if /I "%FREEOS_DEV_BUILD%"=="true" set "ORG_DEV_OK=1"
+if defined ORG_DEV_OK if /I "%FREEOS_ORG_DEV_BOOTSTRAP%"=="1" set "ORG_LOCAL_TEST=1"
+if defined ORG_DEV_OK if /I "%FREEOS_ORG_DEV_BOOTSTRAP%"=="true" set "ORG_LOCAL_TEST=1"
+if defined ORG_DEV_OK if /I "%FREEOS_ORG_LOCAL_TEST%"=="1" set "ORG_LOCAL_TEST=1"
+if defined ORG_DEV_OK if /I "%FREEOS_ORG_LOCAL_TEST%"=="true" set "ORG_LOCAL_TEST=1"
+if defined ORG_LOCAL_TEST (
+  set "FREEOS_ORG_LOCAL_TEST=1"
+) else (
+  set "FREEOS_ORG_LOCAL_TEST="
+  set "FREEOS_ORG_DEV_BOOTSTRAP="
+)
 if not defined CORS_ORIGIN set "CORS_ORIGIN=http://127.0.0.1:8088,http://localhost:8088,http://127.0.0.1:18900,http://localhost:18900"
 cd /d "%APP%"
 "%NODE%" --import tsx backend/server.ts

@@ -12,7 +12,7 @@
 **Please do not open a public GitHub issue for security vulnerabilities.**
 
 - **GitHub Security Advisory:** [Create advisory](https://github.com/XYAIStudio/FreeOS/security/advisories/new)
-- **Email:** jubaoliang@gmail.com
+- 漏洞接收邮箱：待董事长指定
 
 We aim to acknowledge reports within **3 business days** and provide a fix timeline within **7 business days** for confirmed issues.
 

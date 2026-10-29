@@ -8,6 +8,7 @@ import path from "path";
 import fs from "fs";
 import { createServer } from "http";
 import { initDatabase } from "./db";
+import { resolveListenHost } from "./listen-host";
 import { authRoutes } from "./routes/auth";
 import { employeeRoutes } from "./routes/employees";
 import { taskRoutes } from "./routes/tasks";
@@ -278,11 +279,11 @@ app.get("/admin/database", (req, res) => {
   });
 
   await initDatabase();
-  seedDatabase();
+  await seedDatabase();
 
   setupWebSocket(server);
 
-  server.listen(PORT, process.env.HOST || '0.0.0.0', () => {
+  server.listen(PORT, resolveListenHost(), () => {
     console.log(`\n  🌐 openXYOS Community — Human + Agent OS`);
     console.log(`  ─────────────────────────────────────`);
     console.log(`  Server:     http://localhost:${PORT}`);

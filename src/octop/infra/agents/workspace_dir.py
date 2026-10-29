@@ -30,6 +30,7 @@ import re
 from pathlib import Path
 from typing import Any
 
+from octop.infra.errors import ErrorCode, OctopError
 from octop.infra.utils.paths import PathLayout
 
 DEFAULT_SYSTEM_FILES_PATH = ".octop"
@@ -40,6 +41,98 @@ _WINDOWS_HOST_PATH_RE = re.compile(r"^(?:[A-Za-z]:[/\\]|\\\\|//)")
 
 def _running_on_windows() -> bool:
     return os.name == "nt"
+
+
+def path_is_within(child: str, root: str) -> bool:
+    """True when *child* is *root* or a descendant.
+
+    Drive-letter paths are compared case-insensitively so Windows
+    ``C:\\Users\\...`` and ``c:/Users/...`` match. POSIX paths stay
+    case-sensitive. Used to keep FreeOS writes inside the product home.
+    """
+
+    def norm(raw: str) -> str:
+        text = raw.strip().replace("\\", "/")
+        if len(text) > 1:
+            text = text.rstrip("/")
+        windows = os.name == "nt" or bool(re.match(r"^[A-Za-z]:", text))
+        if windows and len(text) >= 2 and text[1] == ":":
+            text = text[0].lower() + text[1:]
+            return text.casefold()
+        if os.name == "nt":
+            return text.casefold()
+        return text
+
+    child_n = norm(child)
+    root_n = norm(root)
+    if not child_n or not root_n:
+        return False
+    return child_n == root_n or child_n.startswith(root_n + "/")
+
+
+def _resolved_text(path: Path) -> str:
+    try:
+        return str(path.resolve())
+    except OSError:
+        return str(path.absolute())
+
+
+def path_is_under_home(path: Path, home: Path) -> bool:
+    """True when *path* is the product home or a directory inside it."""
+    return path_is_within(_resolved_text(path), _resolved_text(home))
+
+
+def workspace_has_user_payload(path: Path) -> bool:
+    """True when *path* already holds agent files FreeOS must not replace."""
+    if not path.exists():
+        return False
+    if not path.is_dir():
+        return True
+    names = (
+        "SOUL.md",
+        "manifest.json",
+        "memory.sqlite",
+        "memory.sqlite-wal",
+        "memory.sqlite-shm",
+    )
+    if any((path / name).exists() for name in names):
+        return True
+    nested = path / DEFAULT_SYSTEM_FILES_PATH
+    if nested.is_dir() and any(
+        (nested / name).exists() for name in ("manifest.json", "memory.sqlite", "skills")
+    ):
+        return True
+    skills = path / "skills"
+    if skills.is_dir():
+        for skill_md in skills.rglob("SKILL.md"):
+            if skill_md.is_file():
+                return True
+    return False
+
+
+def refuse_existing_outside_home(path: Path, home: Path) -> None:
+    """Refuse to adopt a directory that already exists outside the product home."""
+    if path_is_under_home(path, home) or not path.exists():
+        return
+    raise OctopError(
+        ErrorCode.HOME_WRITE_REFUSED,
+        (
+            f"refusing to write into {path}: it already exists and is not inside "
+            f"the current home {home}"
+        ),
+        details={"path": str(path), "home": str(home)},
+    )
+
+
+def refuse_seed_over_existing(path: Path) -> None:
+    """Refuse to seed a default agent workspace that already has user files."""
+    if not workspace_has_user_payload(path):
+        return
+    raise OctopError(
+        ErrorCode.AGENT_SEED_EXISTS,
+        f"refusing to seed the default agent over existing data at {path}",
+        details={"path": str(path)},
+    )
 
 
 def _is_host_root_sentinel(root: str | Path | None) -> bool:
@@ -102,9 +195,12 @@ def default_agent_workspace_dir(
             return paths.agent_workspace(agent_id)
         out = root / DEFAULT_SYSTEM_FILES_PATH / SCOPED_WORKSPACE_DIRNAME / agent_id
         if ensure:
+            refuse_existing_outside_home(out, paths.root)
             out.mkdir(parents=True, exist_ok=True)
         return out
     if ensure:
+        target = paths.agent_workspace(agent_id)
+        refuse_existing_outside_home(target, paths.root)
         return paths.ensure_agent_workspace(agent_id)
     return paths.agent_workspace(agent_id)
 
@@ -117,14 +213,19 @@ def seed_workspace_dir_on_create(
 ) -> Path:
     """Ensure ``config["workspace_dir"]`` at create; return on-disk Path for seeding."""
     raw = config.get("workspace_dir")
-    if isinstance(raw, str) and raw.strip():
-        text = raw.strip()
+    text = raw.strip() if isinstance(raw, str) else ""
+    if text:
         host = resolve_workspace_host_path(text, config)
+        refuse_existing_outside_home(host, paths.root)
         host.mkdir(parents=True, exist_ok=True)
         config["workspace_dir"] = text
         return host.resolve()
 
-    host = default_agent_workspace_dir(paths, agent_id, cfg=config).resolve()
+    host = default_agent_workspace_dir(paths, agent_id, cfg=config, ensure=False)
+    refuse_existing_outside_home(host, paths.root)
+    refuse_seed_over_existing(host)
+    host.mkdir(parents=True, exist_ok=True)
+    host = host.resolve()
     if uses_scoped_workspace_default(config):
         config["workspace_dir"] = scoped_workspace_dir_str(agent_id)
     else:
@@ -348,6 +449,105 @@ def skills_discovery_roots(workspace_dir: Path) -> list[Path]:
     return [workspace_dir / DEFAULT_SYSTEM_FILES_PATH / "skills", workspace_dir / "skills"]
 
 
+def _looks_host_absolute(raw: str) -> bool:
+    text = raw.strip()
+    if _is_windows_style_host_path(text):
+        return True
+    return Path(text).is_absolute()
+
+
+def _outside_product_home(raw: str, home: Path) -> bool:
+    text = raw.strip()
+    if not text or text in {"/", "\\"} or text.startswith("/.octop/"):
+        return False
+    if _is_windows_style_host_path(text) and os.name != "nt":
+        return True
+    if not _looks_host_absolute(text):
+        return False
+    try:
+        return not path_is_under_home(Path(text), home)
+    except OSError:
+        return True
+
+
+def workspace_suffix_for_agent(raw: str, agent_id: str) -> str:
+    """Archive-relative workspace tail, independent of the machine that wrote it."""
+    text = raw.replace("\\", "/").strip()
+    lowered = text.lower()
+    for needle in (
+        f"/.octop/workspaces/{agent_id}",
+        f"/agents/{agent_id}",
+        f"/workspaces/{agent_id}",
+    ):
+        idx = lowered.rfind(needle.lower())
+        if idx >= 0:
+            return text[idx + 1 :].lstrip("/")
+    return f"agents/{agent_id}"
+
+
+def confine_workspace_config(cfg: dict[str, Any], *, home: Path, agent_id: str) -> dict[str, Any]:
+    """Copy *cfg* so workspace files stay inside *home*.
+
+    Absolute paths from another install are rewritten to a suffix under *home*.
+    Agent-facing ``/.octop/...`` paths stay, with ``root_dir`` clamped to *home*
+    when it pointed outside.
+    """
+    out = dict(cfg)
+    home_r = home.resolve()
+    backend = out.get("backend")
+    if isinstance(backend, dict):
+        backend = dict(backend)
+        root = backend.get("root_dir")
+        if isinstance(root, str) and _outside_product_home(root, home_r):
+            backend["root_dir"] = str(home_r)
+        out["backend"] = backend
+    raw = out.get("workspace_dir")
+    if isinstance(raw, str) and raw.strip():
+        text = raw.strip()
+        if text.startswith("/.octop/") or text == "/":
+            out["workspace_dir"] = text
+        elif not _looks_host_absolute(text):
+            out["workspace_dir"] = text.replace("\\", "/").lstrip("/")
+        elif _outside_product_home(text, home_r):
+            out["workspace_dir"] = workspace_suffix_for_agent(text, agent_id)
+        else:
+            out["workspace_dir"] = Path(text).resolve().relative_to(home_r).as_posix()
+    else:
+        out["workspace_dir"] = f"agents/{agent_id}"
+    return out
+
+
+def restored_workspace_dir(
+    config_json: str | None,
+    *,
+    paths: PathLayout,
+    agent_id: str,
+    ensure: bool = False,
+) -> Path:
+    """On-disk restore target that is always inside ``paths.root``.
+
+    Relative paths and ``/.octop/...`` paths are joined onto the product home.
+    Absolute paths from another machine are remapped by their workspace suffix.
+    """
+    try:
+        parsed = json.loads(config_json or "{}")
+    except (json.JSONDecodeError, TypeError):
+        parsed = {}
+    cfg = parsed if isinstance(parsed, dict) else {}
+    confined = confine_workspace_config(cfg, home=paths.root, agent_id=agent_id)
+    text = str(confined.get("workspace_dir") or f"agents/{agent_id}").strip()
+    host = (paths.root / text.replace("\\", "/").lstrip("/")).resolve()
+    if not path_is_under_home(host, paths.root):
+        raise OctopError(
+            ErrorCode.HOME_WRITE_REFUSED,
+            f"refusing to restore agent {agent_id} workspace outside {paths.root}",
+            details={"path": str(host), "home": str(paths.root)},
+        )
+    if ensure:
+        host.mkdir(parents=True, exist_ok=True)
+    return host
+
+
 def workspace_dir_from_config_json(
     config_json: str | None,
     *,
@@ -374,6 +574,10 @@ __all__ = [
     "host_system_dir",
     "join_agent_facing",
     "local_backend_root_dir",
+    "path_is_under_home",
+    "path_is_within",
+    "refuse_existing_outside_home",
+    "refuse_seed_over_existing",
     "resolve_workspace_host_path",
     "scoped_workspace_dir_str",
     "seed_workspace_dir_on_create",

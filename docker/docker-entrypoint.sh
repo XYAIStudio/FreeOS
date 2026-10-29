@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # =============================================================================
-# Octop 容器入口脚本
+# FreeOS 容器入口脚本
 #
 # 环境变量:
 #   HOME                      — 必须为 /data，使 ~/.octop 映射到数据卷
-#   FREEOS_HOME               — 产品家目录（可选；应用优先于 OCTOP_HOME）
-#   OCTOP_HOME                — 遗留别名。入口脚本仍用 ~/.octop 做首次 init
+#   FREEOS_HOME               — 产品家目录（优先于 OCTOP_HOME）
+#   OCTOP_HOME                — 遗留别名。未设置 FREEOS_HOME 时使用
 #   OCTOP_DEFAULT_PASSWORD    — 首次管理员密码（须 ≥8 位且含字母和数字；
 #                               不设置则自动生成随机密码，凭据写入
 #                               /data/.octop/credential.txt）
@@ -21,9 +21,25 @@
 set -euo pipefail
 
 export HOME="${HOME:-/data}"
-OCTOP_HOME="${HOME}/.octop"
-DB_FILE="${OCTOP_HOME}/octop.db"
-CREDENTIAL_FILE="${OCTOP_HOME}/credential.txt"
+# Honor an explicit product home. Otherwise follow PathLayout: an existing
+# ~/.freeos, an existing ~/.octop, else a new ~/.freeos. Do not ignore
+# FREEOS_HOME in favor of ${HOME}/.octop.
+if [ -n "${FREEOS_HOME:-}" ]; then
+    PRODUCT_HOME="$FREEOS_HOME"
+elif [ -n "${OCTOP_HOME:-}" ]; then
+    PRODUCT_HOME="$OCTOP_HOME"
+elif [ -d "${HOME}/.freeos" ]; then
+    PRODUCT_HOME="${HOME}/.freeos"
+elif [ -d "${HOME}/.octop" ]; then
+    PRODUCT_HOME="${HOME}/.octop"
+else
+    PRODUCT_HOME="${HOME}/.freeos"
+fi
+export FREEOS_HOME="$PRODUCT_HOME"
+export OCTOP_HOME="$PRODUCT_HOME"
+mkdir -p "$PRODUCT_HOME"
+DB_FILE="${PRODUCT_HOME}/octop.db"
+CREDENTIAL_FILE="${PRODUCT_HOME}/credential.txt"
 ADMIN_USERNAME="${OCTOP_ADMIN_USERNAME:-admin}"
 ADMIN_DISPLAY_NAME="${OCTOP_ADMIN_DISPLAY_NAME:-Admin}"
 PORT="${OCTOP_PORT:-8088}"
@@ -47,7 +63,7 @@ octop_random_password() {
 DEFAULT_PASSWORD="${OCTOP_DEFAULT_PASSWORD:-}"
 
 if [ ! -f "$DB_FILE" ]; then
-    echo "[entrypoint] 首次启动，正在初始化 Octop..."
+    echo "[entrypoint] 首次启动，正在初始化 FreeOS..."
 
     if [ -z "$DEFAULT_PASSWORD" ]; then
         DEFAULT_PASSWORD="$(octop_random_password)"
@@ -69,7 +85,7 @@ if [ ! -f "$DB_FILE" ]; then
     fi
 
     cat > "$CREDENTIAL_FILE" << EOF
-Octop Login Credential
+FreeOS Login Credential
 ======================
 URL:      http://<host>:${PORT}
 Username: ${ADMIN_USERNAME}
@@ -87,8 +103,12 @@ EOF
 fi
 
 if [ $# -eq 0 ]; then
-    echo "[entrypoint] 正在启动 Octop，端口 $PORT..."
-    exec octop run --host 0.0.0.0 --port "$PORT"
+    # Loopback unless OCTOP_BIND_HOST is set. Compose sets 0.0.0.0 inside the
+    # container only together with a 127.0.0.1 published port. A bare docker
+    # run stays on loopback. Host-network mode must not default to 0.0.0.0.
+    BIND_HOST="${OCTOP_BIND_HOST:-127.0.0.1}"
+    echo "[entrypoint] 正在启动 FreeOS，端口 $PORT，绑定 $BIND_HOST..."
+    exec octop run --host "$BIND_HOST" --port "$PORT"
 fi
 
 if [ "$1" = "octop" ]; then

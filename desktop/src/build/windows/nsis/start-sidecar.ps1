@@ -209,6 +209,7 @@ if (-not (Test-Path -LiteralPath $node)) { exit 6 }
 # $ErrorActionPreference = Continue the script keeps going and $home stays
 # the user profile root, so SQLite lands at %USERPROFILE%\org-os\...
 $freeosHome = $env:FREEOS_HOME
+if (-not $freeosHome) { $freeosHome = $env:OCTOP_HOME }
 if (-not $freeosHome) { $freeosHome = Join-Path $env:USERPROFILE '.freeos' }
 $data = Join-Path $freeosHome 'org-os'
 New-Item -ItemType Directory -Force -Path $data | Out-Null
@@ -234,6 +235,9 @@ if (-not $ingest) { $ingest = [guid]::NewGuid().ToString('N') + [guid]::NewGuid(
 
 $env:NODE_ENV = 'production'
 $env:PORT = '3780'
+$env:HOST = '127.0.0.1'
+# Inherited HOST is ignored. FREEOS_ORG_BIND_HOST is the LAN/NAS opt-in.
+if ($env:FREEOS_ORG_BIND_HOST) { $env:HOST = $env:FREEOS_ORG_BIND_HOST }
 $env:DB_DIALECT = 'sqlite'
 $env:DATABASE_PATH = Join-Path $data 'xiongyuan.db'
 $env:AIR_GAP_MODE = 'true'
@@ -249,6 +253,15 @@ $env:CORS_ORIGIN = 'http://127.0.0.1:8088,http://localhost:8088,http://127.0.0.1
 $env:FREEOS_HOME = $freeosHome
 $env:OCTOP_HOME = $freeosHome
 $env:FREEOS_ORG_SIDECAR_PORT = '3780'
+$env:FREEOS_ORG_INTEGRATED = '1'
+# Release builds ignore inherited demo-seed switches. They are honoured only
+# when FREEOS_DEV_BUILD is explicitly set.
+if ($env:FREEOS_DEV_BUILD -match '^(1|true|yes|on)$' -and ($env:FREEOS_ORG_DEV_BOOTSTRAP -match '^(1|true|yes|on)$' -or $env:FREEOS_ORG_LOCAL_TEST -match '^(1|true|yes|on)$')) {
+    $env:FREEOS_ORG_LOCAL_TEST = '1'
+} else {
+    Remove-Item Env:\FREEOS_ORG_LOCAL_TEST -ErrorAction SilentlyContinue
+    Remove-Item Env:\FREEOS_ORG_DEV_BOOTSTRAP -ErrorAction SilentlyContinue
+}
 $compiled = Join-Path $app 'backend-dist\server.js'
 if (Test-Path -LiteralPath $compiled) {
     $argv = @('backend-dist/server.js')
@@ -273,6 +286,7 @@ if ($app -eq $live) { $layout = 'top-level' }
     "argv=$($argv -join ' ')"
     "NODE_ENV=$($env:NODE_ENV)"
     "PORT=$($env:PORT)"
+    "HOST=$($env:HOST)"
     "JWT_SECRET set=$([bool]$env:JWT_SECRET)"
     "COOKIE_SECRET set=$([bool]$env:COOKIE_SECRET)"
     "CORS_ORIGIN=$($env:CORS_ORIGIN)"
@@ -294,10 +308,10 @@ $psi.Arguments = [string]::Join(' ', $quoted)
 $psi.RedirectStandardOutput = $true
 $psi.RedirectStandardError = $true
 foreach ($name in @(
-        'NODE_ENV', 'PORT', 'DB_DIALECT', 'DATABASE_PATH', 'AIR_GAP_MODE',
+        'NODE_ENV', 'PORT', 'HOST', 'DB_DIALECT', 'DATABASE_PATH', 'AIR_GAP_MODE',
         'SEED_DEMO_DATA', 'ALLOW_PUBLIC_REGISTRATION', 'JWT_SECRET', 'COOKIE_SECRET',
         'FREEOS_INGEST_TOKEN', 'CORS_ORIGIN', 'FREEOS_HOME', 'OCTOP_HOME',
-        'FREEOS_ORG_SIDECAR_PORT'
+        'FREEOS_ORG_SIDECAR_PORT', 'FREEOS_ORG_INTEGRATED', 'FREEOS_ORG_LOCAL_TEST'
     )) {
     $val = [Environment]::GetEnvironmentVariable($name, 'Process')
     if ($null -ne $val -and $val -ne '') {

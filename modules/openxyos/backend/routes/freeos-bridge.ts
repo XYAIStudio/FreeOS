@@ -50,38 +50,43 @@ function tenantExists(id: number): boolean {
   return Boolean(dbGet("SELECT id FROM tenants WHERE id = ?", [id]));
 }
 
-/** Tenant the embedded / local login actually uses — never assume id=1. */
+const SEED_EMAILS = "('demo@demo.com', 'user@demo.com')";
+const SEED_SLUGS = "('openxyos-demo', 'openxyos-local')";
+
+/** Tenant the signed-in operator owns. Demo and seed tenants are never preferred. */
 export function resolveUiTenantId(): number {
   const recent = dbGet(
-    `SELECT tenant_id FROM users
-     WHERE last_login IS NOT NULL
-     ORDER BY datetime(last_login) DESC, id DESC
+    `SELECT u.tenant_id AS tenant_id
+     FROM users u
+     LEFT JOIN tenants t ON t.id = u.tenant_id
+     WHERE u.last_login IS NOT NULL
+       AND lower(u.email) NOT IN ${SEED_EMAILS}
+       AND COALESCE(t.slug, '') NOT IN ${SEED_SLUGS}
+     ORDER BY datetime(u.last_login) DESC, u.id DESC
      LIMIT 1`,
   ) as { tenant_id?: number } | undefined;
   const recentId = Number(recent?.tenant_id);
   if (tenantExists(recentId)) return recentId;
 
-  const demo = dbGet(
-    `SELECT tenant_id FROM users
-     WHERE email IN ('demo@demo.com', 'user@demo.com')
-     ORDER BY CASE email WHEN 'demo@demo.com' THEN 0 ELSE 1 END
+  const owned = dbGet(
+    `SELECT u.tenant_id AS tenant_id
+     FROM users u
+     LEFT JOIN tenants t ON t.id = u.tenant_id
+     WHERE lower(u.email) NOT IN ${SEED_EMAILS}
+       AND COALESCE(t.slug, '') NOT IN ${SEED_SLUGS}
+     ORDER BY u.id ASC
      LIMIT 1`,
   ) as { tenant_id?: number } | undefined;
-  const demoId = Number(demo?.tenant_id);
-  if (tenantExists(demoId)) return demoId;
+  const ownedId = Number(owned?.tenant_id);
+  if (tenantExists(ownedId)) return ownedId;
 
-  const local = dbGet(
+  const first = dbGet(
     `SELECT id FROM tenants
-     WHERE slug IN ('openxyos-local', 'openxyos-demo')
-       AND status IN ('active', 'trial')
-     ORDER BY id DESC
+     WHERE COALESCE(slug, '') NOT IN ${SEED_SLUGS}
+     ORDER BY id
      LIMIT 1`,
   ) as { id?: number } | undefined;
-  const localId = Number(local?.id);
-  if (tenantExists(localId)) return localId;
-
-  const first = dbGet("SELECT id FROM tenants ORDER BY id LIMIT 1") as { id?: number } | undefined;
-  return Number(first?.id) || 1;
+  return Number(first?.id) || 0;
 }
 
 export function resolveIngestTenantIds(requested: unknown): { primary: number; mirror: number[] } {

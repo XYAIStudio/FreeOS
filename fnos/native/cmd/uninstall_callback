@@ -7,11 +7,11 @@ set -uo pipefail
 # 清理安装时写入的免密码 sudo 规则（install_callback 以 root 写入，这里同样以
 # root 删除；卸载后不应再保留对 octop-native 的 NOPASSWD 授权）。
 rm -f /etc/sudoers.d/octop-native 2>/dev/null || true
-echo "[octop-native] 已移除免密码 sudo 规则" > "${TRIM_TEMP_LOGFILE:-/dev/null}" 2>&1 || true
+echo "[freeos-native] 已移除免密码 sudo 规则" > "${TRIM_TEMP_LOGFILE:-/dev/null}" 2>&1 || true
 
 # 移除安装时注册到 PATH 的 octop / octop-cli 命令
 rm -f /usr/local/bin/octop /usr/local/bin/octop-cli 2>/dev/null || true
-echo "[octop-native] 已移除命令：octop / octop-cli" > "${TRIM_TEMP_LOGFILE:-/dev/null}" 2>&1 || true
+echo "[freeos-native] 已移除命令：octop / octop-cli" > "${TRIM_TEMP_LOGFILE:-/dev/null}" 2>&1 || true
 
 # 停止并禁用可能残留的虚拟桌面 systemd 单元（若用户卸载前未在 UI 内卸载桌面）。
 if command -v systemctl >/dev/null 2>&1 && [ -d /run/systemd/system ]; then
@@ -26,7 +26,7 @@ if [ "${wizard_delete_data:-no}" = "yes" ]; then
     DATA_DIR="${DATA_DIR%%:*}"
     if [ -n "$DATA_DIR" ] && [ -d "$DATA_DIR" ]; then
         rm -rf "$DATA_DIR" 2>/dev/null || true
-        echo "[octop-native] 已删除用户数据: $DATA_DIR" > "${TRIM_TEMP_LOGFILE:-/dev/null}" 2>&1 || true
+        echo "[freeos-native] 已删除用户数据: $DATA_DIR" > "${TRIM_TEMP_LOGFILE:-/dev/null}" 2>&1 || true
     fi
 fi
 

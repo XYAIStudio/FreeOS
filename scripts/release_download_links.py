@@ -55,8 +55,8 @@ def render_download_section(raw_version: str) -> str:
     linux_arm = md_link("ARM64", tag, desktop_name("linux", "arm64", version, "tar.gz"))
     linux64_zip = md_link("64-bit", tag, portable_name("linux", "amd64", version))
     linux_arm_zip = md_link("ARM64", tag, portable_name("linux", "arm64", version))
-    fnos_docker = md_link("Docker", tag, f"Octop-fnos-docker-{version}.fpk")
-    fnos_native = md_link("Native", tag, f"Octop-fnos-native-{version}.fpk")
+    fnos_docker = md_link("Docker", tag, f"FreeOS-fnos-docker-{version}.fpk")
+    fnos_native = md_link("Native", tag, f"FreeOS-fnos-native-{version}.fpk")
     return "\n".join(
         [
             "",
@@ -88,6 +88,19 @@ def render_download_section(raw_version: str) -> str:
             "",
             "### fnOS NAS",
             f"- {fnos_docker} | {fnos_native}",
+            "",
+            "### Python wheel and sdist",
+            "",
+            "**Do not** `pip install octop`. PyPI `octop` is upstream Octop, not FreeOS.",
+            "These GitHub Release files are the FreeOS distribution"
+            " (import package remains `octop`):",
+            "",
+            f"- {md_link('Wheel', tag, f'freeos-{version}-py3-none-any.whl')}",
+            f"- {md_link('sdist', tag, f'freeos-{version}.tar.gz')}",
+            "",
+            "### Checksums",
+            "",
+            f"- {md_link('SHA256SUMS', tag, 'SHA256SUMS')}",
             "",
         ]
     )

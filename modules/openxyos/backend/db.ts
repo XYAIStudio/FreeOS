@@ -49,6 +49,7 @@ export async function initDatabase(): Promise<void> {
       role TEXT DEFAULT 'user',
       tenant_id INTEGER DEFAULT 1,
       token_version INTEGER NOT NULL DEFAULT 0,
+      must_change_password INTEGER NOT NULL DEFAULT 0,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
     CREATE TABLE IF NOT EXISTS companies (
@@ -327,12 +328,21 @@ export async function initDatabase(): Promise<void> {
   } catch (error: any) {
     if (!error.message?.includes("duplicate column")) throw error;
   }
+  try {
+    db.run("ALTER TABLE users ADD COLUMN must_change_password INTEGER NOT NULL DEFAULT 0");
+  } catch (error: any) {
+    if (!error.message?.includes("duplicate column")) throw error;
+  }
 
   saveDb();
   console.log("[数据库] Schema 初始化完成（含扩展表）");
   
   // 运行迁移
   runMigrations();
+  // F10 runs after the F9 pre-upgrade backup: install.sh, install.ps1, and the
+  // desktop upgrade all archive the database before this process starts.
+  const { cleanupV010SeedResidue } = await import("./upgrade-cleanup");
+  cleanupV010SeedResidue();
 }
 
 /**
@@ -1772,20 +1782,6 @@ function runMigrations() {
 
     saveDb();
     console.log("[迁移] 合同管理模块表已就绪");
-
-    // AI合同智能解析插件 - 为已有租户自动安装
-    const tenants = dbAll("SELECT DISTINCT tenant_id FROM users") as any[];
-    for (const t of tenants) {
-      const exists = dbGet("SELECT id FROM plugins WHERE tenant_id = ? AND slug = ?", [t.tenant_id, "ai合同智能解析"]);
-      if (!exists) {
-        dbRun(
-          `INSERT INTO plugins (tenant_id, name, slug, category, description, icon, version, author, price, tags, install_count, rating, status)
-           VALUES (?, 'AI合同智能解析', 'ai合同智能解析', '法务合规', '上传PDF/DOCX合同文档，AI自动提取合同信息与收/付款节点，一键入库', '🤖', '1.0.0', '雄元科技', '¥99/月', 'AI,合同,解析,文档', 0, 5.0, 'active')`,
-          [t.tenant_id]
-        );
-      }
-    }
-    saveDb();
   } catch (err) {
     console.error("[迁移] 合同管理模块 错误:", err);
   }
@@ -1874,49 +1870,6 @@ function runMigrations() {
     console.log("[迁移] V4.1 人在回路表已就绪");
   } catch (err) {
     console.error("[迁移] V4.1 人在回路 错误:", err);
-  }
-
-  // ===== P16: 部署铁律反思种子（系统级 employee_id=0） =====
-  try {
-    // 插入 const 死区崩溃反思记录（error_learning）
-    const tdZExists = dbGet(
-      "SELECT id FROM reflections WHERE tenant_id = 1 AND employee_id = 0 AND reflection_type = 'error_learning' AND failure_reasons LIKE '%const 死区%'"
-    );
-    if (!tdZExists) {
-      db.run(
-        `INSERT INTO reflections (tenant_id, employee_id, task_id, reflection_type, success_factors, failure_reasons, knowledge_gaps, improvement_plans, extracted_skills, learned_knowledge, importance_score, created_at)
-         VALUES (1, 0, NULL, 'error_learning', NULL, ?, ?, ?, ?, ?, 95, datetime('now'))`,
-        [
-          "const 临时死区（TDZ）导致员工详情页白屏崩溃。isOwnProfile 在 useState 声明前访问了 employee 变量（line 48 引用，line 51 声明），触发 ReferenceError。根因：replace_in_file 只改了局部代码，未 re-read 确认变量声明顺序。",
-          "批量编辑时仅依赖单文件上下文，缺乏跨行预检步骤。AI 对大文件编辑缺乏变量声明顺序的静态扫描。",
-          "【铁律1】部署前必须 npx tsc --noEmit；【铁律2】每次 replace_in_file 后必须 re-read 改动位置前后 10 行，确认 const/let/var 声明顺序；【铁律3】改 5+ 文件时按模块分批 build，不一次性全改。",
-          "TypeScript 静态检查; const TDZ 预防; replace_in_file 安全编辑",
-          "JavaScript const 声明在块级作用域中不会被提升（hoisting），在声明行之前访问会导致 ReferenceError。这与 var 不同（var 会被提升但值为 undefined）。在批量编辑多文件时，必须 TS 编译检查 + 逐文件 re-read 验证变量声明顺序，不能依赖单次 read_file 的碎片上下文。"
-        ]
-      );
-      console.log("[迁移] P16 已插入 const 死区反思记录");
-    }
-
-    // 插入部署铁律知识沉淀（knowledge_capture）
-    const lawsExists = dbGet(
-      "SELECT id FROM reflections WHERE tenant_id = 1 AND employee_id = 0 AND reflection_type = 'knowledge_capture' AND learned_knowledge LIKE '%部署铁律%'"
-    );
-    if (!lawsExists) {
-      db.run(
-        `INSERT INTO reflections (tenant_id, employee_id, task_id, reflection_type, success_factors, failure_reasons, knowledge_gaps, improvement_plans, extracted_skills, learned_knowledge, importance_score, created_at)
-         VALUES (1, 0, NULL, 'knowledge_capture', ?, NULL, NULL, NULL, ?, ?, 98, datetime('now'))`,
-        [
-          "7条部署铁律从多次事故中提炼：①TS编译检查；②re-read上下文；③分批build；④本地冒烟；⑤部署后文件状态确认；⑥PM2日志验证；⑦浏览器最终验证。这些规则是系统稳定性的最后防线，不可违背。",
-          "部署SOP; 安全生产; 反思引擎",
-          "XYOS 部署 SOP 铁律（2026-06-27 制定）：\n【铁律1-TS检查】部署前必须跑 npx tsc --noEmit，比 read_lints 更严。\n【铁律2-re-read上下文】每次 replace_in_file 后必须 re-read 改动位置前后 10 行，确认变量声明顺序、导入完整性、引用存在性。\n【铁律3-分批验证】改 5+ 文件时按模块分批 build，不在全部改完后再 build。\n【铁律4-本地冒烟】关键页面改完后本地 vite 预览确认不白屏。\n【铁律5-部署后验证文件】确认 dist/ 文件数正确，plink 查看文件清单。\n【铁律6-部署后验证PM2】pm2 logs --lines 20，排查 Cannot find module / ReferenceError。\n【铁律7-浏览器验证】关键页面逐个确认可访问、头像正常、权限正确。"
-        ]
-      );
-      console.log("[迁移] P16 已插入部署铁律知识记录");
-    }
-
-    saveDb();
-  } catch (err: any) {
-    console.error("[迁移] P16 部署铁律反思种子 错误:", err.message);
   }
 
   // ===== P17: 资产管理模块 =====

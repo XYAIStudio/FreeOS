@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# Octop 安装脚本 (macOS / Linux)
-# 用法: bash scripts/install.sh              # 从 PyPI 安装（默认）
-#   或: bash scripts/install.sh --from-source  # 从本地源码安装
+# FreeOS 安装脚本 (macOS / Linux)
+# 用法: bash scripts/install-octop.sh        # 从 FreeOS GitHub 源码安装（默认）
+#   或: bash scripts/install-octop.sh --from-pypi # 从 PyPI 安装 Octop（不含 FreeOS 下游改动）
 #   或: curl -fsSL <url>/install.sh | bash   # 远程安装
 #
-# 将 Octop 安装到 ~/.octop，使用 uv 管理 Python 环境。
+# 将 FreeOS 安装到 ~/.octop，使用 uv 管理 Python 环境。
 # 用户无需预先安装 Python — uv 会处理一切。
 # 安装后会尽量把 octop 链接到已在 PATH 中的目录（如 /usr/local/bin），
 # 当前终端无需 source / 重开即可直接使用。
@@ -34,7 +34,7 @@ else
 fi
 
 VERSION=""
-FROM_SOURCE=false
+FROM_SOURCE=true
 EXTRAS=""
 PYPI_MIRROR=""
 
@@ -49,9 +49,9 @@ else
     BOLD="" GREEN="" YELLOW="" RED="" RESET=""
 fi
 
-info()  { printf "${GREEN}[octop]${RESET} %s\n" "$*"; }
-warn()  { printf "${YELLOW}[octop]${RESET} %s\n" "$*"; }
-error() { printf "${RED}[octop]${RESET} %s\n" "$*" >&2; }
+info()  { printf "${GREEN}[freeos]${RESET} %s\n" "$*"; }
+warn()  { printf "${YELLOW}[freeos]${RESET} %s\n" "$*"; }
+error() { printf "${RED}[freeos]${RESET} %s\n" "$*" >&2; }
 die()   { error "$@"; exit 1; }
 
 # ── 解析参数 ──────────────────────────────────────────────────────────────────
@@ -76,14 +76,14 @@ while [[ $# -gt 0 ]]; do
             PYPI_MIRROR="$2"; shift 2 ;;
         -h|--help)
             cat <<EOF
-Octop installer (macOS / Linux)
+FreeOS installer (macOS / Linux)
 
 Usage: bash install.sh [OPTIONS]
 
 Options:
-  --version <VER>       Install a specific version (e.g. 0.1.0) [PyPI only]
+  --version <VER>       Install a specific GitHub tag (e.g. 0.1.0; tag v0.1.0)
   --from-source [DIR]   Install from source; clones the git repo if DIR is omitted
-  --from-pypi           Install from PyPI (default)
+  --from-pypi           Install upstream Octop from PyPI (does not include FreeOS changes)
   --extras <EXTRAS>     Extra optional components (e.g. desktop, browser)
   --mirror <URL>        Use a specific PyPI mirror (e.g. https://mirrors.aliyun.com/pypi/simple)
   -h, --help            Show this help
@@ -123,7 +123,7 @@ case "$OS" in
     *) die "Unsupported OS: $OS. Use install.ps1 or install.bat on Windows." ;;
 esac
 
-printf "${GREEN}[octop]${RESET} Installing Octop into ${BOLD}%s${RESET}\n" "$OCTOP_HOME"
+printf "${GREEN}[freeos]${RESET} Installing FreeOS into ${BOLD}%s${RESET}\n" "$OCTOP_HOME"
 
 # ── 步骤 1: 确保 uv 可用 ────────────────────────────────────────────────────
 _install_uv_via_pip() {
@@ -562,7 +562,7 @@ if [ "$OS" = "Linux" ]; then
 fi
 _ensure_old_glibc_build_toolchain
 
-# ── 步骤 3: 安装 Octop ───────────────────────────────────────────────────────
+# ── 步骤 3: 安装 FreeOS ──────────────────────────────────────────────────────
 # playwright Python 包已是核心依赖；Chromium 浏览器仅在 --extras browser 时下载。
 _merge_install_extras() {
     local result="browser"
@@ -644,11 +644,15 @@ _clone_source_workspace() {
     local workdir="$1"
     command -v git &>/dev/null || die "git is required to clone the repos. Install git or use --from-pypi."
     mkdir -p "$workdir"
-    info "Cloning harness-agent / harness-gateway / Octop sources..."
+    info "Cloning harness-agent / harness-gateway / FreeOS sources..."
     git clone --depth 1 "$HARNESS_AGENT_REPO" "$workdir/harness-agent"
     git clone --depth 1 "$HARNESS_GATEWAY_REPO" "$workdir/harness-gateway"
     git clone --depth 1 "$HARNESS_BROWSER_REPO" "$workdir/harness-browser"
-    git clone --depth 1 "$OCTOP_REPO" "$workdir/orca"
+    if [ -n "$VERSION" ]; then
+        git clone --depth 1 --branch "v$VERSION" "$OCTOP_REPO" "$workdir/orca"
+    else
+        git clone --depth 1 "$OCTOP_REPO" "$workdir/orca"
+    fi
 }
 
 if [ "$FROM_SOURCE" = true ]; then
@@ -688,7 +692,7 @@ _pin_mcp_compat || true
 _verify_install
 
 [ -x "$OCTOP_VENV/bin/octop" ] || die "Install failed: octop CLI not found in the virtualenv"
-info "Octop installed successfully"
+info "FreeOS installed successfully"
 
 if [ "$_CONSOLE_AVAILABLE" = 0 ]; then
     CONSOLE_CHECK="$("$OCTOP_VENV/bin/python" -c "import importlib.resources, octop; p=importlib.resources.files('octop')/'dashboard'/'index.html'; print('yes' if p.is_file() else 'no')" 2>/dev/null || echo 'no')"
@@ -911,14 +915,14 @@ mkdir -p "$OCTOP_BIN"
 
 cat > "$OCTOP_BIN/octop" << 'WRAPPER'
 #!/usr/bin/env bash
-# Octop CLI 包装脚本 — 委托给 uv 管理的环境。
+# FreeOS CLI 包装脚本 — 委托给 uv 管理的环境。
 set -euo pipefail
 
 OCTOP_HOME="${OCTOP_HOME:-$HOME/.octop}"
 REAL_BIN="$OCTOP_HOME/venv/bin/octop"
 
 if [ ! -x "$REAL_BIN" ]; then
-    echo "Error: Octop environment not found in $OCTOP_HOME/venv" >&2
+    echo "Error: FreeOS environment not found in $OCTOP_HOME/venv" >&2
     echo "Please re-run the installer" >&2
     exit 1
 fi
@@ -1019,7 +1023,7 @@ add_to_profile() {
         return 0
     fi
     if [ -f "$profile" ] || [ "$create" = "create" ]; then
-        printf '\n# Octop\n%s\n' "$PATH_ENTRY" >> "$profile"
+        printf '\n# FreeOS\n%s\n' "$PATH_ENTRY" >> "$profile"
         info "Updated $profile"
         return 0
     fi
@@ -1029,7 +1033,7 @@ add_to_profile() {
 _write_profile_d() {
     # CentOS / Ubuntu 登录 shell 会加载 /etc/profile.d/*.sh
     local dest="/etc/profile.d/octop.sh"
-    local content="# Octop CLI
+    local content="# FreeOS CLI
 export PATH=\"${OCTOP_BIN}:\$PATH\"
 "
     if [ -d /etc/profile.d ]; then
@@ -1070,7 +1074,7 @@ export PATH="$OCTOP_BIN:$PATH"
 
 # ── 完成 ──────────────────────────────────────────────────────────────────────
 echo ""
-printf "${GREEN}${BOLD}Octop installed successfully!${RESET}\n"
+printf "${GREEN}${BOLD}FreeOS installed successfully!${RESET}\n"
 echo ""
 printf "  Location:          ${BOLD}%s${RESET}\n" "$OCTOP_HOME"
 printf "  Python:            ${BOLD}%s${RESET}\n" "$("$OCTOP_VENV/bin/python" --version 2>&1)"

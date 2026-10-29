@@ -306,4 +306,49 @@ describe("<LocalHardwarePanel />", () => {
       "FreeOS llama.cpp",
     );
   });
+
+  it("uses a grey note when a reachable provider exists and llama.cpp is missing", async () => {
+    probe.mockResolvedValue({
+      ...installedStopped,
+      hardware: {
+        ...installedStopped.hardware,
+        ollama_reachable: true,
+        llamacpp_binary: false,
+        llamacpp_reachable: false,
+      },
+      reachable_provider: true,
+      deps: [
+        {
+          id: "llamacpp",
+          kind: "bundled_runtime",
+          automatable: false,
+          method: "repair_freeos",
+        },
+      ],
+    });
+    renderPanel();
+    const note = await screen.findByText("models.localBuiltinMissing", {
+      exact: false,
+    });
+    expect(note.closest(".ant-alert-error")).toBeNull();
+  });
+
+  it("keeps a red error when nothing is reachable and llama.cpp is missing", async () => {
+    probe.mockResolvedValue({
+      ...installedStopped,
+      hardware: {
+        ...installedStopped.hardware,
+        ollama_installed: false,
+        ollama_binary: false,
+        ollama_reachable: false,
+        llamacpp_binary: false,
+        llamacpp_reachable: false,
+      },
+      reachable_provider: false,
+      deps: [{ id: "llamacpp", kind: "bundled_runtime", automatable: false }],
+    });
+    renderPanel();
+    const note = await screen.findByText("models.localBuiltinMissing");
+    expect(note.closest(".ant-alert-error")).not.toBeNull();
+  });
 });

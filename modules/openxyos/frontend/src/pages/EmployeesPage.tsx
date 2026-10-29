@@ -618,7 +618,7 @@ function CreateEmployeeModal({ form, departments, skillsList, selectedSkills, on
               <label className="text-xs font-medium text-text-muted mb-1 block">{t("邮箱", "Email")} *</label>
               <input type="email" value={form.email || ""} onChange={e => onChange({ ...form, email: e.target.value })}
                 placeholder={t("员工登录邮箱", "Employee sign-in email")} className="w-full px-3 py-2 bg-bg border border-border rounded-lg text-sm focus:outline-none focus:border-primary" />
-              <p className="text-[10px] text-text-muted mt-1">{t("自动创建系统账号，默认密码 emp123456", "A system account is created automatically. Default password: emp123456")}</p>
+              <p className="text-[10px] text-text-muted mt-1">{t("自动创建系统账号，初始密码由系统随机生成。", "A system account is created automatically. The initial password is generated at random.")}</p>
             </div>
           )}
 

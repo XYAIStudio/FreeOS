@@ -85,6 +85,7 @@ def agent_execute_env_defaults(
     return {
         "OCTOP_AGENT_ID": agent_id,
         "OCTOP_AUTH_DIR": auth_env,
+        "FREEOS_HOME": str(paths.root),
         "OCTOP_HOME": str(paths.root),
         "OCTOP_SKILLS_DIR": skills_env,
     }

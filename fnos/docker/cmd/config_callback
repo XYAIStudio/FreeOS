@@ -42,8 +42,8 @@ OPENAI_NEW="$(octop_sanitize_value "${wizard_openai_api_key:-}")"
 DASHSCOPE_NEW="$(octop_sanitize_value "${wizard_dashscope_api_key:-}")"
 
 fail_config() {
-    echo "[octop] $1" > "${TRIM_TEMP_LOGFILE:-/dev/null}" 2>&1 || true
-    echo "[octop] $1" >&2 || true
+    echo "[freeos] $1" > "${TRIM_TEMP_LOGFILE:-/dev/null}" 2>&1 || true
+    echo "[freeos] $1" >&2 || true
     exit 1
 }
 
@@ -95,9 +95,9 @@ DASHSCOPE="$CUR_DASH"
 if [ "$PASS_CHANGED" = "1" ]; then
     if docker ps --format '{{.Names}}' 2>/dev/null | grep -qx "$CONTAINER" \
         && docker exec "$CONTAINER" octop user passwd "$ADMIN_USER" --password "$ADMIN_PASS" > "$LOG" 2>&1; then
-        echo "[octop] 已通过官方 CLI（docker exec octop octop user passwd）修改管理员密码" > "$LOG" 2>&1 || true
+        echo "[freeos] 已通过官方 CLI（docker exec octop octop user passwd）修改管理员密码" > "$LOG" 2>&1 || true
     else
-        echo "[octop] 提示：容器未运行或在线改密未成功，密码将写入 .env；重建容器/重新初始化时生效。" > "$LOG" 2>&1 || true
+        echo "[freeos] 提示：容器未运行或在线改密未成功，密码将写入 .env；重建容器/重新初始化时生效。" > "$LOG" 2>&1 || true
     fi
 fi
 
@@ -113,7 +113,7 @@ octop_env_set "$ENV_FILE" OCTOP_ADMIN_DISPLAY_NAME "Admin"
 octop_env_set "$ENV_FILE" OPENAI_API_KEY "$OPENAI"
 octop_env_set "$ENV_FILE" DASHSCOPE_API_KEY "$DASHSCOPE"
 
-echo "[octop] 配置已更新: $ENV_FILE" > "$LOG" 2>&1 || true
+echo "[freeos] 配置已更新: $ENV_FILE" > "$LOG" 2>&1 || true
 
 # 凭据回落保存 + 「设置」窗口当前密码显示刷新
 octop_write_login_file "$DATA_DIR" "$ADMIN_USER" "$ADMIN_PASS" 8088

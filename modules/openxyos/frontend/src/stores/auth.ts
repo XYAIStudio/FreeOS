@@ -13,7 +13,8 @@ interface AuthState {
   user: User | null;
   token: string | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<boolean>;
+  changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
   register: (
     email: string,
     password: string,
@@ -47,16 +48,41 @@ export const useAuthStore = create<AuthState>((set) => ({
     localStorage.setItem("token", token);
     localStorage.setItem("user", JSON.stringify(data.data.user));
     set({ user: data.data.user, token });
-    // 记录登录事件
-    authFetch("/api/admin/visitor-log", {
+    const mustChange = Boolean(data.data?.must_change_password);
+    if (!mustChange) {
+      // 记录登录事件
+      authFetch("/api/admin/visitor-log", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          event_type: "login",
+          user_id: data.data.user.id,
+          tenant_id: data.data.user.tenant_id,
+        }),
+      }).catch(() => {});
+    }
+    return mustChange;
+  },
+
+  changePassword: async (currentPassword, newPassword) => {
+    const res = await authFetch("/api/auth/change-password", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        event_type: "login",
-        user_id: data.data.user.id,
-        tenant_id: data.data.user.tenant_id,
+        current_password: currentPassword,
+        new_password: newPassword,
       }),
-    }).catch(() => {});
+    });
+    const body = await res.text();
+    let data: any = {};
+    if (body) {
+      try {
+        data = JSON.parse(body);
+      } catch {
+        throw new Error("后端返回了无法识别的响应");
+      }
+    }
+    if (!res.ok || !data.success) throw new Error(data.error || "修改密码失败");
   },
 
   register: async (email, password, nickname) => {

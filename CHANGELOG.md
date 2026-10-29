@@ -4,7 +4,32 @@
 
 格式遵循 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)，版本号遵循 [语义化版本规范](https://semver.org/spec/v2.0.0.html)。
 
-## [Unreleased]
+## [0.1.0rc1] - TBD
+
+FreeOS **0.1.0rc1** is a prerelease of an independent semver baseline. It does not track or align with Octop 1.0.x. The release tag is `v0.1.0rc1`. GitHub Release Python artifacts are `freeos-0.1.0rc1*` (sdist and wheel). The import package stays `octop`. This release does not publish to PyPI, and `pip install octop` installs upstream Octop, not FreeOS. Older Release files may still be named `octop-0.0.10*`.
+
+### Upgrade from 0.0.10
+
+- In-app update and a manual reinstall keep the data directory the process already uses. New installs use `~/.freeos` (`FREEOS_HOME`, then `OCTOP_HOME`, then an existing `~/.freeos`; the desktop app does not adopt a leftover `~/.octop`). CLI installs keep an existing `~/.octop` when `~/.freeos` is not there yet. Sessions, local models, knowledge bases, organization data, and `config.json` stay in that directory. This release does not copy one tree into the other.
+- Desktop portable upgrades copy a SQLite backup under the data directory's `backups/` before replacing the runtime, and checkpoint the WAL before the process restarts.
+- A `config.json` that cannot be parsed is left in place and reported. It is not rewritten as an empty file.
+- Roll back by installing the **v0.0.10** desktop package again, or restore a backup with `octop backup restore`. Do not point install scripts at PyPI `octop`; that package is upstream Octop, not this release. Use [GitHub Releases](https://github.com/XYAIStudio/FreeOS/releases) or `scripts/install.sh` (add `--from-pypi` only when you explicitly want upstream Octop).
+
+### Changed
+
+- Publish Python distributions as GitHub Release assets only. The release workflow no longer publishes to PyPI, and install scripts default to the FreeOS GitHub source.
+- The bundled openXYOS sidecar listens on `127.0.0.1` by default. Local bootstrap accounts are created only when `FREEOS_ORG_LOCAL_TEST=1`, with a random password in `{data}/bootstrap-credentials.txt` that must be changed on first sign-in. The UI no longer embeds a shared demo password.
+
+### Fixed
+
+- Remove checkpoint-resident system messages before model calls while preserving the active compiled prompt, preventing strict Qwen chat templates from failing when an older conversation contains a stale bootstrap message.
+- Detect models from an already-running Ollama daemon even when FreeOS-managed Ollama startup is disabled; model discovery never starts Ollama unless the user enabled it.
+- Preserve `config.json` when it is malformed: startup and configuration writers now report the file and parser position, avoid leaking stored credentials, and use atomic replacement instead of silently rebuilding an empty configuration. Absorbed from upstream Octop #730 / #738.
+- Checkpoint the SQLite WAL before the desktop process restarts so an in-app update does not drop the latest writes. Absorbed from upstream Octop #918.
+
+### Not in 0.1.0rc1
+
+Harness migration, cloud bridge default-on, default LDAP/SSO, Teams, and a whole-repo catch-up to Octop are out of scope.
 
 ## [0.0.10] - 2026-10-03
 

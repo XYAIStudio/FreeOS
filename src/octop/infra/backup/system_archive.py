@@ -16,6 +16,8 @@ from typing import Any
 from octop import __version__
 from octop.config import DatabaseConfig
 from octop.infra.agents.workspace_dir import (
+    confine_workspace_config,
+    restored_workspace_dir,
     system_files_path_from_config,
     workspace_dir_from_config_json,
 )
@@ -196,6 +198,56 @@ def _build_manifest(
     )
 
 
+def _relativize_sqlite_workspace_paths(db_file: Path, home: Path) -> None:
+    """Store workspace paths relative to *home* in a backup snapshot, not the live DB."""
+    import sqlite3
+
+    conn = sqlite3.connect(db_file)
+    try:
+        try:
+            rows = conn.execute("SELECT agent_id, config_json FROM agents").fetchall()
+        except sqlite3.Error:
+            return
+        for agent_id, raw in rows:
+            try:
+                cfg = json.loads(raw or "{}")
+            except json.JSONDecodeError:
+                continue
+            if not isinstance(cfg, dict):
+                continue
+            confined = confine_workspace_config(cfg, home=home, agent_id=str(agent_id))
+            encoded = json.dumps(confined)
+            if encoded != (raw or ""):
+                conn.execute(
+                    "UPDATE agents SET config_json = ? WHERE agent_id = ?",
+                    (encoded, agent_id),
+                )
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def _persist_restored_workspace_paths(agent_repo: AgentRepo, paths: PathLayout) -> None:
+    """Rewrite restored agent configs so later reads stay inside ``paths.root``."""
+    for row in agent_repo.list_all():
+        dest = restored_workspace_dir(row.config_json, paths=paths, agent_id=row.agent_id)
+        try:
+            cfg = json.loads(row.config_json or "{}")
+        except json.JSONDecodeError:
+            cfg = {}
+        if not isinstance(cfg, dict):
+            cfg = {}
+        cfg = confine_workspace_config(cfg, home=paths.root, agent_id=row.agent_id)
+        cfg["workspace_dir"] = str(dest)
+        agent_repo.update_config(row.agent_id, config_json=json.dumps(cfg))
+
+
+def _path_is_under(path: Path, home: Path) -> bool:
+    from octop.infra.agents.workspace_dir import path_is_under_home
+
+    return path_is_under_home(path, home)
+
+
 def create_system_backup(
     *,
     paths: PathLayout,
@@ -281,6 +333,7 @@ def create_system_backup(
                 snapshot_sqlite_file(pool.path, db_dest)
                 if not include_chats:
                     strip_chat_tables_from_sqlite_file(db_dest)
+                _relativize_sqlite_workspace_paths(db_dest, paths.root)
 
             manifest_path = root / _MANIFEST_NAME
             manifest_path.write_text(manifest.to_json(), encoding="utf-8")
@@ -594,6 +647,7 @@ def restore_system_backup(
         restored_workspaces = 0
         prefix = f"{_WORKSPACES_DIR}/"
         agent_repo = AgentRepo(pool)
+        _persist_restored_workspace_paths(agent_repo, paths)
         workspace_by_agent: dict[str, Path] = {}
         system_path_by_agent: dict[str, str] = {}
         for rel, src_file in _iter_extracted_files(extracted, _WORKSPACES_DIR):
@@ -606,7 +660,7 @@ def restore_system_backup(
             dest_root = workspace_by_agent.get(agent_id)
             if dest_root is None:
                 agent_row = agent_repo.get(agent_id)
-                dest_root = workspace_dir_from_config_json(
+                dest_root = restored_workspace_dir(
                     None if agent_row is None else agent_row.config_json,
                     paths=paths,
                     agent_id=agent_id,
@@ -616,6 +670,12 @@ def restore_system_backup(
                     _system_files_path_from_row(agent_row) if agent_row is not None else ""
                 )
             dest = dest_root / rest
+            if not _path_is_under(dest, paths.root):
+                raise OctopError(
+                    ErrorCode.HOME_WRITE_REFUSED,
+                    f"refusing to restore {dest} outside {paths.root}",
+                    details={"path": str(dest), "home": str(paths.root)},
+                )
             if not manifest.includes_chats and is_chat_workspace_rel(
                 Path(rest),
                 system_files_path=system_path_by_agent.get(agent_id, ""),

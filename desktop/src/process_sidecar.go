@@ -301,9 +301,15 @@ func sidecarLaunchEnv(home string, dashboardPort int) (map[string]string, error)
 		"http://127.0.0.1:%d,http://localhost:%d,http://127.0.0.1:18900,http://localhost:18900,http://127.0.0.1:8088,http://localhost:8088,http://127.0.0.1:%d,http://localhost:%d,http://[::1]:%d",
 		dashboardPort, dashboardPort, defaultSidecarPort, defaultSidecarPort, defaultSidecarPort,
 	)
-	return map[string]string{
+	bindHost := "127.0.0.1"
+	if explicit := strings.TrimSpace(os.Getenv("FREEOS_ORG_BIND_HOST")); explicit != "" {
+		// Explicit opt-in for LAN/NAS. Inherited HOST is ignored.
+		bindHost = explicit
+	}
+	env := map[string]string{
 		"NODE_ENV":                  "production",
 		"PORT":                      strconv.Itoa(defaultSidecarPort),
+		"HOST":                      bindHost,
 		"DB_DIALECT":                "sqlite",
 		"DATABASE_PATH":             filepath.Join(sidecarDataDir(home), "xiongyuan.db"),
 		"AIR_GAP_MODE":              "true",
@@ -316,7 +322,38 @@ func sidecarLaunchEnv(home string, dashboardPort int) (map[string]string, error)
 		"FREEOS_HOME":               home,
 		"OCTOP_HOME":                home,
 		"FREEOS_ORG_SIDECAR_PORT":   strconv.Itoa(defaultSidecarPort),
-	}, nil
+		// Integrated mode is the real FreeOS organization bridge (distinct
+		// tenants, host identity). Release builds ignore inherited demo-seed
+		// switches; only FREEOS_DEV_BUILD honours them.
+		"FREEOS_ORG_INTEGRATED": "1",
+	}
+	if orgLocalTestRequested() {
+		env["FREEOS_ORG_LOCAL_TEST"] = "1"
+	}
+	return env, nil
+}
+
+func envTruthy(key string) bool {
+	switch strings.ToLower(strings.TrimSpace(os.Getenv(key))) {
+	case "1", "true", "yes", "on":
+		return true
+	default:
+		return false
+	}
+}
+
+func orgLocalTestRequested() bool {
+	// Release builds hard-ignore a parent FREEOS_ORG_LOCAL_TEST.
+	if !envTruthy("FREEOS_DEV_BUILD") {
+		return false
+	}
+	for _, key := range []string{"FREEOS_ORG_DEV_BOOTSTRAP", "FREEOS_ORG_LOCAL_TEST"} {
+		switch strings.ToLower(strings.TrimSpace(os.Getenv(key))) {
+		case "1", "true", "yes", "on":
+			return true
+		}
+	}
+	return false
 }
 
 func fileExists(path string) bool {

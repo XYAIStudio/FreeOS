@@ -11,7 +11,7 @@ set -euo pipefail
 _OCTOP_COMMON=""$(dirname "$0")/common.sh""
 [ -f "$_OCTOP_COMMON" ] && source "$_OCTOP_COMMON"
 
-log() { echo "[octop] $1" > "${TRIM_TEMP_LOGFILE:-/dev/null}" 2>/dev/null || true; }
+log() { echo "[freeos] $1" > "${TRIM_TEMP_LOGFILE:-/dev/null}" 2>/dev/null || true; }
 
 
 

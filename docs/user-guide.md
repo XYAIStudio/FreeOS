@@ -1,9 +1,9 @@
 # Octop 用户帮助文档
 
-> **Historical vs Current.** 本文沿自 Octop 宿主操作说明（安装、向导、模型、对话）。**Current：** 产品是 [FreeOS](../README.zh-CN.md)；权威意图见 [产品契约](product-contract.zh-CN.md)。数据目录优先 `FREEOS_HOME` / `~/.freeos`（仍识别 `~/.octop`）。先在本机安顿好；组织能力像工作室里另一间可独立布置的房间。
+> **Historical vs Current.** 本文沿自 Octop 宿主操作说明（安装、向导、模型、对话）。**Current：** 产品是 [FreeOS](../README.zh-CN.md)；权威意图见 [产品契约](product-contract.zh-CN.md)。新安装的数据目录是 `~/.freeos`。`FREEOS_HOME` 优先于 `OCTOP_HOME`；还没有 `~/.freeos` 时，已有的 `~/.octop` 仍给 CLI 使用。桌面端不会把残留的 `~/.octop` 当成家目录。先在本机安顿好；组织能力像工作室里另一间可独立布置的房间。
 
 > 本帮助文档面向最终用户，介绍 **安装 → 设置向导 → 配置模型 → 基本使用** 的完整流程。
-> 所有运行时数据默认存放在 `~/.octop/`（可通过 `OCTOP_HOME` 覆盖）。
+> 新安装的运行时数据在 `~/.freeos/`。已有 `~/.octop/` 且还没有 `~/.freeos/` 时，CLI 继续用旧目录。
 
 ---
 
@@ -66,29 +66,31 @@
 ### 2.1 环境要求
 
 - 操作系统：**macOS / Linux / Windows**。
-- **无需** 预先安装 Python —— 安装脚本会通过 [uv](https://docs.astral.sh/uv/) 在 `~/.octop/` 下自动创建隔离的 Python 3.12 虚拟环境。
+- **无需** 预先安装 Python —— 本仓库安装脚本会通过 [uv](https://docs.astral.sh/uv/) 在 `~/.freeos/` 下自动创建隔离的 Python 3.12 虚拟环境（已有 `~/.octop/` 且还没有 `~/.freeos/` 时继续用旧目录）。
 - 需要可访问外网，用于下载安装脚本与依赖。
 
-### 2.2 一键脚本安装（推荐）
+### 2.2 安装
 
-**macOS / Linux**
+**推荐：桌面安装包。** 从 [GitHub Releases](https://github.com/XYAIStudio/FreeOS/releases/latest) 下载 `FreeOS-desktop-*`。
+
+**命令行**使用本仓库脚本。打出版本标签之后，Release 说明会改成固定标签；当前用 `develop`：
 
 ```bash
-curl -fsSL https://finnie-1258344699.cos.ap-guangzhou.myqcloud.com/octop/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/XYAIStudio/FreeOS/codex/freeos-0.1.0-upstream-foundation/scripts/install.sh | bash
 ```
-
-**Windows（PowerShell）**
 
 ```powershell
-irm https://finnie-1258344699.cos.ap-guangzhou.myqcloud.com/octop/install.ps1 | iex
+irm https://raw.githubusercontent.com/XYAIStudio/FreeOS/codex/freeos-0.1.0-upstream-foundation/scripts/install.ps1 | iex
 ```
-
-**Windows（cmd）** —— 先下载再运行：
 
 ```bat
-curl -fsSL https://finnie-1258344699.cos.ap-guangzhou.myqcloud.com/octop/install.bat -o install.bat
+curl -fsSL https://raw.githubusercontent.com/XYAIStudio/FreeOS/codex/freeos-0.1.0-upstream-foundation/scripts/install.bat -o install.bat
 install.bat
 ```
+
+已克隆仓库时：`bash scripts/install.sh`。
+
+**不要**使用腾讯云 COS 上的 `…/octop/install.sh`（以及 `.ps1` / `.bat`）。那是上游 Octop，默认安装 PyPI 上的 `octop`，不是 FreeOS。
 
 安装完成后，**打开一个新终端** 或重新加载 shell 配置，使 PATH 生效：
 
@@ -98,9 +100,9 @@ source ~/.zshrc   # Zsh
 source ~/.bashrc  # Bash
 ```
 
-安装脚本会把 `octop` 命令放入 `~/.octop/bin` 并加入 PATH，并在 `~/.octop/venv` 创建隔离环境；**不会改动系统 Python**。
+新安装会把 `octop` 放入 `~/.freeos/bin` 并加入 PATH，并在 `~/.freeos/venv` 创建隔离环境；**不会改动系统 Python**。
 
-> **可选附加组件**：安装脚本支持通过 `--extras` 追加能力，例如浏览器自动化 `--extras browser`、飞书通道 `--extras channels-feishu`；也可用 `--version` 指定版本、`--mirror <url>` 使用国内 PyPI 镜像。更多选项见 [scripts/README.md](scripts/README.md)。
+> **可选附加组件**：本仓库脚本支持 `--extras browser`、`--extras channels-feishu`，也可用 `--version` 指定 GitHub 版本标签。更多选项见 [scripts/README.md](../scripts/README.md)。
 
 ### 2.3 验证安装
 
@@ -109,9 +111,11 @@ octop --version
 octop run --help
 ```
 
-若提示 `command not found: octop`，请确认已重新加载 shell 或检查 `~/.octop/bin` 是否在 PATH 中。
+若提示 `command not found: octop`，请确认已重新加载 shell，或检查 `~/.freeos/bin`（旧安装则是 `~/.octop/bin`）是否在 PATH 中。
 
-### 2.4 Docker 安装（生产推荐）
+### 2.4 Docker 安装
+
+Compose 文件是单进程 FreeOS（不捆绑 Node）。单元测试锁定了它的服务形状，这不是单独认证过的生产配置。
 
 ```bash
 # 构建并后台启动
@@ -121,8 +125,10 @@ docker compose -f docker/docker-compose.yml up -d
 bash docker/docker_build.sh
 docker run -d \
   -p 8088:8088 \
-  -v octop-data:/data/.octop \
+  -v freeos-data:/data/.freeos \
   -e HOME=/data \
+  -e FREEOS_HOME=/data/.freeos \
+  -e OCTOP_HOME=/data/.freeos \
   -e OCTOP_DEFAULT_PASSWORD="<自定义强密码，留空则自动生成随机密码>" \
   octop:latest
 ```
@@ -134,7 +140,7 @@ docker run -d \
 | `OCTOP_PORT` | `8088` | HTTP 监听端口 |
 | `OCTOP_DEFAULT_PASSWORD` | _(空)_ | 首次运行管理员密码（Docker 引导；≥8 位且含字母+数字；留空则自动生成随机密码并写入 credential.txt） |
 | `OCTOP_ADMIN_USERNAME` | `admin` | 首次运行管理员用户名 |
-| `OCTOP_DATA` | `~/.octop` | 宿主机数据目录（compose 挂载） |
+| `OCTOP_DATA` | `~/.freeos` | 宿主机数据目录（compose 挂载到容器 `FREEOS_HOME`） |
 
 > 后续计划：Docker 首次启动可改为随机生成管理员密码，并仅写入 `credential.txt`。
 
@@ -169,12 +175,12 @@ octop service start   # Linux(systemd) / macOS(launchd) / Windows 服务
 **步骤 1：设置密码（可选）**
 
 - 首次配置需要一个临时「设置密码」作为保护（默认开启）。
-- 密码打印在启动终端，并写入服务器上的引导文件（常见为 `~/octop-login.txt`）。
+- 密码打印在启动终端，并写入产品家目录里的 `octop-login.txt`（`FREEOS_HOME` / `--home`，不是操作系统用户目录下的 `~/octop-login.txt`）。
 - 此步**不依赖**控制面数据库是否已打开。
 
 **步骤 2：选择控制面数据库**
 
-- 默认使用本地 **SQLite**（路径相对 `~/.octop/`，通常为 `octop.db`），点击「保存并继续」即可。
+- 默认使用本地 **SQLite**（路径相对产品家目录，通常为 `octop.db`），点击「保存并继续」即可。
 - 「展开更多」可配置 **PostgreSQL**（内测）：填写主机等并先「测试连接」，再「使用 PostgreSQL 并继续」。
 - 向导会把选择写入 `config.json` 的 `database` 段，并在服务进程内**首次绑定**连接池、跑迁移。
 - 也可事先用环境变量指定（见 [configuration.md](configuration.md) 的 `OCTOP_DATABASE_*`）；已有库文件的升级安装不会延后建连。
@@ -452,10 +458,10 @@ Octop 支持两个方向的 ACP 集成：
 - 启动时：`octop run --host 0.0.0.0 --port 8088`；或设置环境变量 `OCTOP_BIND_HOST=0.0.0.0`、`OCTOP_PORT=8088`。
 
 **Q：数据存放在哪里？**
-- 全部在 `~/.octop/`：
+- 新安装在 `~/.freeos/`。还没有 `~/.freeos/` 时，已有的 `~/.octop/` 仍给 CLI 使用。桌面端不用残留的 `~/.octop` 当家目录。
 
 ```
-~/.octop/
+~/.freeos/
 ├── config.json              # 进程级配置（地址、端口、CORS、TLS、database …）
 ├── octop.db                 # 默认 SQLite 控制面 — 用户、Agent、通道、定时任务 …
 ├── secrets/                 # JWT 密钥、通道 Token
@@ -466,14 +472,11 @@ Octop 支持两个方向的 ACP 集成：
 ```
 
 **Q：如何升级？**
-- `octop update`（若通过一键安装）；或从 PyPI / 源码重新安装后重启服务。
+- `octop update`（若通过一键安装）；或下载 GitHub Release 中的 Python 制品 / 从 FreeOS 源码重新安装后重启服务。
 
 **Q：如何加入客户企业微信服务群？**
-- 请扫描下方二维码加入：
-
-![客户企业微信服务群二维码](assets/qrcode.png)
-
-> 二维码有效期至 **2026-08-03**，过期后请联系管理员更新。
+- 客户企业微信群二维码已于 **2026-08-03** 失效，指南不再附带该图。
+- 请改用 [GitHub Discussions](https://github.com/XYAIStudio/FreeOS/discussions)，或加入 [Discord](https://discord.gg/jPas5J8Ua)。
 
 ---
 
@@ -497,4 +500,4 @@ Octop 支持两个方向的 ACP 集成：
 | 图 5.6 | 5.8 设置 | `use-06-settings.png` | ✅ 已就位 | 应用设置页面 |
 | 图 5.7 | 5.9 远程桌面 | `use-07-remote-desktop.png` | ✅ 已就位 | 远程桌面连接页 |
 | 图 5.8 | 5.9 浏览器 AI | `use-08-browser-ai.png` | ✅ 已就位 | 浏览器 AI+ 会话页 |
-| 图 7.1 | 七、常见问题 | `qrcode.png` | ✅ 已就位 | 客户企业微信服务群二维码（有效期至 2026-08-03） |
+| 图 7.1 | 七、常见问题 | `qrcode.png` | 已撤下 | 客户企业微信群码已于 2026-08-03 失效，不再随文档分发；请用 GitHub Discussions 或 Discord |

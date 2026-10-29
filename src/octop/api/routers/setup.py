@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import json
 import logging
-from pathlib import Path
 from typing import Any
 
 from fastapi import APIRouter, Depends, Header, Request
@@ -176,6 +175,7 @@ async def _bootstrap_default_agent(server: Any, *, user_id: int, locale: str = "
         user_id=user_id,
         locale=locale,
         agent_id=SETUP_DEFAULT_AGENT_ID,
+        product_home=server.paths.root,
     )
 
 
@@ -250,7 +250,8 @@ async def status(server: Any = Depends(get_server)) -> dict[str, Any]:
     """Whether initial admin creation is still required and wizard password file state."""
     from octop.infra.agents.permission_mode import supports_request_interrupt_override
 
-    wizard_path = str(Path.home() / _wizard.WIZARD_FILE_NAME)
+    wizard_home = server.paths.root
+    wizard_path = str(wizard_home / _wizard.WIZARD_FILE_NAME)
     password_required = _setup_password_required(server)
     um = server.user_manager
     setup_required = um is None or um.count() == 0
@@ -263,7 +264,7 @@ async def status(server: Any = Depends(get_server)) -> dict[str, Any]:
         "setup_required": setup_required,
         "wizard_password_required": password_required,
         "wizard_password_exists": (
-            password_required and _wizard.read_password(Path.home()) is not None
+            password_required and _wizard.read_password(wizard_home) is not None
         ),
         "wizard_password_path": wizard_path if password_required else None,
         "database_driver": database_driver,
@@ -354,7 +355,7 @@ async def verify_password(
         server.wizard_tokens.record_attempt(client_ip)
     except RateLimited:
         raise OctopError(ErrorCode.SETUP_RATE_LIMITED, "too many attempts") from None
-    expected = _wizard.read_password(Path.home())
+    expected = _wizard.read_password(server.paths.root)
     if expected is None or body.password != expected:
         raise OctopError(ErrorCode.SETUP_PASSWORD_WRONG, "wrong password")
     token, ttl = server.wizard_tokens.issue()

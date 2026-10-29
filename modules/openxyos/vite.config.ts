@@ -44,7 +44,8 @@ export default defineConfig(({ mode }) => {
       alias: { "@": path.resolve(__dirname, "./frontend/src") },
     },
     server: {
-      host: "0.0.0.0",
+      // Dev server stays on loopback. Set FREEOS_ORG_BIND_HOST to opt into LAN.
+      host: process.env.FREEOS_ORG_BIND_HOST || "127.0.0.1",
       port: 5174,
       proxy: {
         "/api": "http://localhost:3000",

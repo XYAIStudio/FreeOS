@@ -1,10 +1,17 @@
-"""Setup wizard password file at ``<home>/octop-login.txt``."""
+"""Setup wizard password file at ``<product-home>/octop-login.txt``.
+
+``home`` is the FreeOS data directory (``FREEOS_HOME`` / ``--home``), not the
+OS profile. The password itself is never written to logs.
+"""
 
 from __future__ import annotations
 
+import logging
 import os
 import secrets
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
 
 WIZARD_FILE_NAME = "octop-login.txt"
 _TOKEN_BYTES = 16
@@ -77,5 +84,10 @@ def boot_self_heal(home: Path, user_count: int) -> str | None:
     """
     if user_count > 0:
         return None
+    target = _password_path(home)
     created = ensure_password(home)
-    return created if created is not None else read_password(home)
+    if created is not None:
+        logger.info("wizard password file created; path=%s", target)
+        return created
+    logger.info("wizard password file reused; path=%s", target)
+    return read_password(home)

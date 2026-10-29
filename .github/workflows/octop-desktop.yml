@@ -77,12 +77,43 @@ jobs:
       - name: Build frontend → src/octop/dashboard
         run: make build-frontend
 
+      - name: Check dashboard dependencies
+        working-directory: dashboard
+        run: npm audit --registry=https://registry.npmjs.org
+
+      - name: Test dashboard
+        working-directory: dashboard
+        env:
+          NODE_OPTIONS: "--no-experimental-webstorage"
+        run: npm run lint && npm test
+
       - uses: actions/upload-artifact@v7
         with:
           name: dashboard-dist
           path: src/octop/dashboard/
           if-no-files-found: error
           retention-days: 7
+
+  organization-quality:
+    name: Verify organization module
+    if: github.event_name != 'workflow_dispatch' || github.event.inputs.attach_from_run == ''
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: modules/openxyos/package-lock.json
+      - name: Install organization dependencies
+        working-directory: modules/openxyos
+        run: npm ci
+      - name: Check organization module
+        working-directory: modules/openxyos
+        run: npm run ci
+      - name: Check organization dependencies
+        working-directory: modules/openxyos
+        run: npm audit --registry=https://registry.npmjs.org
 
   # Job-level `if` cannot read `matrix.*` (GitHub 422). Filter here so only
   # selected runners start — PRs → darwin-* + windows-*; dispatch honors `platforms`.
@@ -134,7 +165,7 @@ jobs:
 
   package:
     name: "${{ matrix.plat }}"
-    needs: [frontend, select-platforms]
+    needs: [frontend, select-platforms, organization-quality]
     runs-on: ${{ matrix.os }}
     # Matrix runners are native for each plat; pin host detection so x64 Git Bash
     # on windows-11-arm does not mis-classify the job as windows-amd64 cross-build.
@@ -177,7 +208,7 @@ jobs:
 
       - uses: actions/setup-node@v5
         with:
-          node-version: "20"
+          node-version: "24"
           cache: npm
           cache-dependency-path: modules/openxyos/package-lock.json
 
@@ -260,6 +291,10 @@ jobs:
       - name: Install Wails v3 CLI
         run: go install github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0-beta.13
 
+      - name: Test native desktop lifecycle and updater
+        working-directory: desktop/src
+        run: go test ./...
+
       - name: Install NSIS
         if: runner.os == 'Windows'
         shell: pwsh
@@ -325,6 +360,8 @@ jobs:
       contents: write
       actions: read
     steps:
+      - uses: actions/checkout@v4
+
       - name: Resolve release tag
         id: rel
         run: |
@@ -338,6 +375,10 @@ jobs:
             exit 1
           fi
           echo "tag=${tag}" >> "$GITHUB_OUTPUT"
+
+      - name: Classify pre-release
+        id: channel
+        run: python3 scripts/release_prerelease.py "${{ steps.rel.outputs.tag }}" >> "$GITHUB_OUTPUT"
 
       # v8 required for archive:false artifacts. skip-decompress keeps the
       # uploaded .zip / .tar.gz / .dmg / .exe intact — default unzip turns portable
@@ -369,4 +410,15 @@ jobs:
           files: release-assets/*
           fail_on_unmatched_files: true
           # Upsert: works whether Release workflow already created the release.
+          # Keep rc/a/b/dev tags as prereleases so attaching assets cannot mark them latest.
           generate_release_notes: false
+          prerelease: ${{ steps.channel.outputs.prerelease }}
+          make_latest: ${{ steps.channel.outputs.prerelease == 'true' && 'false' || 'true' }}
+
+      # Refresh SHA256SUMS after desktop installers and portable zips land.
+      # Release publishes the same file for wheel/sdist; this pass adds the
+      # packages just uploaded and any freeos-* assets already on the release.
+      - name: Publish SHA256SUMS
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: bash scripts/publish_sha256sums.sh "${{ steps.rel.outputs.tag }}" release-assets

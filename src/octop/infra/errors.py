@@ -110,6 +110,9 @@ class ErrorCode(StrEnum):
     WORKSPACE_ROOT_RESTRICTED = "WORKSPACE_ROOT_RESTRICTED"
     TOKEN_QUOTA_EXCEEDED = "TOKEN_QUOTA_EXCEEDED"
     LOCAL_MODEL_REGISTER_FAILED = "LOCAL_MODEL_REGISTER_FAILED"
+    CONFIG_FILE_CORRUPT = "CONFIG_FILE_CORRUPT"
+    HOME_WRITE_REFUSED = "HOME_WRITE_REFUSED"
+    AGENT_SEED_EXISTS = "AGENT_SEED_EXISTS"
 
 
 _DEFAULT_STATUS: dict[ErrorCode, int] = {
@@ -211,6 +214,9 @@ _DEFAULT_STATUS: dict[ErrorCode, int] = {
     ErrorCode.WORKSPACE_ROOT_RESTRICTED: 400,
     ErrorCode.TOKEN_QUOTA_EXCEEDED: 403,
     ErrorCode.LOCAL_MODEL_REGISTER_FAILED: 400,
+    ErrorCode.CONFIG_FILE_CORRUPT: 400,
+    ErrorCode.HOME_WRITE_REFUSED: 409,
+    ErrorCode.AGENT_SEED_EXISTS: 409,
 }
 
 
@@ -260,3 +266,12 @@ class OctopError(Exception):
                 "details": self.details,
             }
         }
+
+
+def corrupt_config_error(path: object, detail: str) -> OctopError:
+    """Report invalid JSON without exposing configuration contents."""
+    return OctopError(
+        ErrorCode.CONFIG_FILE_CORRUPT,
+        f"{path} is not valid JSON ({detail}); fix it and retry — no settings were changed",
+        details={"path": str(path), "detail": detail},
+    )

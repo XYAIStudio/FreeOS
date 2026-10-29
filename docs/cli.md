@@ -1,6 +1,6 @@
 # CLI Reference
 
-`octop` is a single Click app installed as `octop` on `pip install octop`.
+`octop` and `freeos` are compatibility command names for the FreeOS CLI. The supported installer obtains FreeOS from the XYAIStudio GitHub repository; Python release artifacts are attached to GitHub Releases.
 It is registered in `src/octop/cli/main.py`; commands are loaded
 lazily from `src/octop/cli/registry.py`.
 
@@ -60,7 +60,7 @@ Octop commands pick one of three transports:
 
 | Layer | When | Login? | Examples |
 |-------|------|--------|----------|
-| **Offline** (local DB only) | Need to read/write `~/.octop` without a running server | No | `init`, `backup`, `plugin`, `agent list`, `chats list/get/create/update/delete`, `cron list`, `user *`, `admin overview/audit`, `models presets/list/active` |
+| **Offline** (local DB only) | Need to read/write `~/.freeos` without a running server. An existing `~/.octop` is used when `~/.freeos` is absent, unless `OCTOP_DESKTOP` or `FREEOS_DESKTOP` is set. `FREEOS_HOME` overrides `OCTOP_HOME`. | No | `init`, `backup`, `plugin`, `agent list`, `chats list/get/create/update/delete`, `cron list`, `user *`, `admin overview/audit`, `models presets/list/active` |
 | **Attach** (HTTP / WS) | Need a live `octop run` process (IM, streams, model pulls) | Yes (`octop user login`) | `chats send/repl`, `channel test/probe`, `models ollama-*`, `skills enable/disable`, `provider test` |
 | **Embedded** (in-process) | CLI boots `OctopServer` for a single command | No | `octop acp`, `octop chats repl`, `octop chats send` (defaults to embedded), `octop agent create/from-expert/start/stop/reload` |
 
@@ -327,17 +327,23 @@ Commands:
 
 ## `octop backup`
 
-Export and restore Octop backups. Works fully offline.
+Export and restore FreeOS backups. Works fully offline.
+
+New installs use `~/.freeos`. When `~/.freeos` does not exist yet, an existing `~/.octop` is used, unless `OCTOP_DESKTOP` or `FREEOS_DESKTOP` is set. `FREEOS_HOME` overrides `OCTOP_HOME`. That is the same order as `PathLayout.from_env`.
 
 ```
 Usage: octop backup [OPTIONS] COMMAND [ARGS]...
 
-  Backup and restore database + local agent workspaces.
+  Backup and restore the database and local agent workspaces.
+
+  New installs use ~/.freeos. An existing ~/.octop is used when ~/.freeos is
+  absent, unless OCTOP_DESKTOP or FREEOS_DESKTOP is set. FREEOS_HOME overrides
+  OCTOP_HOME.
 
 Commands:
-  create     Create a backup archive (DB + workspaces + config).
-  restore    Restore a backup archive into ~/.octop.
-  auto       Automatic backup status and one-shot run.
+  auto     Automatic backup status and one-shot run (schedule requires...
+  create   Create a selected-content backup archive.
+  restore  Restore a backup into ~/.freeos, or ~/.octop when that legacy...
 ```
 
 ### `octop backup auto`
@@ -363,8 +369,7 @@ retention only deletes those files and never touches manual
 
 ## `octop update`
 
-Check for and install a newer Octop release from the configured
-channel (PyPI by default).
+Check for and install a newer FreeOS desktop release from GitHub Releases.
 
 ```
 Usage: octop update [OPTIONS]
@@ -373,7 +378,9 @@ Usage: octop update [OPTIONS]
 
 Options:
   --check / --no-check     Only check; do not install.
-  --channel TEXT           Release channel (pypi, testpypi, custom index).
+  --allow-prerelease       Include alpha / beta / rc / dev releases.
+  --yes, -y                Skip upgrade confirmation.
+  --verbose, -v            Show installer output.
   -h, --help               Show this message and exit.
 ```
 
