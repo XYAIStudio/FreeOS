@@ -687,6 +687,44 @@ _clone_source_workspace() {
     fi
 }
 
+_sha256_file() {
+    local file="$1"
+    if command -v sha256sum >/dev/null 2>&1; then
+        sha256sum "$file" > "${file}.sha256"
+    elif command -v shasum >/dev/null 2>&1; then
+        shasum -a 256 "$file" > "${file}.sha256"
+    else
+        return 1
+    fi
+}
+
+# Existing installs get a full archive before the package is replaced.
+# A failed backup aborts the upgrade; the recorded sha256 is the checksum of that archive.
+_backup_before_upgrade() {
+    local cli="$OCTOP_VENV/bin/octop"
+    if [ ! -x "$cli" ]; then
+        return 0
+    fi
+    if [ ! -e "$OCTOP_HOME/octop.db" ] && [ ! -e "$OCTOP_HOME/config.json" ]; then
+        info "No existing database or config; skipping pre-upgrade backup"
+        return 0
+    fi
+    mkdir -p "$OCTOP_HOME/backups" || die "Upgrade aborted: cannot create $OCTOP_HOME/backups"
+    local stamp out
+    stamp="$(date -u +%Y%m%dT%H%M%SZ)"
+    out="$OCTOP_HOME/backups/pre-upgrade-${stamp}.tar.gz"
+    info "Full backup before upgrade: $out"
+    if ! "$cli" backup create --home "$OCTOP_HOME" --include-chats -o "$out"; then
+        die "Upgrade aborted: backup failed"
+    fi
+    if ! _sha256_file "$out"; then
+        die "Upgrade aborted: could not record sha256 for $out"
+    fi
+    info "Backup sha256 written to ${out}.sha256"
+}
+
+_backup_before_upgrade
+
 if [ "$FROM_SOURCE" = true ]; then
     if [ -n "$SOURCE_DIR" ]; then
         info "Installing from local source: $SOURCE_DIR"

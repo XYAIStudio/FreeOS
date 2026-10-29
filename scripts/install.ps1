@@ -163,6 +163,21 @@ Ensure-Uv
 
 if (Test-Path $OctopVenv) {
     Write-Info "Existing environment found, upgrading..."
+    $existingCli = Join-Path $OctopVenv "Scripts\octop.exe"
+    $hasData = (Test-Path (Join-Path $OctopHome "octop.db")) -or (Test-Path (Join-Path $OctopHome "config.json"))
+    if ((Test-Path $existingCli) -and $hasData) {
+        $backupDir = Join-Path $OctopHome "backups"
+        New-Item -ItemType Directory -Force -Path $backupDir | Out-Null
+        $stamp = [DateTime]::UtcNow.ToString("yyyyMMddTHHmmssZ")
+        $backupOut = Join-Path $backupDir "pre-upgrade-$stamp.tar.gz"
+        Write-Info "Full backup before upgrade: $backupOut"
+        & $existingCli backup create --home $OctopHome --include-chats -o $backupOut
+        if ($LASTEXITCODE -ne 0) { Stop-WithError "Upgrade aborted: backup failed" }
+        $hash = (Get-FileHash -Algorithm SHA256 -Path $backupOut).Hash.ToLower()
+        $leaf = Split-Path -Leaf $backupOut
+        Set-Content -Encoding ascii -Path "$backupOut.sha256" -Value "$hash  $leaf"
+        Write-Info "Backup sha256 written to $backupOut.sha256"
+    }
 } else {
     Write-Info "Creating Python $PythonVersion environment..."
 }

@@ -129,14 +129,14 @@ func TestEnsurePortableUpgradesBundledVersionAfterDatabaseBackup(t *testing.T) {
 	writeTestGreenZip(t, newZip, "0.9.32")
 	t.Setenv("OCTOP_DESKTOP_PORTABLE_ZIP", newZip)
 
-	previousBackup := runSQLiteBackup
-	runSQLiteBackup = func(_ string, source string, destination string) error {
-		if source != database {
-			t.Fatalf("backup source = %q, want %q", source, database)
+	previousBackup := runPreUpgradeBackup
+	runPreUpgradeBackup = func(_, _, gotHome, destination string) error {
+		if gotHome != home {
+			t.Fatalf("backup home = %q, want %q", gotHome, home)
 		}
 		return os.WriteFile(destination, []byte("backup"), 0o600)
 	}
-	t.Cleanup(func() { runSQLiteBackup = previousBackup })
+	t.Cleanup(func() { runPreUpgradeBackup = previousBackup })
 
 	if err := ensurePortable(LocaleZH, func(string) {}); err != nil {
 		t.Fatal(err)
@@ -144,9 +144,12 @@ func TestEnsurePortableUpgradesBundledVersionAfterDatabaseBackup(t *testing.T) {
 	if got := portableVersion(root); got != "0.9.32" {
 		t.Fatalf("portable version = %q, want 0.9.32", got)
 	}
-	backups, err := filepath.Glob(filepath.Join(home, "backups", "octop-desktop-pre-upgrade-*.db"))
+	backups, err := filepath.Glob(filepath.Join(home, "backups", "freeos-pre-upgrade-*.tar.gz"))
 	if err != nil || len(backups) != 1 {
 		t.Fatalf("upgrade backup = %v, err = %v", backups, err)
+	}
+	if _, err := os.Stat(backups[0] + ".sha256"); err != nil {
+		t.Fatalf("backup sha256 missing: %v", err)
 	}
 }
 
@@ -167,9 +170,9 @@ func TestEnsurePortableKeepsRuntimeWhenDatabaseBackupFails(t *testing.T) {
 	writeTestGreenZip(t, newZip, "0.9.32")
 	t.Setenv("OCTOP_DESKTOP_PORTABLE_ZIP", newZip)
 
-	previousBackup := runSQLiteBackup
-	runSQLiteBackup = func(_, _, _ string) error { return errors.New("backup unavailable") }
-	t.Cleanup(func() { runSQLiteBackup = previousBackup })
+	previousBackup := runPreUpgradeBackup
+	runPreUpgradeBackup = func(_, _, _, _ string) error { return errors.New("backup unavailable") }
+	t.Cleanup(func() { runPreUpgradeBackup = previousBackup })
 
 	if err := ensurePortable(LocaleZH, func(string) {}); err == nil {
 		t.Fatal("backup failure should abort the runtime upgrade")
