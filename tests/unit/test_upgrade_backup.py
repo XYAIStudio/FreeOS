@@ -2,9 +2,13 @@
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
+import pytest
+
 REPO = Path(__file__).resolve().parents[2]
+posix_only = pytest.mark.skipif(os.name != "posix", reason="install.sh refuses non-POSIX uname")
 
 
 def test_install_sh_backs_up_before_package_install() -> None:
@@ -29,6 +33,7 @@ def test_install_ps1_backs_up_before_venv_clear() -> None:
     assert "SHA256" in text
 
 
+@posix_only
 def test_install_sh_backup_only_writes_archive_and_sha256(tmp_path: Path) -> None:
     home = tmp_path / "home"
     bin_dir = home / "venv" / "bin"
@@ -76,6 +81,7 @@ def test_install_sh_backup_only_writes_archive_and_sha256(tmp_path: Path) -> Non
     assert os.path.getsize(archives[0]) > 0
 
 
+@posix_only
 def test_install_sh_backup_failure_aborts(tmp_path: Path) -> None:
     home = tmp_path / "home"
     bin_dir = home / "venv" / "bin"
