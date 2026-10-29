@@ -339,6 +339,10 @@ export async function initDatabase(): Promise<void> {
   
   // 运行迁移
   runMigrations();
+  // F10 runs after the F9 pre-upgrade backup: install.sh, install.ps1, and the
+  // desktop upgrade all archive the database before this process starts.
+  const { cleanupV010SeedResidue } = await import("./upgrade-cleanup");
+  cleanupV010SeedResidue();
 }
 
 /**
