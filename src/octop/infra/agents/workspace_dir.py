@@ -449,6 +449,105 @@ def skills_discovery_roots(workspace_dir: Path) -> list[Path]:
     return [workspace_dir / DEFAULT_SYSTEM_FILES_PATH / "skills", workspace_dir / "skills"]
 
 
+def _looks_host_absolute(raw: str) -> bool:
+    text = raw.strip()
+    if _is_windows_style_host_path(text):
+        return True
+    return Path(text).is_absolute()
+
+
+def _outside_product_home(raw: str, home: Path) -> bool:
+    text = raw.strip()
+    if not text or text in {"/", "\\"} or text.startswith("/.octop/"):
+        return False
+    if _is_windows_style_host_path(text) and os.name != "nt":
+        return True
+    if not _looks_host_absolute(text):
+        return False
+    try:
+        return not path_is_under_home(Path(text), home)
+    except OSError:
+        return True
+
+
+def workspace_suffix_for_agent(raw: str, agent_id: str) -> str:
+    """Archive-relative workspace tail, independent of the machine that wrote it."""
+    text = raw.replace("\\", "/").strip()
+    lowered = text.lower()
+    for needle in (
+        f"/.octop/workspaces/{agent_id}",
+        f"/agents/{agent_id}",
+        f"/workspaces/{agent_id}",
+    ):
+        idx = lowered.rfind(needle.lower())
+        if idx >= 0:
+            return text[idx + 1 :].lstrip("/")
+    return f"agents/{agent_id}"
+
+
+def confine_workspace_config(cfg: dict[str, Any], *, home: Path, agent_id: str) -> dict[str, Any]:
+    """Copy *cfg* so workspace files stay inside *home*.
+
+    Absolute paths from another install are rewritten to a suffix under *home*.
+    Agent-facing ``/.octop/...`` paths stay, with ``root_dir`` clamped to *home*
+    when it pointed outside.
+    """
+    out = dict(cfg)
+    home_r = home.resolve()
+    backend = out.get("backend")
+    if isinstance(backend, dict):
+        backend = dict(backend)
+        root = backend.get("root_dir")
+        if isinstance(root, str) and _outside_product_home(root, home_r):
+            backend["root_dir"] = str(home_r)
+        out["backend"] = backend
+    raw = out.get("workspace_dir")
+    if isinstance(raw, str) and raw.strip():
+        text = raw.strip()
+        if text.startswith("/.octop/") or text == "/":
+            out["workspace_dir"] = text
+        elif not _looks_host_absolute(text):
+            out["workspace_dir"] = text.replace("\\", "/").lstrip("/")
+        elif _outside_product_home(text, home_r):
+            out["workspace_dir"] = workspace_suffix_for_agent(text, agent_id)
+        else:
+            out["workspace_dir"] = Path(text).resolve().relative_to(home_r).as_posix()
+    else:
+        out["workspace_dir"] = f"agents/{agent_id}"
+    return out
+
+
+def restored_workspace_dir(
+    config_json: str | None,
+    *,
+    paths: PathLayout,
+    agent_id: str,
+    ensure: bool = False,
+) -> Path:
+    """On-disk restore target that is always inside ``paths.root``.
+
+    Relative paths and ``/.octop/...`` paths are joined onto the product home.
+    Absolute paths from another machine are remapped by their workspace suffix.
+    """
+    try:
+        parsed = json.loads(config_json or "{}")
+    except (json.JSONDecodeError, TypeError):
+        parsed = {}
+    cfg = parsed if isinstance(parsed, dict) else {}
+    confined = confine_workspace_config(cfg, home=paths.root, agent_id=agent_id)
+    text = str(confined.get("workspace_dir") or f"agents/{agent_id}").strip()
+    host = (paths.root / text.replace("\\", "/").lstrip("/")).resolve()
+    if not path_is_under_home(host, paths.root):
+        raise OctopError(
+            ErrorCode.HOME_WRITE_REFUSED,
+            f"refusing to restore agent {agent_id} workspace outside {paths.root}",
+            details={"path": str(host), "home": str(paths.root)},
+        )
+    if ensure:
+        host.mkdir(parents=True, exist_ok=True)
+    return host
+
+
 def workspace_dir_from_config_json(
     config_json: str | None,
     *,
