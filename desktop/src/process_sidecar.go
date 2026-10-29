@@ -301,10 +301,15 @@ func sidecarLaunchEnv(home string, dashboardPort int) (map[string]string, error)
 		"http://127.0.0.1:%d,http://localhost:%d,http://127.0.0.1:18900,http://localhost:18900,http://127.0.0.1:8088,http://localhost:8088,http://127.0.0.1:%d,http://localhost:%d,http://[::1]:%d",
 		dashboardPort, dashboardPort, defaultSidecarPort, defaultSidecarPort, defaultSidecarPort,
 	)
+	bindHost := "127.0.0.1"
+	if explicit := strings.TrimSpace(os.Getenv("FREEOS_ORG_BIND_HOST")); explicit != "" {
+		// Explicit opt-in for LAN/NAS. Inherited HOST is ignored.
+		bindHost = explicit
+	}
 	env := map[string]string{
 		"NODE_ENV":                  "production",
 		"PORT":                      strconv.Itoa(defaultSidecarPort),
-		"HOST":                      "127.0.0.1",
+		"HOST":                      bindHost,
 		"DB_DIALECT":                "sqlite",
 		"DATABASE_PATH":             filepath.Join(sidecarDataDir(home), "xiongyuan.db"),
 		"AIR_GAP_MODE":              "true",

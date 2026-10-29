@@ -222,6 +222,9 @@ fi
 export NODE_ENV=production
 export PORT
 export HOST=127.0.0.1
+if [ -n "${FREEOS_ORG_BIND_HOST:-}" ]; then
+  export HOST="${FREEOS_ORG_BIND_HOST}"
+fi
 export DB_DIALECT=sqlite
 export DATABASE_PATH="${DATA_DIR}/xiongyuan.db"
 export AIR_GAP_MODE=true
@@ -280,6 +283,7 @@ if not defined COOKIE_SECRET (
 set "NODE_ENV=production"
 set "PORT=%FREEOS_ORG_SIDECAR_PORT%"
 set "HOST=127.0.0.1"
+if defined FREEOS_ORG_BIND_HOST set "HOST=%FREEOS_ORG_BIND_HOST%"
 set "DB_DIALECT=sqlite"
 set "DATABASE_PATH=%FREEOS_ORG_DATA%\xiongyuan.db"
 set "AIR_GAP_MODE=true"

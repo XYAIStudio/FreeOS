@@ -319,6 +319,18 @@ def test_sidecar_launch_env_local_test_requires_explicit_switch(
     assert env["FREEOS_ORG_LOCAL_TEST"] == "1"
 
 
+def test_sidecar_launch_env_ignores_inherited_bind_all(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("HOST", "0.0.0.0")
+    monkeypatch.delenv("FREEOS_ORG_BIND_HOST", raising=False)
+    env = sidecar_launch_env(tmp_path, dashboard_port=8099)
+    assert env["HOST"] == "127.0.0.1"
+    monkeypatch.setenv("FREEOS_ORG_BIND_HOST", "0.0.0.0")
+    exposed = sidecar_launch_env(tmp_path, dashboard_port=8099)
+    assert exposed["HOST"] == "0.0.0.0"
+
+
 def test_sidecar_launch_env_ignores_inherited_local_test(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

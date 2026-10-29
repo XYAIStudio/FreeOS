@@ -236,6 +236,8 @@ if (-not $ingest) { $ingest = [guid]::NewGuid().ToString('N') + [guid]::NewGuid(
 $env:NODE_ENV = 'production'
 $env:PORT = '3780'
 $env:HOST = '127.0.0.1'
+# Inherited HOST is ignored. FREEOS_ORG_BIND_HOST is the LAN/NAS opt-in.
+if ($env:FREEOS_ORG_BIND_HOST) { $env:HOST = $env:FREEOS_ORG_BIND_HOST }
 $env:DB_DIALECT = 'sqlite'
 $env:DATABASE_PATH = Join-Path $data 'xiongyuan.db'
 $env:AIR_GAP_MODE = 'true'

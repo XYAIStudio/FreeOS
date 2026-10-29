@@ -34,7 +34,10 @@ services:
     container_name: octop
     restart: unless-stopped
     ports:
-      - "${OCTOP_PORT:-8088}:${OCTOP_PORT:-8088}"
+      # Host side is loopback. Set OCTOP_PUBLISH_HOST=0.0.0.0 to opt into LAN.
+      # OCTOP_BIND_HOST=0.0.0.0 below is container-internal so the published
+      # port can reach the process; it does not open the host LAN by itself.
+      - "${OCTOP_PUBLISH_HOST:-127.0.0.1}:${OCTOP_PORT:-8088}:${OCTOP_PORT:-8088}"
     volumes:
       - ${OCTOP_DATA:-~/.freeos}:/data/.freeos
     environment:

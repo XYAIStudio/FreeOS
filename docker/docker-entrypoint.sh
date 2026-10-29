@@ -103,8 +103,12 @@ EOF
 fi
 
 if [ $# -eq 0 ]; then
-    echo "[entrypoint] 正在启动 FreeOS，端口 $PORT..."
-    exec octop run --host 0.0.0.0 --port "$PORT"
+    # Loopback unless OCTOP_BIND_HOST is set. Compose sets 0.0.0.0 inside the
+    # container only together with a 127.0.0.1 published port. A bare docker
+    # run stays on loopback. Host-network mode must not default to 0.0.0.0.
+    BIND_HOST="${OCTOP_BIND_HOST:-127.0.0.1}"
+    echo "[entrypoint] 正在启动 FreeOS，端口 $PORT，绑定 $BIND_HOST..."
+    exec octop run --host "$BIND_HOST" --port "$PORT"
 fi
 
 if [ "$1" = "octop" ]; then

@@ -397,11 +397,13 @@ def sidecar_launch_env(home: Path, *, dashboard_port: int | None = None) -> dict
         if configured
         else origin
     )
+    # Inherited HOST is not an opt-in. FREEOS_ORG_BIND_HOST is.
+    bind_host = (env.get("FREEOS_ORG_BIND_HOST") or "127.0.0.1").strip() or "127.0.0.1"
     env.update(
         {
             "NODE_ENV": "production",
             "PORT": port,
-            "HOST": "127.0.0.1",
+            "HOST": bind_host,
             "DB_DIALECT": "sqlite",
             "DATABASE_PATH": str(sidecar_data_dir(home) / "xiongyuan.db"),
             "AIR_GAP_MODE": "true",
