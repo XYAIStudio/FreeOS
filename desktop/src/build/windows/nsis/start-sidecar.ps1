@@ -252,12 +252,13 @@ $env:FREEOS_HOME = $freeosHome
 $env:OCTOP_HOME = $freeosHome
 $env:FREEOS_ORG_SIDECAR_PORT = '3780'
 $env:FREEOS_ORG_INTEGRATED = '1'
-# Demo accounts (demo@demo.com) only when an operator opts in. Release launches
-# leave FREEOS_ORG_LOCAL_TEST unset so the sidecar does not seed or rotate them.
-if ($env:FREEOS_ORG_DEV_BOOTSTRAP -match '^(1|true|yes|on)$') {
+# Release builds ignore inherited demo-seed switches. They are honoured only
+# when FREEOS_DEV_BUILD is explicitly set.
+if ($env:FREEOS_DEV_BUILD -match '^(1|true|yes|on)$' -and ($env:FREEOS_ORG_DEV_BOOTSTRAP -match '^(1|true|yes|on)$' -or $env:FREEOS_ORG_LOCAL_TEST -match '^(1|true|yes|on)$')) {
     $env:FREEOS_ORG_LOCAL_TEST = '1'
 } else {
     Remove-Item Env:\FREEOS_ORG_LOCAL_TEST -ErrorAction SilentlyContinue
+    Remove-Item Env:\FREEOS_ORG_DEV_BOOTSTRAP -ErrorAction SilentlyContinue
 }
 $compiled = Join-Path $app 'backend-dist\server.js'
 if (Test-Path -LiteralPath $compiled) {

@@ -228,16 +228,22 @@ export AIR_GAP_MODE=true
 export ALLOW_PUBLIC_REGISTRATION="${ALLOW_PUBLIC_REGISTRATION:-false}"
 export SEED_DEMO_DATA="${SEED_DEMO_DATA:-false}"
 export FREEOS_ORG_INTEGRATED="${FREEOS_ORG_INTEGRATED:-1}"
+# Release builds ignore inherited demo-seed switches unless FREEOS_DEV_BUILD is set.
 org_local_test=0
-for value in "${FREEOS_ORG_DEV_BOOTSTRAP:-}" "${FREEOS_ORG_LOCAL_TEST:-}"; do
-  case "$(printf '%s' "$value" | tr '[:upper:]' '[:lower:]')" in
-    1|true|yes|on) org_local_test=1 ;;
-  esac
-done
+case "$(printf '%s' "${FREEOS_DEV_BUILD:-}" | tr '[:upper:]' '[:lower:]')" in
+  1|true|yes|on)
+    for value in "${FREEOS_ORG_DEV_BOOTSTRAP:-}" "${FREEOS_ORG_LOCAL_TEST:-}"; do
+      case "$(printf '%s' "$value" | tr '[:upper:]' '[:lower:]')" in
+        1|true|yes|on) org_local_test=1 ;;
+      esac
+    done
+    ;;
+esac
 if [ "$org_local_test" = 1 ]; then
   export FREEOS_ORG_LOCAL_TEST=1
 else
   unset FREEOS_ORG_LOCAL_TEST || true
+  unset FREEOS_ORG_DEV_BOOTSTRAP || true
 fi
 export JWT_SECRET COOKIE_SECRET
 export CORS_ORIGIN="${CORS_ORIGIN:-http://127.0.0.1:8088,http://localhost:8088,http://127.0.0.1:18900,http://localhost:18900}"
@@ -281,14 +287,17 @@ if not defined ALLOW_PUBLIC_REGISTRATION set "ALLOW_PUBLIC_REGISTRATION=false"
 if not defined SEED_DEMO_DATA set "SEED_DEMO_DATA=false"
 if not defined FREEOS_ORG_INTEGRATED set "FREEOS_ORG_INTEGRATED=1"
 set "ORG_LOCAL_TEST="
-if /I "%FREEOS_ORG_DEV_BOOTSTRAP%"=="1" set "ORG_LOCAL_TEST=1"
-if /I "%FREEOS_ORG_DEV_BOOTSTRAP%"=="true" set "ORG_LOCAL_TEST=1"
-if /I "%FREEOS_ORG_LOCAL_TEST%"=="1" set "ORG_LOCAL_TEST=1"
-if /I "%FREEOS_ORG_LOCAL_TEST%"=="true" set "ORG_LOCAL_TEST=1"
+if /I "%FREEOS_DEV_BUILD%"=="1" set "ORG_DEV_OK=1"
+if /I "%FREEOS_DEV_BUILD%"=="true" set "ORG_DEV_OK=1"
+if defined ORG_DEV_OK if /I "%FREEOS_ORG_DEV_BOOTSTRAP%"=="1" set "ORG_LOCAL_TEST=1"
+if defined ORG_DEV_OK if /I "%FREEOS_ORG_DEV_BOOTSTRAP%"=="true" set "ORG_LOCAL_TEST=1"
+if defined ORG_DEV_OK if /I "%FREEOS_ORG_LOCAL_TEST%"=="1" set "ORG_LOCAL_TEST=1"
+if defined ORG_DEV_OK if /I "%FREEOS_ORG_LOCAL_TEST%"=="true" set "ORG_LOCAL_TEST=1"
 if defined ORG_LOCAL_TEST (
   set "FREEOS_ORG_LOCAL_TEST=1"
 ) else (
   set "FREEOS_ORG_LOCAL_TEST="
+  set "FREEOS_ORG_DEV_BOOTSTRAP="
 )
 if not defined CORS_ORIGIN set "CORS_ORIGIN=http://127.0.0.1:8088,http://localhost:8088,http://127.0.0.1:18900,http://localhost:18900"
 cd /d "%APP%"

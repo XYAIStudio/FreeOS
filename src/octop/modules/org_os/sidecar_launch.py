@@ -359,13 +359,16 @@ def apply_org_launch_flags(env: dict[str, str]) -> None:
     """Mark the sidecar as the FreeOS organization module, without demo users.
 
     ``FREEOS_ORG_INTEGRATED`` is required for a real install: registration
-    creates a distinct tenant instead of the shared demo tenant, and the host
-    accepts organization identity. ``FREEOS_ORG_LOCAL_TEST`` seeds
-    ``demo@demo.com`` and is set only when ``FREEOS_ORG_DEV_BOOTSTRAP`` or
-    ``FREEOS_ORG_LOCAL_TEST`` is already explicitly on. Release launches leave
-    it unset.
+    creates a distinct tenant instead of a shared tenant, and the host accepts
+    organization identity. Release builds hard-ignore inherited
+    ``FREEOS_ORG_LOCAL_TEST`` and ``FREEOS_ORG_DEV_BOOTSTRAP``. Those switches
+    are honoured only when ``FREEOS_DEV_BUILD`` is explicitly set.
     """
     env["FREEOS_ORG_INTEGRATED"] = "1"
+    if not _env_truthy(env, "FREEOS_DEV_BUILD"):
+        env.pop("FREEOS_ORG_LOCAL_TEST", None)
+        env.pop("FREEOS_ORG_DEV_BOOTSTRAP", None)
+        return
     if _env_truthy(env, "FREEOS_ORG_DEV_BOOTSTRAP") or _env_truthy(env, "FREEOS_ORG_LOCAL_TEST"):
         env["FREEOS_ORG_LOCAL_TEST"] = "1"
         return

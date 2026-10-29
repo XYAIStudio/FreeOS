@@ -318,8 +318,8 @@ func sidecarLaunchEnv(home string, dashboardPort int) (map[string]string, error)
 		"OCTOP_HOME":                home,
 		"FREEOS_ORG_SIDECAR_PORT":   strconv.Itoa(defaultSidecarPort),
 		// Integrated mode is the real FreeOS organization bridge (distinct
-		// tenants, host identity). Demo accounts stay off unless a dev switch
-		// is already set in the parent environment.
+		// tenants, host identity). Release builds ignore inherited demo-seed
+		// switches; only FREEOS_DEV_BUILD honours them.
 		"FREEOS_ORG_INTEGRATED": "1",
 	}
 	if orgLocalTestRequested() {
@@ -328,7 +328,20 @@ func sidecarLaunchEnv(home string, dashboardPort int) (map[string]string, error)
 	return env, nil
 }
 
+func envTruthy(key string) bool {
+	switch strings.ToLower(strings.TrimSpace(os.Getenv(key))) {
+	case "1", "true", "yes", "on":
+		return true
+	default:
+		return false
+	}
+}
+
 func orgLocalTestRequested() bool {
+	// Release builds hard-ignore a parent FREEOS_ORG_LOCAL_TEST.
+	if !envTruthy("FREEOS_DEV_BUILD") {
+		return false
+	}
 	for _, key := range []string{"FREEOS_ORG_DEV_BOOTSTRAP", "FREEOS_ORG_LOCAL_TEST"} {
 		switch strings.ToLower(strings.TrimSpace(os.Getenv(key))) {
 		case "1", "true", "yes", "on":

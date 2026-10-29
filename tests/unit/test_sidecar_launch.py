@@ -313,9 +313,21 @@ def test_sidecar_launch_env_local_test_requires_explicit_switch(
 ) -> None:
     monkeypatch.delenv("FREEOS_ORG_LOCAL_TEST", raising=False)
     monkeypatch.setenv("FREEOS_ORG_DEV_BOOTSTRAP", "1")
+    monkeypatch.setenv("FREEOS_DEV_BUILD", "1")
     env = sidecar_launch_env(tmp_path, dashboard_port=8099)
     assert env["FREEOS_ORG_INTEGRATED"] == "1"
     assert env["FREEOS_ORG_LOCAL_TEST"] == "1"
+
+
+def test_sidecar_launch_env_ignores_inherited_local_test(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("FREEOS_ORG_LOCAL_TEST", "1")
+    monkeypatch.setenv("FREEOS_ORG_DEV_BOOTSTRAP", "true")
+    monkeypatch.delenv("FREEOS_DEV_BUILD", raising=False)
+    env = sidecar_launch_env(tmp_path, dashboard_port=8099)
+    assert "FREEOS_ORG_LOCAL_TEST" not in env
+    assert "FREEOS_ORG_DEV_BOOTSTRAP" not in env
 
 
 def test_sidecar_launch_env_merges_existing_cors(
