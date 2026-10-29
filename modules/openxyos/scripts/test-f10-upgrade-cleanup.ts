@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import type { AddressInfo } from "node:net";
+import express from "express";
 
 async function main() {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "freeos-f10-"));
@@ -131,6 +133,42 @@ async function main() {
   assert.equal(dbGet("SELECT password_hash FROM users WHERE email = ?", ["owner@example.com"]).password_hash, after.owner);
   assert.equal(dbGet("SELECT status FROM plugins WHERE id = ?", [seededPluginId]).status, "disabled");
   assert.equal(dbGet("SELECT learned_knowledge FROM reflections WHERE learned_knowledge LIKE '%operator rewrote%'").learned_knowledge, after.editedReflection);
+
+  dbRun("UPDATE tenants SET status = 'active' WHERE id = 1");
+  process.env.JWT_SECRET = "f10-plugin-list-secret-at-least-32-characters";
+  process.env.COOKIE_SECRET = "f10-plugin-list-cookie-secret-at-least-32-chars";
+  const { pluginRoutes } = await import("../backend/routes/plugins");
+  const { signToken } = await import("../backend/middleware");
+  const ownerRow = dbGet("SELECT id FROM users WHERE email = ?", ["owner@example.com"]) as { id: number };
+  const token = signToken({
+    id: ownerRow.id,
+    email: "owner@example.com",
+    nickname: "Owner",
+    role: "admin",
+    tenant_id: 1,
+  });
+  const app = express();
+  app.use(express.json());
+  app.use("/api/plugins", pluginRoutes);
+  const server = app.listen(0, "127.0.0.1");
+  await new Promise<void>((resolve) => server.once("listening", resolve));
+  const base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+  try {
+    const listed = await fetch(`${base}/api/plugins`, { headers: { Authorization: `Bearer ${token}` } });
+    const listedBody = await listed.json() as { data?: Array<{ name: string; status: string; paid?: boolean; price?: string }>; error?: string };
+    assert.equal(listed.status, 200, JSON.stringify(listedBody));
+    assert.equal(listedBody.data.some((row) => row.name === "AI合同智能解析" && row.status === "active"), false);
+    assert.equal(listedBody.data.some((row) => row.price), false);
+    const removed = await fetch(`${base}/api/plugins/${seededPluginId}/uninstall`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    assert.equal(removed.status, 200);
+    assert.equal(dbGet("SELECT status FROM plugins WHERE id = ?", [seededPluginId]).status, "disabled");
+    assert.ok(dbGet("SELECT id FROM plugins WHERE id = ?", [seededPluginId]));
+  } finally {
+    await new Promise<void>((resolve) => server.close(() => resolve()));
+  }
   console.log("f10 upgrade cleanup ok");
 }
 

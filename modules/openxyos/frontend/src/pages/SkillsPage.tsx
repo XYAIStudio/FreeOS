@@ -537,26 +537,33 @@ function PluginCenter() {
 
   async function handleInstall(p: any) {
     if (installing.has(p.id)) return;
-
-    // 付费插件 → 弹出付费窗口
-    if (p.price !== "免费" && p.price !== "免费额度") {
-      setPayPlugin(p);
+    if (p.paid) {
+      const r = await authFetch(`/api/plugins/${p.id}/install`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+      const j = await r.json().catch(() => null);
+      if (r.status === 409 && j?.data?.price) {
+        setPayPlugin({ ...p, price: j.data.price });
+      }
       return;
     }
-
-    // 免费插件 → 直接安装
     await doInstall(p.id);
   }
 
-  async function doInstall(pluginId: number) {
+  async function doInstall(pluginId: number, body?: Record<string, unknown>) {
     setInstalling(prev => new Set(prev).add(pluginId));
     try {
-      const r = await authFetch(`/api/plugins/${pluginId}/install`, { method: "POST" });
+      const r = await authFetch(`/api/plugins/${pluginId}/install`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body || {}),
+      });
       if (r.ok) {
         const j = await r.json();
         if (j.success) {
           setInstalledIds(prev => new Set(prev).add(pluginId));
-          // 刷新安装数
           load();
         }
       }
@@ -570,8 +577,10 @@ function PluginCenter() {
 
   function handlePayConfirm() {
     if (!payPlugin) return;
-    alert(t("商业插件需通过正式采购或授权流程开通，当前演示站不会模拟支付或自动安装。", "Commercial plugins require formal procurement or authorization. This demo site does not simulate payment or auto-installation."));
+    const pluginId = payPlugin.id;
+    const price = payPlugin.price;
     setPayPlugin(null);
+    void doInstall(pluginId, { confirm_price: true, price });
   }
 
   const filtered = search ? plugins.filter((p: any) =>
@@ -616,7 +625,7 @@ function PluginCenter() {
           {filtered.map((p: any) => {
             const isInstalled = installedIds.has(p.id);
             const isInstalling = installing.has(p.id);
-            const isFree = p.price === "免费" || p.price === "免费额度" || p.price === "free" || p.price === "free tier";
+            const isFree = !p.paid;
 
             return (
             <div key={p.id} className="bg-bg-card border border-border rounded-xl p-4 hover:border-primary/30 hover:shadow-sm transition-all">
@@ -632,7 +641,7 @@ function PluginCenter() {
                 {isFree ? (
                   <span className="text-[10px] px-2 py-1 bg-green-500/10 text-green-500 rounded-full font-medium">{t("免费", "Free")}</span>
                 ) : (
-                  <span className="text-[10px] px-2 py-1 bg-amber-500/10 text-amber-500 rounded-full font-medium">{pluginPriceLabel(p.price, locale)}</span>
+                  <span className="text-[10px] px-2 py-1 bg-amber-500/10 text-amber-500 rounded-full font-medium">{t("需确认价格", "Confirm price")}</span>
                 )}
               </div>
               <p className="text-xs text-text-muted leading-relaxed mb-3 line-clamp-2">{p.description}</p>

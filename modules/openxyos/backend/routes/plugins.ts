@@ -46,7 +46,11 @@ pluginRoutes.get("/", (req: AuthRequest, res) => {
     else if (sort === "newest") sql += " ORDER BY created_at DESC";
     else sql += " ORDER BY category, name";
 
-    res.json({ success: true, data: dbAll(sql, params) });
+    const rows = (dbAll(sql, params) as Array<Record<string, unknown>>).map((row) => {
+      const { price, ...rest } = row;
+      return { ...rest, paid: isPaidPrice(price) };
+    });
+    res.json({ success: true, data: rows });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
   }
