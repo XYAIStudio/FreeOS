@@ -147,7 +147,7 @@ Operator detail: [docs/asset-loop.md](docs/asset-loop.md).
 ### Prerequisites
 
 - Python 3.12+ (the project uses [uv](https://docs.astral.sh/uv/))
-- Node.js 20.19+ only if you opt into the organization sidecar (`FREEOS_ORG_SIDECAR=1`) from source, or rebuild the dashboard. A fresh FreeOS install does not need Node. The sidecar / iframe path is a [transition bridge](docs/product-contract.md), not the destination.
+- Node.js 20.19+ only if you opt into the organization sidecar (`FREEOS_ORG_SIDECAR=1`) from source, or rebuild the dashboard. A fresh FreeOS install does not bundle or start Node: the default desktop packages and `docker/docker-compose.yml` are a single Python process (locked by `tests/unit/desktop/test_phase5_defaults.py`). The sidecar / iframe path is a [transition bridge](docs/product-contract.md), not the destination.
 
 ### From this repository
 

@@ -14,10 +14,11 @@ docker pull ghcr.io/xyaistudio/freeos:latest
 Local Compose still tags `octop:latest` as a compatibility alias. See
 [docs/node-runtime.md](../docs/node-runtime.md).
 
-**Home directory names:** the product name is `FREEOS_HOME`. Compose and
-this image still use `OCTOP_*` and `~/.octop` as compatibility aliases
-(`HOME=/data` → `/data/.octop`). Set `FREEOS_HOME` (or `OCTOP_HOME`) if
-you want an explicit path; the app honors `FREEOS_HOME` first.
+**Home directory names:** the product home is `FREEOS_HOME`. Compose sets
+it to `/data/.freeos` and mounts the host directory `~/.freeos` there
+(`OCTOP_DATA` overrides the host path). `OCTOP_HOME` is set to the same
+path. The entrypoint honors `FREEOS_HOME` first, then `OCTOP_HOME`, then
+an existing `~/.freeos` or `~/.octop` under `HOME`.
 
 ### Files
 
@@ -41,7 +42,7 @@ From the repository root:
 docker compose -f docker/docker-compose.yml up -d --build
 ```
 
-Open `http://localhost:8088`. If `OCTOP_DEFAULT_PASSWORD` is unset, a strong random password is generated on first init and written to `/data/.octop/credential.txt`; if it is set, it is used as-is (must be ≥8 characters with letters and digits; passwords rejected by the app password policy — e.g. common ones — fall back to a random one automatically). Change the password immediately after first login.
+Open `http://localhost:8088`. If `OCTOP_DEFAULT_PASSWORD` is unset, a strong random password is generated on first init and written to `/data/.freeos/credential.txt`; if it is set, it is used as-is (must be ≥8 characters with letters and digits; passwords rejected by the app password policy — e.g. common ones — fall back to a random one automatically). Change the password immediately after first login.
 
 **Option 2: Build script**
 
@@ -50,7 +51,7 @@ bash docker/docker_build.sh
 docker run -d \
   --name octop \
   -p 8088:8088 \
-  -v octop-data:/data/.octop \
+  -v octop-data:/data/.freeos \
   -e HOME=/data \
   octop:latest
 ```
@@ -71,8 +72,8 @@ bash docker/docker_build.sh
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `HOME` | `/data` | Must be `/data` so `~/.octop` maps to the data volume |
-| `FREEOS_HOME` | _(unset)_ | Product home. When set, wins over `OCTOP_HOME` / `~/.octop` |
+| `HOME` | `/data` | Process home inside the container |
+| `FREEOS_HOME` | `/data/.freeos` | Product home. Wins over `OCTOP_HOME` |
 | `OCTOP_HOME` | _(unset)_ | Legacy alias for the same home directory |
 | `OCTOP_PORT` | `8088` | HTTP listen port |
 | `OCTOP_DEFAULT_PASSWORD` | _(unset)_ | First-run admin password (≥8 chars, letters + digits). When unset, a random password is generated and written to `credential.txt` |
@@ -82,13 +83,13 @@ bash docker/docker_build.sh
 | `OPENAI_API_KEY` | — | OpenAI-compatible API key |
 | `DASHSCOPE_API_KEY` | — | Alibaba DashScope API key |
 
-For Compose, put these in `docker/.env`. Values only reach the container if listed under `environment:` in `docker-compose.yml` (Compose interpolates `.env`; it does not auto-export every key). Alternatively write the same keys into the mounted data dir as `~/.octop/env`.
+For Compose, put these in `docker/.env`. Values only reach the container if listed under `environment:` in `docker-compose.yml` (Compose interpolates `.env`; it does not auto-export every key). Alternatively write the same keys into the mounted data dir as `env`.
 
 ### Data persistence
 
-- Compose mounts host `~/.octop` → container `/data/.octop`
+- Compose mounts host `~/.freeos` (`OCTOP_DATA`) → container `/data/.freeos`
 - `docker run` example uses named volume `octop-data`
-- First boot runs `octop init`; credentials are written to `/data/.octop/credential.txt`. With `OCTOP_DEFAULT_PASSWORD` unset a random password is generated; a specified password that the app password policy rejects falls back to a random one automatically (the container must never fail its first init because of a weak default).
+- First boot runs `octop init`; credentials are written to `/data/.freeos/credential.txt`. With `OCTOP_DEFAULT_PASSWORD` unset a random password is generated; a specified password that the app password policy rejects falls back to a random one automatically (the container must never fail its first init because of a weak default).
 
 ### Health check
 

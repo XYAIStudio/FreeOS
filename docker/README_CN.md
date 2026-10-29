@@ -13,9 +13,10 @@ docker pull ghcr.io/xyaistudio/freeos:latest
 本地 Compose 仍用 `octop:latest` 作兼容标签。说明见
 [docs/node-runtime.zh-CN.md](../docs/node-runtime.zh-CN.md)。
 
-**目录命名：** 产品名是 `FREEOS_HOME`。本镜像与 Compose 仍用 `OCTOP_*` 和
-`~/.octop` 作为兼容别名（`HOME=/data` → `/data/.octop`）。需要显式路径时
-设置 `FREEOS_HOME`（或遗留的 `OCTOP_HOME`）；应用优先读 `FREEOS_HOME`。
+**目录命名：** 产品家目录是 `FREEOS_HOME`。Compose 把它设为 `/data/.freeos`，
+并把宿主机 `~/.freeos` 挂进去（`OCTOP_DATA` 可改宿主机路径）。`OCTOP_HOME`
+与它相同。入口脚本优先 `FREEOS_HOME`，然后 `OCTOP_HOME`，再是 `HOME` 下已有的
+`~/.freeos` 或 `~/.octop`。
 
 ### 文件说明
 
@@ -39,7 +40,7 @@ docker pull ghcr.io/xyaistudio/freeos:latest
 docker compose -f docker/docker-compose.yml up -d --build
 ```
 
-访问 `http://localhost:8088`。未设置 `OCTOP_DEFAULT_PASSWORD` 时，首次初始化会自动生成随机密码并写入 `/data/.octop/credential.txt`；设置了则按设置值初始化（须 ≥8 位且同时包含字母和数字；被应用密码策略拒绝的常见弱密码会自动回退为随机密码）。首次登录后请立即修改密码。
+访问 `http://localhost:8088`。未设置 `OCTOP_DEFAULT_PASSWORD` 时，首次初始化会自动生成随机密码并写入 `/data/.freeos/credential.txt`；设置了则按设置值初始化（须 ≥8 位且同时包含字母和数字；被应用密码策略拒绝的常见弱密码会自动回退为随机密码）。首次登录后请立即修改密码。
 
 **方式二：构建脚本**
 
@@ -48,7 +49,7 @@ bash docker/docker_build.sh
 docker run -d \
   --name octop \
   -p 8088:8088 \
-  -v octop-data:/data/.octop \
+  -v octop-data:/data/.freeos \
   -e HOME=/data \
   octop:latest
 ```
@@ -69,8 +70,8 @@ bash docker/docker_build.sh
 
 | 变量 | 默认值 | 说明 |
 |------|--------|------|
-| `HOME` | `/data` | 必须为 `/data`，数据目录映射到 `~/.octop` |
-| `FREEOS_HOME` | _(未设置)_ | 产品家目录。设置后优先于 `OCTOP_HOME` / `~/.octop` |
+| `HOME` | `/data` | 容器内进程家目录 |
+| `FREEOS_HOME` | `/data/.freeos` | 产品家目录。优先于 `OCTOP_HOME` |
 | `OCTOP_HOME` | _(未设置)_ | 同一家目录的遗留别名 |
 | `OCTOP_PORT` | `8088` | HTTP 服务端口 |
 | `OCTOP_DEFAULT_PASSWORD` | _(未设置)_ | 首次管理员密码（≥8 位，字母+数字）。未设置时自动生成随机密码并写入 `credential.txt` |
@@ -80,13 +81,13 @@ bash docker/docker_build.sh
 | `OPENAI_API_KEY` | — | OpenAI 兼容 API Key |
 | `DASHSCOPE_API_KEY` | — | 阿里云通义千问 API Key |
 
-Compose 可在 `docker/.env` 中配置上述变量。注意：`.env` 只参与 Compose 插值，变量必须出现在 `docker-compose.yml` 的 `environment:` 中才会进入容器。也可把相同键写入挂载数据目录下的 `~/.octop/env`。
+Compose 可在 `docker/.env` 中配置上述变量。注意：`.env` 只参与 Compose 插值，变量必须出现在 `docker-compose.yml` 的 `environment:` 中才会进入容器。也可把相同键写入挂载数据目录下的 `env`。
 
 ### 数据持久化
 
-- Compose 默认将宿主机 `~/.octop` 挂载到容器 `/data/.octop`
+- Compose 默认将宿主机 `~/.freeos`（`OCTOP_DATA`）挂载到容器 `/data/.freeos`
 - `docker run` 示例使用命名卷 `octop-data`
-- 首次启动会自动执行 `octop init`，凭据写入容器内 `/data/.octop/credential.txt`。未设置 `OCTOP_DEFAULT_PASSWORD` 时自动生成随机密码；指定的密码被应用密码策略拒绝时自动回退为随机密码（首次初始化绝不因弱默认密码而失败）。
+- 首次启动会自动执行 `octop init`，凭据写入容器内 `/data/.freeos/credential.txt`。未设置 `OCTOP_DEFAULT_PASSWORD` 时自动生成随机密码；指定的密码被应用密码策略拒绝时自动回退为随机密码（首次初始化绝不因弱默认密码而失败）。
 
 ### 健康检查
 

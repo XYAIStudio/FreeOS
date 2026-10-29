@@ -76,15 +76,15 @@
 **命令行**使用本仓库脚本。打出版本标签之后，Release 说明会改成固定标签；当前用 `develop`：
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/XYAIStudio/FreeOS/develop/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/XYAIStudio/FreeOS/codex/freeos-0.1.0-upstream-foundation/scripts/install.sh | bash
 ```
 
 ```powershell
-irm https://raw.githubusercontent.com/XYAIStudio/FreeOS/develop/scripts/install.ps1 | iex
+irm https://raw.githubusercontent.com/XYAIStudio/FreeOS/codex/freeos-0.1.0-upstream-foundation/scripts/install.ps1 | iex
 ```
 
 ```bat
-curl -fsSL https://raw.githubusercontent.com/XYAIStudio/FreeOS/develop/scripts/install.bat -o install.bat
+curl -fsSL https://raw.githubusercontent.com/XYAIStudio/FreeOS/codex/freeos-0.1.0-upstream-foundation/scripts/install.bat -o install.bat
 install.bat
 ```
 
@@ -113,7 +113,9 @@ octop run --help
 
 若提示 `command not found: octop`，请确认已重新加载 shell，或检查 `~/.freeos/bin`（旧安装则是 `~/.octop/bin`）是否在 PATH 中。
 
-### 2.4 Docker 安装（生产推荐）
+### 2.4 Docker 安装
+
+Compose 文件是单进程 FreeOS（不捆绑 Node）。单元测试锁定了它的服务形状，这不是单独认证过的生产配置。
 
 ```bash
 # 构建并后台启动
@@ -123,8 +125,10 @@ docker compose -f docker/docker-compose.yml up -d
 bash docker/docker_build.sh
 docker run -d \
   -p 8088:8088 \
-  -v octop-data:/data/.octop \
+  -v freeos-data:/data/.freeos \
   -e HOME=/data \
+  -e FREEOS_HOME=/data/.freeos \
+  -e OCTOP_HOME=/data/.freeos \
   -e OCTOP_DEFAULT_PASSWORD="<自定义强密码，留空则自动生成随机密码>" \
   octop:latest
 ```
@@ -136,7 +140,7 @@ docker run -d \
 | `OCTOP_PORT` | `8088` | HTTP 监听端口 |
 | `OCTOP_DEFAULT_PASSWORD` | _(空)_ | 首次运行管理员密码（Docker 引导；≥8 位且含字母+数字；留空则自动生成随机密码并写入 credential.txt） |
 | `OCTOP_ADMIN_USERNAME` | `admin` | 首次运行管理员用户名 |
-| `OCTOP_DATA` | `~/.octop` | 宿主机数据目录（compose 挂载） |
+| `OCTOP_DATA` | `~/.freeos` | 宿主机数据目录（compose 挂载到容器 `FREEOS_HOME`） |
 
 > 后续计划：Docker 首次启动可改为随机生成管理员密码，并仅写入 `credential.txt`。
 
@@ -171,12 +175,12 @@ octop service start   # Linux(systemd) / macOS(launchd) / Windows 服务
 **步骤 1：设置密码（可选）**
 
 - 首次配置需要一个临时「设置密码」作为保护（默认开启）。
-- 密码打印在启动终端，并写入服务器上的引导文件（常见为 `~/octop-login.txt`）。
+- 密码打印在启动终端，并写入产品家目录里的 `octop-login.txt`（`FREEOS_HOME` / `--home`，不是操作系统用户目录下的 `~/octop-login.txt`）。
 - 此步**不依赖**控制面数据库是否已打开。
 
 **步骤 2：选择控制面数据库**
 
-- 默认使用本地 **SQLite**（路径相对 `~/.octop/`，通常为 `octop.db`），点击「保存并继续」即可。
+- 默认使用本地 **SQLite**（路径相对产品家目录，通常为 `octop.db`），点击「保存并继续」即可。
 - 「展开更多」可配置 **PostgreSQL**（内测）：填写主机等并先「测试连接」，再「使用 PostgreSQL 并继续」。
 - 向导会把选择写入 `config.json` 的 `database` 段，并在服务进程内**首次绑定**连接池、跑迁移。
 - 也可事先用环境变量指定（见 [configuration.md](configuration.md) 的 `OCTOP_DATABASE_*`）；已有库文件的升级安装不会延后建连。

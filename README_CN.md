@@ -199,18 +199,18 @@ Octop 支持两个方向的 ACP 集成：
 
 **推荐：桌面安装包。** 从 [GitHub Releases](https://github.com/XYAIStudio/FreeOS/releases/latest) 下载 `FreeOS-desktop-*`，安装后打开 FreeOS。
 
-**命令行 / 源码**（安装本仓库脚本，不是上游 Octop）。打出版本标签之后，Release 说明会改成固定标签；当前用 `develop`：
+**命令行 / 源码**（安装本分支的脚本，不是上游 Octop，也不是 `develop` 上的旧脚本）：
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/XYAIStudio/FreeOS/develop/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/XYAIStudio/FreeOS/codex/freeos-0.1.0-upstream-foundation/scripts/install.sh | bash
 ```
 
 ```powershell
-irm https://raw.githubusercontent.com/XYAIStudio/FreeOS/develop/scripts/install.ps1 | iex
+irm https://raw.githubusercontent.com/XYAIStudio/FreeOS/codex/freeos-0.1.0-upstream-foundation/scripts/install.ps1 | iex
 ```
 
 ```bat
-curl -fsSL https://raw.githubusercontent.com/XYAIStudio/FreeOS/develop/scripts/install.bat -o install.bat
+curl -fsSL https://raw.githubusercontent.com/XYAIStudio/FreeOS/codex/freeos-0.1.0-upstream-foundation/scripts/install.bat -o install.bat
 install.bat
 ```
 
@@ -229,8 +229,8 @@ source ~/.bashrc  # Bash
 新安装会把 `octop` 加入 PATH（`~/.freeos/bin`）。可选附加组件：
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/XYAIStudio/FreeOS/develop/scripts/install.sh | bash -s -- --extras browser
-curl -fsSL https://raw.githubusercontent.com/XYAIStudio/FreeOS/develop/scripts/install.sh | bash -s -- --extras channels-feishu
+curl -fsSL https://raw.githubusercontent.com/XYAIStudio/FreeOS/codex/freeos-0.1.0-upstream-foundation/scripts/install.sh | bash -s -- --extras browser
+curl -fsSL https://raw.githubusercontent.com/XYAIStudio/FreeOS/codex/freeos-0.1.0-upstream-foundation/scripts/install.sh | bash -s -- --extras channels-feishu
 ```
 
 完整安装选项见 [scripts/README.md](scripts/README.md)（`--version`、`--from-source`、`--mirror` 及 Windows 参数）。
@@ -267,9 +267,11 @@ octop run --host 0.0.0.0 --port 8088
 octop service start
 ```
 
-打开 **http://127.0.0.1:8088**。Docker 首次初始化会自动生成随机管理员密码（写入 `/data/.octop/credential.txt`），除非设置了 `OCTOP_DEFAULT_PASSWORD`。交互式 `octop init` / 设置向导会让你自行设置密码（至少 8 位，且同时包含字母和数字）。向导模型步默认先选本机 Ollama；知识库默认走本机文件夹 + ONNX 向量，云厂商与 ima 是可选项。详见 [docs/user-guide.md](docs/user-guide.md)。
+打开 **http://127.0.0.1:8088**。交互式 `octop init` / 设置向导会让你自行设置密码（至少 8 位，且同时包含字母和数字）。向导密码文件在产品家目录里的 `octop-login.txt`（`FREEOS_HOME` / `--home`，不是操作系统用户目录）。向导模型步默认先选本机 Ollama；知识库默认走本机文件夹 + ONNX 向量，云厂商与 ima 是可选项。详见 [docs/user-guide.md](docs/user-guide.md)。
 
-### Docker（推荐用于生产部署）
+### Docker
+
+仓库里的 Compose 是**单进程 FreeOS**（不启动 Node sidecar）。`tests/unit/desktop/test_phase5_defaults.py` 与 `tests/unit/test_docker_compose_database_env.py` 锁定了这份文件的形状和环境变量。这不是单独认证过的生产配置；要用时按下面的家目录挂载。
 
 ```bash
 # 构建并启动
@@ -279,13 +281,15 @@ docker compose -f docker/docker-compose.yml up -d
 bash docker/docker_build.sh
 docker run -d \
   -p 8088:8088 \
-  -v octop-data:/data/.octop \
+  -v freeos-data:/data/.freeos \
   -e HOME=/data \
+  -e FREEOS_HOME=/data/.freeos \
+  -e OCTOP_HOME=/data/.freeos \
   -e OCTOP_DEFAULT_PASSWORD="<自定义强密码，留空则自动生成随机密码>" \
   octop:latest
 ```
 
-打开 `http://localhost:8088`。首次初始化会创建管理员账号，并把凭据写入容器内 `/data/.octop/credential.txt`。未设置 `OCTOP_DEFAULT_PASSWORD` 时自动生成随机强密码；自行设置的密码须 ≥8 位且同时包含字母和数字（被应用密码策略拒绝的常见弱密码会自动回退为随机密码）。可通过 `OCTOP_ADMIN_USERNAME` 覆盖用户名。
+打开 `http://localhost:8088`。首次初始化会创建管理员账号，并把凭据写入容器内 `/data/.freeos/credential.txt`。未设置 `OCTOP_DEFAULT_PASSWORD` 时自动生成随机强密码；自行设置的密码须 ≥8 位且同时包含字母和数字（被应用密码策略拒绝的常见弱密码会自动回退为随机密码）。可通过 `OCTOP_ADMIN_USERNAME` 覆盖用户名。
 
 > **密码策略：** 至少 8 位，且同时包含字母和数字。
 
@@ -294,7 +298,7 @@ docker run -d \
 | `OCTOP_PORT` | `8088` | HTTP 监听端口 |
 | `OCTOP_DEFAULT_PASSWORD` | _(未设置)_ | 首次运行管理员密码（Docker 引导）。未设置 = 自动生成随机密码并写入 `credential.txt` |
 | `OCTOP_ADMIN_USERNAME` | `admin` | 首次运行管理员用户名 |
-| `OCTOP_DATA` | `~/.octop` | 宿主机数据目录（compose 挂载） |
+| `OCTOP_DATA` | `~/.freeos` | 宿主机数据目录（compose 挂载到容器 `FREEOS_HOME`） |
 
 完整变量列表见 [`.env.example`](.env.example)。
 
@@ -331,8 +335,8 @@ docker run -d \
 | 方式 | 平台 | 说明 |
 |------|------|------|
 | GitHub Releases（推荐） | 全平台 | `FreeOS-desktop-*` 桌面安装包，以及 `freeos-<version>-py3-none-any.whl` / `freeos-<version>.tar.gz`。**不要** `pip install octop`（那是上游 PyPI 包） |
-| 本仓库脚本 | macOS / Linux | `bash scripts/install.sh`，或 `raw.githubusercontent.com/XYAIStudio/FreeOS/develop/scripts/install.sh` |
-| 本仓库脚本 | Windows | `scripts\install.ps1` / `install.bat`，或同路径的 develop raw 脚本 |
+| 本仓库脚本 | macOS / Linux | `bash scripts/install.sh`，或 `raw.githubusercontent.com/XYAIStudio/FreeOS/codex/freeos-0.1.0-upstream-foundation/scripts/install.sh` |
+| 本仓库脚本 | Windows | `scripts\install.ps1` / `install.bat`，或同分支的 raw 脚本 |
 | Docker | 全平台 | `docker/docker-compose.yml` |
 
 新安装的数据目录是 `~/.freeos`：脚本在 `~/.freeos/venv` 创建隔离环境，并用 `~/.freeos/bin/octop` 包装 CLI，不会影响系统 Python。若还没有 `~/.freeos`、但已经有 `~/.octop`，脚本和 CLI 继续用旧目录。`FREEOS_HOME` 优先于 `OCTOP_HOME`。桌面端不会把残留的 `~/.octop` 当成家目录。

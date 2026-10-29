@@ -14,9 +14,9 @@
 
 | 平台 | 命令 |
 |------|------|
-| macOS / Linux | `curl -fsSL https://raw.githubusercontent.com/XYAIStudio/FreeOS/develop/scripts/install.sh \| bash` |
-| Windows (PowerShell) | `irm https://raw.githubusercontent.com/XYAIStudio/FreeOS/develop/scripts/install.ps1 \| iex` |
-| Windows (cmd) | 下载 `https://raw.githubusercontent.com/XYAIStudio/FreeOS/develop/scripts/install.bat` 后运行 |
+| macOS / Linux | `curl -fsSL https://raw.githubusercontent.com/XYAIStudio/FreeOS/codex/freeos-0.1.0-upstream-foundation/scripts/install.sh \| bash` |
+| Windows (PowerShell) | `irm https://raw.githubusercontent.com/XYAIStudio/FreeOS/codex/freeos-0.1.0-upstream-foundation/scripts/install.ps1 \| iex` |
+| Windows (cmd) | 下载 `https://raw.githubusercontent.com/XYAIStudio/FreeOS/codex/freeos-0.1.0-upstream-foundation/scripts/install.bat` 后运行 |
 
 ### 本地脚本（仓库内）
 
