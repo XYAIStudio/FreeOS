@@ -39,12 +39,12 @@ def test_install_sh_backup_only_writes_archive_and_sha256(tmp_path: Path) -> Non
         "#!/bin/sh\n"
         "out=\n"
         "prev=\n"
-        "for arg in \"$@\"; do\n"
-        "  if [ \"$prev\" = \"-o\" ]; then out=$arg; fi\n"
+        'for arg in "$@"; do\n'
+        '  if [ "$prev" = "-o" ]; then out=$arg; fi\n'
         "  prev=$arg\n"
         "done\n"
-        "mkdir -p \"$(dirname \"$out\")\"\n"
-        "printf backup > \"$out\"\n",
+        'mkdir -p "$(dirname "$out")"\n'
+        'printf backup > "$out"\n',
         encoding="utf-8",
     )
     octop.chmod(0o755)
@@ -108,14 +108,20 @@ def test_install_sh_backup_failure_aborts(tmp_path: Path) -> None:
 
 
 def test_nsis_overwrite_backs_up_before_copying_files() -> None:
-    nsi = (REPO / "desktop" / "src" / "build" / "windows" / "nsis" / "project.nsi").read_text(encoding="utf-8")
-    tools = (REPO / "desktop" / "src" / "build" / "windows" / "nsis" / "wails_tools.nsh").read_text(encoding="utf-8")
+    nsi = (REPO / "desktop" / "src" / "build" / "windows" / "nsis" / "project.nsi").read_text(
+        encoding="utf-8"
+    )
+    tools = (REPO / "desktop" / "src" / "build" / "windows" / "nsis" / "wails_tools.nsh").read_text(
+        encoding="utf-8"
+    )
     backup = nsi.index("wails.backupBeforeOverwrite")
     files = nsi.index("wails.files", backup)
     assert backup < files
-    assert "Abort" in tools[tools.index("wails.backupBeforeOverwrite"):]
+    assert "Abort" in tools[tools.index("wails.backupBeforeOverwrite") :]
     assert "backup-before-overwrite.ps1" in tools
-    script = (REPO / "desktop" / "src" / "build" / "windows" / "nsis" / "backup-before-overwrite.ps1").read_text(encoding="utf-8")
+    script = (
+        REPO / "desktop" / "src" / "build" / "windows" / "nsis" / "backup-before-overwrite.ps1"
+    ).read_text(encoding="utf-8")
     assert "--include-chats" in script
     assert "Upgrade aborted: backup failed" in script
 
