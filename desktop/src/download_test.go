@@ -22,6 +22,11 @@ func TestMain(m *testing.M) {
 	if os.Getenv("OCTOP_DESKTOP_INSTALL_STAMP_FILE") == "" {
 		_ = os.Setenv("OCTOP_DESKTOP_INSTALL_STAMP_FILE", "")
 	}
+	// Upgrade tests ship a fake python, not a runnable interpreter. The real
+	// backup command is covered by the tests that replace this stub.
+	runPreUpgradeBackup = func(_, _, _, dest string) error {
+		return os.WriteFile(dest, []byte("backup"), 0o600)
+	}
 	os.Exit(m.Run())
 }
 
