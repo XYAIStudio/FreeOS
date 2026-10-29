@@ -1778,20 +1778,6 @@ function runMigrations() {
 
     saveDb();
     console.log("[迁移] 合同管理模块表已就绪");
-
-    // AI合同智能解析插件 - 为已有租户自动安装
-    const tenants = dbAll("SELECT DISTINCT tenant_id FROM users") as any[];
-    for (const t of tenants) {
-      const exists = dbGet("SELECT id FROM plugins WHERE tenant_id = ? AND slug = ?", [t.tenant_id, "ai合同智能解析"]);
-      if (!exists) {
-        dbRun(
-          `INSERT INTO plugins (tenant_id, name, slug, category, description, icon, version, author, price, tags, install_count, rating, status)
-           VALUES (?, 'AI合同智能解析', 'ai合同智能解析', '法务合规', '上传PDF/DOCX合同文档，AI自动提取合同信息与收/付款节点，一键入库', '🤖', '1.0.0', '雄元科技', '¥99/月', 'AI,合同,解析,文档', 0, 5.0, 'active')`,
-          [t.tenant_id]
-        );
-      }
-    }
-    saveDb();
   } catch (err) {
     console.error("[迁移] 合同管理模块 错误:", err);
   }
