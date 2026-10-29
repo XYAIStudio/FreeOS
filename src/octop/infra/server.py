@@ -527,7 +527,7 @@ class OctopServer:
         config = self.config
         if config is None:
             return
-        wizard_home = Path.home()
+        wizard_home = self.paths.root
         if config.require_setup_password:
             try:
                 new_pw = _wizard_pw.boot_self_heal(wizard_home, user_count=user_count)
@@ -543,15 +543,11 @@ class OctopServer:
                 "║  FreeOS first-run wizard password (one-time use):         ║\n"
                 f"║  {new_pw:<54}  ║\n"
                 "║  Open the dashboard and paste it into the setup wizard.  ║\n"
-                "║  File: ~/octop-login.txt                                   ║\n"
                 "╚══════════════════════════════════════════════════════════╝"
                 "\033[0m\n"
             )
             print(banner, flush=True)
-            logger.info(
-                "wizard password generated; file=%s",
-                wizard_home / WIZARD_FILE_NAME,
-            )
+            print(f"Wizard password file: {wizard_home / WIZARD_FILE_NAME}", flush=True)
 
     async def stop(self) -> None:
         if not self._started:

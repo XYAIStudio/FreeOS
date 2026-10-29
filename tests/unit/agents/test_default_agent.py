@@ -15,6 +15,8 @@ from octop.infra.agents.default_agent import (
 )
 from octop.infra.agents.experts.catalog import ExpertCatalog, default_library_root
 from octop.infra.errors import OctopError
+from octop.infra.utils.host_dirs import host_path_text
+from octop.infra.utils.paths import PathLayout
 
 
 @pytest.fixture(scope="module")
@@ -67,7 +69,8 @@ async def test_bootstrap_creates_general_assistant(
     assert spec.agent_id is None
     assert spec.template_name == DEFAULT_EXPERT_ID
     assert spec.config["backend"] == default_home_local_backend()
-    assert spec.config["backend"]["root_dir"] == _isolated_user_home.resolve().as_posix()
+    assert spec.config["backend"]["root_dir"] == host_path_text(PathLayout.from_env().root)
+    assert spec.config["backend"]["root_dir"] != _isolated_user_home.resolve().as_posix()
     assert registry.create.await_args.kwargs["defer_bootstrap"] is True
 
 
@@ -89,7 +92,8 @@ async def test_bootstrap_main_uses_home_backend(
 
     spec = registry.create.await_args.args[0]
     assert spec.config["backend"] == default_home_local_backend()
-    assert spec.config["backend"]["root_dir"] == _isolated_user_home.resolve().as_posix()
+    assert spec.config["backend"]["root_dir"] == host_path_text(PathLayout.from_env().root)
+    assert spec.config["backend"]["root_dir"] != _isolated_user_home.resolve().as_posix()
 
 
 async def test_bootstrap_requires_catalog() -> None:

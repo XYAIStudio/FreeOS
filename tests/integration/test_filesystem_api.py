@@ -96,13 +96,13 @@ async def test_ensure_bwrap_returns_status_shape(
 
 @pytest.mark.asyncio
 async def test_filesystem_defaults_for_admin(
-    env_admin_client: tuple[httpx.AsyncClient, dict[str, str]],
+    env: tuple[httpx.AsyncClient, Any, dict[str, str]],
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
-    from octop.infra.utils.host_dirs import host_fs_tree_root
+    from octop.infra.utils.host_dirs import host_fs_tree_root, host_path_text
 
-    client, auth = env_admin_client
+    client, srv, auth = env
     home = tmp_path / "os_home"
     home.mkdir()
     monkeypatch.setattr("octop.infra.utils.host_dirs.Path.home", lambda: home)
@@ -111,7 +111,7 @@ async def test_filesystem_defaults_for_admin(
     assert r.status_code == 200, r.text
     body = r.json()
     assert body["home"] == home.resolve().as_posix()
-    assert body["default_root_dir"] == home.resolve().as_posix()
+    assert body["default_root_dir"] == host_path_text(srv.paths.root)
     assert body["allow_outside_home"] is True
     assert body["tree_root"] == host_fs_tree_root(allow_outside_home=True)
 
@@ -122,10 +122,10 @@ async def test_non_admin_can_list_outside_home(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
-    from octop.infra.utils.host_dirs import host_fs_tree_root
+    from octop.infra.utils.host_dirs import host_fs_tree_root, host_path_text
     from tests.support.auth import create_user
 
-    client, _srv, admin_auth = env
+    client, srv, admin_auth = env
     home = tmp_path / "os_home"
     home.mkdir()
     outside = tmp_path / "outside"
@@ -138,7 +138,7 @@ async def test_non_admin_can_list_outside_home(
     assert defaults.status_code == 200, defaults.text
     body = defaults.json()
     assert body["allow_outside_home"] is True
-    assert body["default_root_dir"] == home.resolve().as_posix()
+    assert body["default_root_dir"] == host_path_text(srv.paths.root)
     assert body["tree_root"] == host_fs_tree_root(allow_outside_home=True)
 
     listed = await client.get(

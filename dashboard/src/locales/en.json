@@ -441,7 +441,9 @@
     "WORKSPACE_ROOT_RESTRICTED": "The selected storage root is outside the allowed directory for this account.",
     "TOKEN_QUOTA_EXCEEDED": "This account has reached its token quota. Please contact an administrator to raise the limit ({{used}}/{{quota}}).",
     "LOCAL_MODEL_REGISTER_FAILED": "Could not register the local model: {{reason}}",
-    "CONFIG_FILE_CORRUPT": "Cannot update {{path}}: the file is not valid JSON ({{detail}}). Fix the syntax and retry — no settings were changed."
+    "CONFIG_FILE_CORRUPT": "Cannot update {{path}}: the file is not valid JSON ({{detail}}). Fix the syntax and retry — no settings were changed.",
+    "HOME_WRITE_REFUSED": "Refusing to write into {{path}}. That directory already exists and is not inside the current home ({{home}}).",
+    "AGENT_SEED_EXISTS": "Refusing to seed the default agent over existing data at {{path}}."
   },
   "nav": {
     "chat": "Conversation",

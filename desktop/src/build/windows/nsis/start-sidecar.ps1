@@ -209,6 +209,7 @@ if (-not (Test-Path -LiteralPath $node)) { exit 6 }
 # $ErrorActionPreference = Continue the script keeps going and $home stays
 # the user profile root, so SQLite lands at %USERPROFILE%\org-os\...
 $freeosHome = $env:FREEOS_HOME
+if (-not $freeosHome) { $freeosHome = $env:OCTOP_HOME }
 if (-not $freeosHome) { $freeosHome = Join-Path $env:USERPROFILE '.freeos' }
 $data = Join-Path $freeosHome 'org-os'
 New-Item -ItemType Directory -Force -Path $data | Out-Null

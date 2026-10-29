@@ -108,8 +108,7 @@ def _validated_model_path(raw: str) -> Path:
 
 
 def _log_path() -> Path:
-    configured = os.environ.get("OCTOP_HOME", "").strip()
-    root = Path(configured).expanduser() if configured else Path.home() / ".octop"
+    root = PathLayout.from_env().root
     path = root / "logs" / "llama-sidecar.log"
     path.parent.mkdir(parents=True, exist_ok=True)
     return path

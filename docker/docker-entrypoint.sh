@@ -4,8 +4,8 @@
 #
 # 环境变量:
 #   HOME                      — 必须为 /data，使 ~/.octop 映射到数据卷
-#   FREEOS_HOME               — 产品家目录（可选；应用优先于 OCTOP_HOME）
-#   OCTOP_HOME                — 遗留别名。入口脚本仍用 ~/.octop 做首次 init
+#   FREEOS_HOME               — 产品家目录（优先于 OCTOP_HOME）
+#   OCTOP_HOME                — 遗留别名。未设置 FREEOS_HOME 时使用
 #   OCTOP_DEFAULT_PASSWORD    — 首次管理员密码（须 ≥8 位且含字母和数字；
 #                               不设置则自动生成随机密码，凭据写入
 #                               /data/.octop/credential.txt）
@@ -21,9 +21,25 @@
 set -euo pipefail
 
 export HOME="${HOME:-/data}"
-OCTOP_HOME="${HOME}/.octop"
-DB_FILE="${OCTOP_HOME}/octop.db"
-CREDENTIAL_FILE="${OCTOP_HOME}/credential.txt"
+# Honor an explicit product home. Otherwise follow PathLayout: an existing
+# ~/.freeos, an existing ~/.octop, else a new ~/.freeos. Do not ignore
+# FREEOS_HOME in favor of ${HOME}/.octop.
+if [ -n "${FREEOS_HOME:-}" ]; then
+    PRODUCT_HOME="$FREEOS_HOME"
+elif [ -n "${OCTOP_HOME:-}" ]; then
+    PRODUCT_HOME="$OCTOP_HOME"
+elif [ -d "${HOME}/.freeos" ]; then
+    PRODUCT_HOME="${HOME}/.freeos"
+elif [ -d "${HOME}/.octop" ]; then
+    PRODUCT_HOME="${HOME}/.octop"
+else
+    PRODUCT_HOME="${HOME}/.freeos"
+fi
+export FREEOS_HOME="$PRODUCT_HOME"
+export OCTOP_HOME="$PRODUCT_HOME"
+mkdir -p "$PRODUCT_HOME"
+DB_FILE="${PRODUCT_HOME}/octop.db"
+CREDENTIAL_FILE="${PRODUCT_HOME}/credential.txt"
 ADMIN_USERNAME="${OCTOP_ADMIN_USERNAME:-admin}"
 ADMIN_DISPLAY_NAME="${OCTOP_ADMIN_DISPLAY_NAME:-Admin}"
 PORT="${OCTOP_PORT:-8088}"

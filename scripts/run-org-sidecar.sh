@@ -15,9 +15,10 @@ fi
 mkdir -p "${DATA_DIR}"
 cd "${APP}"
 
-if [[ ! -f .env ]]; then
+# Secrets stay under the product home. Do not write .env into the source tree.
+if [[ ! -f "${DATA_DIR}/sidecar.env" ]]; then
   umask 077
-  cat > .env <<EOF
+  cat > "${DATA_DIR}/sidecar.env" <<EOF
 NODE_ENV=development
 PORT=${PORT}
 CORS_ORIGIN=http://127.0.0.1:18900,http://localhost:18900,http://127.0.0.1:5173,http://localhost:5173
@@ -25,11 +26,17 @@ JWT_SECRET=$(python3 -c 'import secrets; print(secrets.token_hex(32))')
 COOKIE_SECRET=$(python3 -c 'import secrets; print(secrets.token_hex(32))')
 AIR_GAP_MODE=true
 DB_DIALECT=sqlite
+DATABASE_PATH=${DATA_DIR}/xiongyuan.db
 ALLOW_PUBLIC_REGISTRATION=false
 SEED_DEMO_DATA=false
 EOF
-  echo "Wrote ${APP}/.env (local secrets; do not commit)."
+  echo "Wrote ${DATA_DIR}/sidecar.env"
 fi
+set -a
+# shellcheck disable=SC1091
+source "${DATA_DIR}/sidecar.env"
+set +a
+export DATABASE_PATH="${DATABASE_PATH:-${DATA_DIR}/xiongyuan.db}"
 
 if [[ ! -d node_modules ]]; then
   npm install

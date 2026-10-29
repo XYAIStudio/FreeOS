@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import os
 import stat
 from pathlib import Path
@@ -50,6 +51,22 @@ def test_read_password_returns_stored_value(tmp_path: Path) -> None:
 
 def test_read_password_returns_none_when_missing(tmp_path: Path) -> None:
     assert read_password(tmp_path) is None
+
+
+def test_boot_self_heal_logs_created_or_reused_without_password(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    with caplog.at_level(logging.INFO):
+        created = boot_self_heal(tmp_path, user_count=0)
+    assert created is not None
+    assert created not in caplog.text
+    assert "wizard password file created" in caplog.text
+    caplog.clear()
+    with caplog.at_level(logging.INFO):
+        reused = boot_self_heal(tmp_path, user_count=0)
+    assert reused == created
+    assert created not in caplog.text
+    assert "wizard password file reused" in caplog.text
 
 
 def test_boot_self_heal_generates_when_no_users(tmp_path: Path) -> None:

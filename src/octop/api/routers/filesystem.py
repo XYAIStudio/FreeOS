@@ -8,7 +8,7 @@ Security notes:
   ``/etc``, ``/root`` on POSIX). The process home is never denied (so uid 0
   with home ``/root`` can use the default picker path).
 - All authenticated users may browse from host root ``/`` (denylist still applies).
-  The UI default ``root_dir`` remains the process home directory.
+  The UI default ``root_dir`` is the FreeOS product home (``FREEOS_HOME`` / ``--home``).
 - Directory listing is capped and skips unreadable entries.
 - Write probe creates a short-lived dotfile only for non-``/`` selections.
 - mkdir / rename only allow basename-safe names under already-browsable parents.
@@ -73,8 +73,9 @@ async def filesystem_defaults(
     user: User = Depends(current_user),
     server: Any = Depends(get_server),
 ) -> dict[str, Any]:
-    """Return the process home path and browse-tree root (host ``/`` on POSIX)."""
+    """Return the OS profile path and the product-home default ``root_dir``."""
     home = host_path_text(host_home_dir())
+    product_home = host_path_text(server.paths.root)
     allowed = _user_workspace_root(server, user)
     if allowed:
         return {
@@ -85,7 +86,7 @@ async def filesystem_defaults(
         }
     return {
         "home": home,
-        "default_root_dir": home,
+        "default_root_dir": product_home,
         "allow_outside_home": True,
         "tree_root": host_fs_tree_root(allow_outside_home=True),
     }

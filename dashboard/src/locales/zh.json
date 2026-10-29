@@ -441,7 +441,9 @@
     "WORKSPACE_ROOT_RESTRICTED": "所选存储根目录超出了该账号允许的范围。",
     "TOKEN_QUOTA_EXCEEDED": "该账号已达到 token 配额上限，请联系管理员提升额度（{{used}}/{{quota}}）。",
     "LOCAL_MODEL_REGISTER_FAILED": "无法注册本地模型：{{reason}}",
-    "CONFIG_FILE_CORRUPT": "无法更新 {{path}}：该文件不是合法 JSON（{{detail}}）。请修正语法后重试；现有配置未被改动。"
+    "CONFIG_FILE_CORRUPT": "无法更新 {{path}}：该文件不是合法 JSON（{{detail}}）。请修正语法后重试；现有配置未被改动。",
+    "HOME_WRITE_REFUSED": "拒绝写入 {{path}}。该目录已存在，且不在当前家目录（{{home}}）之内。",
+    "AGENT_SEED_EXISTS": "拒绝把默认智能体播种到已有数据上：{{path}}。"
   },
   "nav": {
     "chat": "对话",
