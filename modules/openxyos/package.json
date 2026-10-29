@@ -32,7 +32,7 @@
     "audit:legacy-knowledge-files": "tsx scripts/audit-legacy-knowledge-files.ts",
     "ci": "npm run lint && npm run typecheck && npm test && npm run verify:open-source && npm run build",
     "start": "node --import tsx backend/server.ts",
-    "seed": "tsx backend/seed.ts",
+    "seed": "FREEOS_DEV_BUILD=1 tsx backend/seed.ts",
     "verify:open-source": "node scripts/verify-open-source.mjs",
     "test:module-settings": "tsx scripts/test-module-settings.ts",
     "test:agent-studio": "tsx scripts/test-agent-studio.ts",

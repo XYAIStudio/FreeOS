@@ -36,7 +36,7 @@ async function main() {
     colleague: dbGet("SELECT id FROM users WHERE email = ?", ["user@demo.com"]),
   });
   const before = snapshot();
-  for (let i = 0; i < 3; i += 1) seedDatabase();
+  for (let i = 0; i < 3; i += 1) await seedDatabase();
   assert.deepEqual(snapshot(), before);
   assert.equal(before.demo, undefined);
   assert.equal(before.users.password_hash, "hash-keep");

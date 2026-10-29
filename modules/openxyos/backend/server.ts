@@ -278,7 +278,7 @@ app.get("/admin/database", (req, res) => {
   });
 
   await initDatabase();
-  seedDatabase();
+  await seedDatabase();
 
   setupWebSocket(server);
 

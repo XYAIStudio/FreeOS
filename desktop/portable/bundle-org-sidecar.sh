@@ -125,6 +125,7 @@ build_openxyos() {
     rsync -a --delete \
       --exclude node_modules --exclude dist --exclude .git --exclude .github \
       --exclude backups --exclude dist-backup-20260626 --exclude V0.5 \
+      --exclude backend/dev --exclude 'scripts/test-*' \
       --include '.env.example' --exclude '.env' --exclude '.env.*' \
       --exclude '.freeos' --exclude '.octop' --exclude 'octop.db' --exclude '*.sqlite' \
       "${src}/" "${work}/"
@@ -134,6 +135,13 @@ import shutil, sys
 from pathlib import Path
 src, dest = Path(sys.argv[1]), Path(sys.argv[2])
 skip = {"node_modules", "dist", ".git", ".github", "backups", "dist-backup-20260626", "V0.5", ".freeos", ".octop"}
+def ignore(directory, names):
+    dropped = {name for name in names if name in skip}
+    if Path(directory).name == "backend":
+        dropped.add("dev")
+    if Path(directory).name == "scripts":
+        dropped.update(name for name in names if name.startswith("test-"))
+    return dropped
 for item in src.iterdir():
     if item.name in skip:
         continue
@@ -143,7 +151,7 @@ for item in src.iterdir():
         continue
     target = dest / item.name
     if item.is_dir():
-        shutil.copytree(item, target, ignore=shutil.ignore_patterns(*skip))
+        shutil.copytree(item, target, ignore=ignore)
     else:
         shutil.copy2(item, target)
 PY
