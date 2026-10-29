@@ -194,13 +194,10 @@ class ManagedOrganizationRuntime:
             port=port,
         )
         env = await asyncio.to_thread(sidecar_launch_env, self.home)
-        env.update(
-            {
-                "FREEOS_ORG_INTEGRATED": "1",
-                "FREEOS_ORG_LOCAL_TEST": "1",
-                "HOST": "127.0.0.1",
-            }
-        )
+        env["HOST"] = "127.0.0.1"
+        from octop.modules.org_os.sidecar_launch import apply_org_launch_flags  # noqa: PLC0415
+
+        apply_org_launch_flags(env)
         log_path = self.home / "logs" / "organization-runtime.log"
         await asyncio.to_thread(log_path.parent.mkdir, parents=True, exist_ok=True)
 

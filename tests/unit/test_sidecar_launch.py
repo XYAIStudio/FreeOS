@@ -304,8 +304,18 @@ def test_sidecar_launch_env_writes_secrets(tmp_path: Path) -> None:
     assert "FREEOS_INGEST_TOKEN=" in secrets
     assert env["FREEOS_INGEST_TOKEN"]
     assert env["FREEOS_ORG_INTEGRATED"] == "1"
-    assert env["FREEOS_ORG_LOCAL_TEST"] == "1"
+    assert "FREEOS_ORG_LOCAL_TEST" not in env
     assert env["HOST"] == "127.0.0.1"
+
+
+def test_sidecar_launch_env_local_test_requires_explicit_switch(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.delenv("FREEOS_ORG_LOCAL_TEST", raising=False)
+    monkeypatch.setenv("FREEOS_ORG_DEV_BOOTSTRAP", "1")
+    env = sidecar_launch_env(tmp_path, dashboard_port=8099)
+    assert env["FREEOS_ORG_INTEGRATED"] == "1"
+    assert env["FREEOS_ORG_LOCAL_TEST"] == "1"
 
 
 def test_sidecar_launch_env_merges_existing_cors(

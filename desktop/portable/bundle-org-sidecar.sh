@@ -220,7 +220,17 @@ export AIR_GAP_MODE=true
 export ALLOW_PUBLIC_REGISTRATION="${ALLOW_PUBLIC_REGISTRATION:-false}"
 export SEED_DEMO_DATA="${SEED_DEMO_DATA:-false}"
 export FREEOS_ORG_INTEGRATED="${FREEOS_ORG_INTEGRATED:-1}"
-export FREEOS_ORG_LOCAL_TEST="${FREEOS_ORG_LOCAL_TEST:-1}"
+org_local_test=0
+for value in "${FREEOS_ORG_DEV_BOOTSTRAP:-}" "${FREEOS_ORG_LOCAL_TEST:-}"; do
+  case "$(printf '%s' "$value" | tr '[:upper:]' '[:lower:]')" in
+    1|true|yes|on) org_local_test=1 ;;
+  esac
+done
+if [ "$org_local_test" = 1 ]; then
+  export FREEOS_ORG_LOCAL_TEST=1
+else
+  unset FREEOS_ORG_LOCAL_TEST || true
+fi
 export JWT_SECRET COOKIE_SECRET
 export CORS_ORIGIN="${CORS_ORIGIN:-http://127.0.0.1:8088,http://localhost:8088,http://127.0.0.1:18900,http://localhost:18900}"
 cd "${APP}"
@@ -262,7 +272,16 @@ set "AIR_GAP_MODE=true"
 if not defined ALLOW_PUBLIC_REGISTRATION set "ALLOW_PUBLIC_REGISTRATION=false"
 if not defined SEED_DEMO_DATA set "SEED_DEMO_DATA=false"
 if not defined FREEOS_ORG_INTEGRATED set "FREEOS_ORG_INTEGRATED=1"
-if not defined FREEOS_ORG_LOCAL_TEST set "FREEOS_ORG_LOCAL_TEST=1"
+set "ORG_LOCAL_TEST="
+if /I "%FREEOS_ORG_DEV_BOOTSTRAP%"=="1" set "ORG_LOCAL_TEST=1"
+if /I "%FREEOS_ORG_DEV_BOOTSTRAP%"=="true" set "ORG_LOCAL_TEST=1"
+if /I "%FREEOS_ORG_LOCAL_TEST%"=="1" set "ORG_LOCAL_TEST=1"
+if /I "%FREEOS_ORG_LOCAL_TEST%"=="true" set "ORG_LOCAL_TEST=1"
+if defined ORG_LOCAL_TEST (
+  set "FREEOS_ORG_LOCAL_TEST=1"
+) else (
+  set "FREEOS_ORG_LOCAL_TEST="
+)
 if not defined CORS_ORIGIN set "CORS_ORIGIN=http://127.0.0.1:8088,http://localhost:8088,http://127.0.0.1:18900,http://localhost:18900"
 cd /d "%APP%"
 "%NODE%" --import tsx backend/server.ts

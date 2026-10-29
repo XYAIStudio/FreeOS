@@ -301,7 +301,7 @@ func sidecarLaunchEnv(home string, dashboardPort int) (map[string]string, error)
 		"http://127.0.0.1:%d,http://localhost:%d,http://127.0.0.1:18900,http://localhost:18900,http://127.0.0.1:8088,http://localhost:8088,http://127.0.0.1:%d,http://localhost:%d,http://[::1]:%d",
 		dashboardPort, dashboardPort, defaultSidecarPort, defaultSidecarPort, defaultSidecarPort,
 	)
-	return map[string]string{
+	env := map[string]string{
 		"NODE_ENV":                  "production",
 		"PORT":                      strconv.Itoa(defaultSidecarPort),
 		"HOST":                      "127.0.0.1",
@@ -317,9 +317,25 @@ func sidecarLaunchEnv(home string, dashboardPort int) (map[string]string, error)
 		"FREEOS_HOME":               home,
 		"OCTOP_HOME":                home,
 		"FREEOS_ORG_SIDECAR_PORT":   strconv.Itoa(defaultSidecarPort),
-		"FREEOS_ORG_INTEGRATED":     "1",
-		"FREEOS_ORG_LOCAL_TEST":     "1",
-	}, nil
+		// Integrated mode is the real FreeOS organization bridge (distinct
+		// tenants, host identity). Demo accounts stay off unless a dev switch
+		// is already set in the parent environment.
+		"FREEOS_ORG_INTEGRATED": "1",
+	}
+	if orgLocalTestRequested() {
+		env["FREEOS_ORG_LOCAL_TEST"] = "1"
+	}
+	return env, nil
+}
+
+func orgLocalTestRequested() bool {
+	for _, key := range []string{"FREEOS_ORG_DEV_BOOTSTRAP", "FREEOS_ORG_LOCAL_TEST"} {
+		switch strings.ToLower(strings.TrimSpace(os.Getenv(key))) {
+		case "1", "true", "yes", "on":
+			return true
+		}
+	}
+	return false
 }
 
 func fileExists(path string) bool {
