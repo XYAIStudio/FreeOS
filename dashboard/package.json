@@ -55,7 +55,8 @@
     "@rollup/plugin-terser": "^1.0.0",
     "katex": "^0.19.0",
     "dompurify": "^3.4.16",
-    "vite": "^6.4.5"
+    "vite": "^6.4.5",
+    "deepmerge": "4.1.2"
   },
   "devDependencies": {
     "@eslint/js": "^9.25.0",
