@@ -70,29 +70,41 @@ function upsertBootstrapUser(opts: {
   role: string;
   tenantId: number;
   mustChange: boolean;
-  rotate: boolean;
 }): void {
-  const hash = bcrypt.hashSync(opts.password, 10);
   const existing = dbGet("SELECT id FROM users WHERE email = ?", [opts.email]);
-  if (!existing) {
-    dbRun(
-      "INSERT INTO users (email, password_hash, nickname, role, tenant_id, must_change_password) VALUES (?, ?, ?, ?, ?, ?)",
-      [opts.email, hash, opts.nickname, opts.role, opts.tenantId, opts.mustChange ? 1 : 0],
-    );
-    console.log(`[seed] local bootstrap account ${opts.email}`);
-    return;
-  }
-  if (opts.rotate) {
-    dbRun(
-      "UPDATE users SET password_hash = ?, must_change_password = 1 WHERE email = ?",
-      [hash, opts.email],
-    );
-    console.log(`[seed] rotated bootstrap password for ${opts.email}; change it on next sign-in`);
-  }
+  if (existing) return;
+  const hash = bcrypt.hashSync(opts.password, 10);
+  dbRun(
+    "INSERT INTO users (email, password_hash, nickname, role, tenant_id, must_change_password) VALUES (?, ?, ?, ?, ?, ?)",
+    [opts.email, hash, opts.nickname, opts.role, opts.tenantId, opts.mustChange ? 1 : 0],
+  );
+  console.log(`[seed] local bootstrap account ${opts.email}`);
 }
 
-/** First-run local accounts when demo seed is off (FreeOS desktop sidecar). */
+function devBootstrapRequested(): boolean {
+  for (const key of ["FREEOS_ORG_DEV_BOOTSTRAP", "FREEOS_ORG_LOCAL_TEST"]) {
+    const value = (process.env[key] || "").trim().toLowerCase();
+    if (value === "1" || value === "true" || value === "yes" || value === "on") return true;
+  }
+  return false;
+}
+
+function bootstrapMarkerPath(): string {
+  const dbPath = process.env.DATABASE_PATH || path.join(__dirname, "data/xiongyuan.db");
+  return path.join(path.dirname(dbPath), "local-bootstrap.done");
+}
+
+/** Dev-only first empty database. Release installs never create demo accounts. */
 export function ensureLocalBootstrap(): void {
+  if (!devBootstrapRequested()) return;
+  const marker = bootstrapMarkerPath();
+  if (fs.existsSync(marker)) return;
+  const userCount = dbGet("SELECT COUNT(*) as c FROM users") as { c?: number } | undefined;
+  if (userCount && Number(userCount.c) > 0) {
+    fs.mkdirSync(path.dirname(marker), { recursive: true });
+    fs.writeFileSync(marker, "skipped-existing-users\n", "utf8");
+    return;
+  }
   dbRun(
     "INSERT OR IGNORE INTO tenants (id, name, slug, status, plan) VALUES (1, ?, ?, 'active', 'community')",
     ["openXYOS", "openxyos"],
@@ -101,16 +113,12 @@ export function ensureLocalBootstrap(): void {
     "INSERT OR IGNORE INTO tenants (id, name, slug, status, plan) VALUES (2, ?, ?, 'active', 'community')",
     ["openXYOS 本地租户", "openxyos-local"],
   );
-  dbRun(
-    "UPDATE tenants SET status = 'active' WHERE id IN (1, 2) AND status NOT IN ('active', 'trial')",
-  );
 
   const demoExplicit = explicitSeedPassword("SEED_DEMO_PASSWORD");
   const adminExplicit = explicitSeedPassword("SEED_ADMIN_PASSWORD");
   const generated = demoExplicit && adminExplicit ? null : generatedBootstrapPassword();
   const demoPassword = demoExplicit ?? generated!.password;
   const adminPassword = adminExplicit ?? generated!.password;
-  const rotateGenerated = Boolean(generated?.created);
   const adminEmail = seedAdminEmail();
 
   upsertBootstrapUser({
@@ -120,7 +128,6 @@ export function ensureLocalBootstrap(): void {
     role: "admin",
     tenantId: 2,
     mustChange: demoExplicit === null,
-    rotate: demoExplicit === null && rotateGenerated,
   });
   upsertBootstrapUser({
     email: "user@demo.com",
@@ -129,7 +136,6 @@ export function ensureLocalBootstrap(): void {
     role: "user",
     tenantId: 2,
     mustChange: demoExplicit === null,
-    rotate: demoExplicit === null && rotateGenerated,
   });
   if (adminEmail !== "demo@demo.com") {
     upsertBootstrapUser({
@@ -139,9 +145,10 @@ export function ensureLocalBootstrap(): void {
       role: "super_admin",
       tenantId: 1,
       mustChange: adminExplicit === null,
-      rotate: adminExplicit === null && rotateGenerated,
     });
   }
+  fs.mkdirSync(path.dirname(marker), { recursive: true });
+  fs.writeFileSync(marker, "created\n", "utf8");
 }
 
 // 辅助：日期加月份 → ISO日期字符串
@@ -154,14 +161,13 @@ function addMonths(dateStr: string | null | undefined, months: number): string |
 
 export function seedDatabase() {
   if (process.env.FREEOS_ORG_INTEGRATED === "1") {
-    // The bundled organization environment is local and exploratory.  Create
-    // only local bootstrap accounts when FreeOS explicitly launches it as a
-    // test environment; never use a FreeOS account as its identity provider.
-    if (process.env.FREEOS_ORG_LOCAL_TEST === "1") ensureLocalBootstrap();
+    // Real installs keep their own accounts. Demo users exist only behind an
+    // explicit dev switch, and only on a database that has never had a user.
+    if (devBootstrapRequested()) ensureLocalBootstrap();
     return;
   }
   if (process.env.SEED_DEMO_DATA !== "true") {
-    console.log("[seed] Demo data is disabled. Local accounts are seeded only when FREEOS_ORG_LOCAL_TEST=1.");
+    console.log("[seed] Demo data is disabled. Release installs do not create demo@demo.com.");
     return;
   }
 
