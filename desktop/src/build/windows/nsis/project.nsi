@@ -135,6 +135,8 @@ Section
 
     !insertmacro wails.webview2runtime
 
+    !insertmacro wails.backupBeforeOverwrite
+
     SetOutPath $INSTDIR
 
     !insertmacro wails.files
