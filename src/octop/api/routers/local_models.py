@@ -39,7 +39,10 @@ from octop.infra.agents.providers.local_download import (
     list_download_jobs,
     start_download_job,
 )
-from octop.infra.agents.providers.local_probe import probe_local_models
+from octop.infra.agents.providers.local_probe import (
+    http_endpoint_reachable,
+    probe_local_models,
+)
 from octop.infra.agents.providers.local_register import (
     ensure_ollama_service_flag,
     find_ollama_row,
@@ -183,6 +186,16 @@ async def local_models_probe(
     server: Any = Depends(get_server),
 ) -> dict[str, Any]:
     payload = await asyncio.to_thread(probe_local_models)
+    if not payload.get("reachable_provider") and server.services is not None:
+        for row in server.services.provider_repo.list_all():
+            if not getattr(row, "enabled", 0):
+                continue
+            base = str(getattr(row, "base_url", "") or "").strip()
+            if not base:
+                continue
+            if await asyncio.to_thread(http_endpoint_reachable, base):
+                payload["reachable_provider"] = True
+                break
     registered = await asyncio.to_thread(load_registered, server.services.settings_repo)
     merged = _merge_registered(payload, registered)
     user_row = server.services.user_repo.get(user.id)

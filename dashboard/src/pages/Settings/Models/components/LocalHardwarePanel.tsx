@@ -655,6 +655,9 @@ export function LocalHardwarePanel({
   const ollamaUp = Boolean(hw?.ollama_reachable);
   const llamaCppInstalled = Boolean(hw?.llamacpp_binary);
   const llamaCppUp = Boolean(hw?.llamacpp_reachable);
+  const providerReachable = Boolean(
+    probe?.reachable_provider || hw?.ollama_reachable || llamaCppUp,
+  );
   const deps = probe?.deps ?? [];
   const models = useMemo(
     () => mergeModels(probe?.installed, scan?.found),
@@ -699,7 +702,15 @@ export function LocalHardwarePanel({
               : t("organization.off")}
           </Tag>
           <Tag
-            color={llamaCppUp ? "green" : llamaCppInstalled ? "blue" : "red"}
+            color={
+              llamaCppUp
+                ? "green"
+                : llamaCppInstalled
+                ? "blue"
+                : providerReachable
+                ? "default"
+                : "red"
+            }
           >
             {t("models.localBuiltinRuntime")}{" "}
             {llamaCppUp ? t("organization.on") : t("organization.off")}
@@ -751,15 +762,22 @@ export function LocalHardwarePanel({
           }
         />
       )}
-      {deps.some((dep) => dep.id === "llamacpp") && (
-        <Alert
-          type="error"
-          showIcon
-          style={{ marginBottom: 12 }}
-          message={t("models.localBuiltinMissing")}
-          description={t("models.localBuiltinMissingHelp")}
-        />
-      )}
+      {deps.some((dep) => dep.id === "llamacpp") &&
+        (providerReachable ? (
+          <Typography.Paragraph type="secondary" style={{ marginBottom: 12 }}>
+            {`${t("models.localBuiltinMissing")} — ${t(
+              "models.localBuiltinMissingHelp",
+            )}`}
+          </Typography.Paragraph>
+        ) : (
+          <Alert
+            type="error"
+            showIcon
+            style={{ marginBottom: 12 }}
+            message={t("models.localBuiltinMissing")}
+            description={t("models.localBuiltinMissingHelp")}
+          />
+        ))}
 
       <Button
         size="small"

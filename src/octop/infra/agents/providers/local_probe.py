@@ -6,6 +6,8 @@ import os
 import platform
 import shutil
 import subprocess
+import urllib.error
+import urllib.request
 from pathlib import Path
 from typing import Any
 
@@ -178,4 +180,25 @@ def probe_local_models() -> dict[str, Any]:
         ),
         "installed": discovered,
         "recommended": recommended_catalog(ram),
+        "reachable_provider": bool(ollama_up or llamacpp_up),
     }
+
+
+def http_endpoint_reachable(base_url: str, *, timeout: float = 2.0) -> bool:
+    """True when *base_url* answers an HTTP request (including 401/404).
+
+    Connection failures are not reachable. A response under 500 means the
+    provider process is up; this is a connectivity check, not a chat completion.
+    """
+    raw = (base_url or "").strip().rstrip("/")
+    if not raw.startswith(("http://", "https://")):
+        return False
+    target = raw if raw.endswith("/models") else f"{raw}/models"
+    request = urllib.request.Request(target, method="GET")
+    try:
+        with urllib.request.urlopen(request, timeout=timeout) as response:  # noqa: S310
+            return int(response.status) < 500
+    except urllib.error.HTTPError as exc:
+        return int(exc.code) < 500
+    except (OSError, TimeoutError, urllib.error.URLError, ValueError):
+        return False

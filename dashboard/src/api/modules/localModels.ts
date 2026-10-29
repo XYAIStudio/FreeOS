@@ -67,6 +67,8 @@ export interface LocalProbe {
   deps?: LocalDep[];
   installed: LocalInstalledModel[];
   recommended: LocalRecommendedModel[];
+  /** True after an HTTP connectivity check (Ollama, llama.cpp, or a provider base URL). */
+  reachable_provider?: boolean;
   default_ref?: string;
   default_provider_name?: string;
   default_model?: string;
