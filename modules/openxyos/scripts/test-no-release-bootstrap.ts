@@ -42,6 +42,18 @@ async function main() {
   assert.equal(before.users.password_hash, "hash-keep");
   assert.equal(before.tenant.status, "suspended");
   assert.equal(fs.existsSync(path.join(dir, "bootstrap-credentials.txt")), false);
+
+  dbRun(
+    "DELETE FROM reflections WHERE tenant_id = 1 AND employee_id = 0 AND (failure_reasons LIKE '%const 死区%' OR learned_knowledge LIKE '%部署铁律%')",
+  );
+  saveDb();
+  const reflectionCount = () =>
+    dbGet(
+      "SELECT COUNT(*) as c FROM reflections WHERE tenant_id = 1 AND employee_id = 0 AND (failure_reasons LIKE '%const 死区%' OR learned_knowledge LIKE '%部署铁律%')",
+    );
+  assert.equal(Number(reflectionCount().c), 0);
+  for (let i = 0; i < 3; i += 1) await initDatabase();
+  assert.equal(Number(reflectionCount().c), 0);
 }
 
 main().catch((error) => {
